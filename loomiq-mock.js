@@ -434,6 +434,50 @@
           (c.робіт && c.робіт !== c.нанесень ? ' · робіт ' + c.робіт : '') + '</span>' +
         '<button class="mko-x" data-mko-x>×</button></div>';
     }
+    /* Яка робота зараз «в руках»: та, чиє нанесення обране, а якщо нічого
+       не обрано — остання завантажена. Саме до неї й застосовується фон. */
+    function активна(){
+      var p = (places[бік] || [])[обране];
+      if(p && works[p.work]) return p.work;
+      return works.length ? works.length - 1 : -1;
+    }
+    var ФОН = [['none', 'Не прибирати'], ['local', 'Прибрати — вбудований'],
+               ['photoroom', 'Прибрати — PhotoRoom']];
+    function фонHtml(){
+      var i = активна();
+      if(i < 0) return '';
+      var w = works[i], cur = w.bg || 'none';
+      return '<div class="mko-bg"><span>Фон роботи' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
+        ФОН.map(function(f){
+          return '<button type="button" class="mko-bg-b' + (f[0] === cur ? ' on' : '') +
+            '" data-mko-bg="' + f[0] + '"' + (w.bgBusy ? ' disabled' : '') + '>' + esc(f[1]) + '</button>';
+        }).join('') +
+        (w.bgBusy ? '<i class="mko-bg-w">прибираю…</i>' : '') +
+      '</div>';
+    }
+    async function фон(mode){
+      var i = активна();
+      if(i < 0) return;
+      var w = works[i];
+      if((w.bg || 'none') === mode || w.bgBusy) return;
+      if(!w.orig) w.orig = w.url;
+      w.bgBusy = true; малюй();
+      var out = null;
+      try{ out = await removeBg(w.orig, mode); }
+      catch(e){
+        console.warn('фон', e);
+        w.bgBusy = false; малюй();
+        return say(mode === 'photoroom'
+          ? 'PhotoRoom не відповів — перевірте адресу Worker у налаштуваннях або спробуйте вбудований'
+          : 'Фон не прибрався — картинка з чужого домену або пошкоджена');
+      }
+      var im = await img(out);
+      w.bgBusy = false;
+      if(!im){ малюй(); return say('Картинка після прибирання фону не відкрилась'); }
+      w.url = out; w.bg = mode;
+      арт[i] = im;
+      малюй();
+    }
     function малюй(){
       var pl = places[бік] || [];
       el.innerHTML =
@@ -446,6 +490,7 @@
             }).join('') +
             '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>' +
           '</div>' +
+          фонHtml() +
           '<div class="mko-tabs">' + сторони.map(function(s){
             var n = (places[s.key] || []).length;
             return '<button type="button" class="mko-tab' + (s.key === бік ? ' on' : '') +
@@ -628,6 +673,8 @@
         return малюй();
       }
       if(t.closest && t.closest('[data-mko-up]')) return вантажити();
+      var bgb = t.closest && t.closest('[data-mko-bg]');
+      if(bgb) return фон(bgb.getAttribute('data-mko-bg'));
       if(t.closest && t.closest('[data-mko-caltoggle]')){
         режим = режим === 'cal' ? 'art' : 'cal';
         if(режим === 'art' && HOST.calSave){
@@ -923,6 +970,199 @@
   }
 
 
+  /* ══════════ ПРИБРАТИ ФОН З РОБОТИ ══════════
+
+     Андрій: «коли завантажуємо дизайн, повинен бути вибір… не видаляти фон,
+     видалити фон внутрішнім інструментом, видалити фон зовнішнім». Клієнт
+     часто шле логотип на білому чи кольоровому тлі, і без цього на мокапі
+     видно прямокутник замість нашивки.
+
+     Вбудований — той самий алгоритм, що й у конструкторі сайту (копія:
+     конструктор живе в іншій сторінці й свого назовні не віддає).
+     PhotoRoom — через наш Worker-проксі; ключ лежить лише в секретах
+     Worker, сюди приходить тільки його адреса з налаштувань. */
+  function loadImgEl(src){
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      if(!/^data:/i.test(String(src))) img.crossOrigin = 'anonymous';
+      img.onload = function(){ resolve(img); };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+  function toDataUrl(src){
+    if(/^data:/i.test(String(src))) return Promise.resolve(String(src));
+    return fetch(src).then(function(r){ return r.blob(); }).then(function(b){
+      return new Promise(function(res, rej){
+        var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = rej;
+        fr.readAsDataURL(b);
+      });
+    });
+  }
+  function removeBgLocal(dataUrl){
+    return loadImgEl(dataUrl).then(function(img){
+      var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+      var canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      var corners = [
+        ctx.getImageData(0,     0,     1, 1).data,
+        ctx.getImageData(W - 1, 0,     1, 1).data,
+        ctx.getImageData(0,     H - 1, 1, 1).data,
+        ctx.getImageData(W - 1, H - 1, 1, 1).data
+      ];
+      var cornersTransparent = corners.some(function(p){ return p[3] < 128; });
+
+      var imageData = ctx.getImageData(0, 0, W, H);
+      var px = imageData.data;
+      var THR = 220;            // поріг "майже білого"
+      var TOL = 40;             // допуск по каналах навколо кольору фону
+      var visited = new Uint8Array(W * H);
+      var NB = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      // Чи прибирати білі просвіти всередині букв: тільки коли дизайн "темне-на-світлому".
+      // Для білого лого на темному/прозорому фоні білий — це сам логотип, його не чіпаємо.
+      var removeCounters = false;
+
+      // ── Заливка від країв (лише якщо є суцільний непрозорий фон) ──
+      if(!cornersTransparent){
+        // реальний колір фону з кутів (білий ТА сірий/кольоровий)
+        var br = 0, bgc = 0, bb = 0;
+        corners.forEach(function(c){ br += c[0]; bgc += c[1]; bb += c[2]; });
+        br /= 4; bgc /= 4; bb /= 4;
+        var bgAvg = (br + bgc + bb) / 3;
+        var bgMax = Math.max(br, bgc, bb);
+        var bgIsLight = bgAvg > 180;
+        removeCounters = bgIsLight;
+        var isWhiteBg = function(pos){
+          var i = pos * 4;
+          if(px[i + 3] < 10) return true;
+          var r = px[i], g = px[i + 1], b = px[i + 2];
+          // "майже білий = фон" лише на світлому фоні (інакше з'їдало б біле лого на темному)
+          if(bgIsLight && r > THR && g > THR && b > THR) return true;
+          return Math.abs(r - br) <= TOL && Math.abs(g - bgc) <= TOL && Math.abs(b - bb) <= TOL;
+        };
+        var seeds = [];
+        for(var x = 0; x < W; x++){
+          [0, H - 1].forEach(function(y){
+            var p = y * W + x;
+            if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
+          });
+        }
+        for(var y = 1; y < H - 1; y++){
+          [0, W - 1].forEach(function(x2){
+            var p = y * W + x2;
+            if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
+          });
+        }
+        var head = 0;
+        while(head < seeds.length){
+          var pos = seeds[head++];
+          var cx0 = pos % W, cy0 = (pos / W) | 0;
+          for(var k = 0; k < 4; k++){
+            var nx = cx0 + NB[k][0], ny = cy0 + NB[k][1];
+            if(nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+            var npos = ny * W + nx;
+            if(!visited[npos] && isWhiteBg(npos)){ visited[npos] = 1; seeds.push(npos); }
+          }
+        }
+        // Фаза 2: замкнені "кишені" сірого/кольорового фону (білий вміст захищений)
+        if(bgMax < 244){
+          var POCKET_TOL = 18;
+          for(var i2 = 0; i2 < W * H; i2++){
+            if(visited[i2]) continue;
+            var j = i2 * 4;
+            if(px[j + 3] < 10){ visited[i2] = 1; continue; }
+            var r2 = px[j], g2 = px[j + 1], b2 = px[j + 2];
+            var matchesBg = Math.abs(r2 - br) <= POCKET_TOL && Math.abs(g2 - bgc) <= POCKET_TOL && Math.abs(b2 - bb) <= POCKET_TOL;
+            var brighterThanBg = (r2 + g2 + b2) / 3 > bgAvg + 10;
+            if(matchesBg && !brighterThanBg) visited[i2] = 1;
+          }
+        }
+      } else {
+        // Прозорий фон: вирізати просвіти лише якщо вміст переважно ТЕМНИЙ (темне лого).
+        var bsum = 0, bcnt = 0;
+        for(var q = 0; q < W * H; q++){
+          if(px[q * 4 + 3] >= 10){ bsum += (px[q*4] + px[q*4+1] + px[q*4+2]) / 3; bcnt++; }
+        }
+        removeCounters = bcnt > 0 && (bsum / bcnt) < 140;
+      }
+
+      // ── Фаза 3: замкнені майже-білі просвіти всередині букв (О, В, А, Q…) —
+      // лише для "темне-на-світлому". Видаляємо замкнену (не до краю) майже-білу
+      // ділянку, оточену непрозорим вмістом. Прозорі сусіди не рахуються.
+      var isNearWhite = function(idx){
+        var jj = idx * 4;
+        return px[jj + 3] >= 10 && px[jj] > 200 && px[jj + 1] > 200 && px[jj + 2] > 200;
+      };
+      var OPAQUE_FRAC = 0.5;   // межа просвіту переважно з непрозорого вмісту → це дірка в букві
+      if(removeCounters){
+        var comp = new Int32Array(W * H); comp.fill(-1);
+        for(var s = 0; s < W * H; s++){
+          if(visited[s] || comp[s] !== -1 || !isNearWhite(s)) continue;
+          var stack = [s]; comp[s] = s;
+          var members = [s];
+          var opaqueBorder = 0, totalBorder = 0, touchesEdge = false, h2 = 0;
+          while(h2 < stack.length){
+            var pp = stack[h2++];
+            var xx = pp % W, yy = (pp / W) | 0;
+            if(xx === 0 || yy === 0 || xx === W - 1 || yy === H - 1) touchesEdge = true;
+            for(var kk = 0; kk < 4; kk++){
+              var nx2 = xx + NB[kk][0], ny2 = yy + NB[kk][1];
+              if(nx2 < 0 || nx2 >= W || ny2 < 0 || ny2 >= H) continue;
+              var np = ny2 * W + nx2;
+              if(isNearWhite(np)){
+                if(comp[np] === -1){ comp[np] = s; stack.push(np); members.push(np); }
+              } else {
+                totalBorder++;
+                if(px[np * 4 + 3] >= 10) opaqueBorder++;   // непрозорий сусід (= обведення букви)
+              }
+            }
+          }
+          // замкнений (не торкається краю) білий просвіт, оточений непрозорим вмістом → прибрати
+          if(!touchesEdge && totalBorder > 0 && opaqueBorder / totalBorder >= OPAQUE_FRAC){
+            members.forEach(function(m){ visited[m] = 1; });
+          }
+        }
+      }
+
+      for(var i3 = 0; i3 < W * H; i3++){
+        if(visited[i3]) px[i3 * 4 + 3] = 0;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      return canvas.toDataURL('image/png');
+    });
+  }
+  function removeBgPhotoroom(dataUrl){
+    var url = String((HOST.bgUrl && HOST.bgUrl()) || '').trim();
+    if(!/^https:\/\//i.test(url)) return Promise.reject(new Error('no-proxy'));
+    return fetch(dataUrl).then(function(r){ return r.blob(); }).then(function(blob){
+      var ctrl = new AbortController();
+      var timer = setTimeout(function(){ ctrl.abort(); }, 25000);
+      return fetch(url, { method:'POST', headers:{ 'Content-Type': blob.type || 'image/png' },
+                          body: blob, signal: ctrl.signal })
+        .then(function(r){
+          clearTimeout(timer);
+          if(!r.ok) throw new Error('api-' + r.status);
+          return r.blob();
+        });
+    }).then(function(out){
+      if(!out || !/^image\//.test(out.type || '')) throw new Error('api-bad-type');
+      return new Promise(function(res, rej){
+        var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = rej;
+        fr.readAsDataURL(out);
+      });
+    });
+  }
+  /* mode: 'none' | 'local' | 'photoroom'. Повертає data-URL або вихідну адресу. */
+  function removeBg(src, mode){
+    if(mode !== 'local' && mode !== 'photoroom') return Promise.resolve(src);
+    return toDataUrl(src).then(function(d){
+      return mode === 'photoroom' ? removeBgPhotoroom(d) : removeBgLocal(d);
+    });
+  }
+
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
@@ -930,6 +1170,6 @@
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */
-    widthCm: widthCm, calOf: calOf, см: см
+    widthCm: widthCm, calOf: calOf, см: см, removeBg: removeBg
   };
 })();
