@@ -3519,6 +3519,13 @@
     letter-spacing:-.01em;color:var(--ink);background:var(--paper);}
   .dz-state{font-weight:600;font-size:11.5px;color:var(--ink-soft);background:var(--canvas);
     border-radius:var(--r-pill);padding:4px 10px;letter-spacing:0;}
+  /* Номер і стан — однією колонкою: «де воно зараз» читається разом із
+     номером, а не між ним і строком. Слово те саме, що й на колонці дошки,
+     і крапка того ж кольору, що у воронці. */
+  .dz-panel-id{display:flex;flex-direction:column;align-items:flex-start;gap:5px;
+    min-width:0;}
+  .dz-panel-id > b{font-weight:700;}
+  .dz-panel-id .dz-state{display:inline-flex;align-items:center;gap:6px;}
   /* Клієнт — перший рядок тіла. Головне не «яка це задача», а «чиє це
      замовлення»: саме з цього питання починається будь-яка розмова про
      нього. */
@@ -6458,19 +6465,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b287a78289"></script>
-<script src="loomiq-fingerprint.js?v=b287a78289"></script>
-<script src="loomiq-pricing.js?v=b287a78289"></script>
+<script src="loomiq-select.js?v=f17cc9445a"></script>
+<script src="loomiq-fingerprint.js?v=f17cc9445a"></script>
+<script src="loomiq-pricing.js?v=f17cc9445a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b287a78289"></script>
-<script src="loomiq-mock.js?v=b287a78289"></script>
+<script src="loomiq-design.js?v=f17cc9445a"></script>
+<script src="loomiq-mock.js?v=f17cc9445a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b287a78289"></script>
+<script src="loomiq-cards.js?v=f17cc9445a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6495,7 +6502,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b287a78289';
+var LQ_VER = 'f17cc9445a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
