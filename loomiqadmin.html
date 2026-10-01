@@ -5715,6 +5715,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <textarea id="b2c-note" rows="3" style="width:100%;max-width:640px;"
           placeholder="Колір виробу на екрані може відрізнятись від тканини: монітори передають відтінки по-різному. Розміри нанесення вказані з точністю до сантиметра."></textarea>
 
+        <div class="tl-divider" style="margin-top:22px;">Заголовок картки макета</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Великим зверху на картці, яку надсилаємо клієнту. Порожньо — «Макет на узгодження».
+        </div>
+        <input id="b2c-cardtitle" type="text" maxlength="60" style="width:100%;max-width:640px;"
+          placeholder="Макет на узгодження">
+
         <div class="tl-divider" style="margin-top:22px;">Строки етапів</div>
         <div class="sub" style="margin-bottom:8px;">
           Скільки <b>годин</b> дається кожному, хто бере роботу в руки. Це НЕ строк
@@ -6788,19 +6795,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a228fd8144"></script>
-<script src="loomiq-fingerprint.js?v=a228fd8144"></script>
-<script src="loomiq-pricing.js?v=a228fd8144"></script>
+<script src="loomiq-select.js?v=fc8683c22c"></script>
+<script src="loomiq-fingerprint.js?v=fc8683c22c"></script>
+<script src="loomiq-pricing.js?v=fc8683c22c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a228fd8144"></script>
-<script src="loomiq-mock.js?v=a228fd8144"></script>
+<script src="loomiq-design.js?v=fc8683c22c"></script>
+<script src="loomiq-mock.js?v=fc8683c22c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a228fd8144"></script>
+<script src="loomiq-cards.js?v=fc8683c22c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6825,7 +6832,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a228fd8144';
+var LQ_VER = 'fc8683c22c';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9635,6 +9642,7 @@ async function shiftSet(email, iso, off){
   try{ await PHOTOS_DOC.set({ shifts: all }, { merge:true }); }
   catch(e){ console.error('графік', e); toast('Графік не зберігся'); }
 }
+const B2C_CARD_TITLE = 'Макет на узгодження';
 function b2cCfg(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return { extras: Array.isArray(c.extras) ? c.extras : [],
@@ -9658,7 +9666,9 @@ function b2cCfg(){
            /* Примітка на картці макета. Порожньої не буває: якщо її не
               заповнили, беремо ту, яку й доти писали руками, — інакше
               картка поїде клієнту без застереження про колір. */
-           note: String(c.note || '').trim() || B2C_NOTE };
+           note: String(c.note || '').trim() || B2C_NOTE,
+           /* Заголовок картки макета. Андрій ще думає над назвою — тож поле. */
+           cardTitle: String(c.cardTitle || '').trim() || B2C_CARD_TITLE };
 }
 function paintB2c(){
   const c = b2cCfg();
@@ -9668,6 +9678,8 @@ function paintB2c(){
   paintB2cTerms();
   const n = document.getElementById('b2c-note');
   if(n) n.value = (c.note === B2C_NOTE) ? '' : c.note;
+  const ct = document.getElementById('b2c-cardtitle');
+  if(ct) ct.value = (c.cardTitle === B2C_CARD_TITLE) ? '' : c.cardTitle;
   paintB2cPrices();
 }
 /* Пʼять рядків, по одному на етап. Порожнє поле означає заготовку й
@@ -9790,6 +9802,7 @@ function retailCost(gid){
     const days = Math.max(0, Math.round(parseFloat(document.getElementById('b2c-days').value) || 0));
     const terms = readB2cTerms();
     const note = String((document.getElementById('b2c-note') || {}).value || '').trim();
+    const cardTitle = String((document.getElementById('b2c-cardtitle') || {}).value || '').trim().slice(0, 60);
     /* `dzHours` лишається записаним тим самим числом, що й строк графіки:
        його читають старі збірки, які ще можуть бути відкриті в сусідній
        вкладці, і мовчки змінити їм строк було б гірше за зайве поле. */
@@ -9799,7 +9812,7 @@ function retailCost(gid){
                   terms: Object.keys(terms).length ? terms : null,
                   dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
                   dzHours: terms.graphic || null,
-                  note: note || null };
+                  note: note || null, cardTitle: cardTitle || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
        б невідомо, яке справжнє. */
@@ -27482,6 +27495,7 @@ function openDesign(){
       .map(p => ({ email:p.email, name:p.name || p.email })),
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
+    cardTitle: () => b2cCfg().cardTitle,
     /* Наші контакти для шапки аркуша — ті самі, що в комерційній
        пропозиції. Аркуш доходить до цеху й до підрядника, і питання «а це
        від кого» має отримати відповідь на самому аркуші. */

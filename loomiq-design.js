@@ -6638,19 +6638,23 @@
     var vp = D.verParts(ver);
     return await window.LQMock.card({
       art: (vp.work[0] || {}).url, mock: (vp.mock[0] || {}).url,
-      title: U.unitNo(job, u) + ' · версія ' + (ver ? ver.n : 1),
+      /* Заголовок — один на всі картки, з налаштувань B2C: Андрій ще
+         думає над назвою, і міняти її має бути полем, а не правкою коду. */
+      title: (function(){
+        try{ return (host().cardTitle && host().cardTitle()) || 'Макет на узгодження'; }
+        catch(e){ return 'Макет на узгодження'; }
+      })(),
+      no: U.unitNo(job, u),
+      /* Опис замовлення — як в описі картки B2B: модель, колір, розмір,
+         кількість, тип і розмір нанесення. У B2C усе йде через вишивку. */
       nums: [
-        ['Виріб', (g && g.name) || u.name || '—'],
+        ['Модель', (g && g.name) || u.name || '—'],
         ['Колір', u.color || '—'],
         ['Розмір', u.size || '—'],
         ['Кількість', (+u.qty || 0) + ' шт'],
-        ['Нанесення', pl.wCm ? (мсм(pl.wCm) + ' × ' + мсм(pl.hCm)) : '—']
+        ['Нанесення', 'Вишивка'],
+        ['Розмір нанесення', pl.wCm ? (мсм(pl.wCm) + ' × ' + мсм(pl.hCm)) : '—']
       ],
-      wideCm: window.LQMock.widthCm(u.gid, pl.size || u.size),
-      artCm: pl.wCm || 0, sideCm: pl.sideCm || 0,
-      contacts: (function(){
-        try{ return (host().contacts && host().contacts()) || []; }catch(e){ return []; }
-      })(),
       note: note || (function(){
         try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
       })()

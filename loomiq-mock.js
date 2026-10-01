@@ -808,168 +808,125 @@
     var ww = im.width * k, hh = im.height * k;
     x.drawImage(im, a + (w - ww) / 2, b + (h - hh) / 2, ww, hh);
   }
-  /* Акцентний колір — із самого макета. Той самий прийом, що в картці
-     пропозиції: аркуш береться в кольори роботи, а не в наші фірмові, і
-     виглядає як частина замовлення, а не як бланк. */
-  function accentOf(im){
-    if(!im) return '#7C3AED';
-    try{
-      var c = document.createElement('canvas');
-      var n = 24; c.width = n; c.height = n;
-      var x = c.getContext('2d');
-      x.drawImage(im, 0, 0, n, n);
-      var d = x.getImageData(0, 0, n, n).data;
-      var best = null, bestS = 0;
-      for(var i = 0; i < d.length; i += 4){
-        if(d[i + 3] < 200) continue;
-        var r = d[i], g = d[i + 1], b = d[i + 2];
-        var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-        if(mx < 40 || mx > 235) continue;          // майже чорне й майже біле — не колір
-        var s2 = (mx - mn) / (mx || 1);
-        if(s2 > bestS){ bestS = s2; best = [r, g, b]; }
-      }
-      if(!best || bestS < 0.22) return '#7C3AED';
-      return 'rgb(' + best[0] + ',' + best[1] + ',' + best[2] + ')';
-    }catch(e){ return '#7C3AED'; }
-  }
-  /* ══════════════════════════════════════════════════════════════════════
-     АРКУШ МАКЕТА
-
-     Стиль узятий із картки комерційної пропозиції — тієї, яку вже качають у
-     B2B. Це не наслідування заради наслідування: обидва аркуші виходять від
-     нас до клієнта й до цеху, часто в одному листуванні, і різний вигляд
-     читався б як різні компанії. Шапка з нашими контактами, акцентна риска,
-     підписи капітеллю, значення великим — усе те саме, з тими самими
-     розмірами й кольорами.
-
-     Відрізняється те, що відрізняється по суті: тут не ціни, а робота —
-     макет, мокап на виробі, розміри нанесення й примітка.
-     ══════════════════════════════════════════════════════════════════════ */
+  /* Ширина аркуша — та сама, що в картці комерційної пропозиції. */
   var DOC_W = 1240;
-  function header(x, logo, accent, title, contacts){
-    x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, 168);
-    if(logo) fit(x, logo, 64, 44, 150, 80);
-    else {
-      x.fillStyle = accent; x.font = '700 34px Inter, system-ui, sans-serif';
-      x.textAlign = 'left'; x.fillText('Loomiq', 64, 96);
-    }
-    var lines = (contacts || []).slice(0, 4);
-    x.textAlign = 'right';
-    x.fillStyle = '#0F2034'; x.font = '700 15px Inter, system-ui, sans-serif';
-    x.fillText('Loomiq · виробництво мерчу', DOC_W - 64, 56);
-    x.fillStyle = '#7C8798'; x.font = '400 13px Inter, system-ui, sans-serif';
-    lines.forEach(function(t, i){ x.fillText(String(t), DOC_W - 64, 80 + i * 19); });
-    x.textAlign = 'left';
-    x.fillStyle = accent; x.fillRect(64, 148, DOC_W - 128, 3);
-    x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
-    x.fillText(String(title || '').toUpperCase(), 64, 140);
+  /* ══════════ КАРТКА «НА ПОГОДЖЕННЯ» ══════════
+
+     Андрій (30.09–01.10): шапку прибираємо зовсім — ні «Loomiq ·
+     виробництво мерчу», ні контактів, ні лінії; зверху заголовок, справа
+     лише номер; над рамками дрібно «Макет» і «Макет на виробі», на самих
+     картинках нічого; фото підрізаються, як у картках B2B; унизу — опис
+     замовлення (модель, колір, розмір, кількість, тип і розмір нанесення) і
+     примітка; смужки «ширина виробу» й ціни немає. */
+  /* Кадр — як у картках B2B: цілим, зі своїм рідним тлом, і заповнює рамку
+     до країв (жодного «прямокутника фото» всередині рамки). Масштаб такий,
+     щоб виріб (обрізані межі кадру) вліз із невеликим запасом, а сам кадр
+     перекрив рамку; центруємо по виробу, а не по файлу — поля в мокапах
+     несиметричні. */
+  function framed(x, im, a, b, w, h){
+    if(!im) return;
+    var C = window.LQCards || {};
+    var t = (C.trim && C.trim(im)) || { x:0, y:0, w:im.width, h:im.height };
+    var tint = (C.tint && C.tint(im)) || '#F7F9FC';
+    x.save();
+    round(x, a, b, w, h, 16); x.clip();
+    x.fillStyle = tint; x.fillRect(a, b, w, h);
+    var kFit = Math.min(w / t.w, h / t.h) * 0.9;
+    var kCover = Math.max(w / im.width, h / im.height);
+    var k = Math.max(kFit, kCover);
+    /* Виріб усе одно не різати: якщо покриття роздуло б його за рамку —
+       повертаємось до «вліз цілком», а краї рамки візьме тло. */
+    if(t.w * k > w || t.h * k > h) k = Math.min(w / t.w, h / t.h);
+    var cx = t.x + t.w / 2, cy = t.y + t.h / 2;
+    var dx = a + w / 2 - cx * k, dy = b + h / 2 - cy * k;
+    /* Кадр не відриваємо від країв рамки, якщо його вистачає. */
+    var iw = im.width * k, ih = im.height * k;
+    if(iw >= w){ dx = Math.min(a, Math.max(a + w - iw, dx)); }
+    if(ih >= h){ dy = Math.min(b, Math.max(b + h - ih, dy)); }
+    /* Кадр вужчий (чи нижчий) за рамку — смуги по краях заповнюємо
+       продовженням його ж крайніх пікселів: тло йде далі без шва, і рамка
+       не перетворюється на «фото в паспарту». */
+    var e = 2;
+    if(dx > a) x.drawImage(im, 0, 0, e, im.height, a, dy, dx - a + 1, ih);
+    if(dx + iw < a + w) x.drawImage(im, im.width - e, 0, e, im.height, dx + iw - 1, dy, a + w - dx - iw + 1, ih);
+    if(dy > b) x.drawImage(im, 0, 0, im.width, e, a, b, w, dy - b + 1);
+    if(dy + ih < b + h) x.drawImage(im, 0, im.height - e, im.width, e, a, dy + ih - 1, w, b + h - dy - ih + 1);
+    x.drawImage(im, dx, dy, iw, ih);
+    x.restore();
   }
-  /* Підпис капітеллю, значення великим — рядок характеристик, як у КП. */
-  function specs(x, items, y, accent){
-    var colW = (DOC_W - 128) / Math.max(1, Math.min(items.length, 5));
-    items.slice(0, 5).forEach(function(s, i){
-      var sx = 64 + i * colW;
+  /* Опис — сіткою по три в ряд: підпис капітеллю, значення великим. */
+  function specsGrid(x, items, y){
+    var cols = 3, colW = (DOC_W - 128) / cols, rowH = 64;
+    items.forEach(function(s, i){
+      var sx = 64 + (i % cols) * colW, sy = y + Math.floor(i / cols) * rowH;
       x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
-      x.fillText(String(s[0]).toUpperCase(), sx, y);
-      x.fillStyle = i === 0 ? accent : '#0F2034';
-      x.font = '600 16px Inter, system-ui, sans-serif';
-      var t = String(s[1]), maxW = colW - 18;
+      x.fillText(String(s[0]).toUpperCase(), sx, sy);
+      x.fillStyle = '#0F2034'; x.font = '600 18px Inter, system-ui, sans-serif';
+      var t = String(s[1] == null || s[1] === '' ? '—' : s[1]), maxW = colW - 20;
       if(x.measureText(t).width > maxW){
         while(t.length > 1 && x.measureText(t + '…').width > maxW) t = t.slice(0, -1);
         t += '…';
       }
-      x.fillText(t, sx, y + 26);
+      x.fillText(t, sx, sy + 28);
     });
-    return y + 62;
+    return y + Math.ceil(items.length / cols) * rowH;
   }
   async function card(data){
     var макет = await img(data.art);
     var мокап = await img(data.mock);
-    var accent = accentOf(макет);
-    /* Висота рахується, а не зашита: у когось пʼять чисел розміщення, у
-       когось жодного; примітка буває на рядок і на чотири. */
-    var смуга = (data.wideCm > 0 && data.artCm > 0);
+    var nums = (data.nums || []).slice(0, 9);
     var проба = document.createElement('canvas').getContext('2d');
     var рядківНоти = data.note
       ? wrap(проба, String(data.note), DOC_W - 128 - 40, '400 15px Inter, system-ui, sans-serif').length
       : 0;
-    var cellH = 520;
-    /* Висота — та сама арифметика, що й малювання нижче, крок у крок. Доти
-       вона рахувалась «приблизно з запасом», і аркуш закінчувався смугою
-       порожнечі в сотню пікселів: дрібниця, але саме з таких дрібниць
-       документ і виглядає зробленим абияк. */
-    var H = 168 + 44 + cellH + 46
-      + ((data.nums || []).length ? 62 + 12 : 0)
-      + (смуга ? 14 + 46 + 36 : 0)
-      + (рядківНоти ? 26 + рядківНоти * 23 : 0)
-      + 36;
+    var cellH = 560;
+    var top = 56, головаH = 44, підпис = 30;
+    /* Висота — та сама арифметика, що й малювання нижче, крок у крок. */
+    var H = top + головаH + 28 + підпис + cellH + 48
+      + (nums.length ? Math.ceil(nums.length / 3) * 64 + 8 : 0)
+      + (рядківНоти ? 26 + рядківНоти * 23 + 12 : 0)
+      + 44;
     var cv = document.createElement('canvas');
     cv.width = DOC_W; cv.height = H;
     var x = cv.getContext('2d');
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
     x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, H);
-
-    header(x, макет, accent, data.title || 'Макет на погодження', data.contacts);
-
-    var y = 168 + 44;
-    /* Дві картинки поруч і однакового зросту: їх порівнюють очима, і різний
-       розмір рамок читається як різна важливість. */
-    var cellW = (DOC_W - 128 - 24) / 2;
-    [[макет, 'Макет', 64], [мокап, 'Мокап на виробі', 64 + cellW + 24]].forEach(function(p){
-      x.fillStyle = '#F7F9FC'; round(x, p[2], y, cellW, cellH, 16); x.fill();
-      fit(x, p[0], p[2] + 24, y + 48, cellW - 48, cellH - 72);
-      x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
-      x.fillText(String(p[1]).toUpperCase(), p[2] + 24, y + 32);
-    });
-    y += cellH + 46;
-
-    if((data.nums || []).length){
-      y = specs(x, data.nums, y, accent);
-      x.strokeStyle = '#ECEFF3'; x.lineWidth = 1;
-      x.beginPath(); x.moveTo(64, y - 18); x.lineTo(DOC_W - 64, y - 18); x.stroke();
-      y += 12;
-    }
-
-    /* ШИРИНА НАНЕСЕННЯ ПРОТИ ШИРИНИ ВИРОБУ.
-
-       «23,7 см» саме по собі нічого не каже: багато це чи мало, залежить від
-       того, на чому воно лежить. На дитячій футболці це через увесь перед,
-       на XXL — скромний значок посередині. */
-    if(смуга){
-      var bw = DOC_W - 128, bh = 46;
-      x.fillStyle = '#7C8798'; x.font = '600 12px Inter, system-ui, sans-serif';
-      x.fillText('ШИРИНА ВИРОБУ ' + String(data.wideCm).replace('.', ',') + ' СМ', 64, y);
-      var частка = Math.max(0.02, Math.min(1, data.artCm / data.wideCm));
+    /* Заголовок ліворуч, номер праворуч — і більше нічого. */
+    var y = top + 30;
+    x.textAlign = 'left';
+    x.fillStyle = '#0F2034'; x.font = '700 30px Inter, system-ui, sans-serif';
+    x.fillText(String(data.title || 'Макет на узгодження'), 64, y);
+    if(data.no){
       x.textAlign = 'right';
-      x.fillText('НАНЕСЕННЯ ' + String(data.artCm).replace('.', ',') + ' СМ · ' +
-                 Math.round(частка * 100) + '%', DOC_W - 64, y);
+      x.fillStyle = '#7C8798'; x.font = '600 18px Inter, system-ui, sans-serif';
+      x.fillText(String(data.no), DOC_W - 64, y);
       x.textAlign = 'left';
-      y += 14;
-      x.fillStyle = '#EDEFF3'; round(x, 64, y, bw, bh, 12); x.fill();
-      var aw = bw * частка;
-      var зсув = (+data.sideCm || 0) / data.wideCm * bw;
-      var ax = Math.max(64, Math.min(64 + bw - aw, 64 + (bw - aw) / 2 + зсув));
-      x.fillStyle = accent; round(x, ax, y + 6, aw, bh - 12, 8); x.fill();
-      y += bh + 36;
     }
-
+    y = top + головаH + 28;
+    var cellW = (DOC_W - 128 - 24) / 2;
+    [[макет, 'Макет', 64], [мокап, 'Макет на виробі', 64 + cellW + 24]].forEach(function(p){
+      x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
+      x.fillText(String(p[1]).toUpperCase(), p[2], y + 14);
+      framed(x, p[0], p[2], y + підпис, cellW, cellH);
+    });
+    y += підпис + cellH + 48;
+    if(nums.length){
+      y = specsGrid(x, nums, y) + 8;
+    }
     /* ══════════ ПРИМІТКА ДЛЯ КЛІЄНТА ══════════
        Те, що доти писали руками в кожному повідомленні: колір на екрані
-       відрізняється від тканини. Писати це щоразу заново означає одного разу
-       не написати — і саме тоді почути «а в мене інший відтінок». */
+       відрізняється від тканини. */
     if(рядківНоти){
       var рядки = wrap(x, String(data.note), DOC_W - 128 - 40,
                        '400 15px Inter, system-ui, sans-serif');
       var nh = 26 + рядки.length * 23;
       x.fillStyle = '#F7F9FC'; round(x, 64, y, DOC_W - 128, nh, 14); x.fill();
-      x.fillStyle = accent; x.fillRect(64, y, 3, nh);
+      x.fillStyle = '#C3CBD8'; x.fillRect(64, y, 3, nh);
       x.fillStyle = '#4A5768'; x.font = '400 15px Inter, system-ui, sans-serif';
       рядки.forEach(function(t, i){ x.fillText(t, 88, y + 34 + i * 23); });
     }
     return cv.toDataURL('image/png');
   }
-
-
   /* ══════════ ПРИБРАТИ ФОН З РОБОТИ ══════════
 
      Андрій: «коли завантажуємо дизайн, повинен бути вибір… не видаляти фон,
