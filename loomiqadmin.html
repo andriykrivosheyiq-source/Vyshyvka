@@ -3883,7 +3883,19 @@
     background:var(--ink);color:#fff;border-radius:999px;padding:1px 6px;}
   /* Обране нанесення обведене — решта просто лежать. Без цього незрозуміло,
      що саме зараз тягнеш і чиї сантиметри показані збоку. */
-  .mko-art.on{outline:2px solid var(--accent);outline-offset:2px;}
+  .mko-art.on{outline:2px solid var(--accent);outline-offset:2px;z-index:2;}
+  /* Вікно здачі: сцена фіксованої висоти, у ній рамка рівно під фото —
+     роботи стоять у відсотках цієї рамки. Кут і × є в кожної роботи, але
+     видно їх лише в обраної: вибір не перебудовує сцену. */
+  .mko-w.is-work .mko-stage{height:clamp(300px, calc(100vh - 270px), 820px);min-height:0;}
+  .mko-frame{position:relative;flex:none;width:100%;height:100%;touch-action:none;}
+  .mko-frame .mko-base{width:100%;height:100%;max-width:none;max-height:none;object-fit:fill;}
+  .mko-frame img{-webkit-user-drag:none;user-select:none;}
+  .mko-frame .mko-art .mko-gr,.mko-frame .mko-art .mko-rm{display:none;}
+  /* × — у протилежному від кута масштабу куті: на маленькій роботі вони
+     інакше лягали один на одного, і «збільшити» прибирало роботу. */
+  .mko-frame .mko-art .mko-rm{right:auto;left:-9px;}
+  .mko-frame .mko-art.on .mko-gr,.mko-frame .mko-art.on .mko-rm{display:block;}
   .mko-rm{all:unset;cursor:pointer;position:absolute;top:-9px;right:-9px;
     width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;
     font-size:12px;line-height:18px;text-align:center;}
@@ -6954,24 +6966,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=65ff9c724e"></script>
-<script src="loomiq-fingerprint.js?v=65ff9c724e"></script>
-<script src="loomiq-pricing.js?v=65ff9c724e"></script>
+<script src="loomiq-select.js?v=45ce65817e"></script>
+<script src="loomiq-fingerprint.js?v=45ce65817e"></script>
+<script src="loomiq-pricing.js?v=45ce65817e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=65ff9c724e"></script>
-<script src="loomiq-mock.js?v=65ff9c724e"></script>
+<script src="loomiq-design.js?v=45ce65817e"></script>
+<script src="loomiq-mock.js?v=45ce65817e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=65ff9c724e"></script>
-<script src="loomiq-threads.js?v=65ff9c724e"></script>
+<script src="imagetracer.js?v=45ce65817e"></script>
+<script src="loomiq-threads.js?v=45ce65817e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=65ff9c724e"></script>
+<script src="loomiq-cards.js?v=45ce65817e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6996,7 +7008,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '65ff9c724e';
+var LQ_VER = '45ce65817e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
