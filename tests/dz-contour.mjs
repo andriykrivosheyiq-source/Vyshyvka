@@ -244,7 +244,7 @@ const зона = await p.evaluate(() => {
 console.log('  ' + JSON.stringify(зона));
 ok(!зона.кнопки.some(t => /Погоджено/.test(t)) && !зона.кнопки.some(t => /^Надіслати$/.test(t)),
   'у зоні вишивки немає ні «Погоджено», ні «Надіслати» — уже пішло в цех', 'кнопки: ' + JSON.stringify(зона.кнопки));
-ok(зона.плитки.indexOf('для машини') >= 0 && зона.плитки.indexOf('скрін Wilcom') >= 0,
+ok(зона.плитки.indexOf('файл для машини') >= 0 && зона.плитки.indexOf('скрін Wilcom') >= 0,
   'у версії видно файл для машини й скрін Wilcom', 'плитки: ' + JSON.stringify(зона.плитки));
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(300);
