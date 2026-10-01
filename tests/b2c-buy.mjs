@@ -141,10 +141,20 @@ const безОдягу = await p.evaluate(async () => {
   const o = orders.find(x => x.orderId === '2000203');
   window.__j3 = j; window.__o3 = o;
   D.dzAutoQueue(j, o, 'test@loomiq');
+  const до = (D.dzList(j.units[0], 'graphic')[0] || null);
+  U.setTab('acct'); U.open('2000203'); U.render(document.getElementById('dzRoot'));
+  const кн = document.querySelector('.dz-panel [data-do="dz-hand-all"]');
+  const живе = !!(кн && !кн.disabled);
+  if(кн) кн.click();
+  await new Promise(r => setTimeout(r, 400));
   const d = D.dzList(j.units[0], 'graphic')[0];
-  return { черга: !!(d && D.dzInQueue(d)) };
+  return { самЗберіг: !!(до && D.dzInQueue(до)), живе, черга: !!(d && D.dzInQueue(d)),
+           підпис: ((document.querySelector('.dz-panel .dz-hand-all i') || {}).textContent || '') };
 });
-ok(безОдягу.черга, 'позиція лише з картинкою, без виробу — у черзі графічного відділу', 'не стала в чергу: ' + JSON.stringify(безОдягу));
+ok(!безОдягу.самЗберіг, 'саме збереження в чергу не ставить', 'стало в чергу без кнопки');
+ok(безОдягу.живе && безОдягу.черга && /Передано дизайнерам/.test(безОдягу.підпис),
+  '«Зберегти й передати дизайнерам»: позиція лише з картинкою, без виробу — у черзі графічного відділу',
+  'не стала в чергу: ' + JSON.stringify(безОдягу));
 await p.evaluate(() => { const D = window.LQDesign; D.dzClaim(D.dzList(__j3.units[0], 'graphic')[0], 'test@loomiq');
   const U = D.ui; U.setTab('graphic'); U.open('2000203'); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(300);

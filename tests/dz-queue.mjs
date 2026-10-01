@@ -127,24 +127,27 @@ console.log('═══ 1. ЗАПОВНИЛИ — САМО СТАЛО В ЧЕРГ
 const авто = await p.evaluate(() => {
   const D = window.LQDesign;
   const стан0 = D.chainAt(__j1, __o1);
-  const n = D.dzAutoQueue(__j1, __o1, 'mgr@loomiq');
+  /* Збереження саме нічого не ставить — лише кнопка «Зберегти й передати». */
+  const сам = D.dzAutoQueue(__j1, __o1, 'mgr@loomiq') + __j1.units.reduce((a, u) => a + D.dzList(u, 'graphic').filter(D.dzInQueue).length, 0);
+  const ho = D.dzHandOver(__j1, __o1, 'mgr@loomiq'); const n = ho.sent;
   const l = __j1.units.map(u => D.dzList(u, 'graphic').map(d => ({ черга: D.dzInQueue(d), хто: d.who, стан: d.status })));
   const подія = (D.dzList(__j1.units[0], 'graphic')[0] || { thread:[] }).thread.map(m => m.text);
-  const знову = D.dzAutoQueue(__j1, __o1, 'mgr@loomiq');
-  return { стан0, n, l, подія, знову, стан1: D.chainAt(__j1, __o1),
+  const знову = D.dzHandOver(__j1, __o1, 'mgr@loomiq').sent;
+  return { стан0, сам, пропущено: ho.skipped, n, l, подія, знову, стан1: D.chainAt(__j1, __o1),
            годинник: D.dzLeft(D.dzList(__j1.units[0], 'graphic')[0], 24) };
 });
 console.log('  ' + JSON.stringify(авто));
-ok(авто.n === 1 && авто.l[0][0] && авто.l[0][0].черга,
-  'позиція з виробом і ТЗ стала в чергу відділу сама — натискати нічого не треба',
+ok(авто.сам === 0, 'просто збереження нічого не передає — лише кнопка', 'передалось без кнопки: ' + авто.сам);
+ok(авто.n === 1 && авто.l[0][0] && авто.l[0][0].черга && авто.пропущено.join() === '2',
+  '«Зберегти й передати»: позиція з ТЗ — у черзі відділу, без ТЗ (позиція 2) названа й лишилась',
   'автоматична черга не спрацювала: ' + JSON.stringify(авто.l));
 ok(!авто.l[1].length, 'позиція без ТЗ у чергу не пішла — дизайнер не схопить половину',
   'позиція без ТЗ опинилась у черзі');
 ok(авто.l[2].length === 1 && авто.l[2][0].хто === 'p@loomiq' && !авто.l[2][0].черга,
   'де менеджер обрав людину сам — автоматика не перебиває його рішення',
   'рішення менеджера перебито: ' + JSON.stringify(авто.l[2]));
-ok(/заповнене/.test(авто.подія.join()), 'у розмові подія: ' + авто.подія.join(), 'події немає');
-ok(авто.знову === 0, 'повторне збереження не ставить удруге', 'поставило вдруге: ' + авто.знову);
+ok(/передав дизайнерам/.test(авто.подія.join()), 'у розмові подія: ' + авто.подія.join(), 'події немає');
+ok(авто.знову === 0, 'повторний натиск не ставить удруге', 'поставило вдруге: ' + авто.знову);
 ok(авто.стан0 === 'new' && авто.стан1 === 'new',
   'у воронці замовлення лишається «Новим», поки ніхто не взяв',
   'воронка: ' + авто.стан0 + ' → ' + авто.стан1);
@@ -156,8 +159,8 @@ console.log('');
 console.log('═══ 2. ЧЕРГУ БАЧАТЬ ДИЗАЙНЕРИ ═══');
 await p.evaluate(() => {
   const D = window.LQDesign, U = window.LQDesign.ui;
-  D.dzAutoQueue(__j2, orders.find(x => x.orderId === '2000102'), 'mgr@loomiq');
-  D.dzAutoQueue(__j3, orders.find(x => x.orderId === '2000103'), 'mgr@loomiq');
+  D.dzHandOver(__j2, orders.find(x => x.orderId === '2000102'), 'mgr@loomiq');
+  D.dzHandOver(__j3, orders.find(x => x.orderId === '2000103'), 'mgr@loomiq');
   U.setTab('graphic'); U.render(document.getElementById('dzRoot'));
 });
 await p.waitForTimeout(500);

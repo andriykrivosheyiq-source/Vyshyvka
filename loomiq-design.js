@@ -779,16 +779,9 @@
                     text: 'Передано в роботу', seen: [String(by || '')] });
     return d;
   }
-  /* ЗАПОВНИЛИ — І ВОНО ПІШЛО. Андрій: «як тільки заповнили замовлення…
-     вони самі можуть взяти його». Позиція стає в чергу сама, щойно в ній
-     є що малювати: обрано виріб і є ТЗ — слова або хоча б картинка (своя
-     чи загальна до замовлення). Без ТЗ не ставимо: інакше дизайнер
-     схопить половину, поки менеджер ще пише.
-
-     Тільки поки замовлення ще «Нове» і в позиції немає жодного рішення
-     менеджера: обрав людину чи вже поставив у чергу — це його слово, і
-     автоматика його не перебиває. Старі замовлення, що давно поїхали
-     далі, теж не чіпаємо. */
+  /* ЧИ Є ЩО МАЛЮВАТИ: ТЗ — слова або хоча б картинка (своя чи загальна до
+     замовлення). Саме таку позицію передає кнопка «Зберегти й передати
+     дизайнерам»; без ТЗ — ні, інакше дизайнер схопить половину. */
   /* Виріб тут НЕ обовʼязковий. Андрій: «коли передаємо з замовлення до
      графічного, не обовʼязково сам одяг, тому що вони ще можуть не знати…
      графічному показується любе замовлення, де є картинка або коментар».
@@ -799,24 +792,44 @@
     return !!(String(u.note || '').trim() || (u.pics || []).length ||
               String(b.text || '').trim() || (b.pics || []).length);
   }
+  /* Що робиться саме при кожному збереженні: лише вишивка після
+     підтвердженого одягу. Графіку автоматика більше не чіпає. */
   function dzAutoQueue(job, o, by){
     if(!job) return 0;
-    var n = dzAutoStitch(job, by);
-    if(chainAt(job, o) !== 'new') return n;
-    jobUnits(job).forEach(function(u){
-      if(!unitFilled(job, u)) return;
+    return dzAutoStitch(job, by);
+  }
+  /* «ЗБЕРЕГТИ Й ПЕРЕДАТИ ДИЗАЙНЕРАМ».
+
+     Андрій: «лишаємо тільки кнопку… натиснути, зберегти і передати
+     дизайнерам». Доти позиція ставала в чергу сама при будь-якому
+     збереженні — і дизайнер міг схопити картку, поки менеджер ще пише.
+     Тепер у черзі тільки те, що менеджер сам назвав готовим.
+
+     Передаються позиції з картинкою або коментарем, у яких ще немає
+     роботи. Без ТЗ — не передаються, і кнопка каже, які саме. Де менеджер
+     уже обрав людину сам, його вибір не перебиваємо. */
+  function dzHandOver(job, o, by){
+    var out = { sent: 0, skipped: [] };
+    if(!job) return out;
+    jobUnits(job).forEach(function(u, i){
       var l = dzList(u, 'graphic');
       if(l.some(dzReal)) return;
+      if(!unitFilled(job, u)){ out.skipped.push(i + 1); return; }
       /* Порожній рядок (дизайнера так і не обрали) не заважає: ставимо в
          чергу саме його, а не заводимо поруч другий. */
       var d = l[0];
       if(!d){ d = dzNew(); l.push(d); }
       dzQueue(d, by);
-      d.auto = true;
-      d.thread[d.thread.length - 1].text = 'Замовлення заповнене — стало в чергу відділу';
-      n++;
+      d.thread[d.thread.length - 1].text = 'Менеджер передав дизайнерам — стало в чергу відділу';
+      out.sent++;
     });
-    return n;
+    if(out.sent){ job.handedAt = nowIso(); job.handedBy = String(by || ''); job.handedN = out.sent; }
+    return out;
+  }
+  /* Скільки позицій ще можна передати: з ТЗ і без роботи. */
+  function dzHandable(job){
+    return jobUnits(job).filter(function(u){
+      return !dzList(u, 'graphic').some(dzReal) && unitFilled(job, u); }).length;
   }
   /* ЕСКІЗ ПОГОДЖЕНО — ВИШИВКА СТАЄ В ЧЕРГУ САМА.
 
@@ -1854,7 +1867,7 @@
     BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyOf: buyOf, buyStateOf: buyStateOf,
     buyNeed: buyNeed, buyNew: buyNew, buyNext: buyNext, buySetStatus: buySetStatus,
     buyOrderState: buyOrderState,
-    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
+    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -3893,7 +3906,23 @@
         ? list.map(function(u, i){ return unitHtml(job, u, i + 1, opt); }).join('')
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
-      ((opt && opt.ro) ? '' : '<button class="dz-b pri" data-do="u-add">+ Додати одяг</button>');
+      ((opt && opt.ro) ? '' : '<div class="dz-u-foot">' +
+        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' + handOverHtml(job) + '</div>');
+  }
+  /* «ЗБЕРЕГТИ Й ПЕРЕДАТИ ДИЗАЙНЕРАМ» — праворуч від «Додати одяг».
+     Нічого передавати (усе вже в роботі або без ТЗ) — кнопка спить, а
+     під нею сказано, що вже передано й чого бракує. */
+  function handOverHtml(job){
+    var можна = D.dzHandable(job);
+    var без = [];
+    unitsOf(job).forEach(function(u, i){
+      if(!dzList(u, 'graphic').some(D.dzReal) && !D.unitFilled(job, u)) без.push(i + 1); });
+    return '<span class="dz-hand-all">' +
+      '<button class="dz-b pri" data-do="dz-hand-all"' + (можна ? '' : ' disabled') + '>' +
+        'Зберегти й передати дизайнерам' + (можна > 1 ? ' · ' + можна : '') + '</button>' +
+      (job.handedAt ? '<i>Передано дизайнерам · ' + esc(dt(job.handedAt)) + '</i>' : '') +
+      (без.length ? '<i class="is-bad">Позиція ' + без.join(', ') + ' — немає картинки чи коментаря, не передається</i>' : '') +
+    '</span>';
   }
 
 
@@ -6760,7 +6789,7 @@
     'u-del':'art', 'dz-add':'art', 'dz-del':'art',
     'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
-    'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'pic-open':'', 'dz-dl':'',
+    'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'dz-hand-all':'art', 'pic-open':'', 'dz-dl':'',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -7090,6 +7119,21 @@
     if(what === 'pic-open'){
       U.picOpen(data && data.url);
       return;
+    }
+    /* Зберегти й передати. Коментарі, які ще в полі (не встигли зберегтись
+       по виходу з нього), забираємо прямо з екрана — інакше натиск
+       передав би позицію без щойно написаного ТЗ. */
+    if(what === 'dz-hand-all'){
+      (root || document).querySelectorAll('[data-uf$="|note"]').forEach(function(el){
+        var hu = U.unitAt(job, String(el.dataset.uf).split('|')[0]);
+        if(hu) hu.note = String(el.value || '');
+      });
+      var ho = D.dzHandOver(job, o, m);
+      if(!ho.sent)
+        return say(ho.skipped.length ? 'Нічого не передано: позиція ' + ho.skipped.join(', ') +
+                                       ' без картинки чи коментаря' : 'Передавати нічого — усе вже в роботі');
+      return save(job, o, 'Передано дизайнерам · ' + ho.sent + ' ' + (ho.sent === 1 ? 'позиція' : 'позицій') +
+        (ho.skipped.length ? ' · позиція ' + ho.skipped.join(', ') + ' без ТЗ лишилась' : ''));
     }
     if(what === 'u-cloth'){
       var cu = U.unitAt(job, data && data.u);
