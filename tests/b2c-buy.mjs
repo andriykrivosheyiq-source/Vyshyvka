@@ -474,7 +474,35 @@ await p.waitForTimeout(300);
 const імяКартки = await p.evaluate(() => window.__dl[window.__dl.length - 1] || '');
 const байт = fs.statSync(await dl.path()).size;
 console.log('  ' + імяКартки + ' · ' + байт + ' байт');
-ok(імяКартки === N1 + '-2_v1_виробництво.png' && байт > 20000, 'картка цеху зібралась і скачалась з підписом', 'картка: ' + імяКартки + ' ' + байт);
+ok(імяКартки === N1 + '-2_v1_виробництво.png' && байт > 20000, 'виробнича карта зібралась і скачалась з підписом', 'картка: ' + імяКартки + ' ' + байт);
+/* «Глазиком»: карту видно, нічого не качаючи; звідти ж її можна скачати. */
+const кнПерегляд = await p.evaluate(() => document.querySelectorAll('.dz-panel [data-do="prod-view"]').length);
+ok(кнПерегляд === цех.картка && кнПерегляд > 0, 'біля кожної «⤓ Виробнича карта» — «👁 Переглянути карту»', 'переглядів: ' + кнПерегляд + ' / карт: ' + цех.картка);
+await p.evaluate(() => [...document.querySelectorAll('.dz-panel [data-do="prod-view"]')][1].click());
+await p.waitForSelector('.dz-pv .dz-pv-c img', { timeout: 15000 });
+await p.waitForTimeout(300);
+const перегляд = await p.evaluate(async () => {
+  const im = document.querySelector('.dz-pv .dz-pv-c img');
+  await im.decode().catch(() => {});
+  /* Колір виробу під роботою — праворуч угорі аркуша. */
+  const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  const px = Array.from(x.getImageData(c.width - 150, 290, 1, 1).data.slice(0, 3));
+  return { карт: document.querySelectorAll('.dz-pv .dz-pv-c').length, w: im.naturalWidth, h: im.naturalHeight, px,
+           скачати: !!document.querySelector('.dz-pv [data-pvdl]'), заголовок: document.querySelector('.dz-pv-h b').textContent };
+});
+console.log('  ' + JSON.stringify(перегляд));
+ok(перегляд.карт >= 1 && перегляд.w === 2480 && перегляд.h === 1754,
+  'вікно перегляду показує карту — аркуш A4 горизонтально', 'перегляд: ' + JSON.stringify(перегляд));
+ok(/^Виробнича карта · /.test(перегляд.заголовок) && перегляд.скачати, 'у вікні — номер позиції й кнопка «Скачати»', 'перегляд: ' + JSON.stringify(перегляд));
+const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }),
+  p.evaluate(() => document.querySelector('.dz-pv [data-pvdl]').click())]);
+await p.waitForTimeout(200);
+ok(fs.statSync(await dl2.path()).size > 20000 && (await p.evaluate(() => window.__dl[window.__dl.length - 1])) === N1 + '-2_v1_виробництво.png',
+  'скачати можна прямо з перегляду — той самий файл', 'з перегляду не скачалось');
+await p.keyboard.press('Escape');
+await p.waitForTimeout(150);
+ok(!(await p.evaluate(() => document.querySelector('.dz-pv'))), 'Escape закриває перегляд', 'перегляд не закрився');
 
 console.log('');
 console.log('═══ 6б. ЦЕХ ↔ МЕНЕДЖЕР: ПЕРЕПИСКА ═══');

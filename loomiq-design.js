@@ -2647,6 +2647,51 @@
     document.body.appendChild(el);
     PICK = { el: el };
   }
+  /* ПЕРЕГЛЯД ВИРОБНИЧОЇ КАРТИ «ГЛАЗИКОМ»: подивитись, не качаючи. Карти
+     збираються тут же; кожну можна скачати окремо або всі разом. */
+  function prodView(title, load, onDl){
+    pickClose();
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-pv';
+    el.innerHTML = '<div class="dz-pv-w" role="dialog" aria-label="' + esc(title) + '">' +
+      '<div class="dz-pv-h"><b>' + esc(title) + '</b><span data-pvall></span>' +
+        '<button type="button" class="dz-pv-x" data-pvx aria-label="Закрити">×</button></div>' +
+      '<div class="dz-pv-b"><div class="dz-pv-wait">Збираю виробничу карту…</div></div></div>';
+    var cards = [];
+    var зак = function(){
+      document.removeEventListener('keydown', esk, true);
+      if(el.parentNode) el.parentNode.removeChild(el);
+      if(PICK && PICK.el === el) PICK = null;
+    };
+    var esk = function(ev){ if(ev.key === 'Escape') зак(); };
+    el.addEventListener('click', async function(ev){
+      var t = ev.target;
+      if(t === el || t.closest('[data-pvx]')) return зак();
+      var one = t.closest('[data-pvdl]');
+      if(one && onDl) return onDl(cards[+one.getAttribute('data-pvdl')]);
+      if(t.closest('[data-pvdlall]') && onDl){ for(var i = 0; i < cards.length; i++) await onDl(cards[i]); }
+    });
+    document.addEventListener('keydown', esk, true);
+    document.body.appendChild(el);
+    PICK = { el: el };
+    Promise.resolve(load).then(function(list){
+      cards = list || [];
+      var body = el.querySelector('.dz-pv-b');
+      if(!body) return;
+      if(!cards.length){ body.innerHTML = '<div class="dz-pv-wait">Карта не зібралась — немає погодженого мокапу</div>'; return; }
+      if(cards.length > 1) el.querySelector('[data-pvall]').innerHTML =
+        '<button type="button" class="dz-b" data-pvdlall>⤓ Скачати всі · ' + cards.length + '</button>';
+      body.innerHTML = cards.map(function(c, i){
+        return '<figure class="dz-pv-c"><img src="' + esc(c.png) + '" alt="Виробнича карта' + (c.label ? ' · ' + esc(c.label) : '') + '">' +
+          '<figcaption><span>' + esc(c.label || '') + '</span>' +
+          '<button type="button" class="dz-b" data-pvdl="' + i + '">⤓ Скачати</button></figcaption></figure>';
+      }).join('');
+    }, function(e){
+      console.error(e);
+      var body = el.querySelector('.dz-pv-b');
+      if(body) body.innerHTML = '<div class="dz-pv-wait">Карта не зібралась</div>';
+    });
+  }
   function pickCard(v, name, pic, swatch){
     return '<button type="button" class="dz-pick-c" data-pick="' + esc(v) + '">' +
       (pic ? '<span class="dz-pick-i"><img src="' + esc(pic) + '" alt="" ' +
@@ -4551,7 +4596,7 @@
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
-    picOpen: picOpen,
+    picOpen: picOpen, prodView: prodView,
     DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName, SIDE_AT: SIDE_AT,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
        самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
@@ -5869,6 +5914,43 @@
                     'title="Відстежити посилку">ТТН ' + esc(b.ttn) + ' ↗</a>' : '') +
     '</span>';
   }
+  /* Виробничі карти погодженої версії: одна на кожне нанесення (перед,
+     спина, два логотипи — окремі аркуші: оператор бачить одне місце й один
+     дизайн). Повертає [{ png, name, label }]. */
+  async function embCards(job, pu, pgi){
+    var pv = verOkOf(D.dzList(pu, 'graphic')[pgi]);
+    if(!pv) return [];
+    var works = ((pv.place && pv.place.works) || []).filter(function(w){ return w && w.url; });
+    var parts = D.verParts(pv);
+    var spots = D.verSpots(pv).filter(function(sp){ return sp && +sp.w > 0; });
+    var список = spots.length ? spots : [null];
+    var pg = U.catItem(pu.gid);
+    var no = U.unitNo(job, pu);
+    var base = U.dlBase(no, pu, 'graphic', pgi, pv.n);
+    var out = [];
+    for(var i = 0; i < список.length; i++){
+      var sp = список[i];
+      var label = (sp && sp.label) || '';
+      /* Мокап сторони впізнаємо за підписом: здача кладе його як «Перед.png». */
+      var mk = parts.mock.filter(function(f){ return label && String(f.name || '') === label + '.png'; })[0] ||
+               parts.mock[0] || {};
+      var зона = null;
+      try{ зона = (host().zone && host().zone(pu.gid, (sp && sp.side) || 'front', pu.color, pu.size)) || null; }catch(e){}
+      var w = (sp && works[+sp.work || 0]) || works[0] || parts.work[0] || {};
+      var specs = [['Товар', (pg && pg.name) || pu.name || '—'], ['Колір', pu.color || '—'], ['Розмір', pu.size || '—']];
+      if(список.length > 1) specs.push(['Місце', label || ('нанесення ' + (i + 1))]);
+      var png = null;
+      try{
+        png = await window.LQMock.prodCard({ no: no, mock: mk.url, zone: зона, spot: sp, work: w.url,
+          garmentHex: pu.colorHex || '', specs: specs,
+          threads: (w.threads && w.threads.length) ? w.threads : verThreads(pv) });
+      }catch(e){ console.error('виробнича карта', e); }
+      if(!png) continue;
+      out.push({ png: png, label: label || (список.length > 1 ? 'нанесення ' + (i + 1) : ''),
+                 name: base + '_виробництво' + (список.length > 1 ? '_' + (i + 1) + (label ? '_' + label : '') : '') });
+    }
+    return out;
+  }
   /* ОДИН РЯДОК ФАЙЛІВ НА ПОЗИЦІЮ. Андрій: «одним рядком, щоб не займало
      багато місця»: робота, мокап, скрін Wilcom, файл для машини — підписані
      плитки. Картки для клієнта тут немає: цеху вона нічого не дає. */
@@ -5884,9 +5966,11 @@
         if(!v){ if(D.dzReal(d)) бракує.push('ескіз' + (gr.length > 1 ? ' ' + (i + 1) : '') + ' не погоджено'); return; }
         плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'graphic', i, v.n), { only: ['work', 'mock'], bare: true }));
         if(verThreads(v).length) нитки = нитки.concat(verThreads(v));
-        кнопки.push('<button type="button" class="dz-b" data-do="prod-card" data-u="' + esc(u.id) + '" data-g="' + i +
-          '" title="Схема з відступами від верху й краю виробу">⤓ Виробничий файл' +
-          (gr.length > 1 ? ' · дизайн ' + (i + 1) : '') + '</button>');
+        var дз = gr.length > 1 ? ' · дизайн ' + (i + 1) : '';
+        кнопки.push('<button type="button" class="dz-b" data-do="prod-view" data-u="' + esc(u.id) + '" data-g="' + i +
+          '" title="Подивитись виробничу карту, не скачуючи">👁 Переглянути карту' + дз + '</button>' +
+          '<button type="button" class="dz-b" data-do="prod-card" data-u="' + esc(u.id) + '" data-g="' + i +
+          '" title="Скачати виробничу карту вишивки">⤓ Виробнича карта' + дз + '</button>');
       });
       st.forEach(function(d, i){
         var v = verOkOf(d);
@@ -7359,54 +7443,24 @@
       D.prodSeen(job, m, (data && data.as) === 'prod' ? 'prod' : 'acct');
       return save(job, o, '');
     }
-    /* КАРТКА ЦЕХУ: по одній на сторону, з мокапом цієї сторони, схемою
-       відступів і цифрами. Імʼя файлу — за загальним правилом плюс «цех». */
-    if(what === 'prod-card'){
+    /* ВИРОБНИЧА КАРТА ВИШИВКИ: по одній на кожне нанесення. Її можна
+       переглянути «глазиком», нічого не качаючи, або скачати. */
+    if(what === 'prod-card' || what === 'prod-view'){
       var pu = U.unitAt(job, data && data.u);
       if(!pu) return;
       var pgi = +(data && data.g) || 0;
-      var pv = verOkOf(D.dzList(pu, 'graphic')[pgi]);
-      if(!pv) return say('Ескіз ще не погоджено');
-      if(!window.LQMock || !window.LQMock.prodCard) return say('Картка цеху не завантажилась');
-      var pspots = D.verSpots(pv);
-      var pmocks = D.verParts(pv).mock;
-      var pside = [];
-      pspots.forEach(function(sp){
-        var k = sp.side || sp.label || '';
-        var x = pside.filter(function(y){ return y.key === k; })[0];
-        if(!x){ x = { key: k, label: sp.label || '', spots: [] }; pside.push(x); }
-        x.spots.push(sp);
-      });
-      if(!pside.length) pside = [{ key:'', label:'', spots: [] }];
-      var pg = U.catItem(pu.gid);
-      var pw = 0;
-      try{ pw = +(host().widthCm && host().widthCm(pu.gid, pu.size)) || 0; }catch(e){}
-      var pno = U.unitNo(job, pu);
-      var pbase = U.dlBase(pno, pu, 'graphic', pgi, pv.n);
-      say('Збираю виробничий файл…');
-      for(var si = 0; si < pside.length; si++){
-        var sd = pside[si];
-        /* Мокап сторони впізнаємо за підписом: здача кладе його як «Перед.png». */
-        var mk = pmocks.filter(function(f){ return sd.label && String(f.name || '') === sd.label + '.png'; })[0]
-                 || pmocks[si] || pmocks[0] || {};
-        var зона = null;
-        try{ зона = (host().zone && host().zone(pu.gid, sd.key, pu.color, pu.size)) || null; }catch(e){}
-        var png = await window.LQMock.prodCard({
-          title: 'Виробничий файл', side: pside.length > 1 ? sd.label : (sd.label || ''),
-          no: pno, mock: mk.url, spots: sd.spots, widthCm: pw, zone: зона,
-          nums: [
-            ['Модель', (pg && pg.name) || pu.name || '—'],
-            ['Колір', pu.color || '—'],
-            ['Розмір', pu.size || '—'],
-            ['Кількість', (+pu.qty || 0) + ' шт'],
-            ['Ширина виробу', pw ? мсм(pw) : '—'],
-            ['Нанесення', 'Вишивка']
-          ]
-        });
-        if(!png){ say('Картка цеху не зібралась'); continue; }
-        await act('dz-dl', root, { url: png,
-          name: pbase + '_виробництво' + (pside.length > 1 && sd.label ? '_' + sd.label : '') });
+      if(!verOkOf(D.dzList(pu, 'graphic')[pgi])) return say('Ескіз ще не погоджено');
+      if(!window.LQMock || !window.LQMock.prodCard) return say('Виробнича карта не завантажилась');
+      var pdl = function(c){ return act('dz-dl', root, { url: c.png, name: c.name }); };
+      if(what === 'prod-view'){
+        var pgr = D.dzList(pu, 'graphic');
+        return U.prodView('Виробнича карта · ' + U.unitNo(job, pu) + (pgr.length > 1 ? ' · дизайн ' + (pgi + 1) : ''),
+                          embCards(job, pu, pgi), pdl);
       }
+      say('Збираю виробничу карту…');
+      var pcs = await embCards(job, pu, pgi);
+      if(!pcs || !pcs.length) return say('Виробнича карта не зібралась');
+      for(var pci = 0; pci < pcs.length; pci++) await pdl(pcs[pci]);
       return;
     }
     /* ── Склад замовлення ── */
