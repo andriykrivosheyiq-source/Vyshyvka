@@ -86,6 +86,7 @@
 
   /* ══════════ ВІКНО ══════════ */
   function close(){
+    if(W && W.off){ try{ W.off(); }catch(e){} }
     if(W && W.el && W.el.parentNode) W.el.parentNode.removeChild(W.el);
     if(W && W.esk) document.removeEventListener('keydown', W.esk, true);
     W = null;
@@ -408,19 +409,10 @@
     document.body.appendChild(el);
     W = { el: el, esk: null };
 
-    function calKey(){ return бік; }
-    function calNow(){
-      var c = null;
-      try{ c = HOST.cal && HOST.cal(opt.gid, calKey()); }catch(e){}
-      return (c && c.x2 > c.x1) ? { x1:+c.x1, x2:+c.x2, y:+c.y } : null;
-    }
-    var режим = 'art';
-    var cal = calNow() || { x1:0.22, x2:0.78, y:0.16 };
-
     /* Пропорції фото відкритої сторони — з самої картинки на сцені. */
     function aspNow(){
       var im = el.querySelector('.mko-base');
-      return (im && im.naturalWidth) ? im.naturalHeight / im.naturalWidth : 0;
+      return (im && im.naturalWidth) ? im.naturalHeight / im.naturalWidth : (асп[бік] || 0);
     }
     function міри(pl){
       var a = арт[pl.work];
@@ -493,7 +485,19 @@
       арт[i] = im;
       малюй();
     }
+    /* ── РАМКА = ФОТО ──
+       Положення робіт — частки САМОГО ФОТО, а не сірої сцени навколо: саме
+       так їх малює мокап і рахує сантиметри. Доти рамкою була сцена, і на
+       вертикальному знімку логотип на екрані виходив удвічі більшим, ніж
+       лягав у мокап, а витягнутий у сіре поле — зникав. Тому фото лежить
+       у власній рамці точно свого розміру, а роботи стоять у ній у
+       відсотках: хай сцена міняє розмір як завгодно — роботи їдуть разом
+       із фото, а не повз нього. */
+    var асп = {};            // пропорції фото кожної сторони (висота/ширина)
+    var ro = null;
     function малюй(){
+      var body0 = el.querySelector('.mko-body');
+      var прокрутка = body0 ? body0.scrollTop : 0;
       var pl = places[бік] || [];
       el.innerHTML =
         '<div class="mko-w is-work">' + шапкаHtml() +
@@ -503,7 +507,7 @@
               return '<span class="mko-wk-w">' +
                 '<button type="button" class="mko-wk' + (треба ? ' need' : '') + '" data-mko-w="' + i + '" ' +
                 'title="' + esc(w.name || 'робота') + ' — натисніть, щоб покласти на виріб">' +
-                '<img src="' + esc(w.url) + '" alt="">' +
+                '<img draggable="false" src="' + esc(w.url) + '" alt="">' +
                 (w.threads ? '<i class="mko-wk-t" title="Адаптовано під нитки">🧵' + w.threads.length + '</i>' : '') +
                 '</button>' +
                 (треба ? '<button type="button" class="mko-wk-a" data-mko-adapt="' + i + '">Під нитки</button>' : '') +
@@ -512,7 +516,7 @@
             (opt.placeOnly ? '' :
               '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>') +
           '</div>' +
-          фонHtml() +
+          '<div data-mko-bgbox>' + фонHtml() + '</div>' +
           '<div class="mko-tabs">' + сторони.map(function(s){
             var n = (places[s.key] || []).length;
             return '<button type="button" class="mko-tab' + (s.key === бік ? ' on' : '') +
@@ -521,19 +525,18 @@
           }).join('') + '</div>' +
           '<div class="mko-body">' +
             '<div class="mko-stage" data-mko-stage>' +
-              '<img class="mko-base" src="' + esc(сторонаUrl()) + '" alt="">' +
-              pl.map(function(p, i){
-                var w = works[p.work] || {};
-                return '<div class="mko-art' + (i === обране ? ' on' : '') +
-                  '" data-mko-p="' + i + '"><img src="' + esc(w.url || '') + '" alt="">' +
-                  (i === обране ? '<i class="mko-gr" data-mko-grip></i>' +
-                    '<button type="button" class="mko-rm" data-mko-rm="' + i + '">×</button>' : '') +
-                '</div>';
-              }).join('') +
-              '<div class="mko-cal" data-mko-cal>' +
-                '<i class="mko-cal-v" data-mko-cal-h="x1"></i>' +
-                '<i class="mko-cal-v" data-mko-cal-h="x2"></i>' +
-                '<i class="mko-cal-y" data-mko-cal-h="y"></i>' +
+              '<div class="mko-frame" data-mko-frame>' +
+                '<img class="mko-base" draggable="false" src="' + esc(сторонаUrl()) + '" alt="">' +
+                /* Кут і × є в кожної роботи, видно їх лише в обраної: вибір —
+                   це перемкнути клас, а не перебудувати сцену під курсором. */
+                pl.map(function(p, i){
+                  var w = works[p.work] || {};
+                  return '<div class="mko-art' + (i === обране ? ' on' : '') +
+                    '" data-mko-p="' + i + '"><img draggable="false" src="' + esc(w.url || '') + '" alt="">' +
+                    '<i class="mko-gr" data-mko-grip></i>' +
+                    '<button type="button" class="mko-rm" data-mko-rm="' + i + '">×</button>' +
+                  '</div>';
+                }).join('') +
               '</div>' +
             '</div>' +
             '<div class="mko-side">' +
@@ -547,35 +550,72 @@
             '</div>' +
           '</div>' +
         '</div>';
+      var body1 = el.querySelector('.mko-body');
+      if(body1) body1.scrollTop = прокрутка;
+      var b = el.querySelector('.mko-base');
+      if(b && !(b.complete && b.naturalWidth)) b.onload = влаштуй;
+      if(ro) ro.disconnect();
+      if(typeof ResizeObserver === 'function'){
+        ro = new ResizeObserver(function(){ влаштуй(); });
+        ro.observe(el.querySelector('[data-mko-stage]'));
+      }
+      влаштуй();
+    }
+    /* Рамку — точно під фото, вписане в сцену. Поки фото вантажиться,
+       беремо його відомі пропорції: рамка не схлопується й не стрибає. */
+    function влаштуй(){
+      var st = el.querySelector('[data-mko-stage]');
+      var fr = el.querySelector('[data-mko-frame]');
+      var b = el.querySelector('.mko-base');
+      if(!st || !fr) return;
+      if(b && b.naturalWidth) асп[бік] = b.naturalHeight / b.naturalWidth;
+      var a = асп[бік];
+      var sw = st.clientWidth, sh = st.clientHeight;
+      if(a && sw && sh){
+        var fw = Math.min(sw, sh / a);
+        fr.style.width = Math.floor(fw) + 'px';
+        fr.style.height = Math.floor(fw * a) + 'px';
+      }
       постав();
+    }
+    /* Найменша робота — 6% ширини фото: менше вже не схопити мишею, а кут
+       і × налазять один на одного. Нашивок, менших за це, ми не шиємо. */
+    var МІН = 0.06;
+    function арПро(pl){
+      var a = арт[pl.work];
+      return (a && a.width) ? a.height / a.width : 1;
+    }
+    /* Робота завжди ЦІЛКОМ у кадрі: що вилізло за фото — того не видно й
+       не схопити, а в мокап воно однаково не ляже. */
+    function втисни(pl){
+      var b = pl.box, ar = арПро(pl), a = асп[бік] || 0;
+      if(!(b.w > 0)) b.w = 0.26;
+      if(!isFinite(b.x)) b.x = 0.5;
+      if(!isFinite(b.y)) b.y = 0.34;
+      b.w = clamp(b.w, МІН, 1);
+      if(a > 0){
+        if(b.w * ar / a > 1) b.w = a / ar;
+        b.y = clamp(b.y, 0, 1 - b.w * ar / a);
+      } else b.y = clamp(b.y, 0, 0.97);
+      b.x = clamp(b.x, b.w / 2, 1 - b.w / 2);
     }
     function сторонаUrl(){
       var s = сторони.filter(function(x){ return x.key === бік; })[0];
       return (s && s.url) || '';
     }
+    /* Роботи стоять у відсотках рамки-фото: розмір сцени тут не потрібен
+       зовсім, тому й розʼїхатись нема чому. */
     function постав(){
-      var st = el.querySelector('[data-mko-stage]');
-      if(!st) return;
-      var r = st.getBoundingClientRect();
-      if(!r.width) return;
+      var fr = el.querySelector('[data-mko-frame]');
+      if(!fr) return;
       (places[бік] || []).forEach(function(p, i){
-        var node = st.querySelector('[data-mko-p="' + i + '"]');
+        var node = fr.querySelector('[data-mko-p="' + i + '"]');
         if(!node) return;
-        var a = арт[p.work];
-        var ar = a ? (a.height / a.width) : 1;
-        var w = p.box.w * r.width;
-        node.style.width = w + 'px';
-        node.style.height = (w * ar) + 'px';
-        node.style.left = (p.box.x * r.width - w / 2) + 'px';
-        node.style.top = (p.box.y * r.height) + 'px';
+        node.style.left = ((p.box.x - p.box.w / 2) * 100) + '%';
+        node.style.top = (p.box.y * 100) + '%';
+        node.style.width = (p.box.w * 100) + '%';
+        node.style.aspectRatio = String(1 / арПро(p));
       });
-      var calEl = el.querySelector('[data-mko-cal]');
-      if(calEl){
-        calEl.style.display = режим === 'cal' ? 'block' : 'none';
-        calEl.querySelector('[data-mko-cal-h="x1"]').style.left = (cal.x1 * 100) + '%';
-        calEl.querySelector('[data-mko-cal-h="x2"]').style.left = (cal.x2 * 100) + '%';
-        calEl.querySelector('[data-mko-cal-h="y"]').style.top = (cal.y * 100) + '%';
-      }
       числа();
     }
     function числа(){
@@ -607,86 +647,158 @@
         esc(см(m.garmentH)) + (m.garmentW ? ', ширина ≈ ' + esc(см(m.garmentW)) : ', краї виробу не виставлені') + '.';
     }
 
-    /* ── Миша ── */
+    /* ── Миша, палець, перо ──
+       Що тут зламалось і чому так тепер:
+       · вибір іншої роботи доти ПЕРЕБУДОВУВАВ усе вікно прямо під час
+         натиску — разом із фото й прокруткою; сцена на мить міняла розмір,
+         і наступний натиск ішов «крізь» роботу. Тепер вибір — лише клас;
+       · кого схопили, рахуємо за тим, що ВИДНО під курсором: обрана має
+         перевагу, далі верхня; порожнє місце знімає вибір;
+       · курсор захоплюємо на весь рух: відпустили будь-де — рух скінчився.
+         А якщо кнопку відпустили там, звідки подія не дійшла, — перший же
+         рух без натиснутої кнопки сам закінчує тягання;
+       · картинки у вікні браузер не тягає як файли — ні фото, ні роботи. */
     function frac(ev){
-      var st = el.querySelector('[data-mko-stage]');
-      var r = st.getBoundingClientRect();
-      return { x: clamp((ev.clientX - r.left) / r.width, 0, 1),
-               y: clamp((ev.clientY - r.top) / r.height, 0, 1) };
+      var fr = el.querySelector('[data-mko-frame]');
+      var r = fr.getBoundingClientRect();
+      return { x: (ev.clientX - r.left) / (r.width || 1),
+               y: (ev.clientY - r.top) / (r.height || 1) };
+    }
+    function підКурсором(cx, cy){
+      var fr = el.querySelector('[data-mko-frame]');
+      if(!fr) return -1;
+      var nodes = fr.querySelectorAll('[data-mko-p]');
+      var під = function(n, pad){
+        var r = n.getBoundingClientRect();
+        return cx >= r.left - pad && cx <= r.right + pad && cy >= r.top - pad && cy <= r.bottom + pad;
+      };
+      var sel = fr.querySelector('[data-mko-p="' + обране + '"]');
+      if(sel && під(sel, 2)) return обране;
+      for(var k = nodes.length - 1; k >= 0; k--){
+        if(під(nodes[k], 0)) return +nodes[k].getAttribute('data-mko-p');
+      }
+      return -1;
+    }
+    function вибір(){
+      el.querySelectorAll('[data-mko-p]').forEach(function(n){
+        n.classList.toggle('on', +n.getAttribute('data-mko-p') === обране);
+      });
+      var bg = el.querySelector('[data-mko-bgbox]');
+      if(bg) bg.innerHTML = фонHtml();
+      числа();
     }
     var drag = null;
-    el.addEventListener('mousedown', function(ev){
-      var h = ev.target.closest && ev.target.closest('[data-mko-cal-h]');
-      if(h && режим === 'cal') return (drag = { тип:'cal', ключ:h.getAttribute('data-mko-cal-h') }),
-        ev.preventDefault();
-      if(ev.target.closest && ev.target.closest('[data-mko-grip]'))
-        return (drag = { тип:'size' }), ev.preventDefault();
-      var node = ev.target.closest && ev.target.closest('[data-mko-p]');
-      if(!node) return;
-      var i = +node.getAttribute('data-mko-p');
-      if(i !== обране){ обране = i; малюй(); }
-      var pl = (places[бік] || [])[обране];
-      if(!pl) return;
-      var f0 = frac(ev);
-      drag = { тип:'move', dx: pl.box.x - f0.x, dy: pl.box.y - f0.y };
+    var натискНаФоні = false;
+    function down(ev){
+      натискНаФоні = ev.target === el;
+      if(ev.button != null && ev.button !== 0) return;
+      var t = ev.target;
+      if(!(t.closest && t.closest('[data-mko-stage]'))) return;
+      if(t.closest('[data-mko-rm]')) return;         // × — це клік, не тягання
+      var fr = el.querySelector('[data-mko-frame]');
+      if(!fr) return;
       ev.preventDefault();
-    });
+      var grip = t.closest('[data-mko-grip]');
+      var gi = grip ? +grip.parentNode.getAttribute('data-mko-p') : -1;
+      var i = grip ? gi : підКурсором(ev.clientX, ev.clientY);
+      if(i < 0 || !(places[бік] || [])[i]){
+        drag = null;
+        if(обране !== -1){ обране = -1; вибір(); }
+        return;
+      }
+      if(i !== обране){ обране = i; вибір(); }
+      var pl = places[бік][i], f = frac(ev);
+      drag = grip
+        ? { тип:'size', id: ev.pointerId, i: i, left: pl.box.x - pl.box.w / 2, top: pl.box.y }
+        : { тип:'move', id: ev.pointerId, i: i, dx: pl.box.x - f.x, dy: pl.box.y - f.y };
+      try{ if(ev.pointerId != null) fr.setPointerCapture(ev.pointerId); }catch(e){}
+    }
     function move(ev){
       if(!drag) return;
+      if(drag.id != null && ev.pointerId != null && ev.pointerId !== drag.id) return;
+      if(ev.pointerType === 'mouse' && ev.buttons === 0){ drag = null; return; }
+      var pl = (places[бік] || [])[drag.i];
+      if(!pl){ drag = null; return; }
       var f = frac(ev);
-      if(drag.тип === 'cal'){
-        if(drag.ключ === 'y') cal.y = f.y;
-        else if(drag.ключ === 'x1') cal.x1 = Math.min(f.x, cal.x2 - 0.03);
-        else cal.x2 = Math.max(f.x, cal.x1 + 0.03);
-        return постав();
-      }
-      var pl = (places[бік] || [])[обране];
-      if(!pl) return;
       if(drag.тип === 'move'){
-        pl.box.x = clamp(f.x + drag.dx, 0, 1);
-        pl.box.y = clamp(f.y + drag.dy, 0, 1);
+        pl.box.x = f.x + drag.dx;
+        pl.box.y = f.y + drag.dy;
       } else {
-        /* Тягнемо за кут — міняється ширина; висота йде за пропорцією
-           файлу. Розтягувати макет непропорційно не можна взагалі: це вже
-           не той логотип, який погодив клієнт. */
-        pl.box.w = clamp(f.x - (pl.box.x - pl.box.w / 2), 0.04, 1);
+        /* Тягнемо за кут — верхній лівий кут стоїть, ширина йде за мишею,
+           висота — за пропорцією файлу. Розтягувати макет непропорційно не
+           можна взагалі: це вже не той логотип, який погодив клієнт. */
+        var ar = арПро(pl), a = асп[бік] || 0;
+        var w = f.x - drag.left;
+        if(a > 0) w = Math.max(w, (f.y - drag.top) * a / ar);
+        var max = 1 - drag.left;
+        if(a > 0) max = Math.min(max, (1 - drag.top) * a / ar);
+        w = clamp(w, МІН, Math.max(МІН, max));
+        pl.box.w = w; pl.box.x = drag.left + w / 2; pl.box.y = drag.top;
       }
+      втисни(pl);
       постав();
     }
-    document.addEventListener('mousemove', move);
-    var up = function(){ drag = null; };
-    document.addEventListener('mouseup', up);
+    var up = function(ev){
+      if(drag && drag.id != null && ev && ev.pointerId != null && ev.pointerId !== drag.id) return;
+      drag = null;
+    };
+    var кинути = function(){ drag = null; };
+    var неТягни = function(ev){ ev.preventDefault(); };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('dragstart', неТягни);
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+    window.addEventListener('blur', кинути);
+    window.addEventListener('resize', влаштуй);
 
-    function прибрати(){
-      document.removeEventListener('mousemove', move);
-      document.removeEventListener('mouseup', up);
-      close();
+    function прибрати(){ close(); }
+    W.off = function(){
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+      window.removeEventListener('blur', кинути);
+      window.removeEventListener('resize', влаштуй);
+      if(ro) ro.disconnect();
+    };
+    /* Дубль лягає поруч, а не точно поверх: дві однакові картинки одна в
+       одній виглядають як одна, і незрозуміло, що саме тягнеш. */
+    function нове(work){
+      var box = { x:0.5, y:0.34, w:0.26 };
+      var тут = places[бік] || [];
+      for(var k = 0; k < 12 && тут.some(function(p){
+            return Math.abs(p.box.x - box.x) < 0.02 && Math.abs(p.box.y - box.y) < 0.02; }); k++){
+        box.x += 0.05; box.y += 0.05;
+        if(box.x > 0.8){ box.x = 0.25; }
+        if(box.y > 0.75){ box.y = 0.12; }
+      }
+      var pl = { work: work, box: box };
+      втисни(pl);
+      places[бік].push(pl);
+      обране = places[бік].length - 1;
     }
     el.addEventListener('click', async function(ev){
       var t = ev.target;
-      if(t === el || (t.closest && t.closest('[data-mko-x]'))) return прибрати();
+      /* Закриваємо кліком по тлі, лише якщо й натиснули на тлі: відпустити
+         мишу за вікном посеред тягання — не «закрий усе». */
+      if((t === el && натискНаФоні) || (t.closest && t.closest('[data-mko-x]'))) return прибрати();
       var rm = t.closest && t.closest('[data-mko-rm]');
       if(rm){
         places[бік].splice(+rm.getAttribute('data-mko-rm'), 1);
         обране = -1;
+        drag = null;
         return малюй();
       }
       var tab = t.closest && t.closest('[data-mko-side]');
       if(tab){
         бік = tab.getAttribute('data-mko-side');
         обране = -1;
-        cal = calNow() || cal;
-        режим = calNow() ? 'art' : 'cal';
-        малюй();
-        var b = el.querySelector('.mko-base');
-        if(b) b.onload = постав;
-        return;
+        drag = null;
+        return малюй();
       }
       var wk = t.closest && t.closest('[data-mko-w]');
       if(wk){
-        var i = +wk.getAttribute('data-mko-w');
-        places[бік].push({ work:i, box:{ x:0.5, y:0.34, w:0.26 } });
-        обране = places[бік].length - 1;
+        нове(+wk.getAttribute('data-mko-w'));
         return малюй();
       }
       if(t.closest && t.closest('[data-mko-up]')) return вантажити();
@@ -702,18 +814,16 @@
       }
       var bgb = t.closest && t.closest('[data-mko-bg]');
       if(bgb) return фон(bgb.getAttribute('data-mko-bg'));
-      if(t.closest && t.closest('[data-mko-caltoggle]')){
-        режим = режим === 'cal' ? 'art' : 'cal';
-        if(режим === 'art' && HOST.calSave){
-          try{ HOST.calSave(opt.gid, { x1:cal.x1, x2:cal.x2, y:cal.y }, calKey()); }catch(e){}
-        }
-        return малюй();
-      }
       if(t.closest && t.closest('[data-mko-save]')) return зберегти();
     });
     var esk = function(ev){ if(ev.key === 'Escape') прибрати(); };
     document.addEventListener('keydown', esk, true);
     W.esk = esk;
+    /* Для перевірок: що зараз лежить і що обрано — лише читати. */
+    W.peek = function(){
+      return JSON.parse(JSON.stringify({ side: бік, sel: обране, places: places,
+        asp: асп[бік] || 0, ar: (places[бік] || []).map(арПро), dragging: !!drag }));
+    };
 
     async function вантажити(){
       if(!opt.onUpload) return say('Завантаження недоступне');
@@ -726,8 +836,7 @@
       арт.push(im);
       /* Щойно завантажену роботу одразу кладемо на виріб: людина її для
          цього й вантажила, а зайве натискання тут читається як «а що тепер?». */
-      places[бік].push({ work: works.length - 1, box:{ x:0.5, y:0.34, w:0.26 } });
-      обране = places[бік].length - 1;
+      нове(works.length - 1);
       малюй();
     }
 
@@ -800,10 +909,8 @@
     /* Картинки робіт і фото сторони можуть ще вантажитись — перше
        малювання лягло б у порожнечу. */
     for(var i = 0; i < works.length; i++) арт[i] = await img(works[i].url);
-    var b0 = el.querySelector('.mko-base');
-    if(b0){ if(b0.complete) постав(); else b0.onload = постав; }
-    window.addEventListener('resize', постав);
-    setTimeout(постав, 60);
+    /* Пропорції робіт тепер відомі — ставимо їх точно. */
+    влаштуй();
     if(!works.length && !opt.placeOnly) вантажити();
   }
 
@@ -1404,7 +1511,7 @@
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
-    open: open, openWork: openWork, card: card, prodCard: prodCard, close: close,
+    open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, prodCard: prodCard, close: close,
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */
