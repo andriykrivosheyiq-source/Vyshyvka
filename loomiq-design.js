@@ -1126,12 +1126,15 @@
   function verParts(v){
     var fs = (v && v.files) || [];
     var хеш = fs.some(function(f){ return f && f.hash; });
-    var out = { work: [], mock: [], sheet: null, shot: [], machine: [] };
+    var out = { work: [], mock: [], sheet: null, shot: [], machine: [], orig: [], svg: [] };
     fs.forEach(function(f, i){
       if(!f || !f.url) return;
       /* Вишивка: файл для машини (DST/EMB) і скрін дизайну з Wilcom. */
       if(f.role === 'machine'){ out.machine.push(f); return; }
       if(f.role === 'shot'){ out.shot.push(f); return; }
+      /* Під нитки: оригінал до адаптації і SVG з тими самими нитками. */
+      if(f.role === 'orig'){ out.orig.push(f); return; }
+      if(f.role === 'svg'){ out.svg.push(f); return; }
       var r = f.role ||
         (/^аркуш/i.test(String(f.name || '')) ? 'sheet'
           : хеш ? (f.hash ? 'work' : 'mock')
@@ -2816,7 +2819,8 @@
       var o = opt.only;
       p = { work: o.indexOf('work') >= 0 ? p.work : [], mock: o.indexOf('mock') >= 0 ? p.mock : [],
             sheet: o.indexOf('sheet') >= 0 ? p.sheet : null,
-            shot: o.indexOf('shot') >= 0 ? p.shot : [], machine: o.indexOf('machine') >= 0 ? p.machine : [] };
+            shot: o.indexOf('shot') >= 0 ? p.shot : [], machine: o.indexOf('machine') >= 0 ? p.machine : [],
+            orig: o.indexOf('orig') >= 0 ? p.orig : [], svg: o.indexOf('svg') >= 0 ? p.svg : [] };
     }
     var t = [];
     var н = function(b, k, n){ return b + (n > 1 ? '_' + (k + 1) : ''); };
@@ -2824,6 +2828,10 @@
       t.push(tileHtml(f, н(nm.base, k, p.work.length), 'робота')); });
     p.mock.forEach(function(f, k){
       t.push(tileHtml(f, н(nm.mock, k, p.mock.length), 'мокап')); });
+    (p.svg || []).forEach(function(f, k){
+      t.push(tileHtml(f, н(nm.base + '_нитки', k, p.svg.length) + '.svg', 'SVG під нитки')); });
+    (p.orig || []).forEach(function(f, k){
+      t.push(tileHtml(f, н(nm.base + '_оригінал', k, p.orig.length), 'оригінал')); });
     if(p.sheet) t.push(tileHtml(p.sheet, nm.base + '_картка', 'картка'));
     p.shot.forEach(function(f, k){
       t.push(tileHtml(f, н(nm.base + '_wilcom', k, p.shot.length), 'скрін Wilcom')); });
@@ -4734,6 +4742,100 @@
     u.size = st.size; u.qty = st.qty;
     D.clothConfirm(u, by);
   }
+  /* ══════════ ПІД НИТКИ: АДАПТАЦІЯ РОБОТИ ДО ПАЛІТРИ ══════════
+
+     Андрій: дизайнер спершу адаптує роботу під нашу палітру ниток, і вже
+     ЦЮ картинку кладе на мокап — саме вона лежить у файлах картки й іде
+     далі в роботу. Оригінал зберігаємо поруч, але далі він не йде.
+
+     Вікно: ліворуч оригінал, праворуч зведене до ниток, під ним перелік
+     ниток з кодами, повзунок «скільки ниток максимум». Підбір і
+     трасування — loomiq-threads.js; палітра трасувальнику передається
+     ЗАВЖДИ, і після нього нічого не перегруповуємо (правила з README).
+     `done(робота)` — адаптована робота, або нічого, якщо передумали. */
+  function threadsHtml(list){
+    if(!list || !list.length) return '';
+    return '<div class="dz-threads">' + list.map(function(t){
+      return '<span class="dz-thr" title="Нитка ' + esc(t.code) + '"><i style="background:' + esc(t.hex) + '"></i>' + esc(t.code) + '</span>';
+    }).join('') + '</div>';
+  }
+  function verThreads(v){
+    var p = (v && v.place) || {};
+    if(Array.isArray(p.threads) && p.threads.length) return p.threads;
+    var out = [], seen = {};
+    (p.works || []).forEach(function(w){ (w.threads || []).forEach(function(t){
+      if(t && t.code && !seen[t.code]){ seen[t.code] = 1; out.push(t); } }); });
+    return out;
+  }
+  function threadAdapt(f){
+    return new Promise(function(resolve){
+      if(!window.LQThreads || !window.LQThreads.run){ say('Підбір ниток не завантажився'); return resolve(null); }
+      var w = document.createElement('div');
+      w.className = 'dz-pick dz-cf dz-th';
+      var st = { k: 12, busy: true, res: null, src: null, err: '' };
+      var close = function(v){ if(w.parentNode) w.parentNode.removeChild(w);
+        if(st.res && st.res.pngUrl) URL.revokeObjectURL(st.res.pngUrl); resolve(v); };
+      var paint = function(){
+        var r = st.res;
+        w.innerHTML = '<div class="dz-cf-b dz-th-b" role="dialog" aria-label="Під нитки">' +
+          '<div class="dz-cf-h">Під нитки · ' + esc(f.name || 'робота') + '</div>' +
+          '<div class="dz-cl-hint">Робота зводиться до кольорів наших ниток. На мокап і далі в роботу піде саме ' +
+            'адаптована; оригінал збережеться поруч.</div>' +
+          '<div class="dz-th-pair">' +
+            '<figure><img src="' + esc(f.url) + '" alt=""><figcaption>оригінал</figcaption></figure>' +
+            '<figure>' + (r && r.pngUrl ? '<img src="' + esc(r.pngUrl) + '" alt="">' :
+              '<div class="dz-th-wait">' + esc(st.err || 'Підбираю нитки…') + '</div>') +
+              '<figcaption>під нитки' + (r ? ' · ' + r.threads.length + ' ниток' : '') + '</figcaption></figure>' +
+          '</div>' +
+          (r ? threadsHtml(r.threads.map(function(t){ return { code: t.code, hex: t.hex }; })) : '') +
+          '<label class="dz-th-k"><span>Ниток максимум</span>' +
+            '<input type="range" min="2" max="24" value="' + st.k + '" data-thk' + (st.busy ? ' disabled' : '') + '>' +
+            '<b>' + st.k + '</b></label>' +
+          '<div class="dz-cf-f">' +
+            '<button type="button" class="dz-b" data-thno>Скасувати</button>' +
+            '<button type="button" class="dz-b pri" data-thgo' + (r && !st.busy ? '' : ' disabled') + '>Взяти адаптоване</button>' +
+          '</div></div>';
+      };
+      var calc = async function(){
+        st.busy = true; st.err = ''; paint();
+        try{
+          if(!st.src){ var rr = await fetch(f.url, { mode:'cors', credentials:'omit' }); st.src = await rr.blob(); }
+          var out = await window.LQThreads.run(st.src, st.k);
+          if(st.res && st.res.pngUrl) URL.revokeObjectURL(st.res.pngUrl);
+          st.res = out.threads.length ? { svg: out.svg, png: out.png, threads: out.threads,
+                                          pngUrl: URL.createObjectURL(out.png) } : null;
+          if(!st.res) st.err = 'На картинці немає що зводити — порожня або прозора';
+        }catch(e){ console.error('нитки', e); st.res = null; st.err = 'Картинка не відкрилась для підбору'; }
+        st.busy = false; paint();
+      };
+      w.addEventListener('change', function(e){
+        if(e.target.closest('[data-thk]')){ st.k = Math.max(2, Math.min(24, +e.target.value || 12)); calc(); } });
+      w.addEventListener('input', function(e){
+        var k = e.target.closest('[data-thk]'); if(!k) return;
+        var b = w.querySelector('.dz-th-k b'); if(b) b.textContent = k.value; });
+      w.addEventListener('click', async function(e){
+        if(e.target === w || e.target.closest('[data-thno]')) return close(null);
+        if(!e.target.closest('[data-thgo]') || !st.res || st.busy) return;
+        st.busy = true; paint();
+        var base = String(f.name || 'робота').replace(/\.\w+$/, '');
+        try{
+          var png = (typeof File === 'function') ? new File([st.res.png], base + '-нитки.png', { type:'image/png' }) : st.res.png;
+          var svgF = (typeof File === 'function') ? new File([st.res.svg], base + '-нитки.svg', { type:'image/svg+xml' })
+                                                  : new Blob([st.res.svg], { type:'image/svg+xml' });
+          var url = await host().upload(png);
+          var svgUrl = st.res.svg ? await host().upload(svgF) : '';
+          if(!url){ st.busy = false; paint(); return say('Адаптована робота не завантажилась'); }
+          var h = await fileHash(url);
+          close({ name: base + '-нитки.png', url: url, hash: h || f.hash || '',
+                  orig: { name: f.name || '', url: f.url },
+                  svg: svgUrl ? { name: base + '-нитки.svg', url: svgUrl } : null,
+                  threads: st.res.threads.map(function(t){ return { code: t.code, hex: t.hex }; }) });
+        }catch(err){ console.error(err); st.busy = false; paint(); say('Не зберіглось — спробуйте ще раз'); }
+      });
+      document.body.appendChild(w);
+      calc();
+    });
+  }
   /* Вікно «Надіслати клієнту?»: картка, що поїде, і текст повідомлення.
      Повертає текст (можливо, поправлений) або null, якщо передумали. */
   function tellConfirm(url, text, title){
@@ -5296,7 +5398,7 @@
       if(!v) return;
       out.push('<div class="dz-w-note"><i>Погоджений ескіз' + (g.length > 1 ? ' · дизайн ' + (gi + 1) : '') +
         ' · версія ' + v.n + '</i>' + U.verTilesHtml(v, U.dlNames(no, u, 'graphic', gi, v.n)) +
-        spotsHtml(u, v, 'stitch') + '</div>');
+        spotsHtml(u, v, 'stitch') + threadsHtml(verThreads(v)) + '</div>');
     });
     return out.length ? out.join('')
       : '<div class="dz-miss is-calm">Погодженого ескізу на цій позиції немає.</div>';
@@ -5776,11 +5878,12 @@
       var no = U.unitNo(job, u);
       var g = U.catItem(u.gid);
       var gr = D.dzList(u, 'graphic'), st = D.dzList(u, 'stitch');
-      var плитки = [], бракує = [], кнопки = [];
+      var плитки = [], бракує = [], кнопки = [], нитки = [];
       gr.forEach(function(d, i){
         var v = verOkOf(d);
         if(!v){ if(D.dzReal(d)) бракує.push('ескіз' + (gr.length > 1 ? ' ' + (i + 1) : '') + ' не погоджено'); return; }
         плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'graphic', i, v.n), { only: ['work', 'mock'], bare: true }));
+        if(verThreads(v).length) нитки = нитки.concat(verThreads(v));
         кнопки.push('<button type="button" class="dz-b" data-do="prod-card" data-u="' + esc(u.id) + '" data-g="' + i +
           '" title="Схема з відступами від верху й краю виробу">⤓ Виробничий файл' +
           (gr.length > 1 ? ' · дизайн ' + (i + 1) : '') + '</button>');
@@ -5796,6 +5899,7 @@
                           ((+u.qty || 0) ? (+u.qty) + ' шт' : '')].filter(Boolean).join(' · ')) + '</span>' +
           clothHtml(o, u) + '</div>' +
         (плитки.length ? '<span class="dz-tiles dz-prod-row">' + плитки.join('') + '</span>' : '') +
+        threadsHtml(нитки) +
         (бракує.length ? '<div class="dz-miss is-calm">' + esc(бракує.join(' · ')) + '</div>' : '') +
         (кнопки.length ? '<div class="dz-prod-b">' + кнопки.join('') + '</div>' : '') +
       '</div>';
@@ -7738,12 +7842,16 @@
             return D.verParts(lv).work.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '' }; });
           })(),
           places: чер3.places || [],
+          /* Під нитки — обовʼязково: завантажив роботу, адаптував, і вже
+             адаптовану кладеш на виріб. */
+          needThreads: true,
           onUpload: async function(){
             var f = await upload('image/*');
             if(!f) return null;
             f.hash = await fileHash(f.url);
-            return f;
+            return await threadAdapt(f);
           },
+          onAdapt: function(w){ return threadAdapt({ name: w.name, url: (w.orig && w.orig.url) || w.url, hash: w.hash }); },
           onDone: async function(res){
             var зібр = await workVer(res, du);
             if(!зібр) return;
@@ -7810,14 +7918,27 @@
       }
       /* Здати саму роботу, без мокапу — поки виріб не обрано. */
       if(what === 'dz-art-only'){
-        var aw = await uploadMany('image/*');
-        if(!aw.length) return;
-        for(var awi = 0; awi < aw.length; awi++) aw[awi].hash = await fileHash(aw[awi].url);
+        var aw0 = await uploadMany('image/*');
+        if(!aw0.length) return;
+        /* Під нитки — і тут: без виробу здають саму роботу, але вже адаптовану. */
+        var aw = [];
+        for(var awi = 0; awi < aw0.length; awi++){
+          aw0[awi].hash = await fileHash(aw0[awi].url);
+          var ad = await threadAdapt(aw0[awi]);
+          if(ad) aw.push(ad);
+        }
+        if(!aw.length) return say('Без адаптації під нитки роботу не здаємо');
         var awEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var awTxt = awEl ? String(awEl.value || '').trim() : '';
-        D.dzVer(dd, m, aw.map(function(f){ return { name: f.name || 'робота', url: f.url, hash: f.hash || '', role:'work' }; }),
-          awTxt, { works: aw.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '' }; }),
-                   spots: [], нанесень: 0, робіт: aw.length }, dk);
+        var awF = [];
+        aw.forEach(function(f){
+          awF.push({ name: f.name || 'робота', url: f.url, hash: f.hash || '', role:'work' });
+          if(f.orig && f.orig.url) awF.push({ name: f.orig.name || 'оригінал', url: f.orig.url, role:'orig' });
+          if(f.svg && f.svg.url) awF.push({ name: f.svg.name, url: f.svg.url, role:'svg' });
+        });
+        D.dzVer(dd, m, awF,
+          awTxt, { works: aw.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '', threads: f.threads || [] }; }),
+                   threads: threadsUnion(aw), spots: [], нанесень: 0, робіт: aw.length }, dk);
         dd.status = 'review';
         if(awEl) awEl.value = '';
         return save(job, o, 'Надіслано · робота без мокапу (виріб ще не обрано)');
@@ -7893,6 +8014,12 @@
      результат: мокапи сторін, самі роботи й цифри розміщення. Два різні
      збирачі колись розійшлися б — і в цеху версія менеджера виглядала б
      інакше, ніж версія дизайнера. */
+  function threadsUnion(works){
+    var out = [], seen = {};
+    (works || []).forEach(function(w){ (w.threads || []).forEach(function(t){
+      if(t && t.code && !seen[t.code]){ seen[t.code] = 1; out.push({ code: t.code, hex: t.hex }); } }); });
+    return out;
+  }
   async function workVer(res, du){
     say('Збираю мокапи…');
     /* Мокапи зібрались у браузері як data:URL. Класти їх у картку
@@ -7924,10 +8051,17 @@
     /* Самі роботи теж кладемо у версію: вишивальному дизайнеру
        потрібні вони, а не мокап, і клієнту йде аркуш. */
     (res.works || []).forEach(function(w){
-      файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '', role:'work' }); });
+      файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '', role:'work' });
+      /* Оригінал до адаптації й SVG з тими самими нитками — поруч, окремими
+         ролями: далі в роботу йде лише адаптована. */
+      if(w.orig && w.orig.url) файли.push({ name: w.orig.name || 'оригінал', url: w.orig.url, role:'orig' });
+      if(w.svg && w.svg.url) файли.push({ name: w.svg.name || 'нитки.svg', url: w.svg.url, role:'svg' });
+    });
     return { files: файли, place: {
       works: (res.works || []).map(function(w){
-        return { name:w.name || '', url:w.url, hash:w.hash || '' }; }),
+        return { name:w.name || '', url:w.url, hash:w.hash || '', threads: w.threads || [],
+                 orig: w.orig || null, svg: w.svg || null }; }),
+      threads: threadsUnion(res.works || []),
       spots: місця, нанесень: res.нанесень, робіт: res.робіт,
       size: res.size || du.size || '',
       /* Перше нанесення — те, що показують у рядку під версією:

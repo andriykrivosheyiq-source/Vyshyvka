@@ -47,6 +47,10 @@ CTOR_DESIGN = 'loomiq-design.js'
 # власна річ із власним вікном і власною арифметикою; версію штампуємо
 # разом з рештою: розмітка виробу й підрахунок мусять їхати однією парою.
 CTOR_MOCK = 'loomiq-mock.js'
+# Підбір ниток до зображення (і бібліотека трасування під ним) — штампуємо
+# разом з рештою, щоб у кеші не лишився підбір під стару палітру.
+CTOR_THREADS = 'loomiq-threads.js'
+CTOR_TRACER = 'imagetracer.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -450,6 +454,7 @@ def main():
     cards = open(os.path.join(ROOT, CTOR_CARDS), encoding='utf-8').read()
     design = open(os.path.join(ROOT, CTOR_DESIGN), encoding='utf-8').read()
     mockjs = open(os.path.join(ROOT, CTOR_MOCK), encoding='utf-8').read()
+    mockjs += open(os.path.join(ROOT, CTOR_THREADS), encoding='utf-8').read()
     # НОМЕР ЗБІРКИ РАХУЄМО Й ЗІ СТОРІНОК ТЕЖ.
     #
     # Доти він брався лише з файлів рушіїв — а правка в самій сторінці
@@ -477,7 +482,7 @@ def main():
         txt = open(path, encoding='utf-8').read()
         new = txt
         for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
-                      CTOR_CARDS, CTOR_DESIGN, CTOR_MOCK):
+                      CTOR_CARDS, CTOR_DESIGN, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER):
             new = stamp(new, asset, ver)
         # Версія САМОЇ сторінки. Позначка в адресі рятує лише скрипти: у HTML
         # адреси немає, браузер тримає його стільки, скільки схоче, — і людина

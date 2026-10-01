@@ -459,6 +459,9 @@
       var i = активна();
       if(i < 0 || opt.placeOnly) return '';
       var w = works[i], cur = w.bg || 'none';
+      /* Адаптована під нитки — фон уже прибраний підбором (від краю кадру);
+         чіпати її далі означало б з'їхати з ниток. */
+      if(w.threads) return '';
       return '<div class="mko-bg"><span>Фон роботи' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
         ФОН.map(function(f){
           return '<button type="button" class="mko-bg-b' + (f[0] === cur ? ' on' : '') +
@@ -496,9 +499,15 @@
         '<div class="mko-w is-work">' + шапкаHtml() +
           '<div class="mko-works">' +
             works.map(function(w, i){
-              return '<button type="button" class="mko-wk" data-mko-w="' + i + '" ' +
+              var треба = opt.needThreads && !w.threads;
+              return '<span class="mko-wk-w">' +
+                '<button type="button" class="mko-wk' + (треба ? ' need' : '') + '" data-mko-w="' + i + '" ' +
                 'title="' + esc(w.name || 'робота') + ' — натисніть, щоб покласти на виріб">' +
-                '<img src="' + esc(w.url) + '" alt=""></button>';
+                '<img src="' + esc(w.url) + '" alt="">' +
+                (w.threads ? '<i class="mko-wk-t" title="Адаптовано під нитки">🧵' + w.threads.length + '</i>' : '') +
+                '</button>' +
+                (треба ? '<button type="button" class="mko-wk-a" data-mko-adapt="' + i + '">Під нитки</button>' : '') +
+                '</span>';
             }).join('') +
             (opt.placeOnly ? '' :
               '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>') +
@@ -681,6 +690,16 @@
         return малюй();
       }
       if(t.closest && t.closest('[data-mko-up]')) return вантажити();
+      var ad = t.closest && t.closest('[data-mko-adapt]');
+      if(ad && opt.onAdapt){
+        var ai = +ad.getAttribute('data-mko-adapt');
+        var nw = null;
+        try{ nw = await opt.onAdapt(works[ai]); }catch(e){ console.error(e); }
+        if(!nw || !nw.url) return;
+        works[ai] = nw;
+        арт[ai] = await img(nw.url);
+        return малюй();
+      }
       var bgb = t.closest && t.closest('[data-mko-bg]');
       if(bgb) return фон(bgb.getAttribute('data-mko-bg'));
       if(t.closest && t.closest('[data-mko-caltoggle]')){
@@ -716,6 +735,13 @@
       var btn = el.querySelector('[data-mko-save]');
       var c = рахунок();
       if(!c.нанесень) return say('Покладіть хоч одну роботу на виріб');
+      /* Без адаптації під нитки не здаємо: на мокап і далі йде лише вона. */
+      if(opt.needThreads){
+        var неАд = {};
+        Object.keys(places).forEach(function(k){ places[k].forEach(function(pl){
+          var w = works[pl.work]; if(w && !w.threads) неАд[pl.work] = 1; }); });
+        if(Object.keys(неАд).length) return say('Спершу адаптуйте роботу під нитки — кнопка «Під нитки» під нею');
+      }
       btn.disabled = true; btn.textContent = 'Збираю…';
       try{
         var out = [];

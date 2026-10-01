@@ -169,13 +169,26 @@ const здача0 = await p.evaluate(() => ({
   підказка: ((document.querySelector('.dz-panel .dz-w-send .dz-miss') || {}).textContent || '') }));
 ok(здача0.кнопка && !здача0.вікно && /Виріб ще не обрано/.test(здача0.підказка),
   'дизайнер без виробу здає саму роботу — без вікна мокапу, і сказано чому', 'здача: ' + JSON.stringify(здача0));
+/* Під нитки — обовʼязково й тут. Завантаження віддає data-URL, щоб
+   адаптація могла прочитати картинку; ескіз — червоне коло на білому. */
+const ЕСКІЗ = await p.evaluate(() => { const c = document.createElement('canvas'); c.width = 120; c.height = 120;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 120, 120);
+  x.fillStyle = '#C8102E'; x.beginPath(); x.arc(60, 60, 40, 0, 7); x.fill();
+  window.__upBak = window.LQDesign.ui.host.upload;
+  window.LQDesign.ui.host.upload = f => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+  return c.toDataURL('image/png').split(',')[1]; });
 const [fc0] = await Promise.all([p.waitForEvent('filechooser'),
   p.evaluate(() => document.querySelector('.dz-panel [data-do="dz-art-only"]').click())]);
-await fc0.setFiles({ name:'ескіз.png', mimeType:'image/png', buffer: PNG });
-await p.waitForTimeout(700);
+await fc0.setFiles({ name:'ескіз.png', mimeType:'image/png', buffer: Buffer.from(ЕСКІЗ, 'base64') });
+await p.waitForSelector('.dz-th [data-thgo]:not([disabled])', { timeout: 30000 });
+await p.evaluate(() => document.querySelector('.dz-th [data-thgo]').click());
+await p.waitForFunction(() => window.LQDesign.dzList(__j3.units[0], 'graphic')[0].vers.length > 0, null, { timeout: 20000 });
 const в0 = await p.evaluate(() => { const d = window.LQDesign.dzList(__j3.units[0], 'graphic')[0];
-  const v = d.vers[d.vers.length - 1] || {}; return { стан: d.status, файли: (v.files || []).map(f => f.role) }; });
-ok(в0.стан === 'review' && в0.файли.join() === 'work', 'версія — сама робота, на перевірці в менеджера', 'версія: ' + JSON.stringify(в0));
+  window.LQDesign.ui.host.upload = window.__upBak;
+  const v = d.vers[d.vers.length - 1] || {}; return { стан: d.status, файли: (v.files || []).map(f => f.role).sort(),
+    нитки: ((v.place || {}).threads || []).length }; });
+ok(в0.стан === 'review' && в0.файли.join() === 'orig,svg,work' && в0.нитки >= 1,
+  'версія — сама робота (адаптована під нитки) + оригінал і SVG, на перевірці в менеджера', 'версія: ' + JSON.stringify(в0));
 await p.evaluate(() => { __j3.units[0].gid = 'tee'; __j3.units[0].color = 'Чорний';
   const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(200);
