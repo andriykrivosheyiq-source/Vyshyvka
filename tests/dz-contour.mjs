@@ -116,7 +116,7 @@ await p.evaluate(() => {
   U.host.hasChat = () => true;
 });
 const стан = () => p.evaluate(() => window.LQDesign.chainAt(__j, __o));
-const saveJob = () => p.evaluate(() => { window.LQDesign.dzAutoQueue(__j, __o, 'test@loomiq'); });
+const saveJob = () => p.evaluate(() => { window.LQDesign.dzHandOver(__j, __o, 'test@loomiq'); });
 
 console.log('═══ 1. ЗАПОВНИЛИ → ЧЕРГА ГРАФІКИ ═══');
 await saveJob();
