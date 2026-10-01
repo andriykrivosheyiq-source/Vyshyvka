@@ -137,7 +137,7 @@ await p.evaluate(() => {
   const U = window.LQDesign.ui;
   job.units = [
     Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний',
-                                 size:'M', qty:3, note:'Лого менше' }),
+                                 size:'M', qty:3 }),   // без ТЗ — інакше сама стала б у чергу
     Object.assign(U.unitNew(), { gid:'hoodie', name:'Худі базове', color:'Сірий',
                                  size:'L', qty:1 })
   ];
@@ -222,6 +222,8 @@ ok(!до.кнопки.length && !до.полів,
 
 console.log('\n═══ ПРИЗНАЧИЛИ → ЗʼЯВИЛАСЬ ПЕРЕДАЧА ═══');
 await p.evaluate(() => {
+  /* ТЗ дописали — і одразу обрали людину. Без ТЗ передавати нема чого. */
+  designJobs['2000101'].units[0].note = 'Лого менше';
   const s = document.querySelector('.dz-u-l [data-dzwho]');
   s.value = 'art@loomiq';
   s.dispatchEvent(new Event('change'));

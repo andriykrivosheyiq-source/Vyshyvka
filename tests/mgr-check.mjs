@@ -662,14 +662,24 @@ const вибір = await p.evaluate(async () => {
   /* Обираємо ПЕРШУ — тобто v1, не останню: саме це й перевіряємо. */
   const v1 = [...document.querySelectorAll('.dz-pick-c')].filter(c => /v1/.test(c.textContent))[0];
   if(v1) v1.click();
+  await new Promise(r => setTimeout(r, 300));
+  /* Погодження ескізу — разом із підтвердженням одягу: вікно з
+     підставленими моделлю, кольором, розміром і кількістю. */
+  const одяг = [...document.querySelectorAll('.dz-cl [data-cl]')].map(x => x.value);
+  const go = document.querySelector('.dz-cl [data-cl-go]');
+  const живе = !!(go && !go.disabled);
+  if(go) go.click();
   await new Promise(r => setTimeout(r, 700));
   return { варіанти: карток, погоджено: (d.ok || {}).ver, як: (d.ok || {}).how,
-           стан: d.status };
+           стан: d.status, одяг, живе, підтв: !!job.units[0].confirmed };
 });
 console.log('  ' + JSON.stringify(вибір));
 ok(вибір.варіанти.length === 2,
   'перед погодженням показані всі версії: ' + вибір.варіанти.join(' · '),
   'вибору версії немає: ' + JSON.stringify(вибір.варіанти));
+ok(вибір.одяг.join() === 'tee,Чорний,M,3' && вибір.живе && вибір.підтв,
+  'після вибору версії — вікно одягу з підставленими даними, підтвердили',
+  'вікно одягу не те: ' + JSON.stringify(вибір));
 ok(вибір.погоджено === 1,
   'погоджена саме та, яку обрали, а не остання: v' + вибір.погоджено,
   'погодилась не та версія: v' + вибір.погоджено);

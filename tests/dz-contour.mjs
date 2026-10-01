@@ -140,6 +140,8 @@ await p.evaluate(async () => {
   const U = window.LQDesign.ui;
   U.setTab('acct'); U.open('2000101'); U.render(document.getElementById('dzRoot'));
   for(let k = 0; k < 2; k++){
+    /* Одяг підтверджують при погодженні ескізу (вікно); тут — напряму. */
+    window.LQDesign.clothConfirm(__j.units[k], 'test@loomiq');
     await U.act('dz-ok', document.getElementById('dzRoot'), { dz: __j.units[k].id + '|graphic|0', v: 1, how:'client' });
   }
 });
