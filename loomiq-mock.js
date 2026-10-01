@@ -415,6 +415,18 @@
                topCm: (pl.box.y * r.height - cal.y * r.height) / pxСм,
                sideCm: (pl.box.x * r.width - центр) / pxСм };
     }
+    /* Ті самі сантиметри, але без екрана: з розмітки сторони й пропорцій
+       її фото. Потрібно для сторін, які зараз не відкриті. */
+    function міриЗ(pl, c, asp){
+      if(!шир || !c || !(c.x2 > c.x1) || !(asp > 0)) return null;
+      var a = арт[pl.work];
+      var ar = a ? (a.height / a.width) : 1;
+      var k = шир / (c.x2 - c.x1);            // сантиметрів на всю ширину кадру
+      var wCm = pl.box.w * k;
+      return { wCm: wCm, hCm: wCm * ar,
+               topCm: (pl.box.y - c.y) * asp * k,
+               sideCm: (pl.box.x - (c.x1 + c.x2) / 2) * k };
+    }
     function рахунок(){
       var нанесень = 0, хеші = {};
       Object.keys(places).forEach(function(k){
@@ -428,7 +440,8 @@
     }
     function шапкаHtml(){
       var c = рахунок();
-      return '<div class="mko-h"><b>Здати роботу · ' + esc(opt.name || 'виріб') + '</b>' +
+      return '<div class="mko-h"><b>' + (opt.placeOnly ? 'Поправити розміщення · ' : 'Здати роботу · ') +
+          esc(opt.name || 'виріб') + '</b>' +
         '<span class="mko-h-s">' + c.нанесень + ' ' +
           (c.нанесень === 1 ? 'нанесення' : 'нанесень') +
           (c.робіт && c.робіт !== c.нанесень ? ' · робіт ' + c.робіт : '') + '</span>' +
@@ -445,7 +458,7 @@
                ['photoroom', 'Прибрати — PhotoRoom']];
     function фонHtml(){
       var i = активна();
-      if(i < 0) return '';
+      if(i < 0 || opt.placeOnly) return '';
       var w = works[i], cur = w.bg || 'none';
       return '<div class="mko-bg"><span>Фон роботи' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
         ФОН.map(function(f){
@@ -488,7 +501,8 @@
                 'title="' + esc(w.name || 'робота') + ' — натисніть, щоб покласти на виріб">' +
                 '<img src="' + esc(w.url) + '" alt=""></button>';
             }).join('') +
-            '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>' +
+            (opt.placeOnly ? '' :
+              '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>') +
           '</div>' +
           фонHtml() +
           '<div class="mko-tabs">' + сторони.map(function(s){
@@ -521,7 +535,8 @@
                 (режим === 'cal' ? 'Готово, розмітив' : 'Розмітити виріб') + '</button>' +
               '<div class="mko-acts">' +
                 '<button class="mko-b" data-mko-x>Скасувати</button>' +
-                '<button class="mko-b pri" data-mko-save>Надіслати</button>' +
+                '<button class="mko-b pri" data-mko-save>' +
+                  (opt.placeOnly ? 'Зберегти розміщення' : 'Надіслати') + '</button>' +
               '</div>' +
             '</div>' +
           '</div>' +
@@ -725,6 +740,17 @@
           x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
           x.drawImage(base, 0, 0, cv.width, cv.height);
           var мірки = [];
+          /* Сантиметри — для КОЖНОЇ сторони, а не лише для відкритої.
+             Доти спина, на яку в мить збереження не дивились, лягала з
+             нулями: «0 см від горловини» в цеху читається як виміряне. Від
+             екрана тут нічого не залежить — лише розмітка сторони й
+             пропорції її фото. */
+          var calS = (s.key === бік) ? cal : (function(){
+            var c = null;
+            try{ c = HOST.cal && HOST.cal(opt.gid, s.key); }catch(e){}
+            return (c && c.x2 > c.x1) ? { x1:+c.x1, x2:+c.x2, y:+c.y } : null;
+          })();
+          var asp = (base.naturalHeight || base.height) / (base.naturalWidth || base.width);
           for(var pi = 0; pi < pl.length; pi++){
             var p = pl[pi];
             var a = арт[p.work];
@@ -732,7 +758,7 @@
             var ar = a.height / a.width;
             var w = p.box.w * cv.width;
             x.drawImage(a, p.box.x * cv.width - w / 2, p.box.y * cv.height, w, w * ar);
-            var m = (s.key === бік) ? міри(p) : null;
+            var m = міриЗ(p, calS, asp);
             мірки.push({ work:p.work, name:(works[p.work] || {}).name || '',
                          x:p.box.x, y:p.box.y, w:p.box.w,
                          wCm: m ? Math.round(m.wCm * 10) / 10 : 0,
@@ -751,7 +777,7 @@
                      нанесень: c.нанесень, робіт: c.робіт });
       }catch(e){
         console.error(e);
-        btn.disabled = false; btn.textContent = 'Надіслати';
+        btn.disabled = false; btn.textContent = opt.placeOnly ? 'Зберегти розміщення' : 'Надіслати';
         say('Мокап не зібрався. Найчастіше це фото виробу з чужого домену — ' +
             'перезавантажте його в каталог товарів.');
       }
@@ -765,7 +791,7 @@
     if(b0){ if(b0.complete) постав(); else b0.onload = постав; }
     window.addEventListener('resize', постав);
     setTimeout(постав, 60);
-    if(!works.length) вантажити();
+    if(!works.length && !opt.placeOnly) вантажити();
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -925,6 +951,147 @@
       x.fillStyle = '#4A5768'; x.font = '400 15px Inter, system-ui, sans-serif';
       рядки.forEach(function(t, i){ x.fillText(t, 88, y + 34 + i * 23); });
     }
+    return cv.toDataURL('image/png');
+  }
+  /* ══════════ КАРТКА ДЛЯ ЦЕХУ ══════════
+
+     Андрій: «щоб вони подивилися на цю карточку і зрозуміли відступи, які
+     будуть зверху, з боку, яка ширина вироба». Мокап показує, як виглядає;
+     а машиністу треба знати, куди ставити п'яльця. Тому поруч із мокапом —
+     схема виробу з розмірними лініями: ширина виробу, ширина й висота
+     принта, відступ від горловини й від центру. Схема умовна (силует
+     футболки), але цифри на ній — ті самі, що порахував мокап із розмірної
+     сітки, і саме за ними ставлять вишивку. Одна картка — одна сторона. */
+  var DIM = '#1F6FEB';
+  function arrow(x, xa, ya, xb, yb){
+    var ang = Math.atan2(yb - ya, xb - xa), r = 8;
+    [[xa, ya, ang + Math.PI], [xb, yb, ang]].forEach(function(p){
+      x.beginPath();
+      x.moveTo(p[0], p[1]);
+      x.lineTo(p[0] - r * Math.cos(p[2] - 0.45), p[1] - r * Math.sin(p[2] - 0.45));
+      x.lineTo(p[0] - r * Math.cos(p[2] + 0.45), p[1] - r * Math.sin(p[2] + 0.45));
+      x.closePath(); x.fill();
+    });
+  }
+  function dim(x, xa, ya, xb, yb, label, lx, ly, align){
+    x.save();
+    x.strokeStyle = DIM; x.fillStyle = DIM; x.lineWidth = 1.6;
+    x.beginPath(); x.moveTo(xa, ya); x.lineTo(xb, yb); x.stroke();
+    arrow(x, xa, ya, xb, yb);
+    x.font = '700 15px Inter, system-ui, sans-serif';
+    x.textAlign = align || 'center';
+    /* Підкладка під підписом — щоб число не губилось на лініях силуету. */
+    var tw = x.measureText(label).width;
+    var bx = align === 'right' ? lx - tw - 4 : align === 'left' ? lx - 4 : lx - tw / 2 - 4;
+    x.fillStyle = 'rgba(247,249,252,.92)'; x.fillRect(bx, ly - 15, tw + 8, 20);
+    x.fillStyle = DIM; x.fillText(label, lx, ly);
+    x.restore();
+  }
+  function schema(x, a, b, w, h, W, spots){
+    x.save();
+    round(x, a, b, w, h, 16); x.clip();
+    x.fillStyle = '#F7F9FC'; x.fillRect(a, b, w, h);
+    if(!(W > 0)){
+      x.fillStyle = '#7C8798'; x.font = '500 15px Inter, system-ui, sans-serif'; x.textAlign = 'center';
+      x.fillText('Немає розмірної сітки — схему не намалювати', a + w / 2, b + h / 2);
+      x.restore(); return;
+    }
+    var s = (w * 0.84) / (1.52 * W);            // пікселів у сантиметрі
+    var ox = a + w / 2, oy = b + h * 0.12;
+    var P = function(cx, cy){ return [ox + cx * s, oy + cy * s]; };
+    var nw = 0.19 * W, neckY = 0.08 * W;
+    /* Силует: горловина, плечі, рукави, низ. */
+    x.beginPath();
+    var p0 = P(-nw, 0); x.moveTo(p0[0], p0[1]);
+    var c = P(0, 0.16 * W), p1 = P(nw, 0);
+    x.quadraticCurveTo(c[0], c[1], p1[0], p1[1]);
+    [[0.47, 0.04], [0.76, 0.30], [0.62, 0.42], [0.5, 0.33], [0.5, 1.2],
+     [-0.5, 1.2], [-0.5, 0.33], [-0.62, 0.42], [-0.76, 0.30], [-0.47, 0.04]].forEach(function(q){
+      var pt = P(q[0] * W, q[1] * W); x.lineTo(pt[0], pt[1]);
+    });
+    x.closePath();
+    x.fillStyle = '#fff'; x.fill();
+    x.strokeStyle = '#9AA5B5'; x.lineWidth = 2; x.stroke();
+    /* Лінія горловини й центр — від них і рахуються відступи. */
+    x.save();
+    x.setLineDash([6, 6]); x.strokeStyle = '#C3CBD8'; x.lineWidth = 1.4;
+    var t0 = P(0, neckY), t1 = P(0, 1.2 * W);
+    x.beginPath(); x.moveTo(t0[0], t0[1]); x.lineTo(t1[0], t1[1]); x.stroke();
+    var n0 = P(-0.32 * W, neckY), n1 = P(0.32 * W, neckY);
+    x.beginPath(); x.moveTo(n0[0], n0[1]); x.lineTo(n1[0], n1[1]); x.stroke();
+    x.restore();
+    /* Ширина виробу — внизу. */
+    var wy = P(0, 1.1 * W)[1];
+    dim(x, P(-0.5 * W, 0)[0] + 2, wy, P(0.5 * W, 0)[0] - 2, wy,
+        'ширина виробу ' + см(W), ox, wy - 10);
+    (spots || []).forEach(function(sp){
+      if(!(+sp.wCm > 0)) return;
+      var l = (+sp.sideCm || 0) - sp.wCm / 2, t = neckY + (+sp.topCm || 0);
+      var tl = P(l, t), bw = sp.wCm * s, bh = (+sp.hCm || 0) * s;
+      x.fillStyle = 'rgba(31,111,235,.12)'; x.fillRect(tl[0], tl[1], bw, bh);
+      x.strokeStyle = DIM; x.lineWidth = 2; x.strokeRect(tl[0], tl[1], bw, bh);
+      /* Ширина принта — над ним, висота — праворуч. */
+      dim(x, tl[0], tl[1] - 14, tl[0] + bw, tl[1] - 14, см(sp.wCm), tl[0] + bw / 2, tl[1] - 22);
+      if(bh > 0) dim(x, tl[0] + bw + 14, tl[1], tl[0] + bw + 14, tl[1] + bh,
+                     см(sp.hCm), tl[0] + bw + 22, tl[1] + bh / 2 + 5, 'left');
+      /* Від горловини — ліворуч від принта. */
+      var ny = P(0, neckY)[1];
+      if(tl[1] - ny > 6) dim(x, tl[0] - 14, ny, tl[0] - 14, tl[1],
+                              см(sp.topCm), tl[0] - 22, (ny + tl[1]) / 2 + 5, 'right');
+      /* Від центру — якщо принт зсунутий; інакше прямо кажемо «по центру». */
+      var cy = tl[1] + bh / 2;
+      if(Math.abs(+sp.sideCm || 0) >= 0.5){
+        var cx = tl[0] + bw / 2;
+        dim(x, ox, cy, cx, cy, 'від центру ' + см(Math.abs(sp.sideCm)), (ox + cx) / 2, cy - 10);
+      } else {
+        x.fillStyle = DIM; x.font = '600 13px Inter, system-ui, sans-serif'; x.textAlign = 'center';
+        x.fillText('по центру', ox, tl[1] + bh + 22);
+      }
+    });
+    x.restore();
+  }
+  async function prodCard(data){
+    var мокап = await img(data.mock);
+    var nums = (data.nums || []).slice(0, 9);
+    var spots = (data.spots || []).filter(function(sp){ return +sp.wCm > 0; });
+    var cellH = 560, top = 56, головаH = 44, підпис = 30;
+    var H = top + головаH + 28 + підпис + cellH + 40
+      + (nums.length ? Math.ceil(nums.length / 3) * 64 + 8 : 0)
+      + (spots.length ? spots.length * 44 + 16 : 0) + 40;
+    var cv = document.createElement('canvas');
+    cv.width = DOC_W; cv.height = H;
+    var x = cv.getContext('2d');
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, H);
+    var y = top + 30;
+    x.textAlign = 'left';
+    x.fillStyle = '#0F2034'; x.font = '700 30px Inter, system-ui, sans-serif';
+    var t = String(data.title || 'Картка для цеху') + (data.side ? ' · ' + data.side : '');
+    x.fillText(t, 64, y);
+    if(data.no){
+      x.textAlign = 'right';
+      x.fillStyle = '#7C8798'; x.font = '600 18px Inter, system-ui, sans-serif';
+      x.fillText(String(data.no), DOC_W - 64, y);
+      x.textAlign = 'left';
+    }
+    y = top + головаH + 28;
+    var cellW = (DOC_W - 128 - 24) / 2;
+    x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
+    x.fillText('МАКЕТ НА ВИРОБІ', 64, y + 14);
+    x.fillText('СХЕМА РОЗМІЩЕННЯ · УМОВНО', 64 + cellW + 24, y + 14);
+    framed(x, мокап, 64, y + підпис, cellW, cellH);
+    schema(x, 64 + cellW + 24, y + підпис, cellW, cellH, +data.widthCm || 0, spots);
+    y += підпис + cellH + 40;
+    if(nums.length) y = specsGrid(x, nums, y) + 8;
+    spots.forEach(function(sp){
+      x.fillStyle = '#F5F8FC'; round(x, 64, y, DOC_W - 128, 36, 10); x.fill();
+      x.fillStyle = '#0F2034'; x.font = '700 17px Inter, system-ui, sans-serif';
+      x.fillText((sp.label ? sp.label + ': ' : '') + 'принт ' + см(sp.wCm) + ' × ' + см(sp.hCm || 0) +
+        ' · від горловини ' + см(sp.topCm || 0) +
+        (Math.abs(+sp.sideCm || 0) >= 0.5 ? ' · від центру ' + (sp.sideCm > 0 ? '+' : '−') + см(Math.abs(sp.sideCm))
+                                           : ' · по центру'), 80, y + 24);
+      y += 44;
+    });
     return cv.toDataURL('image/png');
   }
   /* ══════════ ПРИБРАТИ ФОН З РОБОТИ ══════════
@@ -1123,7 +1290,7 @@
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
-    open: open, openWork: openWork, card: card, close: close,
+    open: open, openWork: openWork, card: card, prodCard: prodCard, close: close,
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */

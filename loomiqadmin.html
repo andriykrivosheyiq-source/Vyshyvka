@@ -4381,6 +4381,79 @@
     gap:4px;background:#F5F3FF;border-color:#DDD6FE;}
   .dz-tile-f b{font-size:15px;font-weight:800;color:#5B21B6;}
   .dz-tile-f i{font-style:normal;font-size:13px;color:#5B21B6;}
+  /* Кілька файлів у здачі вишивки: кожен — з хрестиком «прибрати». */
+  .dz-su-l{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;order:3;}
+  .dz-su-l:empty{display:none;}
+  .dz-su-ok{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 9px;border-radius:999px;
+    background:#ECFDF5;border:1px solid #A7F3D0;}
+  .dz-su-p{position:relative;display:inline-block;}
+  .dz-su-x{border:0;background:rgba(15,32,52,.08);color:var(--ink);width:20px;height:20px;border-radius:50%;
+    cursor:pointer;font-size:13px;line-height:20px;padding:0;}
+  .dz-su-p .dz-su-x{position:absolute;top:-6px;right:-6px;background:#fff;box-shadow:0 1px 3px rgba(15,32,52,.25);}
+  .dz-su-x:hover{background:#FEE2E2;color:#B91C1C;}
+  .dz-su-x:focus-visible{outline:2px solid var(--accent);}
+  /* Даних позиції бракує — порожні поля світяться, і сказано, чого саме. */
+  .dz-pickb.need,.dz-qty.need{border-color:#F87171;border-style:solid;background:#FEF2F2;color:#B91C1C;}
+  .dz-miss.dz-need{background:#FEF2F2;border-color:#FECACA;color:#991B1B;}
+  .dz-u-no.is-bad{color:#B91C1C;}
+  /* Розміщення цифрами — у брифі вишивальника й у цеху. */
+  .dz-spots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .dz-spot{display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:10px;
+    background:#F5F8FC;border:1px solid var(--line);min-width:130px;}
+  .dz-spot span{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .dz-spot b{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .dz-spot i{font-style:normal;font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .dz-spot.is-g{background:#FFF7ED;border-color:#FED7AA;}
+  /* ── Екран закупника ── */
+  .dz-buy{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;margin:0 0 14px;}
+  @media (max-width:980px){ .dz-buy{grid-template-columns:1fr;} }
+  .dz-buy-need,.dz-buy-hist{background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .dz-buy-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .dz-buy-h b{font-size:15px;font-weight:800;}
+  .dz-buy-h span{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;}
+  .dz-buy-h .dz-b{margin-left:auto;}
+  .dz-buy-h .dz-b[disabled]{opacity:.45;cursor:default;}
+  .dz-buy-g{border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;}
+  .dz-buy-gh{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px;}
+  .dz-buy-gh em{margin-left:auto;font-style:normal;font-weight:700;font-variant-numeric:tabular-nums;}
+  .dz-buy-gh span{color:var(--ink-soft);}
+  .dz-buy-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:3px 0 3px 22px;font-size:13px;}
+  .dz-buy-s label{display:flex;align-items:center;gap:6px;cursor:pointer;font-variant-numeric:tabular-nums;}
+  .dz-buy-s label span{color:var(--ink-soft);}
+  .dz-buy-more{border:0;background:none;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;padding:2px 4px;}
+  .dz-buy-more:hover{text-decoration:underline;}
+  .dz-buy-r{flex-basis:100%;display:flex;flex-direction:column;gap:3px;padding:4px 0 2px 22px;}
+  .dz-buy-r label,.dz-buy-r span{display:flex;align-items:center;gap:6px;font-size:12.5px;}
+  .dz-buy-r i{font-style:normal;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums;}
+  .dz-buy-r.is-ro{padding-left:0;}
+  .dz-buy-o{border:1px solid var(--line);border-left:4px solid #60A5FA;border-radius:12px;padding:9px 11px;
+    display:flex;flex-direction:column;gap:6px;}
+  .dz-buy-o.is-way{border-left-color:#F59E0B;}
+  .dz-buy-o.is-got{border-left-color:#10B981;opacity:.85;}
+  .dz-buy-oh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .dz-buy-oh b{font-size:13.5px;}
+  .dz-buy-oh i{font-style:normal;color:var(--muted);font-size:12px;}
+  .dz-buy-st{margin-left:auto;font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:3px 6px;background:#fff;}
+  .dz-buy-ol{font-size:12.5px;color:var(--ink);display:flex;flex-direction:column;gap:2px;}
+  .dz-buy-ol em{font-style:normal;color:var(--muted);}
+  .dz-buy-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .dz-buy-t input{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;
+    width:170px;font-variant-numeric:tabular-nums;}
+  .dz-buy-t input:focus{outline:none;border-color:var(--accent);}
+  .dz-buy-t a{font-size:12.5px;color:var(--accent);}
+  /* ── Одяг у цеху: стан закупівлі біля виробу ── */
+  .dz-prod-u{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+  .dz-prod-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;}
+  .dz-prod-h b{font-weight:800;}
+  .dz-prod-h span{color:var(--ink-soft);}
+  .dz-cloth{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+    font-size:12px;font-weight:700;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;}
+  .dz-cloth.is-sent{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;}
+  .dz-cloth.is-way{background:#FFFBEB;color:#B45309;border-color:#FDE68A;}
+  .dz-cloth.is-got{background:#ECFDF5;color:#047857;border-color:#A7F3D0;}
+  .dz-cloth a{color:inherit;}
+  .dz-prod-cap{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
   .dz-pick{position:fixed;inset:0;z-index:260;background:rgba(15,32,52,.42);
     display:flex;align-items:center;justify-content:center;padding:20px;}
   .dz-pick-w{background:var(--paper);border-radius:16px;box-shadow:var(--sh-3);
@@ -6795,19 +6868,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=fc8683c22c"></script>
-<script src="loomiq-fingerprint.js?v=fc8683c22c"></script>
-<script src="loomiq-pricing.js?v=fc8683c22c"></script>
+<script src="loomiq-select.js?v=2ea33dced0"></script>
+<script src="loomiq-fingerprint.js?v=2ea33dced0"></script>
+<script src="loomiq-pricing.js?v=2ea33dced0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=fc8683c22c"></script>
-<script src="loomiq-mock.js?v=fc8683c22c"></script>
+<script src="loomiq-design.js?v=2ea33dced0"></script>
+<script src="loomiq-mock.js?v=2ea33dced0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=fc8683c22c"></script>
+<script src="loomiq-cards.js?v=2ea33dced0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6832,7 +6905,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'fc8683c22c';
+var LQ_VER = '2ea33dced0';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -26950,6 +27023,10 @@ const DESIGN_COL = fbDb.collection('designJobs');
 let designJobs = {};              // orderId → задача
 let designWatching = false;
 let designDirty = {};             // що чекає запису
+/* Оформлені замовлення закупівлі. Лежать у тій самій колекції, що й
+   задачі відділу (окремі документи з `kind:'buy'`): нова колекція потребувала
+   б нових правил доступу, а ці вже пускають усіх із команди. */
+let designBuys = {};              // id → замовлення закупівлі
 
 /* Замовлення, які взагалі стосуються відділу. Скасовані й виконані свою
    дизайнерську долю вже прожили — тримати їх на дошці означає ховати
@@ -27252,6 +27329,7 @@ function watchDesign(){
   DESIGN_COL.onSnapshot(snap=>{
     snap.forEach(d=>{
       const v = d.data();
+      if(v && v.kind === 'buy' && v.id){ designBuys[v.id] = v; return; }
       if(!v || !v.orderId) return;
       // Локальні незбережені правки чужим знімком не затираємо
       if(designDirty[v.orderId]) return;
@@ -27439,6 +27517,13 @@ function openDesign(){
     orders: designOrders,
     job: designJobOf,
     save: designSave,
+    /* Закупівля: оформлені замовлення й запис одного з них. */
+    buys: () => Object.values(designBuys || {}),
+    buySave: async b => {
+      if(!b || !b.id) return;
+      designBuys[b.id] = b;
+      await DESIGN_COL.doc(b.id).set(JSON.parse(JSON.stringify(b)));
+    },
     toast: m => toast(m),
     upload: f => uploadCloudinaryAuto(f),
     /* Каталог для відділу: вироби, кольори й розміри — ті самі, що на
