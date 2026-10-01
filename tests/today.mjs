@@ -163,6 +163,10 @@ ok(acts['1001406'] === null,
 
 console.log('');
 console.log('═══ ОДНЕ ВІКНО ЗАМІСТЬ ОБХОДУ КАРТОК ═══');
+/* «Задачі» тепер усередині групи «Налаштування» — розгортаємо її. */
+await p.evaluate(() => { const g = document.getElementById('nav-set');
+  if(g && !g.classList.contains('is-open')) g.querySelector('.nav-grp-h').click(); });
+await p.waitForTimeout(200);
 await p.click('.nav button[data-view="today"]');
 await p.waitForTimeout(700);
 const win = await p.evaluate(() => {

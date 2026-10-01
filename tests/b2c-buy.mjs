@@ -461,6 +461,19 @@ console.log('  ' + імяКартки + ' · ' + байт + ' байт');
 ok(імяКартки === N1 + '-2_v1_цех.png' && байт > 20000, 'картка цеху зібралась і скачалась з підписом', 'картка: ' + імяКартки + ' ' + байт);
 
 console.log('');
+console.log('═══ 7. СТАРА ЗДАЧА ВИШИВКИ (ДО «ЗДАВ = ГОТОВО») ═══');
+const стара = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui;
+  const d = D.dzList(__j3.units[0], 'stitch')[0] || (D.dzList(__j3.units[0], 'stitch').push(D.dzNew()), D.dzList(__j3.units[0], 'stitch')[0]);
+  d.who = 'test@loomiq'; d.sentAt = new Date().toISOString();
+  D.dzVer(d, 'test@loomiq', [{ name:'x.dst', url:'https://x/x.dst', role:'machine' }], '', null, 'stitch');
+  d.status = 'review'; d.ok = null;                  // так лежать здані до правила
+  U.setTab('acct'); U.open(''); U.render(document.getElementById('dzRoot'));
+  return { стан: d.status, як: (d.ok || {}).how };
+});
+ok(стара.стан === 'approved' && стара.як === 'auto', 'стара здача вишивки сама стала «готово» — без натиску', 'стара: ' + JSON.stringify(стара));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
 await browser.close(); srv.close();

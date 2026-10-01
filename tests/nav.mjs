@@ -83,7 +83,7 @@ console.log('  ' + top.join(' → '));
 /* Фінанси стоять під аналітикою: обидва про те, «як ідуть справи», просто
    одне числами замовлень, а інше грошима. Налаштування лишаються в самому
    низу — у них заходять раз на тиждень. */
-ok(top.join(' → ') === 'Задачі → Замовлення B2B → Чати B2B → Замовлення B2C → ' +
+ok(top.join(' → ') === 'Замовлення B2B → Чати B2B → Замовлення B2C → ' +
                        'Чати B2C → Аналітика → Фінанси → Налаштування',
   'напрями йдуть парами «замовлення + чати», далі аналітика й гроші, налаштування — внизу',
   'порядок не той: ' + top.join(' → '));
@@ -153,7 +153,7 @@ console.log('  всередині: ' + shut.inDom.join(', ') + ' · видно: 
    шкали за тиражем, площа нанесення, поділ підготовки макета, — а в
    роздрібу цього немає зовсім. Поруч вони змушували б щоразу згадувати,
    яка з двох моделей діє зараз. */
-ok(shut.inDom.join() === 'b2c,settings,photos,reviews,suppliers,team',
+ok(shut.inDom.join() === 'b2c,settings,photos,reviews,suppliers,team,today',   // «Задачі» поки сховані сюди
   'у групі шість розділів: B2C, ціни, конструктор, відгуки, підрядники, доступи',
   'склад групи не той: ' + shut.inDom.join(','));
 ok(!shut.open && shut.seen === 0 && shut.aria === 'false',
@@ -174,7 +174,7 @@ const open = await p.evaluate(`(() => {
            active: (document.querySelector('.nav button[data-view].active') || {}).dataset.view };
 })()`);
 console.log('  видно пунктів: ' + open.seen + ' · розділ на екрані: ' + open.active);
-ok(open.seen === 6,
+ok(open.seen === 7,
   'клік по заголовку показує всі шість пунктів',
   'група не розкрилась: ' + JSON.stringify(open));
 ok(open.still === 'block' && open.active === 'calc',
@@ -194,7 +194,7 @@ const auto = await p.evaluate(`(() => {
            on: (document.getElementById('view-suppliers') || {}).style.display };
 })()`);
 console.log('  розкрита: ' + auto.open + ' · видно: ' + auto.seen + ' · розділ: ' + auto.on);
-ok(auto.open && auto.seen === 6 && auto.on === 'block',
+ok(auto.open && auto.seen === 7 && auto.on === 'block',
   'відкритий розділ видно в меню, навіть коли групу перед тим згорнули',
   'людина стоїть у розділі, якого в меню не видно: ' + JSON.stringify(auto));
 
