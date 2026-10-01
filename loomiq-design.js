@@ -789,8 +789,12 @@
      менеджера: обрав людину чи вже поставив у чергу — це його слово, і
      автоматика його не перебиває. Старі замовлення, що давно поїхали
      далі, теж не чіпаємо. */
+  /* Виріб тут НЕ обовʼязковий. Андрій: «коли передаємо з замовлення до
+     графічного, не обовʼязково сам одяг, тому що вони ще можуть не знати…
+     графічному показується любе замовлення, де є картинка або коментар».
+     Одяг остаточно вирішується при погодженні ескізу. */
   function unitFilled(job, u){
-    if(!u || !u.gid) return false;
+    if(!u) return false;
     var b = (job && job.brief) || {};
     return !!(String(u.note || '').trim() || (u.pics || []).length ||
               String(b.text || '').trim() || (b.pics || []).length);
@@ -802,9 +806,11 @@
     jobUnits(job).forEach(function(u){
       if(!unitFilled(job, u)) return;
       var l = dzList(u, 'graphic');
-      if(l.length) return;
-      var d = dzNew();
-      l.push(d);
+      if(l.some(dzReal)) return;
+      /* Порожній рядок (дизайнера так і не обрали) не заважає: ставимо в
+         чергу саме його, а не заводимо поруч другий. */
+      var d = l[0];
+      if(!d){ d = dzNew(); l.push(d); }
       dzQueue(d, by);
       d.auto = true;
       d.thread[d.thread.length - 1].text = 'Замовлення заповнене — стало в чергу відділу';
@@ -837,8 +843,26 @@
   }
   /* Графіку погоджено саме тут — є що погоджувати, і погоджено все. */
   function graphicDone(u){
-    var g = dzList(u, 'graphic');
+    var g = dzList(u, 'graphic').filter(dzReal);
     return !!g.length && g.every(function(d){ return !!d.ok; });
+  }
+  /* ОДЯГ ПІДТВЕРДЖЕНО — ПРИ ПОГОДЖЕННІ ЕСКІЗУ.
+
+     Андрій: «коли підтверджуємо графічний — просто заповнити ці дані, якщо
+     їх немає, або перевірити… Тільки вони це підтвердили, що все правильно,
+     вони йдуть на закупку й передаються вишивальним одночасно». До того,
+     навіть якщо вписали, не переносимо: клієнт ще може передумати.
+
+     Позиції, що вже пішли у вишивку до цього правила, вважаються
+     підтвердженими — їх погодили раніше. */
+  function clothOk(u){
+    if(!u || unitMissing(u).length) return false;
+    return !!u.confirmed || placeLocked(u);
+  }
+  function clothConfirm(u, by){
+    if(!u) return null;
+    u.confirmed = { at: nowIso(), by: String(by || '') };
+    return u;
   }
   /* Розміщення менеджер править, поки позиція не пішла у вишивку: далі
      оцифровують саме те, що погодили, і рухати його вже не можна. */
@@ -864,7 +888,7 @@
     { key:'way',  label:'В дорозі'  },
     { key:'got',  label:'Отримано', done:true }
   ];
-  function buyReady(u){ return graphicDone(u) && !unitMissing(u).length; }
+  function buyReady(u){ return graphicDone(u) && clothOk(u); }
   function buyKey(orderId, uid){ return String(orderId || '') + '|' + String(uid || ''); }
   /* Яке оформлене замовлення тримає цю позицію. */
   function buyOf(buys, orderId, uid){
@@ -933,12 +957,12 @@
     var n = 0;
     jobUnits(job).forEach(function(u){
       if(!graphicDone(u)) return;
-      if(unitMissing(u).length) return;
+      if(!clothOk(u)) return;
       var l = dzList(u, 'stitch');
       if(l.length) return;
-      var g = dzList(u, 'graphic');
+      var g = dzList(u, 'graphic').filter(dzReal);
       var d = dzNew();
-      d.from = g.map(function(x, i){ return { i: i, ver: (x.ok && x.ok.ver) || x.vers.length }; });
+      d.from = g.map(function(x){ return { i: dzList(u, 'graphic').indexOf(x), ver: (x.ok && x.ok.ver) || x.vers.length }; });
       l.push(d);
       dzQueue(d, by);
       d.auto = true;
@@ -1182,9 +1206,15 @@
      вся робота піде в кошик. Якщо графічних дизайнів на виробі немає зовсім
      — чекати нема на що. */
   function graphicOk(u){
-    var g = dzList(u, 'graphic');
+    var g = dzList(u, 'graphic').filter(dzReal);
     if(!g.length) return true;
     return g.every(function(d){ return !!d.ok; });
+  }
+  /* Рядок дизайну, якому нікого не обрали, нікуди не передали й у якому
+     немає жодної версії, — порожнеча, а не робота. На погодження він не
+     впливає: інакше позиція вічно «чекала б ескізу», якого ніхто не малює. */
+  function dzReal(d){
+    return !!(d && (d.sentAt || d.who || d.pool || d.name || (d.vers || []).length || d.ok));
   }
   function briefPicDel(job, i){
     if(!job || !job.brief || !Array.isArray(job.brief.pics)) return null;
@@ -1820,6 +1850,7 @@
     dzInQueue: dzInQueue, dzQueue: dzQueue, dzClaim: dzClaim, dzRecall: dzRecall,
     verParts: verParts, verSpots: verSpots, msgRole: msgRole,
     unitMissing: unitMissing, graphicDone: graphicDone, placeLocked: placeLocked,
+    clothOk: clothOk, clothConfirm: clothConfirm, dzReal: dzReal,
     BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyOf: buyOf, buyStateOf: buyStateOf,
     buyNeed: buyNeed, buyNew: buyNew, buyNext: buyNext, buySetStatus: buySetStatus,
     buyOrderState: buyOrderState,
@@ -2842,7 +2873,7 @@
       return '<div class="dz-miss">Спершу треба затвердити графіку цього виробу — ' +
              'інакше оцифруємо те, що ще поміняється.</div>';
     var role = kind === 'stitch' ? 'embroidery' : 'designer';
-    var готово = !!u.gid;
+    var готово = kind === 'stitch' || D.unitFilled(job, u);
     /* ЗАМІНИТИ ДИЗАЙНЕРА — ТИМ САМИМ СПИСКОМ. Обрав іншого, і він на місці
        попереднього: окрема дія «замінити» нічого б не додала, крім ще
        одного натискання й ще одного питання «а де вона». */
@@ -2861,7 +2892,7 @@
         ? (готово
             ? '<button class="dz-b pri wide" data-do="dz-send" data-dz="' + key + '">' +
               'Передати замовлення ' + esc(whoName(d.who)) + '</button>'
-            : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє, ' +
+            : '<div class="dz-miss">Додайте картинку або коментар — без них ТЗ порожнє, ' +
               'і відправляти нема чого.</div>')
         : '');
   }
@@ -2934,7 +2965,7 @@
      що. */
   var SIDE = {};
   function sideAuto(u){
-    var g = dzList(u, 'graphic');
+    var g = dzList(u, 'graphic').filter(D.dzReal);
     return (g.length && D.graphicOk(u)) ? 'stitch' : 'graphic';
   }
   function sideOf(u){
@@ -2973,6 +3004,13 @@
 
      Тепер у шапці стоїть сам вибір: нікого не призначено — випадний
      список; призначено — імʼя з олівцем. Одне місце, одна дія. */
+  /* «Графіка» тут — графічний ескіз, а не графік роботи: слово «ескіз»
+     цю плутанину знімає. Скільки погоджено — щоб було видно, чого чекаємо. */
+  function sketchWait(u){
+    var g = dzList(u, 'graphic').filter(D.dzReal);
+    var ok = g.filter(function(d){ return !!d.ok; }).length;
+    return 'чекає погодження ескізу' + (g.length > 1 ? ' · погоджено ' + ok + ' з ' + g.length : '');
+  }
   function dzColHtml(u, kind, ro){
     var st = dzColState(u, kind);
     var назва = kind === 'stitch' ? 'Вишивальний дизайн' : 'Графічний дизайн';
@@ -3006,9 +3044,9 @@
       /* Списку немає, поки вишивку не відкрито: обирати людину на роботу,
          якої ще не можна почати, означає передати її й забути. */
       хто = (kind === 'stitch' && !D.graphicOk(u))
-        ? '<i class="dz-u-no">чекає погодження графіки</i>'
-        : (kind === 'stitch' && D.unitMissing(u).length)
-        ? '<i class="dz-u-no is-bad">чекає даних позиції</i>'
+        ? '<i class="dz-u-no">' + esc(sketchWait(u)) + '</i>'
+        : (kind === 'stitch' && !D.clothOk(u))
+        ? '<i class="dz-u-no is-bad">чекає підтвердження одягу</i>'
         : '<select class="dz-u-sel" data-dzwho="' + key + '">' +
             '<option value="">— оберіть дизайнера —</option>' + черга +
             teamOpts(роль, '') +
@@ -3100,10 +3138,11 @@
       /* ② → ③ → ③′ → ④ */
       ((!d.who && !d.pool) ? ''
         : !d.sentAt
-        ? (ro ? '' : (u.gid
+        ? (ro ? '' : ((kind === 'stitch' || D.unitFilled(job, u))
             ? '<button class="dz-b pri wide" data-do="dz-send" data-dz="' + key +
               '">' + (d.pool && !d.who ? 'Передати у відділ' : 'Передати дизайнеру') + '</button>'
-            : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє.</div>'))
+            : '<div class="dz-miss">Додайте картинку або коментар — без них ТЗ порожнє. ' +
+              'Виріб можна обрати пізніше.</div>'))
         /* Окремого блока «питання дизайнера» більше немає: воно стоїть у
            самій стрічці, і непрочитане там позначене. Доти те саме
            повідомлення було видно двічі — і відповідали на нього теж
@@ -3252,7 +3291,7 @@
            бо це вже інший ескіз, і його справді треба показати. */
         /* Поправити розміщення — сам менеджер, поки позиція не пішла у
            вишивку. Далі кнопки немає: оцифровують погоджене. */
-        ((kind === 'graphic' && !D.placeLocked(u) && частини.work.length)
+        ((kind === 'graphic' && u.gid && !D.placeLocked(u) && частини.work.length)
           ? '<button class="dz-b" data-do="dz-place" data-dz="' + key +
             '" title="Посунути чи змінити розмір нанесення — буде нова версія">✎ Розміщення</button>'
           : '') +
@@ -3388,7 +3427,7 @@
         /* Графіку погоджено, а даних бракує — порожні поля світяться
            червоним: саме їх і треба заповнити, щоб позиція пішла далі. */
         (function(){
-          var треба = D.graphicDone(u) && !D.placeLocked(u);
+          var треба = D.graphicDone(u) && !D.clothOk(u);
           var need = function(v){ return (!v && треба) ? ' need' : ''; };
           return '<button type="button" class="dz-pickb' + (u.gid ? ' on' : '') + need(u.gid) +
           '" data-do="u-pick-gid" data-u="' + esc(u.id) + '">' +
@@ -3515,15 +3554,17 @@
                 return designRowHtml(u, 'stitch', d, i, ro, job, opt.o,
                                      dzList(u, 'stitch').length); }).join('')
             : (ro ? '<div class="dz-miss is-calm">Вишивку не замовляли.</div>'
-                  : (D.graphicOk(u) && D.unitMissing(u).length)
-                  ? '<div class="dz-miss dz-need">Не заповнено: <b>' +
-                    esc(D.unitMissing(u).join(', ')) + '</b>. Поки цього немає, у вишивку ' +
-                    'й закупівлю позиція не йде — оберіть угорі.</div>'
+                  : (D.graphicOk(u) && !D.clothOk(u))
+                  ? '<div class="dz-miss dz-need">Ескіз погоджено — підтвердіть одяг' +
+                    (D.unitMissing(u).length ? ' (не заповнено: <b>' + esc(D.unitMissing(u).join(', ')) + '</b>)' : '') +
+                    '. Поки одяг не підтверджено, у вишивку й закупівлю позиція не йде.' +
+                    '<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) +
+                    '">Підтвердити одяг</button></div>'
                   : D.graphicOk(u)
                   ? designRowHtml(u, 'stitch', D.dzNew(), 0, ro, job, opt.o)
                   /* Оцифровувати нема чого, поки графіку не затвердили: файл
                      робили б під макет, який ще поміняють. */
-                  : '<div class="dz-miss is-calm">Чекає: графіку ще не погодили.</div>')) +
+                  : '<div class="dz-miss is-calm">Чекає: ' + esc(sketchWait(u)) + '.</div>')) +
 
         '</div>') +
       '</div>'; })(only || sideOf(u)) +
@@ -4476,6 +4517,93 @@
     paint();
     document.body.appendChild(w);
   }
+  /* ВІКНО «ПІДТВЕРДИТИ ОДЯГ» — ПРИ ПОГОДЖЕННІ ЕСКІЗУ.
+
+     Чотири поля: модель, колір, розмір, кількість. Що вже вписано —
+     підставлено, менеджер лише перевіряє; чого немає — заповнює. Кнопка
+     живе, коли заповнено все. Після неї позиція одночасно йде у вишивку
+     й закупнику. `done(дані)` або нічого, якщо передумали. */
+  function clothOpen(u, title, done){
+    var cat = [];
+    try{ cat = (host().catalog && host().catalog()) || []; }catch(e){}
+    var st = { gid: u.gid || '', name: u.name || '', color: u.color || '', colorHex: u.colorHex || '',
+               size: u.size || '', qty: (+u.qty || 0) > 0 ? Math.round(+u.qty) : '' };
+    var w = document.createElement('div');
+    w.className = 'dz-pick dz-cf dz-cl';
+    var item = function(){ return cat.filter(function(g){ return g.id === st.gid; })[0] || null; };
+    var opt = function(v, l, cur){
+      return '<option value="' + U.esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + U.esc(l) + '</option>'; };
+    var paint = function(){
+      var g = item();
+      var models = cat.slice();
+      if(st.gid && !g) models.unshift({ id: st.gid, name: st.name || st.gid, colors: [], sizes: [] });
+      var colors = ((g && g.colors) || []).map(function(c){ return { v: String(c.name || c.id), hex: c.hex || '' }; });
+      if(st.color && !colors.some(function(c){ return c.v === st.color; })) colors.unshift({ v: st.color, hex: st.colorHex });
+      var sizes = ((g && g.sizes) || []).slice();
+      if(st.size && sizes.indexOf(st.size) < 0) sizes.unshift(st.size);
+      var повно = st.gid && st.color && st.size && (+st.qty || 0) > 0;
+      w.innerHTML = '<div class="dz-cf-b" role="dialog" aria-label="Підтвердити одяг">' +
+        '<div class="dz-cf-h">' + U.esc(title || 'Підтвердити одяг') + '</div>' +
+        '<div class="dz-cl-hint">Перевірте одяг. Після підтвердження позиція йде у вишивку й на закупівлю.</div>' +
+        '<label class="dz-cl-r"><span>Модель</span><select data-cl="gid">' + opt('', '— оберіть —', st.gid) +
+          models.map(function(m){ return opt(m.id, m.name || m.id, st.gid); }).join('') + '</select></label>' +
+        '<label class="dz-cl-r"><span>Колір</span><select data-cl="color"' + (st.gid ? '' : ' disabled') + '>' +
+          opt('', '— оберіть —', st.color) + colors.map(function(c){ return opt(c.v, c.v, st.color); }).join('') + '</select></label>' +
+        '<label class="dz-cl-r"><span>Розмір</span><select data-cl="size"' + (st.gid ? '' : ' disabled') + '>' +
+          opt('', '— оберіть —', st.size) + sizes.map(function(z){ return opt(z, z, st.size); }).join('') + '</select></label>' +
+        '<label class="dz-cl-r"><span>Кількість</span><input type="number" min="1" data-cl="qty" placeholder="шт" value="' +
+          U.esc(st.qty) + '"></label>' +
+        '<div class="dz-cf-f">' +
+          '<button type="button" class="dz-b" data-cl-no>Скасувати</button>' +
+          '<button type="button" class="dz-b pri" data-cl-go' + (повно ? '' : ' disabled') + '>Підтвердити</button>' +
+        '</div></div>';
+    };
+    var close = function(){ if(w.parentNode) w.parentNode.removeChild(w); };
+    w.addEventListener('change', function(e){
+      var el = e.target.closest('[data-cl]');
+      if(!el) return;
+      var k = el.dataset.cl;
+      if(k === 'gid'){
+        st.gid = el.value;
+        var g = item();
+        st.name = (g && g.name) || '';
+        /* Інша модель — колір і розмір тієї моделі можуть не існувати. */
+        if(!g || !(g.colors || []).some(function(c){ return String(c.name || c.id) === st.color; })){ st.color = ''; st.colorHex = ''; }
+        if(!g || (g.sizes || []).indexOf(st.size) < 0) st.size = '';
+      } else if(k === 'color'){
+        st.color = el.value;
+        var c = ((item() || {}).colors || []).filter(function(x){ return String(x.name || x.id) === st.color; })[0];
+        st.colorHex = (c && c.hex) || '';
+      } else if(k === 'size') st.size = el.value;
+      else if(k === 'qty') st.qty = (+el.value > 0) ? Math.round(+el.value) : '';
+      paint();
+    });
+    w.addEventListener('input', function(e){
+      var el = e.target.closest('[data-cl="qty"]');
+      if(!el) return;
+      st.qty = (+el.value > 0) ? Math.round(+el.value) : '';
+      var b = w.querySelector('[data-cl-go]');
+      if(b) b.disabled = !(st.gid && st.color && st.size && st.qty);
+    });
+    w.addEventListener('click', function(e){
+      if(e.target === w || e.target.closest('[data-cl-no]')) return close();
+      if(e.target.closest('[data-cl-go]')){
+        if(!(st.gid && st.color && st.size && st.qty)) return say('Заповніть модель, колір, розмір і кількість');
+        close();
+        done(st);
+      }
+    });
+    paint();
+    document.body.appendChild(w);
+  }
+  /* Записати підтверджений одяг у позицію. */
+  function clothApply(u, st, by){
+    u.gid = st.gid;
+    if(st.name) u.name = st.name;
+    u.color = st.color; u.colorHex = st.colorHex || '';
+    u.size = st.size; u.qty = st.qty;
+    D.clothConfirm(u, by);
+  }
   /* Вікно «Надіслати клієнту?»: картка, що поїде, і текст повідомлення.
      Повертає текст (можливо, поправлений) або null, якщо передумали. */
   function tellConfirm(url, text, title){
@@ -5070,6 +5198,15 @@
        розкладають по сторонах, і віддають. */
     var сторін = 0;
     try{ сторін = ((host().sides && host().sides(u.gid, u.color)) || []).length; }catch(e){}
+    /* ВИРІБ ЩЕ НЕ ОБРАНО — ЗДАЄМО САМУ РОБОТУ.
+       Андрій: одяг остаточний лише після погодження ескізу, тож графіка
+       йде без нього. Мокап з'являється, щойно менеджер обере виріб. */
+    if(!u.gid)
+      return '<div class="dz-w-send">' +
+        '<button class="dz-b pri wide" data-do="dz-art-only" data-dz="' + key + '">⤒ Завантажити роботу</button>' +
+        '<div class="dz-miss is-calm">Виріб ще не обрано — здаєте саму роботу, без мокапу. ' +
+        'Щойно менеджер обере виріб, тут з’явиться вікно з мокапом на виробі.</div>' +
+      '</div>';
     return '<div class="dz-w-send">' +
       (сторін
         ? '<button class="dz-b pri wide" data-do="dz-work" data-dz="' + key + '">' +
@@ -5585,9 +5722,23 @@
     });
     return out;
   }
+  /* ХТО ДІЙШОВ ДО ЦЕХУ. Андрій: «їх тут не повинно бути, поки вони ще не
+     пройшли всі етапи». У виробництві — лише замовлення, де погоджено всю
+     вишивку (у менеджера це «Виробництво»), і ті, що вже йдуть далі. */
+  var PROD_AT = { prod:1, qc:1, ready:1, shipped:1 };
+  function atProd(p){ return !!PROD_AT[D.chainAt(p.job, p.o)]; }
+  /* ХТО ДІЙШОВ ДО ЗАКУПНИКА: хоча б одна позиція з підтвердженим одягом
+     або вже замовлена. Старі замовлення без позицій — коли їх закупівлю
+     вже почали вести треком. */
+  function atSupply(p, всі){
+    var us = U.unitsOf(p.job);
+    if(us.length) return us.some(function(u){
+      return D.buyReady(u) || !!D.buyOf(всі, p.o.orderId, u.id); });
+    return !!String(((p.o || {}).tracks || {}).supply || '');
+  }
   function prodCards(){
     var всі = buys();
-    return U.pairs().map(function(p){
+    return U.pairs().filter(atProd).map(function(p){
       var r = D.packReady(p.job, p.o);
       /* Позиції відділу: під карткою — де одяг і чи готова вишивка, а не
          стара перевірка пакета, яка тут завжди казала б «не погоджено». */
@@ -5610,7 +5761,8 @@
     });
   }
   function supplyCards(){
-    return U.pairs().map(function(p){
+    var всі = buys();
+    return U.pairs().filter(function(p){ return atSupply(p, всі); }).map(function(p){
       var q = 0;
       (p.o.items || []).forEach(function(it){
         if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
@@ -6608,7 +6760,7 @@
     'u-del':'art', 'dz-add':'art', 'dz-del':'art',
     'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
-    'u-pic':'art', 'u-pic-del':'art', 'pic-open':'', 'dz-dl':'',
+    'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'pic-open':'', 'dz-dl':'',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -6616,7 +6768,7 @@
     /* Взяти, відмовитись і здати роботу — дії ВИКОНАВЦЯ, не складу. Якби
        вони лежали під зоною «art», дизайнер не зміг би ні взяти те, що
        йому дали, ні повернути те, чого не потягне. */
-    'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-stitch-up':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
+    'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art-only':'', 'dz-stitch-up':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
     'dz-msg':'', 'dz-msg-file':'', 'dz-swap':'', 'dz-reply':'art',
     'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
@@ -6939,6 +7091,14 @@
       U.picOpen(data && data.url);
       return;
     }
+    if(what === 'u-cloth'){
+      var cu = U.unitAt(job, data && data.u);
+      if(!cu) return;
+      return clothOpen(cu, 'Підтвердити одяг', function(st){
+        clothApply(cu, st, m);
+        save(job, o, 'Одяг підтверджено — позиція йде у вишивку й на закупівлю');
+      });
+    }
     if(what === 'u-pic'){
       var upu = U.unitAt(job, data && data.u);
       if(!upu) return;
@@ -6972,7 +7132,7 @@
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
        what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
        what === 'dz-sheet' || what === 'dz-tail' || what === 'dz-note' ||
-       what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' ||
+       what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' || what === 'dz-art-only' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
        what === 'dz-tell-pick' || what === 'dz-ok-pick'){
@@ -6998,13 +7158,13 @@
         return render(root);
       }
       if(what === 'dz-send' && dd.pool && !dd.who){
-        if(!du.gid) return say('Оберіть виріб — без нього ТЗ порожнє');
+        if(dk === 'graphic' && !D.unitFilled(job, du)) return say('Додайте картинку або коментар — без них ТЗ порожнє');
         D.dzQueue(dd, m);
         return save(job, o, 'Передано у відділ — чекає, хто візьме');
       }
       if(what === 'dz-send'){
         if(!dd.who) return say('Спершу прикріпіть дизайнера');
-        if(!du.gid) return say('Оберіть виріб — без нього ТЗ порожнє');
+        if(dk === 'graphic' && !D.unitFilled(job, du)) return say('Додайте картинку або коментар — без них ТЗ порожнє');
         if(dk === 'stitch' && !D.graphicOk(du))
           return say('Спершу затвердіть графіку цього виробу');
         D.dzSend(dd, m);
@@ -7143,7 +7303,13 @@
           name: [(U.catItem(du.gid) || {}).name || du.name, du.color, du.size]
                   .filter(Boolean).join(' · '),
           sides: сторони,
-          works: чер3.works || [],
+          /* Роботу вже здавали без мокапу (виробу не було) — беремо її
+             звідти, щоб не вантажити вдруге. */
+          works: чер3.works || (function(){
+            var lv = dd.vers[dd.vers.length - 1];
+            if(!lv || D.verParts(lv).mock.length) return [];
+            return D.verParts(lv).work.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '' }; });
+          })(),
           places: чер3.places || [],
           onUpload: async function(){
             var f = await upload('image/*');
@@ -7214,6 +7380,20 @@
             await save(job, o, 'Розміщення збережено · версія ' + nv.n);
           }
         });
+      }
+      /* Здати саму роботу, без мокапу — поки виріб не обрано. */
+      if(what === 'dz-art-only'){
+        var aw = await uploadMany('image/*');
+        if(!aw.length) return;
+        for(var awi = 0; awi < aw.length; awi++) aw[awi].hash = await fileHash(aw[awi].url);
+        var awEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var awTxt = awEl ? String(awEl.value || '').trim() : '';
+        D.dzVer(dd, m, aw.map(function(f){ return { name: f.name || 'робота', url: f.url, hash: f.hash || '', role:'work' }; }),
+          awTxt, { works: aw.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '' }; }),
+                   spots: [], нанесень: 0, робіт: aw.length }, dk);
+        dd.status = 'review';
+        if(awEl) awEl.value = '';
+        return save(job, o, 'Надіслано · робота без мокапу (виріб ще не обрано)');
       }
       if(what === 'dz-mock'){
         if(!window.LQMock) return say('Вікно мокапу не завантажилось');
@@ -7458,8 +7638,15 @@
         if(!vs.length) return say('Версії ще немає');
         /* Вишивку погоджує лише менеджер (Андрій), клієнт її не бачить. */
         var як = dk === 'stitch' ? 'acct' : 'client';
-        if(vs.length === 1)
-          return act(дія, root, { dz: dkey, v: vs[0].n, how: як });
+        /* Погодження ескізу — разом із підтвердженням одягу. */
+        var погодити = function(n){
+          if(дія !== 'dz-ok' || dk !== 'graphic') return act(дія, root, { dz: dkey, v: n, how: як });
+          clothOpen(du, 'Погодити ескіз · v' + n + ' · одяг', function(st){
+            clothApply(du, st, m);
+            act('dz-ok', root, { dz: dkey, v: n, how: як });
+          });
+        };
+        if(vs.length === 1) return погодити(vs[0].n);
         return U.pickOpen(
           дія === 'dz-ok' ? (dk === 'stitch' ? 'Яку версію вишивки погоджуєте' : 'Яку версію погодив клієнт')
                           : 'Яку версію надіслати',
@@ -7474,7 +7661,7 @@
                 (v.sentToClient ? ' · надіслано' : '') + '</i></span>' +
             '</button>';
           }).join(''),
-          function(n){ act(дія, root, { dz: dkey, v: n, how: як }); });
+          function(n){ погодити(n); });
       }
       /* ══════════ НАДІСЛАТИ КЛІЄНТУ ══════════
 
@@ -7503,6 +7690,9 @@
            без примітки про колір — це саме той лист, після якого клієнт
            каже «а в мене інший відтінок». */
         var мок = D.verParts(tv).sheet;
+        /* Версія без мокапу (виріб ще не обрали) — клієнту йде сама робота. */
+        if((!мок || !мок.url) && !D.verParts(tv).mock.length && D.verParts(tv).work.length)
+          мок = D.verParts(tv).work[0];
         if(!мок || !мок.url){
           say('Збираю аркуш…');
           мок = await sheetGet(job, o, du, tv);
@@ -7597,10 +7787,16 @@
         try{ delete U.SIDE[du.id]; }catch(e){}
         if(dk === 'stitch')
           return save(job, o, 'Вишивку погоджено · v' + ((dd.ok && dd.ok.ver) || dd.vers.length));
-        return save(job, o, 'Ескіз погоджений · v' +
-          ((dd.ok && dd.ok.ver) || dd.vers.length) + ' — вишивка стала в чергу');
+        D.dzAutoStitch(job, m);
+        return save(job, o, 'Ескіз погоджений · v' + ((dd.ok && dd.ok.ver) || dd.vers.length) +
+          (D.dzList(du, 'stitch').length ? ' — у вишивку й на закупівлю'
+            : !D.graphicDone(du) ? ' — чекаємо решту ескізів позиції'
+            : ' — підтвердіть одяг, і позиція піде далі'));
       }
       D.dzUnok(dd);
+      /* Зняли погодження ескізу до вишивки — і підтвердження одягу знімаємо:
+         його дають саме при погодженні. */
+      if(dk === 'graphic' && !D.placeLocked(du)) du.confirmed = null;
       return save(job, o, 'Затвердження знято');
     }
     /* Доручення тепер живе ВСЕРЕДИНІ картки замовлення, а не окремою
