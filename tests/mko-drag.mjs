@@ -520,6 +520,34 @@ ok(мокап && мокап.every(q => лого(q.центр) && !лого(q.п�
   'і намальовані там само: у центрі кожної — логотип, поруч — футболка',
   'мокап намальовано не там: ' + JSON.stringify(мокап && мокап.map(q => [q.центр, q.поруч])));
 
+console.log('\n═══ ВИРОБНИЧА КАРТА ВИШИВКИ ═══');
+/* Аркуш A4 горизонтально: праворуч угорі робота на кольорі виробу,
+   праворуч унизу — квадрати ниток їхніх кольорів. */
+const карта = await p.evaluate(async ({ logo }) => {
+  const mock = (() => { const c = document.createElement('canvas'); c.width = 1000; c.height = 1400;
+    const x = c.getContext('2d'); x.fillStyle = '#eee'; x.fillRect(0, 0, 1000, 1400); x.fillStyle = '#1b1b1b'; x.fillRect(200, 112, 600, 1200);
+    return c.toDataURL('image/png'); })();
+  const png = await window.LQMock.prodCard({ no:'#2000201-1', mock, work: logo, garmentHex:'#1B1B1B',
+    zone:{ T:0.08, B:0.94, L:0.2, R:0.8, H:72 }, spot:{ side:'front', label:'Перед', work:0, x:0.5, y:0.27, w:0.24, ar:0.5 },
+    threads:[{ code:'1801', hex:'#FFFFFF' }, { code:'1133', hex:'#E4572E' }],
+    specs:[['Товар', 'Футболка базова'], ['Колір', 'Чорний'], ['Розмір', 'L']] });
+  const im = new Image(); im.src = png; await im.decode();
+  const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  const px = (a, b) => Array.from(x.getImageData(a, b, 1, 1).data.slice(0, 3));
+  /* Шукаємо квадрати ниток у нижньому правому блоці за кольором. */
+  let помаранч = false;
+  for(let yy = 1150; yy < 1450; yy += 6) for(let xx = 1420; xx < 2300; xx += 6){
+    const q = px(xx, yy);
+    if(Math.abs(q[0] - 0xE4) < 6 && Math.abs(q[1] - 0x57) < 6 && Math.abs(q[2] - 0x2E) < 6) помаранч = true;
+  }
+  return { w: c.width, h: c.height, фон: px(c.width - 150, 290), помаранч };
+}, { logo: IMG.logo });
+console.log('  ' + JSON.stringify(карта));
+ok(карта.w === 2480 && карта.h === 1754, 'карта — A4 горизонтально (2480×1754)', 'розмір карти: ' + карта.w + '×' + карта.h);
+ok(карта.фон.join() === '27,27,27', 'превʼю роботи — на кольорі виробу', 'фон превʼю: ' + карта.фон);
+ok(карта.помаранч, 'нитки — квадратами своїх кольорів', 'квадратів ниток не видно');
+
 ok(!errs.length, 'жодної помилки в консолі сторінки', 'помилки: ' + errs.slice(0, 3).join(' | '));
 console.log('\n' + (bad ? '✗ провалів: ' + bad : '✓ усе гаразд'));
 await browser.close(); srv.close();
