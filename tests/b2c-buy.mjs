@@ -115,6 +115,9 @@ await p.evaluate((PNGURL) => {
   window.LQMock.host.widthCm = () => 52;
   window.LQMock.host.cal = () => ({ x1:0.2, x2:0.8, y:0.15 });
   window.LQMock.host.calSave = () => {};
+  /* Розмітка виробу з «Областей нанесення»: верх/низ і краї, висота 70 см. */
+  window.LQMock.host.zone = () => ({ T:0.1, B:0.9, L:0.2, R:0.8, H:70 });
+  U.host.zone = () => ({ T:0.1, B:0.9, L:0.2, R:0.8, H:70 });
   /* Графіка обох замовлень здана й погоджена — одним рухом. */
   const D = window.LQDesign;
   [j, j2].forEach(job => job.units.forEach((u, k) => {
@@ -458,7 +461,53 @@ await p.waitForTimeout(300);
 const імяКартки = await p.evaluate(() => window.__dl[window.__dl.length - 1] || '');
 const байт = fs.statSync(await dl.path()).size;
 console.log('  ' + імяКартки + ' · ' + байт + ' байт');
-ok(імяКартки === N1 + '-2_v1_цех.png' && байт > 20000, 'картка цеху зібралась і скачалась з підписом', 'картка: ' + імяКартки + ' ' + байт);
+ok(імяКартки === N1 + '-2_v1_виробництво.png' && байт > 20000, 'картка цеху зібралась і скачалась з підписом', 'картка: ' + імяКартки + ' ' + байт);
+
+console.log('');
+console.log('═══ 6б. ЦЕХ ↔ МЕНЕДЖЕР: ПЕРЕПИСКА ═══');
+await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open('2000201'); U.render(document.getElementById('dzRoot')); });
+await p.waitForTimeout(300);
+const цехЕкран = await p.evaluate(() => ({
+  ряд: [...document.querySelectorAll('.dz-panel .dz-prod-row')].map(r => [...r.querySelectorAll('.dz-tile-l')].map(x => x.textContent).join(',')),
+  картка: [...document.querySelectorAll('.dz-panel .dz-tile-l')].some(x => x.textContent === 'картка'),
+  чат: !!document.querySelector('.dz-panel [data-prodsay="prod"]') }));
+console.log('  ' + JSON.stringify(цехЕкран));
+ok(цехЕкран.ряд.length === 2 && /робота/.test(цехЕкран.ряд[1]) && /мокап/.test(цехЕкран.ряд[1]) &&
+   /скрін Wilcom/.test(цехЕкран.ряд[1]) && /файл для машини/.test(цехЕкран.ряд[1]) && !цехЕкран.картка && цехЕкран.чат,
+  'у цеху — файли одним рядком (робота, мокап, скрін Wilcom, файл для машини), без картки для клієнта, і переписка',
+  'цех: ' + JSON.stringify(цехЕкран));
+await p.evaluate(async () => { document.querySelector('[data-prodsay="prod"]').value = 'Нитки чорні є?';
+  await window.LQDesign.ui.act('prod-say', document.getElementById('dzRoot'), { as:'prod' }); });
+await p.waitForTimeout(300);
+const уМенеджера = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000201'); U.render(document.getElementById('dzRoot'));
+  const z = [...document.querySelectorAll('.dz-panel .dz-z')].find(x => /Виробництво/.test(x.textContent)) || null;
+  return { зона: !!z, текст: z ? z.textContent.replace(/\s+/g, ' ') : '', нових: window.LQDesign.prodUnseen(__j, 'test@loomiq', 'acct') }; });
+ok(уМенеджера.зона && /Нитки чорні є\?/.test(уМенеджера.текст) && уМенеджера.нових === 1,
+  'у менеджера — зона «Виробництво» з тим самим повідомленням, як непрочитане', 'менеджер: ' + JSON.stringify(уМенеджера));
+
+console.log('');
+console.log('═══ 6в. КАРТКА «МАКЕТ НА УЗГОДЖЕННЯ»: УСІ МОКАПИ Й ЕСКІЗИ ═══');
+const картки = await p.evaluate(async (PNGURL) => {
+  const h = async d => { const png = await window.LQMock.card(d); const im = new Image();
+    await new Promise(r => { im.onload = r; im.src = png; }); return im.height; };
+  const base = { title:'Макет на узгодження', no:'#1-1', nums:[['Модель','Футболка'],['Колір','Чорний']],
+                 specs:[{ label:'Матеріал', value:'100% бавовна' }], note:'Колір на екрані може відрізнятись.' };
+  return { один: await h(Object.assign({ mocks:[PNGURL], works:[PNGURL] }, base)),
+           три: await h(Object.assign({ mocks:[PNGURL, PNGURL, PNGURL], works:[PNGURL, PNGURL, PNGURL] }, base)) };
+}, PNGURL);
+console.log('  ' + JSON.stringify(картки));
+ok(картки.три <= картки.один + 10, 'три мокапи й три ескізи не видовжують картку: ' + картки.один + ' → ' + картки.три + ' px',
+  'картка видовжилась: ' + JSON.stringify(картки));
+
+console.log('');
+console.log('═══ 6г. РОЗМІТКА З «ОБЛАСТЕЙ НАНЕСЕННЯ» ═══');
+const зона = await p.evaluate(() => {
+  contentData.printAreas = Object.assign({}, contentData.printAreas, { tee: { scaleSize:'M', heightCm:70,
+    front: { base:{ calibTop:0.1, calibBottom:0.9, calibL:0.25, calibR:0.75, pts:[] }, colors:{} } } });
+  return garmentZone('tee', 'front', 'Чорний', 'M');
+});
+ok(зона && зона.T === 0.1 && зона.B === 0.9 && зона.L === 0.25 && зона.R === 0.75 && зона.H > 0,
+  'розмітка боку — верх, низ, краї й висота під розмір', 'зона: ' + JSON.stringify(зона));
 
 console.log('');
 console.log('═══ 7. СТАРА ЗДАЧА ВИШИВКИ (ДО «ЗДАВ = ГОТОВО») ═══');

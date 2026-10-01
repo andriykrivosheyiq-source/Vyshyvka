@@ -6366,7 +6366,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             <button class="pc-btn up" id="pa-save" style="width:100%;padding:10px;margin-bottom:8px;">Зберегти область</button>
             <button class="pc-btn reset" id="pa-reset" style="width:100%;padding:10px;color:var(--bad,#d64550);">Скасувати всі зміни</button>
             <div class="pa-hint">
-              <b style="color:#12b886;">Зелені лінії</b> — верх і низ виробу (задають висоту для масштабу). Перетягніть їх під фото.<br><br>
+              <b style="color:#12b886;">Зелені лінії</b> — верх і низ виробу (задають висоту для масштабу) та його краї ліворуч і праворуч (з них — ширина й відступ від краю для цеху). Перетягніть їх під фото.<br><br>
               <b style="color:#3a50dc;">Синій полігон</b> — зона нанесення:<br>
               • перетягуйте точки мишею<br>
               • клік по контуру — додати точку<br>
@@ -6907,19 +6907,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0dd3bb5a84"></script>
-<script src="loomiq-fingerprint.js?v=0dd3bb5a84"></script>
-<script src="loomiq-pricing.js?v=0dd3bb5a84"></script>
+<script src="loomiq-select.js?v=01bf1b37fe"></script>
+<script src="loomiq-fingerprint.js?v=01bf1b37fe"></script>
+<script src="loomiq-pricing.js?v=01bf1b37fe"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=0dd3bb5a84"></script>
-<script src="loomiq-mock.js?v=0dd3bb5a84"></script>
+<script src="loomiq-design.js?v=01bf1b37fe"></script>
+<script src="loomiq-mock.js?v=01bf1b37fe"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=0dd3bb5a84"></script>
+<script src="loomiq-cards.js?v=01bf1b37fe"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6944,7 +6944,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '0dd3bb5a84';
+var LQ_VER = '01bf1b37fe';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -17861,14 +17861,17 @@ function scRowsOf(gid){
   const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
   return Array.isArray(rows) ? rows : [];
 }
-function garmentWidthCm(gid, size){
+function garmentWidthCm(gid, size){ return garmentMeasureCm(gid, size, /ширин/i, 1, 'B'); }
+/* Висота (довжина) виробу для розміру — нею «Області нанесення» задають масштаб. */
+function garmentHeightCm(gid, size){ return garmentMeasureCm(gid, size, /довжин|висот/i, 0, 'A'); }
+function garmentMeasureCm(gid, size, re, idx, def){
   const rows = scRowsOf(gid);
   if(!rows.length || !size) return 0;
   const cols = scColsOf(gid);
-  /* Спершу за підписом, далі — друга мірка за порядком: у стандартній
-     сітці це саме ширина, і товарів, де підпис не міняли, більшість. */
-  let key = (cols.filter(c => /ширин/i.test(c.label || ''))[0] || {}).key;
-  if(!key) key = (cols[1] || cols[0] || {}).key || 'B';
+  /* Спершу за підписом, далі — мірка за порядком: у стандартній сітці
+     перша — довжина, друга — ширина, і товарів, де підпис не міняли, більшість. */
+  let key = (cols.filter(c => re.test(c.label || ''))[0] || {}).key;
+  if(!key) key = (cols[idx] || cols[0] || {}).key || def;
   const хочемо = String(size).trim().toLowerCase();
   for(const r of rows){
     if(Array.isArray(r)){
@@ -17906,6 +17909,23 @@ async function mockCalSave(gid, c, side){
   contentData.mockcal[k] = v;
   try{ await PHOTOS_DOC.set({ mockcal: { [k]: v } }, { merge:true }); }
   catch(e){ console.warn('розмітка виробу не збереглась', e); }
+}
+/* РОЗМІТКА ВИРОБУ З «ОБЛАСТЕЙ НАНЕСЕННЯ» — для мокапу й виробничого файлу.
+   Верх і низ виробу (частки висоти кадру), краї (частки ширини) і висота
+   в сантиметрах саме для потрібного розміру. Краї, яких ще не виставили в
+   областях, беремо з давньої розмітки вікна мокапу — там їх уже ставили. */
+function garmentZone(gid, side, colorName, size){
+  const pa = (contentData.printAreas || {})[gid];
+  const sd = pa && pa[side || 'front'];
+  if(!sd || !sd.base) return null;
+  const c = (effectiveColors(gid) || []).filter(x => String(x.name || x.id) === String(colorName || ''))[0];
+  const cfg = (c && sd.colors && sd.colors[c.id]) || sd.base;
+  const T = cfg.calibTop != null ? +cfg.calibTop : 0.06, B = cfg.calibBottom != null ? +cfg.calibBottom : 0.96;
+  let L = cfg.calibL != null ? +cfg.calibL : null, Rr = cfg.calibR != null ? +cfg.calibR : null;
+  if(L == null){ const mc = mockCal(gid, side); if(mc){ L = +mc.x1; Rr = +mc.x2; } }
+  const H = garmentHeightCm(gid, size) || (+pa.heightCm || 0);
+  if(!(B > T) || !(H > 0)) return null;
+  return { T, B, L, R: Rr, H, size: size || pa.scaleSize || '' };
 }
 /* Сторони виробу — рівно ті, фото яких справді є. Вкладка, за якою
    порожньо, це обіцянка, якої система не виконує. */
@@ -27541,6 +27561,7 @@ function openDesign(){
      виробу для потрібного розміру й куди сказати людині, що щось пішло не
      так. Каталог і збереження воно не чіпає — це робота панелі. */
   if(window.LQMock) window.LQMock.host = {
+    zone: (gid, side, color, size) => garmentZone(gid, side, color, size),
     cal: (gid, side) => mockCal(gid, side),
     calSave: (gid, c, side) => mockCalSave(gid, c, side),
     widthCm: (gid, size) => garmentWidthCm(gid, size),
@@ -27648,6 +27669,9 @@ function openDesign(){
        показана клієнту на сайті. Свою тут заводити нема чого: дві сітки
        рано чи пізно розійдуться, і виробництво пошиє по чужій. */
     widthCm: (gid, size) => garmentWidthCm(gid, size),
+    zone: (gid, side, color, size) => garmentZone(gid, side, color, size),
+    /* Характеристики виробу з картки товару — для опису на картці макета. */
+    specs: gid => { try{ return itemSpecs({ garmentId: gid }); }catch(e){ return []; } },
     cal: (gid, side) => mockCal(gid, side),
     calSave: (gid, c, side) => mockCalSave(gid, c, side),
     /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
@@ -30363,10 +30387,15 @@ function updatePaSummary(id){
 /* ---------- Редактор «Області нанесення» ---------- */
 (function PA(){
   const DEFAULT_HALF = [[0,0.06],[0.30,0.06],[0.30,0.72],[0,0.72]];   // координати у частках відкаліброваної висоти
-  const DEF_CAL = {top:0.06, bottom:0.96};
+  const DEF_CAL = {top:0.06, bottom:0.96, left:0.2, right:0.8};
   let paId=null, paSide='front', paColorId=null, paSize=null;
   let data=null;      // {scaleSize, heightCm, front:{base,colors}|null, back:{base,colors}|null}
   let sym=true, pts=null, calT=DEF_CAL.top, calB=DEF_CAL.bottom, calX=0.5;
+  /* Краї виробу (частки ширини кадру). Андрій: «якщо знаєш висоту, то й
+     ширину зрозумієш — я просто виставлю візуально ці краї». Сантиметри
+     ширини рахуються від висоти пропорційно; від лівого краю цех міряє
+     відступ принта. null — краї ще не виставляли. */
+  let calL=null, calR=null;
   let history=[], selIdx=-1;
   const modal = ()=>document.getElementById('pa-modal');
   const el = id=>document.getElementById(id);
@@ -30388,8 +30417,9 @@ function updatePaSummary(id){
      У пам'яті редактора працюємо з [x,y]. */
   function ptsFrom(arr){ return (arr||[]).map(p=> Array.isArray(p) ? [p[0],p[1]] : [ (p&&p.x)||0, (p&&p.y)||0 ]); }
   function ptsTo(arr){ return (arr||[]).map(p=> ({ x:p[0], y:p[1] }) ); }
-  function cfgFrom(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop!=null?c.calibTop:DEF_CAL.top, calibBottom:c.calibBottom!=null?c.calibBottom:DEF_CAL.bottom, calibCx:c.calibCx!=null?c.calibCx:0.5, pts:ptsFrom(c.pts) } : c; }
-  function cfgTo(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, calibCx:c.calibCx!=null?c.calibCx:0.5, pts:ptsTo(c.pts) } : c; }
+  function cfgFrom(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop!=null?c.calibTop:DEF_CAL.top, calibBottom:c.calibBottom!=null?c.calibBottom:DEF_CAL.bottom, calibCx:c.calibCx!=null?c.calibCx:0.5, calibL:c.calibL!=null?+c.calibL:null, calibR:c.calibR!=null?+c.calibR:null, pts:ptsFrom(c.pts) } : c; }
+  function cfgTo(c){ if(!c) return c; const o={ symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, calibCx:c.calibCx!=null?c.calibCx:0.5, pts:ptsTo(c.pts) };
+    if(c.calibL!=null && c.calibR!=null){ o.calibL=c.calibL; o.calibR=c.calibR; } return o; }
   function sideFrom(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgFrom(s.colors[k])); return { base:cfgFrom(s.base), colors }; }
   function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k])); return { base:cfgTo(s.base), colors }; }
   function toStore(d){ const out={ scaleSize:d.scaleSize, heightCm:d.heightCm }; Object.keys(d).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&d[k]) out[k]=sideTo(d[k]); }); return out; }
@@ -30412,17 +30442,18 @@ function updatePaSummary(id){
     sym=cfg.symmetric!==false; pts=(cfg.pts||DEFAULT_HALF).map(p=>p.slice());
     calT=cfg.calibTop!=null?cfg.calibTop:DEF_CAL.top; calB=cfg.calibBottom!=null?cfg.calibBottom:DEF_CAL.bottom;
     calX=cfg.calibCx!=null?cfg.calibCx:0.5;
+    calL=cfg.calibL!=null?cfg.calibL:null; calR=cfg.calibR!=null?cfg.calibR:null;
     history=[]; selIdx=-1; renderLock();
   }
   function saveWork(){
     if(!data[paSide]) data[paSide]=newSideCfg();
-    const cfg={symmetric:sym, pts:pts.map(p=>p.slice()), calibTop:calT, calibBottom:calB, calibCx:calX};
+    const cfg={symmetric:sym, pts:pts.map(p=>p.slice()), calibTop:calT, calibBottom:calB, calibCx:calX, calibL:calL, calibR:calR};
     if(isFirstColor()) data[paSide].base=cfg;
     else { data[paSide].colors=data[paSide].colors||{}; data[paSide].colors[paColorId]=cfg; }
   }
   function colorHasOwn(){ const s=data[paSide]; return !isFirstColor() && s && s.colors && s.colors[paColorId]; }
-  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX,sym})); if(history.length>60) history.shift(); }
-  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; if(s.sym!=null) sym=s.sym; render(); } }
+  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX,calL,calR,sym})); if(history.length>60) history.shift(); }
+  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; calL=s.calL; calR=s.calR; if(s.sym!=null) sym=s.sym; render(); } }
 
   function fullPoly(half){ const mir=half.slice(1,-1).reverse().map(p=>[-p[0],p[1]]); return half.concat(mir); }
   function curFull(){ return sym ? fullPoly(pts) : pts.slice(); }
@@ -30484,6 +30515,12 @@ function updatePaSummary(id){
     h+='<line x1="0" y1="'+yB.toFixed(1)+'" x2="'+m.w+'" y2="'+yB.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
     h+='<rect x="'+(m.cx-16)+'" y="'+(yT-6)+'" width="32" height="12" rx="4" fill="#12b886" style="cursor:ns-resize;" data-cal="top"/>';
     h+='<rect x="'+(m.cx-16)+'" y="'+(yB-6)+'" width="32" height="12" rx="4" fill="#12b886" style="cursor:ns-resize;" data-cal="bottom"/>';
+    // краї виробу: дві вертикальні лінії (якщо ще не виставляли — пунктиром-заготовкою)
+    const eL=(calL!=null?calL:DEF_CAL.left)*m.w, eR=(calR!=null?calR:DEF_CAL.right)*m.w, eOp=(calL!=null?1:0.45);
+    [['left',eL],['right',eR]].forEach(e=>{
+      h+='<line x1="'+e[1].toFixed(1)+'" y1="0" x2="'+e[1].toFixed(1)+'" y2="'+m.h+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4" opacity="'+eOp+'"/>';
+      h+='<rect x="'+(e[1]-6)+'" y="'+(m.h*0.62-16)+'" width="12" height="32" rx="4" fill="#12b886" opacity="'+eOp+'" style="cursor:ew-resize;" data-cale="'+e[0]+'"/>';
+    });
     // полігон
     const full=curFull().map(toPx);
     const dpath=full.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+' Z';
@@ -30492,6 +30529,7 @@ function updatePaSummary(id){
     svg.innerHTML=h;
     svg.querySelectorAll('[data-h]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); selIdx=+c.dataset.h; startDragPoint(+c.dataset.h); render(); }));
     svg.querySelectorAll('[data-cal]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragCal(c.dataset.cal); }));
+    svg.querySelectorAll('[data-cale]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragEdge(c.dataset.cale); }));
     const cxh=svg.querySelector('[data-calx]');
     if(cxh) cxh.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragCx(); });
     const contour=svg.querySelector('[data-contour]'); if(contour) contour.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); addPointAt(ev); });
@@ -30505,6 +30543,17 @@ function updatePaSummary(id){
   }
   function startDragCal(which){
     const move=e=>{ let y=Math.max(0,Math.min(1,evtYFrac(e))); if(which==='top') calT=Math.min(y,calB-0.05); else calB=Math.max(y,calT+0.05); render(); };
+    const up=()=>document.removeEventListener('pointermove',move);
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
+  }
+  function startDragEdge(which){
+    if(calL==null){ calL=DEF_CAL.left; calR=DEF_CAL.right; }
+    const move=e=>{
+      const svg=el('pa-svg'); const r=svg.getBoundingClientRect();
+      const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+      if(which==='left') calL=Math.min(x,calR-0.05); else calR=Math.max(x,calL+0.05);
+      render();
+    };
     const up=()=>document.removeEventListener('pointermove',move);
     document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
   }
@@ -30528,7 +30577,12 @@ function updatePaSummary(id){
     const af=areaFracOf(curFull());
     const cm2=af*heightCm*heightCm; const mm2=cm2*100;
     const el2=el('pa-area');
-    if(el2) el2.innerHTML='Площа поля («'+(PA_SIDE_SHORT[paSide]||paSide)+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">висота виробу: '+heightCm+' см'+(colorHasOwn()?' · <span style="color:var(--accent)">свій полігон</span>':'')+'</span>';
+    /* Ширина — від висоти, пропорційно: пікселів на сантиметр стільки ж. */
+    const m=stageMetrics(); const chPx=(calB-calT)*m.h;
+    const wCm=(calL!=null && chPx>0) ? (calR-calL)*m.w/chPx*heightCm : 0;
+    if(el2) el2.innerHTML='Площа поля («'+(PA_SIDE_SHORT[paSide]||paSide)+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">висота виробу: '+heightCm+' см'+
+      (wCm ? ' · ширина ≈ '+wCm.toFixed(1)+' см' : ' · краї виробу ще не виставлені (зелені вертикальні лінії)')+
+      (colorHasOwn()?' · <span style="color:var(--accent)">свій полігон</span>':'')+'</span>';
   }
 
   async function save(){ saveWork(); try{ await PHOTOS_DOC.set({ printAreas:{ [paId]: toStore(data) } }, {merge:true}); toast('Область збережено'); if(typeof updatePaSummary==='function') updatePaSummary(paId); }catch(e){ console.error(e); toast('Помилка збереження: '+(e&&e.message||e)); } }

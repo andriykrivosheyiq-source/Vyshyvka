@@ -832,6 +832,15 @@
     if(!job) return out;
     jobUnits(job).forEach(function(u, i){
       var l = dzList(u, 'graphic');
+      /* Менеджер уже обрав дизайнера, але ще не передав — передаємо саме
+         йому. Андрій: «або назначаємо когось, або вони падають у чергу». */
+      var обраний = l.filter(function(d){ return d.who && !d.sentAt; })[0];
+      if(обраний){
+        if(!unitFilled(job, u)){ out.skipped.push(i + 1); return; }
+        dzSend(обраний, by);
+        out.sent++;
+        return;
+      }
       if(l.some(dzReal)) return;
       if(!unitFilled(job, u)){ out.skipped.push(i + 1); return; }
       /* Порожній рядок (дизайнера так і не обрали) не заважає: ставимо в
@@ -848,7 +857,9 @@
   /* Скільки позицій ще можна передати: з ТЗ і без роботи. */
   function dzHandable(job){
     return jobUnits(job).filter(function(u){
-      return !dzList(u, 'graphic').some(dzReal) && unitFilled(job, u); }).length;
+      var l = dzList(u, 'graphic');
+      if(!unitFilled(job, u)) return false;
+      return l.some(function(d){ return d.who && !d.sentAt; }) || !l.some(dzReal); }).length;
   }
   /* ЕСКІЗ ПОГОДЖЕНО — ВИШИВКА СТАЄ В ЧЕРГУ САМА.
 
@@ -984,6 +995,35 @@
     if(st.every(function(k){ return k === 'got'; })) return 'got';
     if(st.some(function(k){ return k === 'got'; })) return 'part';
     return st.some(function(k){ return k !== 'none'; }) ? 'sent' : 'todo';
+  }
+  /* ══════════ ПЕРЕПИСКА ЦЕХУ З МЕНЕДЖЕРОМ ══════════
+     Одна розмова на замовлення. Роль — 'prod' або 'acct': своє праворуч,
+     чуже ліворуч, прочитане позначається «пошта|роль», як і в дизайнерів. */
+  function prodThread(job){
+    if(!job) return [];
+    if(!Array.isArray(job.prodThread)) job.prodThread = [];
+    return job.prodThread;
+  }
+  function prodSay(job, by, role, text){
+    var t = String(text || '').trim();
+    if(!job || !t) return null;
+    var me = String(by || '');
+    prodThread(job).push({ at: nowIso(), by: me, role: role === 'prod' ? 'prod' : 'acct', text: t,
+                           seen: [me, me + '|' + (role === 'prod' ? 'prod' : 'acct')] });
+    return job;
+  }
+  function prodUnseen(job, email, role){
+    var tok = String(email || '') + '|' + role;
+    return prodThread(job).filter(function(m){
+      return m.role !== role && (m.seen || []).indexOf(tok) < 0; }).length;
+  }
+  function prodSeen(job, email, role){
+    var tok = String(email || '') + '|' + role;
+    prodThread(job).forEach(function(m){
+      if(!Array.isArray(m.seen)) m.seen = [];
+      if(m.seen.indexOf(tok) < 0) m.seen.push(tok);
+    });
+    return job;
   }
   function dzAutoStitch(job, by){
     var n = 0;
@@ -1888,7 +1928,8 @@
     BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyOf: buyOf, buyStateOf: buyStateOf,
     buyNeed: buyNeed, buyNew: buyNew, buyNext: buyNext, buySetStatus: buySetStatus,
     buyOrderState: buyOrderState,
-    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
+    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
+    prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -2765,10 +2806,18 @@
      для машини йдуть основою (розширення їх і так розрізняє), картка й
      скрін — основою з коротким словом, бо всі вони PNG і в одній теці
      інакше лягли б одне на одне. Кілька файлів однієї ролі — з номером. */
-  function verTilesHtml(v, nm){
+  function verTilesHtml(v, nm, opt){
     if(typeof nm === 'string') nm = { base: nm, mock: nm };
     nm = nm || { base: 'файл', mock: 'файл' };
+    opt = opt || {};
     var p = D.verParts(v);
+    /* Лише потрібні ролі — цеху, наприклад, картка для клієнта ні до чого. */
+    if(opt.only){
+      var o = opt.only;
+      p = { work: o.indexOf('work') >= 0 ? p.work : [], mock: o.indexOf('mock') >= 0 ? p.mock : [],
+            sheet: o.indexOf('sheet') >= 0 ? p.sheet : null,
+            shot: o.indexOf('shot') >= 0 ? p.shot : [], machine: o.indexOf('machine') >= 0 ? p.machine : [] };
+    }
     var t = [];
     var н = function(b, k, n){ return b + (n > 1 ? '_' + (k + 1) : ''); };
     p.work.forEach(function(f, k){
@@ -2788,8 +2837,9 @@
       t.push('<span class="dz-tile"><button type="button" class="dz-tile-i dz-tile-f" data-do="dz-dl" ' +
         'data-url="' + esc(f.url) + '" data-name="' + esc(nmF) +
         '" title="Скачати ' + esc(nmF) + '"><b>' + esc(ext) + '</b><i>⤓</i></button>' +
-        '<i class="dz-tile-l">для машини</i></span>');
+        '<i class="dz-tile-l">файл для машини</i></span>');
     });
+    if(opt.bare) return t.join('');
     return '<span class="dz-tiles">' + t.join('') + '</span>';
   }
   /* Хто дивиться. У картці менеджера — акаунт-менеджер, на дошці
@@ -3090,12 +3140,18 @@
       хто = '<b class="dz-u-who">' + esc(whoName(d.who)) + '</b>' +
         (ro ? '' : '<button type="button" class="dz-ib" data-do="dz-swap" ' +
           'data-dz="' + key + '" title="Забрати або віддати іншому">\u270E</button>');
+    } else if(d && d.pool && !ro){
+      /* У ЧЕРЗІ — СПИСОК ОДРАЗУ. Андрій: після погодження ескізу можна
+         одразу призначити людину; не призначили — бере будь-хто. */
+      хто = '<select class="dz-u-sel" data-dzwho="' + key + '" title="Віддати конкретному дизайнеру">' +
+          '<option value="@queue" selected>Черга відділу' +
+          (d.sentAt ? ' · чекає ' + esc(hm(Math.max(0, Math.round((Date.now() - new Date(d.sentAt).getTime()) / 60000)))) : '') +
+          '</option>' + teamOpts(роль, '') +
+        '</select>';
     } else if(d && d.pool){
       хто = '<b class="dz-u-who is-q">Черга відділу' +
           (d.sentAt ? ' · чекає ' + esc(hm(Math.max(0, Math.round((Date.now() - new Date(d.sentAt).getTime()) / 60000)))) : '') +
-        '</b>' +
-        (ro ? '' : '<button type="button" class="dz-ib" data-do="dz-swap" ' +
-          'data-dz="' + key + '" title="Віддати конкретному дизайнеру">\u270E</button>');
+        '</b>';
     } else if(ro){
       хто = '<i class="dz-u-no">дизайнера не обрано</i>';
     } else {
@@ -4949,7 +5005,9 @@
       });
       var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m, kind, kind); }, 0);
       var верс = mine.reduce(function(a, x){ return Math.max(a, x.d.vers.length); }, 0);
-      return { id: p.o.orderId, step: DZ_COL[st] || 'new',
+      var крок = DZ_COL[st] || 'new';
+      if(kind === 'stitch') крок = крок === 'revision' ? 'work' : крок === 'review' ? 'done' : крок;
+      return { id: p.o.orderId, step: крок,
         title: U.jobNo(p.job),
         /* НІ ІМЕНІ КЛІЄНТА, НІ СУМИ, НІ РОЗМОВИ. Дизайнеру вони не
            потрібні для роботи, а бачити їх означає мати доступ до чужих
@@ -5112,6 +5170,12 @@
            замовлення, і перше, що заповнюють, коли його заводять. */
         U.zoneHtml('violet', '👕', 'Склад і дизайн', U.unitsSub(job),
           U.unitsHtml(job, { bare:true, o:o })) +
+        /* Замовлення в цеху — розмова з виробництвом тут же, у тому самому
+           вигляді, що з дизайнерами. */
+        (уЦеху ? U.zoneHtml('green', '🏭', 'Виробництво',
+          (function(){ var n = D.prodUnseen(job, (host().me && host().me()) || '', 'acct');
+                       return n ? n + ' нових' : ''; })(),
+          prodChatHtml(job, 'acct')) : '') +
         /* ЗОНИ «ПОГОДЖЕННЯ» БІЛЬШЕ НЕМАЄ.
 
            Вона показувала старі версії `o.art` із позначками «погоджено
@@ -5698,47 +5762,70 @@
     var bs = D.buyStateOf(buys(), o.orderId, u.id);
     var b = bs.buy;
     return '<span class="dz-cloth is-' + esc(bs.key) + '">' + esc(bs.label) +
-      (b ? ' · №' + esc(b.n) + ' від ' + esc(buyDate(b.at)) : '') +
+      (b ? (b.stock ? ' · зі складу' : ' · №' + esc(b.n) + ' від ' + esc(buyDate(b.at))) : '') +
       (b && b.ttn ? ' · <a href="' + esc(buyTtnUrl(b.ttn)) + '" target="_blank" rel="noopener" ' +
                     'title="Відстежити посилку">ТТН ' + esc(b.ttn) + ' ↗</a>' : '') +
     '</span>';
   }
+  /* ОДИН РЯДОК ФАЙЛІВ НА ПОЗИЦІЮ. Андрій: «одним рядком, щоб не займало
+     багато місця»: робота, мокап, скрін Wilcom, файл для машини — підписані
+     плитки. Картки для клієнта тут немає: цеху вона нічого не дає. */
   function prodUnitsHtml(p){
     var job = p.job, o = p.o;
     return U.unitsOf(job).filter(function(u){ return u && u.gid; }).map(function(u){
       var no = U.unitNo(job, u);
       var g = U.catItem(u.gid);
-      var шир = 0;
-      try{ шир = +(host().widthCm && host().widthCm(u.gid, u.size)) || 0; }catch(e){}
       var gr = D.dzList(u, 'graphic'), st = D.dzList(u, 'stitch');
-      var вишивка = st.length ? st.map(function(d, i){
-          var v = verOkOf(d);
-          return v
-            ? '<div class="dz-prod-cap">Вишивка' + (st.length > 1 ? ' · дизайн ' + (i + 1) : '') +
-                ' · v' + v.n + '</div>' + U.verTilesHtml(v, U.dlNames(no, u, 'stitch', i, v.n))
-            : '<div class="dz-miss is-calm">Вишивка' + (st.length > 1 ? ' · дизайн ' + (i + 1) : '') +
-                ' — файли ще не здані.</div>';
-        }).join('')
-        : '<div class="dz-miss is-calm">Вишивальних файлів ще немає.</div>';
-      var макет = gr.map(function(d, i){
+      var плитки = [], бракує = [], кнопки = [];
+      gr.forEach(function(d, i){
         var v = verOkOf(d);
-        if(!v) return '<div class="dz-miss is-calm">Ескіз' + (gr.length > 1 ? ' · дизайн ' + (i + 1) : '') +
-                      ' ще не погоджено.</div>';
-        return '<div class="dz-prod-cap">Макет' + (gr.length > 1 ? ' · дизайн ' + (i + 1) : '') +
-            ' · v' + v.n + '</div>' + U.verTilesHtml(v, U.dlNames(no, u, 'graphic', i, v.n)) +
-          spotsHtml(u, v) +
-          '<button type="button" class="dz-b" data-do="prod-card" data-u="' + esc(u.id) + '" data-g="' + i +
-            '" title="Схема з відступами для машиніста">⤓ Картка цеху</button>';
-      }).join('');
+        if(!v){ if(D.dzReal(d)) бракує.push('ескіз' + (gr.length > 1 ? ' ' + (i + 1) : '') + ' не погоджено'); return; }
+        плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'graphic', i, v.n), { only: ['work', 'mock'], bare: true }));
+        кнопки.push('<button type="button" class="dz-b" data-do="prod-card" data-u="' + esc(u.id) + '" data-g="' + i +
+          '" title="Схема з відступами від верху й краю виробу">⤓ Виробничий файл' +
+          (gr.length > 1 ? ' · дизайн ' + (i + 1) : '') + '</button>');
+      });
+      st.forEach(function(d, i){
+        var v = verOkOf(d);
+        if(!v){ бракує.push('вишивка' + (st.length > 1 ? ' ' + (i + 1) : '') + ' ще не здана'); return; }
+        плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'stitch', i, v.n), { only: ['shot', 'machine'], bare: true }));
+      });
       return '<div class="dz-prod-u">' +
         '<div class="dz-prod-h"><b>' + esc(no) + '</b>' +
           '<span>' + esc([(g && g.name) || u.name, u.color, u.size,
-                          ((+u.qty || 0) ? (+u.qty) + ' шт' : '')].filter(Boolean).join(' · ')) +
-            (шир ? ' · ширина виробу ' + esc(мсм(шир)) : '') + '</span>' +
+                          ((+u.qty || 0) ? (+u.qty) + ' шт' : '')].filter(Boolean).join(' · ')) + '</span>' +
           clothHtml(o, u) + '</div>' +
-        вишивка + макет +
+        (плитки.length ? '<span class="dz-tiles dz-prod-row">' + плитки.join('') + '</span>' : '') +
+        (бракує.length ? '<div class="dz-miss is-calm">' + esc(бракує.join(' · ')) + '</div>' : '') +
+        (кнопки.length ? '<div class="dz-prod-b">' + кнопки.join('') + '</div>' : '') +
       '</div>';
     }).join('');
+  }
+  /* ПЕРЕПИСКА ЦЕХУ З АКАУНТ-МЕНЕДЖЕРОМ — у тому самому вигляді, що з
+     дизайнерами: своє праворуч, чуже ліворуч, нове підсвічене. Одна розмова
+     на замовлення; у менеджера — зона «Виробництво». */
+  function prodChatHtml(job, as){
+    var me = (host().me && host().me()) || '';
+    var tok = me + '|' + as;
+    var l = D.prodThread(job);
+    var нових = D.prodUnseen(job, me, as);
+    return (l.length
+        ? '<div class="dz-ch"><div class="dz-ch-l">' + l.slice(-60).map(function(m){
+            var свій = m.role === as;
+            var нове = !свій && (m.seen || []).indexOf(tok) < 0;
+            return '<div class="dz-ch-m' + (свій ? ' own' : '') + (нове ? ' new' : '') + '">' +
+              '<span class="dz-ch-w">' + esc(nameOf(m.by)) + ' · ' + esc(dt(m.at)) + '</span>' +
+              (m.text ? '<span class="dz-ch-t">' + esc(m.text) + '</span>' : '') +
+            '</div>';
+          }).join('') + '</div></div>'
+        : '<div class="dz-miss is-calm">Тут буде розмова ' + (as === 'prod' ? 'з менеджером' : 'з виробництвом') + '.</div>') +
+      '<div class="dz-chk-say">' +
+        (нових ? '<button type="button" class="dz-unread" data-do="prod-seen" data-as="' + as +
+          '" title="Позначити прочитаним">' + нових + '</button>' : '') +
+        '<textarea rows="1" data-grow data-prodsay="' + as + '" placeholder="' +
+          (as === 'prod' ? 'Написати менеджеру' : 'Написати виробництву') + '"></textarea>' +
+        '<button class="dz-b" data-do="prod-say" data-as="' + as + '">Написати</button>' +
+      '</div>';
   }
   function prodPanel(p){
     var job = p.job, o = p.o;
@@ -5746,8 +5833,9 @@
         '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' +
         clockHtml(D.stageLeft(job, o, 'prod', termHours('prod'))) +
         '<button class="dz-x" data-close>×</button></div>' +
-      '<div class="dz-panel-b">' +
-        U.clientHtml(o, job) + U.taskBlockHtml(p, 'prod') + prodUnitsHtml(p) +
+      '<div class="dz-panel-b is-zones">' +
+        U.zoneHtml('violet', '👕', 'Що шиємо', '', prodUnitsHtml(p)) +
+        U.zoneHtml('green', '💬', 'Переписка з менеджером', '', prodChatHtml(job, 'prod')) +
       '</div>';
   }
   function packPanel(p){
@@ -5886,7 +5974,10 @@
      дошка й панель почнуть розходитись у тому, що вважати колонкою. */
   function boardOf(seat){
     if(seat === 'graphic') return { steps: D.GRAPHIC, cards: graphicCards('graphic') };
-    if(seat === 'stitch')  return { steps: D.GRAPHIC, cards: graphicCards('stitch') };
+    /* Вишивальнику — без «На перевірці» й «Правок»: перевірки в B2C немає,
+       здане одразу «Готово». */
+    if(seat === 'stitch')  return { steps: D.GRAPHIC.filter(function(x){ return x.key !== 'review' && x.key !== 'revision'; }),
+                                    cards: graphicCards('stitch') };
     if(seat === 'prod')    return { steps: D.PROD,    cards: prodCards() };
     if(seat === 'supply')  return { steps: D.SUPPLY,  cards: supplyCards() };
     return { steps: D.CHAIN, cards: chainCards() };     // акаунт-менеджер
@@ -6127,8 +6218,10 @@
     var графік = (seat === 'graphic' || seat === 'stitch')
       ? '<button class="dz-b dz-shift" data-do="shift" title="Які дні працюємо — ' +
         'у вихідні годинник стоїть">🗓 Графік</button>' : '';
+    /* «+ Нове замовлення» — лише на дошці акаунт-менеджера: дизайнери й цех
+       беруть те, що їм дали, а не заводять своє. */
     var headHtml = boss
-      ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' +
+      ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
         seekHtml(шук) + графік +
         '<label class="dz-as"><span>Дивлюсь як</span>' +
           '<select class="dz-as-sel" data-seat>' + U.ROLES.map(function(r){
@@ -6790,6 +6883,7 @@
            в розмові й новим відліком строку. */
         if(d.sentAt && who){
           var доЧерги = who === '@queue';
+          if(доЧерги && d.pool && !d.who) return render(root);
           if(!доЧерги && who === d.who) return render(root);
           D.dzRecall(d, хтоЯ, доЧерги ? '' : who, доЧерги ? U.whoName(d.who) : U.whoName(who));
           return save(c.job, c.o, доЧерги ? 'Повернуто в чергу відділу' : 'Передано · ' + U.whoName(who));
@@ -7148,6 +7242,19 @@
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
 
+    if(what === 'prod-say'){
+      var pas = (data && data.as) === 'prod' ? 'prod' : 'acct';
+      var pel = (root || document).querySelector('[data-prodsay="' + pas + '"]');
+      var ptx = pel ? String(pel.value || '').trim() : '';
+      if(!ptx) return say('Напишіть повідомлення');
+      D.prodSay(job, m, pas, ptx);
+      D.prodSeen(job, m, pas);
+      return save(job, o, pas === 'prod' ? 'Написано менеджеру' : 'Написано виробництву');
+    }
+    if(what === 'prod-seen'){
+      D.prodSeen(job, m, (data && data.as) === 'prod' ? 'prod' : 'acct');
+      return save(job, o, '');
+    }
     /* КАРТКА ЦЕХУ: по одній на сторону, з мокапом цієї сторони, схемою
        відступів і цифрами. Імʼя файлу — за загальним правилом плюс «цех». */
     if(what === 'prod-card'){
@@ -7172,15 +7279,17 @@
       try{ pw = +(host().widthCm && host().widthCm(pu.gid, pu.size)) || 0; }catch(e){}
       var pno = U.unitNo(job, pu);
       var pbase = U.dlBase(pno, pu, 'graphic', pgi, pv.n);
-      say('Збираю картку цеху…');
+      say('Збираю виробничий файл…');
       for(var si = 0; si < pside.length; si++){
         var sd = pside[si];
         /* Мокап сторони впізнаємо за підписом: здача кладе його як «Перед.png». */
         var mk = pmocks.filter(function(f){ return sd.label && String(f.name || '') === sd.label + '.png'; })[0]
                  || pmocks[si] || pmocks[0] || {};
+        var зона = null;
+        try{ зона = (host().zone && host().zone(pu.gid, sd.key, pu.color, pu.size)) || null; }catch(e){}
         var png = await window.LQMock.prodCard({
-          title: 'Картка для цеху', side: pside.length > 1 ? sd.label : (sd.label || ''),
-          no: pno, mock: mk.url, spots: sd.spots, widthCm: pw,
+          title: 'Виробничий файл', side: pside.length > 1 ? sd.label : (sd.label || ''),
+          no: pno, mock: mk.url, spots: sd.spots, widthCm: pw, zone: зона,
           nums: [
             ['Модель', (pg && pg.name) || pu.name || '—'],
             ['Колір', pu.color || '—'],
@@ -7192,7 +7301,7 @@
         });
         if(!png){ say('Картка цеху не зібралась'); continue; }
         await act('dz-dl', root, { url: png,
-          name: pbase + '_цех' + (pside.length > 1 && sd.label ? '_' + sd.label : '') });
+          name: pbase + '_виробництво' + (pside.length > 1 && sd.label ? '_' + sd.label : '') });
       }
       return;
     }
@@ -7835,7 +7944,12 @@
     var g = U.catItem(u.gid), pl = place || {};
     var vp = D.verParts(ver);
     return await window.LQMock.card({
+      /* Усі мокапи (сторони й ракурси) і всі ескізи версії — у картку. */
       art: (vp.work[0] || {}).url, mock: (vp.mock[0] || {}).url,
+      mocks: vp.mock.map(function(f){ return f.url; }),
+      works: vp.work.map(function(f){ return f.url; }),
+      /* Характеристики виробу — з картки товару, як у картках B2B. */
+      specs: (function(){ try{ return (host().specs && host().specs(u.gid)) || []; }catch(e){ return []; } })(),
       /* Заголовок — один на всі картки, з налаштувань B2C: Андрій ще
          думає над назвою, і міняти її має бути полем, а не правкою коду. */
       title: (function(){
