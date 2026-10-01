@@ -3845,6 +3845,32 @@
     display:flex;align-items:center;justify-content:center;}
   .mko-wk:hover{border-color:var(--accent);}
   .mko-wk img{width:100%;height:100%;object-fit:contain;}
+  /* Під нитки: адаптовані роботи позначені 🧵, неадаптовані — червоним і з кнопкою. */
+  .mko-wk-w{display:inline-flex;flex-direction:column;align-items:center;gap:3px;}
+  .mko-wk{position:relative;}
+  .mko-wk.need{outline:2px solid #F87171;outline-offset:1px;}
+  .mko-wk-t{position:absolute;right:2px;bottom:2px;font-style:normal;font-size:10px;font-weight:800;
+    background:rgba(255,255,255,.92);border-radius:6px;padding:0 3px;color:#0F2034;}
+  .mko-wk-a{all:unset;cursor:pointer;font-size:10.5px;font-weight:700;color:#B91C1C;}
+  .mko-wk-a:hover{text-decoration:underline;}
+  /* Вікно «Під нитки». */
+  /* Над вікном здачі роботи (z-index 400): адаптацію відкривають саме з нього. */
+  .dz-pick.dz-th{z-index:450;}
+  .dz-th-b{width:min(860px,100%);}
+  .dz-th-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .dz-th-pair figure{margin:0;display:flex;flex-direction:column;gap:4px;}
+  .dz-th-pair img,.dz-th-wait{width:100%;height:min(46vh,380px);object-fit:contain;border:1px solid var(--line);
+    border-radius:10px;background:repeating-conic-gradient(#f1f3f6 0 25%, #fff 0 50%) 0 0/16px 16px;}
+  .dz-th-wait{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;}
+  .dz-th-pair figcaption{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .dz-th-k{display:flex;align-items:center;gap:10px;font-size:12.5px;}
+  .dz-th-k span{color:var(--ink-soft);font-weight:600;}
+  .dz-th-k input{flex:1;}
+  .dz-th-k b{min-width:22px;text-align:right;font-variant-numeric:tabular-nums;}
+  .dz-threads{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .dz-thr{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink);
+    border:1px solid var(--line);border-radius:999px;padding:1px 8px 1px 3px;background:#fff;font-variant-numeric:tabular-nums;}
+  .dz-thr i{width:13px;height:13px;border-radius:50%;border:1px solid rgba(15,32,52,.18);}
   .mko-wk.add{flex-direction:column;gap:2px;border-style:dashed;color:var(--muted);
     font-size:17px;}
   .mko-wk.add i{font-style:normal;font-size:8.5px;letter-spacing:.02em;}
@@ -4404,6 +4430,13 @@
   .dz-hand-all i.is-bad{color:#B91C1C;}
   /* Підтвердити одяг: чотири поля в стовпчик. */
   .dz-cl-hint{font-size:12.5px;color:var(--ink-soft);margin-top:-4px;}
+  /* Нитки для вишивки — компактною сіткою. */
+  .b2c-threads{display:flex;flex-wrap:wrap;gap:6px;max-width:980px;max-height:340px;overflow:auto;padding:2px;}
+  .b2c-th{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:3px 4px 3px 3px;background:#fff;}
+  .b2c-th input[type=color]{width:26px;height:24px;border:0;padding:0;background:none;cursor:pointer;}
+  .b2c-th input[type=text]{width:52px;font:inherit;font-size:12.5px;border:0;outline:none;font-variant-numeric:tabular-nums;}
+  .b2c-th button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 3px;}
+  .b2c-th button:hover{color:#B91C1C;}
   .dz-cl-r{display:flex;align-items:center;gap:10px;}
   .dz-cl-r span{flex:0 0 92px;font-size:12.5px;font-weight:700;color:var(--muted);}
   .dz-cl-r select,.dz-cl-r input{flex:1;min-width:0;font:inherit;font-size:13.5px;border:1px solid var(--line);
@@ -5834,6 +5867,20 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <input id="b2c-cardtitle" type="text" maxlength="60" style="width:100%;max-width:640px;"
           placeholder="Макет на узгодження">
 
+        <div class="tl-divider" style="margin-top:22px;">Нитки для вишивки</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Палітра, під яку графічний дизайнер адаптує кожну роботу перед мокапом: картинка
+          зводиться рівно до цих кольорів, і вишивальник отримує перелік ниток з кодами.
+          Код і колір можна виправити, нитку — прибрати або додати. Зберігається кнопкою
+          «Зберегти» внизу.
+        </div>
+        <div id="b2c-threads" class="b2c-threads"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" class="pc-btn" id="b2c-thread-add" style="padding:7px 14px;">+ Додати нитку</button>
+          <button type="button" class="pc-btn reset" id="b2c-thread-reset" style="padding:7px 14px;">Повернути стандартні</button>
+          <span id="b2c-thread-n" class="sub" style="align-self:center;"></span>
+        </div>
+
         <div class="tl-divider" style="margin-top:22px;">Строки етапів</div>
         <div class="sub" style="margin-bottom:8px;">
           Скільки <b>годин</b> дається кожному, хто бере роботу в руки. Це НЕ строк
@@ -6907,24 +6954,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=6e22fb2d9b"></script>
-<script src="loomiq-fingerprint.js?v=6e22fb2d9b"></script>
-<script src="loomiq-pricing.js?v=6e22fb2d9b"></script>
+<script src="loomiq-select.js?v=65ff9c724e"></script>
+<script src="loomiq-fingerprint.js?v=65ff9c724e"></script>
+<script src="loomiq-pricing.js?v=65ff9c724e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=6e22fb2d9b"></script>
-<script src="loomiq-mock.js?v=6e22fb2d9b"></script>
+<script src="loomiq-design.js?v=65ff9c724e"></script>
+<script src="loomiq-mock.js?v=65ff9c724e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=6e22fb2d9b"></script>
-<script src="loomiq-threads.js?v=6e22fb2d9b"></script>
+<script src="imagetracer.js?v=65ff9c724e"></script>
+<script src="loomiq-threads.js?v=65ff9c724e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=6e22fb2d9b"></script>
+<script src="loomiq-cards.js?v=65ff9c724e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6949,7 +6996,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '6e22fb2d9b';
+var LQ_VER = '65ff9c724e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9785,11 +9832,48 @@ function b2cCfg(){
               картка поїде клієнту без застереження про колір. */
            note: String(c.note || '').trim() || B2C_NOTE,
            /* Заголовок картки макета. Андрій ще думає над назвою — тож поле. */
-           cardTitle: String(c.cardTitle || '').trim() || B2C_CARD_TITLE };
+           cardTitle: String(c.cardTitle || '').trim() || B2C_CARD_TITLE,
+           /* Палітра ниток: null — стандартна з модуля підбору. */
+           threads: (Array.isArray(c.threads) && c.threads.length) ? c.threads : null };
 }
+/* ── Нитки для вишивки: редактор палітри ── */
+function threadsDefault(){
+  return ((window.LQThreads && window.LQThreads.DEFAULT_PALETTE) || []).map(t => ({ code: t.code, hex: t.hex }));
+}
+function threadsApply(){
+  try{ if(window.LQThreads) window.LQThreads.setPalette(b2cCfg().threads); }catch(e){ console.warn('нитки', e); }
+}
+function paintThreads(list){
+  const box = document.getElementById('b2c-threads');
+  if(!box) return;
+  const l = list || b2cCfg().threads || threadsDefault();
+  box.innerHTML = l.map((t, i) =>
+    '<span class="b2c-th" data-th="' + i + '">' +
+      '<input type="color" data-thhex value="' + escA(String(t.hex || '#000000').toLowerCase()) + '" aria-label="Колір нитки">' +
+      '<input type="text" data-thcode value="' + escA(t.code || '') + '" maxlength="12" placeholder="код" aria-label="Код нитки">' +
+      '<button type="button" data-thdel title="Прибрати нитку" aria-label="Прибрати нитку">×</button>' +
+    '</span>').join('');
+  const n = document.getElementById('b2c-thread-n');
+  if(n) n.textContent = l.length + ' ниток' + (b2cCfg().threads ? ' · своя палітра' : ' · стандартна');
+  box.querySelectorAll('[data-thdel]').forEach(b => b.onclick = () => {
+    const cur = readThreads(); cur.splice(+b.closest('[data-th]').dataset.th, 1); paintThreads(cur); });
+}
+function readThreads(){
+  return Array.from(document.querySelectorAll('#b2c-threads [data-th]')).map(r => ({
+    code: String(r.querySelector('[data-thcode]').value || '').trim(),
+    hex: String(r.querySelector('[data-thhex]').value || '').toUpperCase() })).filter(t => t.code && t.hex);
+}
+(function(){
+  const add = document.getElementById('b2c-thread-add');
+  if(add) add.addEventListener('click', () => { const l = readThreads(); l.push({ code:'', hex:'#808080' }); paintThreads(l);
+    const last = document.querySelector('#b2c-threads [data-th]:last-child [data-thcode]'); if(last) last.focus(); });
+  const rst = document.getElementById('b2c-thread-reset');
+  if(rst) rst.addEventListener('click', () => { if(confirm('Повернути стандартну палітру ниток? Свої правки зникнуть після «Зберегти».')) paintThreads(threadsDefault()); });
+})();
 function paintB2c(){
   const c = b2cCfg();
   paintExtras(c.extras);
+  try{ paintThreads(); }catch(e){ console.warn('нитки', e); }
   const d = document.getElementById('b2c-days');
   if(d) d.value = (c.days === B2C_DAYS) ? '' : (c.days || '');
   paintB2cTerms();
@@ -9925,7 +10009,12 @@ function retailCost(gid){
        вкладці, і мовчки змінити їм строк було б гірше за зайве поле. */
     const dzLimit = Math.max(0, Math.round(parseFloat((document.getElementById('b2c-dzlimit') || {}).value) || 0));
     const stitchLimit = Math.max(0, Math.round(parseFloat((document.getElementById('b2c-stitchlimit') || {}).value) || 0));
+    /* Палітра ниток: збіглась зі стандартною — не пишемо, хай іде за модулем. */
+    const нитки = readThreads();
+    const станд = threadsDefault();
+    const своя = !(нитки.length === станд.length && нитки.every((t, i) => t.code === станд[i].code && t.hex === станд[i].hex));
     const b2c = { extras: readExtras(), days: days || null,
+                  threads: (своя && нитки.length) ? нитки : null,
                   terms: Object.keys(terms).length ? terms : null,
                   dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
                   dzHours: terms.graphic || null,
@@ -9944,6 +10033,8 @@ function retailCost(gid){
     try{
       await PHOTOS_DOC.set({ b2c, products: { retail, retailCost } }, { merge:true });
       contentData.b2c = b2c;
+      threadsApply();
+      try{ paintThreads(); }catch(e){}
       contentData.products = contentData.products || {};
       contentData.products.retail = цін;
       contentData.products.retailCost = собів;
@@ -27554,6 +27645,7 @@ function openDesign(){
     });
   }
   watchDesign();
+  threadsApply();          // палітра ниток — з налаштувань B2C
   /* Платежі потрібні самій картці: передоплату в ній обирають зі списку
      надходжень, а не пишуть числом. Доти підписка вмикалась лише при вході
      у Фінанси — тобто в картці список був порожній, і вона чесно казала

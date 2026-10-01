@@ -804,6 +804,32 @@ async function run(file, maxColors) {
   return { svg, png: q.blob, threads: q.threads }
 }
 
-window.LQThreads = { THREAD_PALETTE, quantizeToThreads, quantizePixels, preprocessBlob,
+/* ПАЛІТРА З НАЛАШТУВАНЬ. Андрій: «ми будемо додавати або забирати щось,
+   або коригувати код і hex» — тож список ниток живе в Налаштуваннях B2C.
+   Підставляємо його В ТОЙ САМИЙ масив (і перераховуємо Lab), тому алгоритм
+   нічого про це не знає й не міняється. Порожньо — стандартна палітра з файлу. */
+const DEFAULT_PALETTE = THREAD_PALETTE.map(p => ({ code: p.code, rgb: p.rgb.slice(), hex: p.hex }))
+function hexRgb(h) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '').trim())
+  if (!m) return null
+  const n = parseInt(m[1], 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+function setPalette(list) {
+  const src = (Array.isArray(list) && list.length) ? list : DEFAULT_PALETTE
+  const clean = []
+  src.forEach(p => {
+    const rgb = Array.isArray(p.rgb) ? p.rgb.slice(0, 3) : hexRgb(p.hex)
+    if (!rgb || !String(p.code || '').trim()) return
+    const hex = '#' + rgb.map(v => ('0' + (v | 0).toString(16)).slice(-2)).join('').toUpperCase()
+    clean.push({ code: String(p.code).trim(), rgb, hex })
+  })
+  if (!clean.length) return THREAD_PALETTE.length
+  THREAD_PALETTE.length = 0; clean.forEach(p => THREAD_PALETTE.push(p))
+  PALETTE_LAB.length = 0; THREAD_PALETTE.forEach(p => PALETTE_LAB.push(rgbToLab(p.rgb)))
+  return THREAD_PALETTE.length
+}
+
+window.LQThreads = { THREAD_PALETTE, DEFAULT_PALETTE, setPalette, hexRgb, quantizeToThreads, quantizePixels, preprocessBlob,
                      vectorizeBlob, paletteByColour, nearestThread, rgbToLab, deltaE, run }
 })();
