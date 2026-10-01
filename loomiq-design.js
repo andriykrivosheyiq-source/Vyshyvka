@@ -1141,10 +1141,12 @@
     if(!d) return null;
     var n = +ver || (d.vers.length ? d.vers[d.vers.length - 1].n : 0);
     d.ok = { at: nowIso(), by: String(by || ''),
-             how: how === 'client' ? 'client' : 'acct', ver: n };
+             how: how === 'client' ? 'client' : how === 'auto' ? 'auto' : 'acct', ver: n };
     d.status = 'approved';
     d.thread.push({ at: d.ok.at, by: String(by || ''), kind:'ok',
-                    text: (how === 'client' ? 'Клієнт погодив' : 'Погодив акаунт-менеджер') +
+                    text: (how === 'client' ? 'Клієнт погодив'
+                           : how === 'auto' ? 'Файли здано — пішло у виробництво'
+                           : 'Погодив акаунт-менеджер') +
                           (n ? ' · версія ' + n : ''), seen: [String(by || '')] });
     return d;
   }
@@ -2979,10 +2981,32 @@
   var SIDE = {};
   function sideAuto(u){
     var g = dzList(u, 'graphic').filter(D.dzReal);
+    if(dzList(u, 'stitch').some(D.dzReal) && D.graphicOk(u)) return 'stitch';
     return (g.length && D.graphicOk(u)) ? 'stitch' : 'graphic';
   }
+  /* ЖИВА ЗОНА ПЕРЕВАЖУЄ РУЧНИЙ ВИБІР. Андрій: робота у вишивального або
+     від нього пропущене — картка має відкриватись на вишивальному, а не
+     «висіти на графічному». Непрочитане з одного боку сильніше за те, куди
+     колись дивились руками. */
+  /* Коли прийшло найсвіжіше непрочитане з цього боку. */
+  function unseenAt(u, kind){
+    var me = (host.me && host.me()) || '', t = 0;
+    if(!me) return 0;
+    dzList(u, kind).forEach(function(d){
+      if(!D.dzUnseen(d, me, 'acct', kind)) return;
+      (d.thread || []).concat((d.vers || []).map(function(v){ return { at: v.at }; })).forEach(function(m){
+        var x = new Date(m.at || 0).getTime(); if(x > t) t = x; });
+    });
+    return t;
+  }
   function sideOf(u){
-    var s = SIDE[(u || {}).id];
+    var id = (u || {}).id;
+    /* Непрочитане перемикає, але лише свіже — новіше за ручний вибір: інакше
+       людина не змогла б подивитись другий бік, поки не прочитає цей. */
+    var ng = unseenAt(u, 'graphic'), ns = unseenAt(u, 'stitch'), руками = SIDE_AT[id] || 0;
+    if(ns > руками && ns >= ng) return 'stitch';
+    if(ng > руками && ng > ns) return 'graphic';
+    var s = SIDE[id];
     return (s === 'graphic' || s === 'stitch') ? s : sideAuto(u);
   }
   /* Скільки непрочитаного в половині. Лічильник на смужці — єдине, що
@@ -2994,7 +3018,9 @@
     return dzList(u, kind).reduce(function(a, d){ return a + D.dzUnseen(d, me, 'acct', kind); }, 0);
   }
   var SIDE_ICO = { graphic:'\u270E', stitch:'\u2726' };
-  var SIDE_NM = { graphic:'Графіка', stitch:'Вишивка' };
+  /* Ті самі назви, що в шапці зони, — у згорнутій смужці вертикально. */
+  var SIDE_NM = { graphic:'Графічний дизайн', stitch:'Вишивальний дизайн' };
+  var SIDE_AT = {};           // коли бік обрали руками
   function railHtml(u, kind){
     var st = dzColState(u, kind);
     var n = dzUnseenCol(u, kind);
@@ -4443,7 +4469,7 @@
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen,
-    DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName,
+    DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName, SIDE_AT: SIDE_AT,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
        самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
     dzVersHtml: dzVersHtml, dzThreadHtml: dzThreadHtml, dzChatHtml: dzChatHtml,
@@ -4957,6 +4983,20 @@
     '</div>';
   }
 
+  /* ЩО З ОДЯГОМ — У ШАПЦІ, ПОРУЧ ІЗ ЕТАПОМ. Андрій: «щоб ми бачили, де
+     знаходяться самі карточки, що з самим одягом». Найгірший стан серед
+     позицій з підтвердженим одягом: поки хоч щось не замовлене — «треба
+     замовити». Одяг ще не підтверджували — нічого не показуємо. */
+  function clothChip(job, o){
+    var всі = buys();
+    var us = U.unitsOf(job).filter(function(u){ return D.clothOk(u); });
+    if(!us.length) return '';
+    var st = us.map(function(u){ return D.buyStateOf(всі, o.orderId, u.id).key; });
+    var k = st.indexOf('none') >= 0 ? 'none' : st.indexOf('sent') >= 0 ? 'sent'
+          : st.indexOf('way') >= 0 ? 'way' : 'got';
+    var t = { none:'Треба замовити одяг', sent:'Одяг замовлено', way:'Одяг в дорозі', got:'Одяг отримано' }[k];
+    return '<span class="dz-cloth is-' + k + '">' + esc(t) + '</span>';
+  }
   function queuePanel(p){
     var job = p.job, o = p.o, g = job.graphic;
     var v = D.verCur(o);
@@ -5030,10 +5070,19 @@
        і читається вона разом із номером, а не між ним і строком. */
     var кол = D.chainAt(job, o);
     var крок = (D.CHAIN || []).filter(function(x){ return x.key === кол; })[0] || {};
+    /* У ЦЕХУ — СТАТУС ЦЕХУ. Андрій: клієнт питає «що з моїм замовленням» —
+       менеджер відкриває картку й бачить «На станках», а не просто
+       «Виробництво». До цеху поруч стоїть стан одягу. */
+    var уЦеху = !!PROD_AT[кол];
+    if(уЦеху && кол === 'prod'){
+      var пк = D.prodAt(job, o);
+      var пс = (D.PROD || []).filter(function(x){ return x.key === пк; })[0];
+      if(пс) крок = { label: 'Виробництво · ' + пс.label, color: пс.color };
+    }
     return '<div class="dz-panel-h">' +
         '<span class="dz-panel-id"><b>' + U.jobNo(p.job) + '</b>' +
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
-          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span></span>' +
+          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) + '</span>' +
         clockHtml(D.stageLeft(job, o, 'acct', termHours('acct'))) +
         U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
@@ -5164,7 +5213,7 @@
       if(!v) return;
       out.push('<div class="dz-w-note"><i>Погоджений ескіз' + (g.length > 1 ? ' · дизайн ' + (gi + 1) : '') +
         ' · версія ' + v.n + '</i>' + U.verTilesHtml(v, U.dlNames(no, u, 'graphic', gi, v.n)) +
-        spotsHtml(u, v) + '</div>');
+        spotsHtml(u, v, 'stitch') + '</div>');
     });
     return out.length ? out.join('')
       : '<div class="dz-miss is-calm">Погодженого ескізу на цій позиції немає.</div>';
@@ -5176,8 +5225,17 @@
      сантиметри є, але дрібно й картинкою; тут — числами: ширина й висота
      принта, відступ від горловини й від центру, і ширина самого виробу
      того розміру, що в складі. */
-  function spotsHtml(u, v){
+  function spotsHtml(u, v, mode){
     var l = D.verSpots(v);
+    /* Вишивальнику — тільки ширина вишивки. Андрій: «від горла і так далі
+       — це вже для виробництва… тут цієї інформації не потрібно». */
+    if(mode === 'stitch'){
+      var шв = l.filter(function(s){ return +s.wCm > 0; });
+      if(!шв.length) return '';
+      return '<div class="dz-spots">' + шв.map(function(s){
+        return '<div class="dz-spot"><span>Ширина вишивки' + (шв.length > 1 && s.label ? ' · ' + esc(s.label) : '') +
+          '</span><b>' + esc(мсм(s.wCm)) + '</b></div>'; }).join('') + '</div>';
+    }
     var шир = 0;
     try{ шир = +(host().widthCm && host().widthCm(u.gid, u.size)) || 0; }catch(e){}
     if(!l.length && !шир) return '';
@@ -5640,7 +5698,7 @@
             ? '<div class="dz-prod-cap">Вишивка' + (st.length > 1 ? ' · дизайн ' + (i + 1) : '') +
                 ' · v' + v.n + '</div>' + U.verTilesHtml(v, U.dlNames(no, u, 'stitch', i, v.n))
             : '<div class="dz-miss is-calm">Вишивка' + (st.length > 1 ? ' · дизайн ' + (i + 1) : '') +
-                ' ще не погоджена.</div>';
+                ' — файли ще не здані.</div>';
         }).join('')
         : '<div class="dz-miss is-calm">Вишивальних файлів ще немає.</div>';
       var макет = gr.map(function(d, i){
@@ -5754,6 +5812,8 @@
   /* ХТО ДІЙШОВ ДО ЦЕХУ. Андрій: «їх тут не повинно бути, поки вони ще не
      пройшли всі етапи». У виробництві — лише замовлення, де погоджено всю
      вишивку (у менеджера це «Виробництво»), і ті, що вже йдуть далі. */
+  /* У цех — щойно вишивку здали (Андрій: «як тільки вишивку здали, одразу
+     йде на виробництво в нове»). До того в цеху нічого немає. */
   var PROD_AT = { prod:1, qc:1, ready:1, shipped:1 };
   function atProd(p){ return !!PROD_AT[D.chainAt(p.job, p.o)]; }
   /* ХТО ДІЙШОВ ДО ЗАКУПНИКА: хоча б одна позиція з підтвердженим одягом
@@ -6051,12 +6111,14 @@
       : (seekHtml(шук) + графік);
     root.innerHTML =
       '<div class="dz-top">' + headHtml + '</div>' +
-      (seat === 'supply' ? buyScreenHtml() : '') +
+      /* Закупівля — без канбана: список «треба замовити», оформлені
+         замовлення й склад. Андрій: «канбана тут немає». */
+      (seat === 'supply' ? buyScreenHtml() :
       '<div class="dz-wrap">' +
         '<div class="dz-boards">' + U.boardHtml(b.steps, b.cards) + '</div>' +
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
           (openId ? panelFor(seat, openId) : '') + '</aside>' +
-      '</div>';
+      '</div>');
     wire(root);
     /* Аркуш добирається сам, уже після того, як екран намальовано: спершу
        людина бачить картку, а збирання йде тихо позаду. */
@@ -6194,13 +6256,32 @@
     }).sort(function(a, b){
       return (a.name + a.color).localeCompare(b.name + b.color, 'uk'); });
   }
+  /* ПІДРЯДНИК ВИРОБУ — з картки товару (вкладка «Інформація»). Закупник
+     замовляє в кожного окремо, тож і список, і оформлення йдуть по них. */
+  function supOf(gid){
+    var s = null;
+    try{ s = host().supplier && host().supplier(gid); }catch(e){}
+    return (s && s.id) ? { id: String(s.id), name: String(s.name || s.id) } : { id: '', name: '' };
+  }
   function buyRowsNow(){
     return D.buyNeed(U.pairs(), buys()).map(function(r){
       r.no = U.unitNo(r.job, r.u);
       r.name = ((U.catItem(r.gid) || {}).name) || r.u.name || '';
       r.key = D.buyKey(r.orderId, r.uid);
+      r.sup = supOf(r.gid);
       return r;
     });
+  }
+  function bySup(rows){
+    var m = {}, order = [];
+    rows.forEach(function(r){
+      var k = (r.sup && r.sup.id) || '';
+      if(!m[k]){ m[k] = { key: k, name: (r.sup && r.sup.name) || '', rows: [] }; order.push(k); }
+      m[k].rows.push(r);
+    });
+    return order.map(function(k){ return m[k]; }).sort(function(a, b){
+      if(!a.key) return 1; if(!b.key) return -1;
+      return a.name.localeCompare(b.name, 'uk'); });
   }
   function buyChk(rows){
     var n = rows.filter(function(r){ return BUY_SEL[r.key]; }).length;
@@ -6214,65 +6295,141 @@
   function buyTtnUrl(ttn){
     return 'https://novaposhta.ua/tracking/?cargo_number=' + encodeURIComponent(String(ttn || '').replace(/\s+/g, ''));
   }
-  function buyTitle(b){ return 'Закупівля №' + (b.n || '—') + ' від ' + buyDate(b.at); }
+  function buyTitle(b){
+    if(b.stock) return 'Зі складу від ' + buyDate(b.at);
+    return 'Закупівля №' + (b.n || '—') + ' від ' + buyDate(b.at);
+  }
+  /* ── НАЯВНІСТЬ НА СКЛАДІ ──
+     Вільний одяг, який уже лежить у нас. Закупник вносить його сам; у
+     «Треба замовити» біля кожного розміру видно, скільки його є, і
+     позиції можна закрити зі складу замість закупівлі. */
+  function stock(){
+    try{ return ((host().stock && host().stock()) || []).filter(function(x){ return x && x.gid; }); }
+    catch(e){ return []; }
+  }
+  function stockKey(gid, color, size){
+    return String(gid || '') + '|' + String(color || '').toLowerCase() + '|' + String(size || '');
+  }
+  function stockHave(gid, color, size){
+    var k = stockKey(gid, color, size);
+    return stock().filter(function(x){ return stockKey(x.gid, x.color, x.size) === k; })
+      .reduce(function(a, x){ return a + Math.max(0, +x.qty || 0); }, 0);
+  }
+  async function stockSave(list, msg){
+    if(!host().stockSave) return say('Склад недоступний');
+    try{ await host().stockSave(list.filter(function(x){ return (+x.qty || 0) > 0; })); }
+    catch(e){ console.error(e); return say('Склад не зберігся'); }
+    if(msg) say(msg);
+    render(document.getElementById('dzRoot'));
+  }
+  var STOCK_NEW = { gid:'', color:'', size:'', qty:'' };
+  function stockHtml(){
+    var cat = [];
+    try{ cat = (host().catalog && host().catalog()) || []; }catch(e){}
+    var g = cat.filter(function(x){ return x.id === STOCK_NEW.gid; })[0] || null;
+    var l = stock();
+    var gs = buyGroups(l.map(function(x, i){
+      return { gid: x.gid, name: x.name, color: x.color, colorHex: x.colorHex || '',
+               size: x.size, qty: Math.max(0, +x.qty || 0), i: i }; }));
+    var opt = function(v, t, cur){
+      return '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(t) + '</option>'; };
+    return '<div class="dz-buy-stock">' +
+      '<div class="dz-buy-h"><b>Наявність на складі</b><span>' +
+        (l.length ? l.reduce(function(a, x){ return a + (+x.qty || 0); }, 0) + ' шт' : 'порожньо') + '</span></div>' +
+      (gs.length ? gs.map(function(x){
+        return '<div class="dz-buy-sk"><b>' + esc(x.name) + '</b>' + (x.color ? ' · ' + esc(x.color) : '') + ':' +
+          x.list.map(function(sz){
+            var r = sz.rows[0];
+            return '<label>' + esc(sz.size) + ' <input type="number" min="0" data-stockq="' + r.i + '" value="' + sz.qty + '"></label>';
+          }).join('') + '</div>';
+      }).join('') : '') +
+      '<div class="dz-buy-add">' +
+        '<select data-stockf="gid">' + opt('', 'Модель', STOCK_NEW.gid) +
+          cat.map(function(x){ return opt(x.id, x.name || x.id, STOCK_NEW.gid); }).join('') + '</select>' +
+        '<select data-stockf="color"' + (g ? '' : ' disabled') + '>' + opt('', 'Колір', STOCK_NEW.color) +
+          ((g && g.colors) || []).map(function(c){ return opt(c.name || c.id, c.name || c.id, STOCK_NEW.color); }).join('') + '</select>' +
+        '<select data-stockf="size"' + (g ? '' : ' disabled') + '>' + opt('', 'Розмір', STOCK_NEW.size) +
+          ((g && g.sizes) || []).map(function(z){ return opt(z, z, STOCK_NEW.size); }).join('') + '</select>' +
+        '<input type="number" min="1" placeholder="шт" data-stockf="qty" value="' + esc(STOCK_NEW.qty) + '">' +
+        '<button type="button" class="dz-b" data-do="stock-add">Додати</button>' +
+      '</div>' +
+    '</div>';
+  }
   function buyNeedHtml(){
     var rows = buyRowsNow();
-    var gs = buyGroups(rows);
     var обрано = rows.filter(function(r){ return BUY_SEL[r.key]; });
     var шт = обрано.reduce(function(a, r){ return a + r.qty; }, 0);
     var всього = rows.reduce(function(a, r){ return a + r.qty; }, 0);
+    var підрядників = bySup(обрано).length;
     return '<div class="dz-buy-need">' +
       '<div class="dz-buy-h"><b>Треба замовити</b>' +
         '<span>' + (rows.length ? всього + ' шт · ' + rows.length + ' ' + (rows.length === 1 ? 'позиція' : 'позицій') : 'нічого') + '</span>' +
         '<button type="button" class="dz-b pri" data-do="buy-make"' + (обрано.length ? '' : ' disabled') + '>' +
-          'Оформити замовлення' + (шт ? ' · ' + шт + ' шт' : '') + '</button></div>' +
-      (gs.length ? gs.map(function(g){
-        return '<div class="dz-buy-g">' +
-          '<label class="dz-buy-gh"><input type="checkbox" data-buyg="' + esc(g.key) + '"' + buyChk(g.rows) + '>' +
-            '<b>' + esc(g.name) + '</b>' +
-            (g.colorHex ? '<i class="dz-sw" style="background:' + esc(g.colorHex) + '"></i>' : '') +
-            '<span>' + esc(g.color) + '</span><em>' + g.qty + ' шт</em></label>' +
-          g.list.map(function(sz){
-            var k = g.key + '|' + sz.size;
-            return '<div class="dz-buy-s">' +
-              '<label><input type="checkbox" data-buys="' + esc(k) + '"' + buyChk(sz.rows) + '>' +
-                '<b>' + esc(sz.size) + '</b><span>× ' + sz.qty + '</span></label>' +
-              '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc('n:' + k) + '">' +
-                (BUY_OPEN['n:' + k] ? 'сховати' : 'номери') + '</button>' +
-              (BUY_OPEN['n:' + k]
-                ? '<div class="dz-buy-r">' + sz.rows.map(function(r){
-                    return '<label><input type="checkbox" data-buyr="' + esc(r.key) + '"' +
-                      (BUY_SEL[r.key] ? ' checked' : '') + '>' + esc(r.no) + '<i>' + r.qty + ' шт</i></label>';
-                  }).join('') + '</div>'
-                : '') +
+          'Оформити замовлення' + (шт ? ' · ' + шт + ' шт' + (підрядників > 1 ? ' · ' + підрядників + ' підрядники' : '') : '') +
+        '</button></div>' +
+      (rows.length ? bySup(rows).map(function(sp){
+        var spk = 'p:' + sp.key;
+        return '<div class="dz-buy-sup">' +
+          '<label class="dz-buy-suph"><input type="checkbox" data-buyp="' + esc(sp.key) + '"' + buyChk(sp.rows) + '>' +
+            (sp.key ? '<b>' + esc(sp.name) + '</b>'
+                    : '<b class="is-bad">Підрядник не вказаний</b><i>прив’яжіть у картці товару</i>') +
+            '<em>' + sp.rows.reduce(function(a, r){ return a + r.qty; }, 0) + ' шт</em></label>' +
+          buyGroups(sp.rows).map(function(g){
+            var gk = sp.key + '|' + g.key;
+            return '<div class="dz-buy-g">' +
+              '<label class="dz-buy-gh"><input type="checkbox" data-buyg="' + esc(gk) + '"' + buyChk(g.rows) + '>' +
+                '<b>' + esc(g.name) + '</b>' +
+                (g.colorHex ? '<i class="dz-sw" style="background:' + esc(g.colorHex) + '"></i>' : '') +
+                '<span>' + esc(g.color) + '</span><em>' + g.qty + ' шт</em></label>' +
+              g.list.map(function(sz){
+                var k = gk + '|' + sz.size;
+                var є = stockHave(g.gid, g.color, sz.size);
+                return '<div class="dz-buy-s">' +
+                  '<label><input type="checkbox" data-buys="' + esc(k) + '"' + buyChk(sz.rows) + '>' +
+                    '<b>' + esc(sz.size) + '</b><span>× ' + sz.qty + '</span></label>' +
+                  (є ? '<span class="dz-buy-have">на складі ' + є + '</span>' +
+                       '<button type="button" class="dz-buy-more" data-do="stock-take" data-k="' + esc(k) + '">Взяти зі складу</button>' : '') +
+                  '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc('n:' + k) + '">' +
+                    (BUY_OPEN['n:' + k] ? 'сховати' : 'номери') + '</button>' +
+                  (BUY_OPEN['n:' + k]
+                    ? '<div class="dz-buy-r">' + sz.rows.map(function(r){
+                        return '<label><input type="checkbox" data-buyr="' + esc(r.key) + '"' +
+                          (BUY_SEL[r.key] ? ' checked' : '') + '>' + esc(r.no) + '<i>' + r.qty + ' шт</i></label>';
+                      }).join('') + '</div>'
+                    : '') +
+                '</div>';
+              }).join('') +
             '</div>';
           }).join('') +
         '</div>';
       }).join('')
       : '<div class="dz-miss is-calm">Усе, що готове до закупівлі, вже оформлене. Сюди ' +
-        'потрапляє позиція, коли графіку погоджено й заповнено модель, колір, розмір і кількість.</div>') +
+        'потрапляє позиція, коли ескіз погоджено й одяг підтверджено.</div>') +
     '</div>';
   }
   function buyDocHtml(b){
     var gs = buyGroups((b.rows || []).map(function(r){ return Object.assign({}, r); }));
     var шт = (b.rows || []).reduce(function(a, r){ return a + (+r.qty || 0); }, 0);
     var k = 'b:' + b.id;
-    return '<div class="dz-buy-o is-' + esc(b.status || 'sent') + '">' +
+    return '<div class="dz-buy-o is-' + esc(b.status || 'sent') + (b.stock ? ' is-stock' : '') + '">' +
       '<div class="dz-buy-oh"><b>' + esc(buyTitle(b)) + '</b>' +
+        (b.sup && b.sup.name ? '<span class="dz-buy-sn">' + esc(b.sup.name) + '</span>' : '') +
         '<i>' + esc(dt(b.at)) + (b.by ? ' · ' + esc(nameOf(b.by)) : '') + ' · ' + шт + ' шт</i>' +
-        '<select class="dz-buy-st" data-buyst="' + esc(b.id) + '" aria-label="Стан закупівлі">' +
+        (b.stock ? '<span class="dz-cloth is-got">Отримано</span>'
+          : '<select class="dz-buy-st" data-buyst="' + esc(b.id) + '" aria-label="Стан закупівлі">' +
           D.BUY_ST.map(function(s){
             return '<option value="' + s.key + '"' + (s.key === b.status ? ' selected' : '') + '>' + esc(s.label) + '</option>';
-          }).join('') + '</select></div>' +
+          }).join('') + '</select>') + '</div>' +
       '<div class="dz-buy-ol">' + gs.map(function(g){
         return '<div><b>' + esc(g.name) + '</b>' + (g.color ? ' · ' + esc(g.color) : '') + ': ' +
           g.list.map(function(sz){ return esc(sz.size) + ' × ' + sz.qty; }).join(', ') +
           ' <em>(' + g.qty + ' шт)</em></div>';
       }).join('') + '</div>' +
       '<div class="dz-buy-t">' +
+        (b.stock ? '' :
         '<input type="text" data-buyttn="' + esc(b.id) + '" value="' + esc(b.ttn || '') + '" ' +
           'placeholder="ТТН Нової пошти" maxlength="40" inputmode="numeric">' +
-        (b.ttn ? '<a href="' + esc(buyTtnUrl(b.ttn)) + '" target="_blank" rel="noopener">Де посилка ↗</a>' : '') +
+        (b.ttn ? '<a href="' + esc(buyTtnUrl(b.ttn)) + '" target="_blank" rel="noopener">Де посилка ↗</a>' : '')) +
         '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc(k) + '">' +
           (BUY_OPEN[k] ? 'сховати номери' : 'номери замовлень') + '</button>' +
       '</div>' +
@@ -6284,24 +6441,38 @@
         : '') +
     '</div>';
   }
+  /* Оформлені — групами за датою: «Замовлення за 01.10», у ньому — по
+     одному на підрядника, кожне зі своїм ТТН. */
   function buyScreenHtml(){
-    var l = buys().sort(buyByN);
-    var видно = BUY_ALL ? l : l.slice(0, 10);
+    var l = buys().sort(function(a, b){ return String(b.at || '').localeCompare(String(a.at || '')); });
+    var видно = BUY_ALL ? l : l.slice(0, 12);
+    var днів = [], за = {};
+    видно.forEach(function(b){
+      var d = buyDate(b.at);
+      if(!за[d]){ за[d] = []; днів.push(d); }
+      за[d].push(b);
+    });
     return '<div class="dz-buy">' + buyNeedHtml() +
-      '<div class="dz-buy-hist">' +
-        '<div class="dz-buy-h"><b>Замовлення закупівлі</b><span>' + (l.length || 'ще жодного') + '</span></div>' +
-        видно.map(buyDocHtml).join('') +
-        (l.length > видно.length
-          ? '<button type="button" class="dz-b" data-do="buy-all">Показати всі (' + l.length + ')</button>' : '') +
+      '<div class="dz-buy-side">' +
+        '<div class="dz-buy-hist">' +
+          '<div class="dz-buy-h"><b>Замовлення закупівлі</b><span>' + (l.length || 'ще жодного') + '</span></div>' +
+          днів.map(function(d){
+            return '<div class="dz-buy-day">Замовлення за ' + esc(d) + '</div>' + за[d].map(buyDocHtml).join('');
+          }).join('') +
+          (l.length > видно.length
+            ? '<button type="button" class="dz-b" data-do="buy-all">Показати всі (' + l.length + ')</button>' : '') +
+        '</div>' +
+        stockHtml() +
       '</div>' +
     '</div>';
   }
-  /* Галочка на групі чи розмірі ставить або знімає всі її позиції. */
+  /* Галочка на підряднику, групі чи розмірі ставить або знімає всі її позиції. */
   function buySelect(kind, key, on){
-    var rows = buyRowsNow();
-    rows.forEach(function(r){
-      var g = (r.gid || '') + '|' + (r.color || '').toLowerCase();
+    buyRowsNow().forEach(function(r){
+      var p = (r.sup && r.sup.id) || '';
+      var g = p + '|' + (r.gid || '') + '|' + (r.color || '').toLowerCase();
       var hit = kind === 'r' ? r.key === key
+              : kind === 'p' ? p === key
               : kind === 'g' ? g === key
               : (g + '|' + r.size) === key;
       if(!hit) return;
@@ -6327,11 +6498,16 @@
       try{ if(host().save) await host().save(p.job, p.o); }catch(e){ console.warn('трек одягу', e); }
     }
   }
-  async function buySave(b, msg){
+  async function buySave(b, msg){ return buySaveAll([b], msg); }
+  async function buySaveAll(list, msg){
     if(!host().buySave) return say('Збереження закупівлі недоступне');
-    try{ await host().buySave(b); }
-    catch(e){ console.error(e); return say('Закупівля не збереглась'); }
-    try{ await buyTrackSync(b); }catch(e){ console.warn(e); }
+    for(var i = 0; i < list.length; i++){
+      try{ await host().buySave(list[i]); }
+      catch(e){ console.error(e); return say('Закупівля не збереглась'); }
+    }
+    for(var j = 0; j < list.length; j++){
+      try{ await buyTrackSync(list[j]); }catch(e){ console.warn(e); }
+    }
     if(msg) say(msg);
     render(document.getElementById('dzRoot'));
   }
@@ -6428,12 +6604,29 @@
       U.open(''); render(root);
     };
     /* Закупівля: галочки, стан і ТТН. */
-    root.querySelectorAll('[data-buyg],[data-buys],[data-buyr]').forEach(function(el){
+    root.querySelectorAll('[data-buyp],[data-buyg],[data-buys],[data-buyr]').forEach(function(el){
       if(el.dataset.mixed) el.indeterminate = true;
       el.onchange = function(){
-        var k = el.dataset.buyg != null ? 'g' : el.dataset.buys != null ? 's' : 'r';
-        buySelect(k, el.dataset.buyg || el.dataset.buys || el.dataset.buyr, el.checked);
+        var k = el.dataset.buyp != null ? 'p' : el.dataset.buyg != null ? 'g' : el.dataset.buys != null ? 's' : 'r';
+        var v = k === 'p' ? el.dataset.buyp : k === 'g' ? el.dataset.buyg : k === 's' ? el.dataset.buys : el.dataset.buyr;
+        buySelect(k, v, el.checked);
         render(root);
+      };
+    });
+    root.querySelectorAll('[data-stockf]').forEach(function(el){
+      el.onchange = function(){
+        var f = el.dataset.stockf;
+        STOCK_NEW[f] = String(el.value || '');
+        if(f === 'gid'){ STOCK_NEW.color = ''; STOCK_NEW.size = ''; render(root); }
+      };
+    });
+    root.querySelectorAll('[data-stockq]').forEach(function(el){
+      el.onchange = function(){
+        var l = stock().map(function(x){ return Object.assign({}, x); });
+        var i = +el.dataset.stockq;
+        if(!l[i]) return;
+        l[i].qty = Math.max(0, Math.round(+el.value || 0));
+        stockSave(l, l[i].qty ? 'Склад оновлено' : 'Прибрано зі складу');
       };
     });
     var buyFind = function(id){ return buys().filter(function(x){ return x.id === id; })[0]; };
@@ -6862,18 +7055,61 @@
       return render(root);
     }
     if(what === 'buy-all'){ BUY_ALL = true; return render(root); }
+    /* ОФОРМИТИ: позначене розкладається по підрядниках — кожен везе своєю
+       посилкою, тож і замовлення, і ТТН у кожного своє. Дата одна. */
     if(what === 'buy-make'){
       var обр = buyRowsNow().filter(function(r){ return BUY_SEL[r.key]; });
       if(!обр.length) return say('Позначте галочками, що замовили');
       var шт0 = обр.reduce(function(a, r){ return a + r.qty; }, 0);
-      var bn = D.buyNew(buys(), (host().me && host().me()) || '', обр);
+      var групи = bySup(обр);
       var ок = true;
-      try{ ок = window.confirm('Оформити «' + buyTitle(bn) + '»: ' + шт0 + ' шт, ' +
-                               обр.length + ' ' + (обр.length === 1 ? 'позиція' : 'позицій') + '?'); }catch(e){}
+      try{ ок = window.confirm('Оформити замовлення: ' + шт0 + ' шт' +
+        (групи.length > 1 ? ', ' + групи.length + ' підрядники — у кожного своє' : '') + '?'); }catch(e){}
       if(!ок) return;
+      var хто0 = (host().me && host().me()) || '';
+      var вже = buys().slice(), нові = [];
+      групи.forEach(function(gr){
+        var bn = D.buyNew(вже, хто0, gr.rows);
+        bn.sup = gr.key ? { id: gr.key, name: gr.name } : null;
+        вже.push(bn); нові.push(bn);
+      });
       BUY_SEL = {};
-      BUY_OPEN['b:' + bn.id] = 0;
-      return buySave(bn, 'Оформлено · ' + buyTitle(bn));
+      return buySaveAll(нові, 'Оформлено · ' + нові.map(buyTitle).join(', '));
+    }
+    /* ВЗЯТИ ЗІ СКЛАДУ: закриваємо позиції цього розміру тим, що лежить на
+       складі, — цілими позиціями, поки вистачає. Решта лишається купувати. */
+    if(what === 'stock-take'){
+      var tk = String((data && data.k) || '');
+      var rows0 = buyRowsNow().filter(function(r){
+        return ((r.sup && r.sup.id) || '') + '|' + (r.gid || '') + '|' + (r.color || '').toLowerCase() + '|' + r.size === tk; });
+      if(!rows0.length) return;
+      var є0 = stockHave(rows0[0].gid, rows0[0].color, rows0[0].size), бер = [];
+      rows0.forEach(function(r){ if(r.qty <= є0){ бер.push(r); є0 -= r.qty; } });
+      if(!бер.length) return say('На складі менше, ніж треба одній позиції');
+      var скл = stock().map(function(x){ return Object.assign({}, x); });
+      var треба0 = бер.reduce(function(a, r){ return a + r.qty; }, 0);
+      var кл = stockKey(rows0[0].gid, rows0[0].color, rows0[0].size);
+      скл.forEach(function(x){
+        if(!треба0 || stockKey(x.gid, x.color, x.size) !== кл) return;
+        var з = Math.min(треба0, +x.qty || 0); x.qty = (+x.qty || 0) - з; треба0 -= з; });
+      var bs = D.buyNew(buys(), (host().me && host().me()) || '', бер);
+      bs.stock = true; bs.n = 0; bs.sup = { id:'', name:'Склад' };
+      D.buySetStatus(bs, 'got', (host().me && host().me()) || '');
+      await stockSave(скл, '');
+      return buySaveAll([bs], 'Зі складу · ' + бер.length + ' ' + (бер.length === 1 ? 'позиція' : 'позицій'));
+    }
+    if(what === 'stock-add'){
+      var sn = STOCK_NEW, q = Math.round(+sn.qty || 0);
+      if(!sn.gid || !sn.color || !sn.size || !(q > 0)) return say('Оберіть модель, колір, розмір і кількість');
+      var cat0 = []; try{ cat0 = (host().catalog && host().catalog()) || []; }catch(e){}
+      var gg = cat0.filter(function(x){ return x.id === sn.gid; })[0] || {};
+      var cc = (gg.colors || []).filter(function(x){ return String(x.name || x.id) === sn.color; })[0] || {};
+      var скл2 = stock().map(function(x){ return Object.assign({}, x); });
+      var той = скл2.filter(function(x){ return stockKey(x.gid, x.color, x.size) === stockKey(sn.gid, sn.color, sn.size); })[0];
+      if(той) той.qty = (+той.qty || 0) + q;
+      else скл2.push({ gid: sn.gid, name: gg.name || '', color: sn.color, colorHex: cc.hex || '', size: sn.size, qty: q });
+      STOCK_NEW = { gid: sn.gid, color: sn.color, size:'', qty:'' };
+      return stockSave(скл2, 'На складі +' + q + ' шт');
     }
     var c = ctx();
     if(!c) return;
@@ -7002,6 +7238,7 @@
       var su = String((data && data.u) || '');
       if(!su) return;
       U.SIDE[su] = (data && data.side) === 'stitch' ? 'stitch' : 'graphic';
+      U.SIDE_AT[su] = Date.now();
       return render(root);
     }
     if(what === 'u-add'){
@@ -7210,7 +7447,7 @@
         if(!dd.who) return say('Спершу прикріпіть дизайнера');
         if(dk === 'graphic' && !D.unitFilled(job, du)) return say('Додайте картинку або коментар — без них ТЗ порожнє');
         if(dk === 'stitch' && !D.graphicOk(du))
-          return say('Спершу затвердіть графіку цього виробу');
+          return say('Спершу погодьте графічний ескіз цього виробу');
         D.dzSend(dd, m);
         return save(job, o, 'ТЗ відправлено · ' + U.whoName(dd.who));
       }
@@ -7330,9 +7567,13 @@
             (res.files || []).map(function(f){ return Object.assign({}, f, { role:'machine' }); })
               .concat((res.shots || []).map(function(f){ return Object.assign({}, f, { role:'shot' }); })),
             res.note || '', null, 'stitch');
-          dd.status = 'review';
+          /* ПЕРЕВІРКИ В B2C ПОКИ НЕМАЄ. Андрій: «як тільки вишивальник
+             зробив роботу, одразу ці файли йдуть на виробництво». Здача і є
+             готовність: статус міняється в менеджера, у вишивальника й у
+             цеху одночасно. */
+          D.dzOk(dd, m, 'auto', dd.vers.length);
           D.dzSeen(dd, m, 'stitch');
-          await save(job, o, 'Вишивку здано на перевірку');
+          await save(job, o, 'Вишивку здано — файли пішли у виробництво');
         });
       }
       if(what === 'dz-work'){
@@ -7818,6 +8059,9 @@
            рівно ту версію, про яку домовились. Тому в історію лягає і хто
            натиснув, і яку версію погодили. */
         D.dzOk(dd, m, (data && data.how) || 'client', data && data.v);
+        /* Погодив — отже бачив: усе з цього боку прочитане, і картка не
+           тягне назад на графічний заради вже відпрацьованої версії. */
+        D.dzSeen(dd, m, 'acct');
         /* ПОГОДЖЕННЯ СИЛЬНІШЕ ЗА ПОПЕРЕДНІЙ ПОГЛЯД.
 
            Половину дизайну можна відкрити руками, і цей вибір тримається

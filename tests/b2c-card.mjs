@@ -291,8 +291,10 @@ const зелень = await p.evaluate(async () => {
   U.open('2000101');
   U.render(document.getElementById('dzRoot'));
   await new Promise(r => setTimeout(r, 300));
-  const col = document.querySelector('.dz-u-col');
+  /* Графіка — відкрита колонкою або згорнута в смужку: колір той самий. */
+  const col = document.querySelector('.dz-u-rail[data-side="graphic"]') || document.querySelector('.dz-u-col');
   return { колонка: col.className, номер: (document.querySelector('.dz-u-n') || {}).className,
+           відкрито: (document.querySelector('.dz-u-col .dz-u-lt') || {}).textContent || '',
            слово: ((col.querySelector('.dz-u-l i') || {}).textContent || '').trim() };
 });
 console.log('  ' + JSON.stringify(зелень));

@@ -216,17 +216,23 @@ const r2 = await здати(0, 'logo.DST');
 ok(!r2.гол && r2.можна, '«Надіслати» живе лише коли є обидва: DST/EMB і скрін', 'кнопка: ' + JSON.stringify(r2));
 await p.evaluate(() => document.querySelector('.dz-su [data-su="go"]').click());
 await p.waitForTimeout(600);
+const післяПершої = await стан();
+ok(післяПершої === 'stitch', 'здали одну позицію з двох — ще «У вишивального»', 'стан: ' + післяПершої);
 const r3 = await здати(1, 'logo2.emb');
 await p.evaluate(() => document.querySelector('.dz-su [data-su="go"]').click());
 await p.waitForTimeout(600);
 const здано = await p.evaluate(() => __j.units.map(u => { const d = window.LQDesign.dzList(u, 'stitch')[0];
-  const v = d.vers[d.vers.length - 1] || {}; return { стан: d.status, файли: (v.files || []).map(f => f.role + ':' + f.name) }; }));
+  const v = d.vers[d.vers.length - 1] || {}; return { стан: d.status, як: (d.ok || {}).how,
+    файли: (v.files || []).map(f => f.role + ':' + f.name) }; }));
 console.log('  ' + JSON.stringify(здано));
-ok(здано.every(x => x.стан === 'review' && x.файли.join().indexOf('machine:') >= 0 && x.файли.join().indexOf('shot:') >= 0),
-  'обидві позиції здані: файл для машини й скрін Wilcom у версії', 'здано: ' + JSON.stringify(здано));
+/* Андрій: «як тільки вишивальник зробив роботу, одразу ці файли йдуть на
+   виробництво. Перевірки поки немає в B2C». */
+ok(здано.every(x => x.стан === 'approved' && x.як === 'auto' && x.файли.join().indexOf('machine:') >= 0 && x.файли.join().indexOf('shot:') >= 0),
+  'здали — без перевірки менеджера одразу готово: файл для машини й скрін у версії', 'здано: ' + JSON.stringify(здано));
+ok(await стан() === 'prod', 'здано всі вишивальні — замовлення у «Виробництві» в менеджера', 'стан: ' + await стан());
 
 console.log('');
-console.log('═══ 5. МЕНЕДЖЕР: ПРАВКА СЛОВОМ, ПОГОДЖЕНО → ВИРОБНИЦТВО ═══');
+console.log('═══ 5. МЕНЕДЖЕР БАЧИТЬ ФАЙЛИ, ПОГОДЖУВАТИ НЕ ТРЕБА ═══');
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000101');
   U.SIDE[__j.units[0].id] = 'stitch'; U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(400);
@@ -236,31 +242,14 @@ const зона = await p.evaluate(() => {
            плитки: chk ? [...chk.querySelectorAll('.dz-tile-l')].map(x => x.textContent) : [] };
 });
 console.log('  ' + JSON.stringify(зона));
-ok(зона.кнопки.some(t => /Погоджено/.test(t)) && !зона.кнопки.some(t => /^Надіслати$/.test(t)),
-  'у зоні вишивки — лише «Погоджено», клієнту вишивку не шлемо', 'кнопки: ' + JSON.stringify(зона.кнопки));
+ok(!зона.кнопки.some(t => /Погоджено/.test(t)) && !зона.кнопки.some(t => /^Надіслати$/.test(t)),
+  'у зоні вишивки немає ні «Погоджено», ні «Надіслати» — уже пішло в цех', 'кнопки: ' + JSON.stringify(зона.кнопки));
 ok(зона.плитки.indexOf('для машини') >= 0 && зона.плитки.indexOf('скрін Wilcom') >= 0,
   'у версії видно файл для машини й скрін Wilcom', 'плитки: ' + JSON.stringify(зона.плитки));
-await p.evaluate(async () => {
-  const D = window.LQDesign;
-  D.dzSay(D.dzList(__j.units[0], 'stitch')[0], 'test@loomiq', 'Щільніше стібок', null, 'acct');
-});
-ok(await p.evaluate(() => window.LQDesign.dzList(__j.units[0], 'stitch')[0].status) === 'revision',
-  'повідомлення менеджера вишивальному — правка', 'стан вишивки після слова');
-ok(await стан() === 'stitch', 'правка вишивки — це робота вишивки, не «правки клієнта»', 'стан: ' + await стан());
-await p.evaluate(async () => {
-  const U = window.LQDesign.ui;
-  await U.act('dz-ok', document.getElementById('dzRoot'), { dz: __j.units[0].id + '|stitch|0', v: 1, how:'acct' });
-});
+await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(300);
-ok(await стан() === 'stitch', 'погодили одну позицію з двох — ще «У вишивального»', 'стан: ' + await стан());
-await p.evaluate(async () => {
-  const U = window.LQDesign.ui;
-  await U.act('dz-ok', document.getElementById('dzRoot'), { dz: __j.units[1].id + '|stitch|0', v: 1, how:'acct' });
-});
-await p.waitForTimeout(300);
-const як = await p.evaluate(() => window.LQDesign.dzList(__j.units[1], 'stitch')[0].ok.how);
-ok(як === 'acct', 'вишивку погоджує менеджер (записано як рішення менеджера)', 'погодження: ' + як);
-ok(await стан() === 'prod', 'погоджено всі вишивальні дизайни — замовлення у «Виробництві»', 'стан: ' + await стан());
+ok(await p.evaluate(() => !!document.querySelector('.dz-boards [data-open="2000101"]')),
+  'і у виробництві замовлення є', 'у цеху замовлення немає');
 
 console.log('');
 console.log('═══ 6. НАЛАШТУВАННЯ: ОКРЕМИЙ ЛІМІТ ВИШИВАЛЬНИХ ═══');
