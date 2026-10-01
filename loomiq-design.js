@@ -796,7 +796,26 @@
      підтвердженого одягу. Графіку автоматика більше не чіпає. */
   function dzAutoQueue(job, o, by){
     if(!job) return 0;
+    stitchHeal(job, by);
     return dzAutoStitch(job, by);
+  }
+  /* ВИШИВКУ, ЗДАНУ ДО ПРАВИЛА «ЗДАВ = ГОТОВО», ДОВОДИМО ДО КІНЦЯ.
+
+     Андрій (замовлення 43): вишивальний скинув файли, а воно висить «на
+     перевірці» й не йде у виробництво. Його здали ще тоді, коли вишивку
+     погоджував менеджер. Тепер перевірки в B2C немає, тож така здача —
+     готова: позначаємо її так само, як нову. */
+  function stitchHeal(job, by){
+    var n = 0;
+    jobUnits(job).forEach(function(u){
+      dzList(u, 'stitch').forEach(function(d){
+        if(d.ok || d.status !== 'review' || !(d.vers || []).length) return;
+        if(!verParts(d.vers[d.vers.length - 1]).machine.length) return;
+        dzOk(d, by || d.who || '', 'auto', d.vers[d.vers.length - 1].n);
+        n++;
+      });
+    });
+    return n;
   }
   /* «ЗБЕРЕГТИ Й ПЕРЕДАТИ ДИЗАЙНЕРАМ».
 
@@ -1869,7 +1888,7 @@
     BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyOf: buyOf, buyStateOf: buyStateOf,
     buyNeed: buyNeed, buyNew: buyNew, buyNext: buyNext, buySetStatus: buySetStatus,
     buyOrderState: buyOrderState,
-    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
+    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -6022,6 +6041,19 @@
      Тож робоче місце кладе картку відділу в свою праву панель: той самий
      шаблон, ті самі дії й лічильники, лише без дошки навколо. Дії, що
      закінчуються перемальовуванням, малюють саме цю панель. */
+  /* Старі здачі вишивки доводимо до «готово» один раз за сеанс і
+     записуємо — щоб і дошки, і цех побачили їх без чийогось натиску. */
+  var HEALED = {};
+  function healOld(){
+    var m = (host().me && host().me()) || '';
+    U.pairs().forEach(function(p){
+      var id = p.o && p.o.orderId;
+      if(!id || HEALED[id]) return;
+      if(!D.stitchHeal(p.job, m)) return;
+      HEALED[id] = 1;
+      try{ if(host().save) host().save(p.job, p.o); }catch(e){ console.warn('вишивка', e); }
+    });
+  }
   var SOLO = null;
   function renderPanel(root, id, opt){
     if(!root) return;
@@ -6057,6 +6089,7 @@
        не вікно: дошка ліворуч має свою прокрутку й своє життя. */
     var _p = root.querySelector('.dz-panel-b');
     var _top = _p ? _p.scrollTop : 0;
+    healOld();
     var role = (U.host.role && U.host.role()) || '';
     var boss = U.isBoss(role);
     /* Перемикач ролей — тільки у власника. Співробітник заходить одразу у

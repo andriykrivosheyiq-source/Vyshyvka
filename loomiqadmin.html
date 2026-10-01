@@ -5198,7 +5198,6 @@
         </button>
       </div>
       <nav class="nav">
-        <button data-view="today" data-tip="Задачі"><i class="nav-e">📋</i><span>Задачі</span></button>
         <button data-view="board" class="active" data-tip="Замовлення B2B"><i class="nav-e">🧵</i><span>Замовлення B2B</span></button>
         <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2B</span><i class="nav-n" data-nav-n="chats" hidden></i></button>
         <!-- Дизайн-відділ — це ті самі замовлення, лише приватні: тому він
@@ -5220,6 +5219,9 @@
             <button data-view="reviews" data-tip="Відгуки"><i class="nav-e">⭐</i><span>Відгуки</span></button>
             <button data-view="suppliers" data-tip="Підрядники"><i class="nav-e">📦</i><span>Підрядники</span></button>
             <button data-view="team" data-tip="Команда й доступи"><i class="nav-e">👥</i><span>Команда й доступи</span></button>
+            <!-- Задачі поки сховані сюди (Андрій: «потім він буде з ними
+                 працювати»): у щоденному меню вони заважали. -->
+            <button data-view="today" data-tip="Задачі"><i class="nav-e">📋</i><span>Задачі</span></button>
           </div>
         </div>
       </nav>
@@ -6905,19 +6907,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=89b90567f2"></script>
-<script src="loomiq-fingerprint.js?v=89b90567f2"></script>
-<script src="loomiq-pricing.js?v=89b90567f2"></script>
+<script src="loomiq-select.js?v=0dd3bb5a84"></script>
+<script src="loomiq-fingerprint.js?v=0dd3bb5a84"></script>
+<script src="loomiq-pricing.js?v=0dd3bb5a84"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=89b90567f2"></script>
-<script src="loomiq-mock.js?v=89b90567f2"></script>
+<script src="loomiq-design.js?v=0dd3bb5a84"></script>
+<script src="loomiq-mock.js?v=0dd3bb5a84"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=89b90567f2"></script>
+<script src="loomiq-cards.js?v=0dd3bb5a84"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6942,7 +6944,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '89b90567f2';
+var LQ_VER = '0dd3bb5a84';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
