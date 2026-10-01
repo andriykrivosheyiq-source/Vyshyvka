@@ -4928,6 +4928,50 @@
     font-variant-numeric:tabular-nums;color:var(--ink);}
   .an-t tr.on td{background:var(--canvas);font-weight:700;}
   .an-empty{text-align:center !important;color:var(--muted);}
+  /* Команда: рядок на людину, під ним — аналітика, розшифровка й поля. */
+  .tm-t{margin-top:14px;}
+  .tm-r{cursor:pointer;}
+  .tm-r:hover td{background:var(--canvas);}
+  .tm-r td i{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .tm-r.on td{background:var(--canvas);}
+  .tm-act{white-space:nowrap;}
+  .tm-ok{color:#0A6B4A;font-weight:700;}
+  .tm-undo{all:unset;cursor:pointer;margin-left:6px;padding:2px 6px;border-radius:6px;color:var(--muted);}
+  .tm-undo:hover{background:var(--line-soft);color:var(--ink);}
+  .tm-undo:focus-visible{outline:2px solid var(--accent);}
+  .tm-d td{text-align:left !important;background:#FBFCFD;padding:6px 12px 16px;}
+  .tm-d td *{text-transform:none;letter-spacing:normal;}
+  .tm-d .an-h{text-transform:uppercase;letter-spacing:.06em;}
+  .tm-pay{all:unset;cursor:pointer;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:8px;
+    background:var(--ink);color:#fff;}
+  .tm-pay:hover{opacity:.88;}
+  .tm-pay:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .tm-pay[disabled]{opacity:.35;cursor:default;}
+  .tm-dg{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;}
+  @media (max-width:900px){ .tm-dg{grid-template-columns:1fr;} }
+  .tm-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .tm-st{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;}
+  .tm-st span{font-size:11px;color:var(--muted);}
+  .tm-st b{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .tm-none{font-size:12.5px;color:var(--muted);}
+  .tm-break{display:flex;flex-direction:column;gap:4px;font-size:13px;}
+  .tm-l{display:flex;justify-content:space-between;gap:12px;color:var(--ink-soft);}
+  .tm-l b{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tm-l.is-total{border-top:1px solid var(--line);padding-top:6px;margin-top:2px;color:var(--ink);font-weight:700;}
+  .tm-ids{font-size:11.5px;color:var(--muted);margin:-2px 0 4px;line-height:1.5;}
+  .tm-paid{font-size:12px;color:#0A6B4A;font-weight:600;}
+  .tm-ed{display:flex;flex-direction:column;gap:8px;}
+  .tm-ed label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--ink-soft);}
+  .tm-ed input,.tm-ed select,.tm-rates input,.tm-rates select{font:inherit;font-size:13px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-width:0;}
+  .tm-rates input{width:96px;text-align:right;}
+  .tm-hint{font-size:11.5px;color:var(--muted);margin-top:6px;}
+  .tm-rates{margin-top:18px;}
+  .tm-rates summary,.tm-my summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);padding:6px 0;}
+  .tm-rates .an-t{display:block;overflow-x:auto;}
+  .tm-my{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 14px 12px;margin-bottom:14px;}
+  .tm-my summary{font-weight:500;}
+  .tm-my .tm-stats{margin:8px 0 12px;}
   @media (max-width:900px){
     .an-row{grid-template-columns:repeat(2,1fr);}
     .an-tags{grid-template-columns:repeat(2,1fr);}
@@ -5704,6 +5748,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <b>виконує</b> дію — рухає етап, погоджує, замовляє одяг, — а не просто ставить галочку.
           Зроблене лишається внизу до кінця дня, і його можна повернути.</div>
       </div>
+      <div id="td-pay"></div>
       <div class="td-kpis" id="td-kpis"></div>
       <div class="td-filter seg" id="td-filter">
         <button data-f="all" class="active">Усе</button>
@@ -5772,6 +5817,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="fin-top">
         <button class="fin-top-b on" data-fin-tab="acc">Рахунки</button>
         <button class="fin-top-b" data-fin-tab="an">Аналітика</button>
+        <button class="fin-top-b" data-fin-tab="team">Команда</button>
       </div>
 
       <div id="fin-pane-acc">
@@ -5816,6 +5862,12 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           </div>
           <div id="fin-an"></div>
         </div>
+      </div>
+
+      <!-- КОМАНДА: що зробив кожен за місяць і скільки йому нараховано —
+           ставка плюс фіксована сума за кожну зроблену одиницю роботи. -->
+      <div id="fin-pane-team" hidden>
+        <div class="card"><div id="fin-team"></div></div>
       </div>
     </section>
 
@@ -6983,24 +7035,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=bd98177329"></script>
-<script src="loomiq-fingerprint.js?v=bd98177329"></script>
-<script src="loomiq-pricing.js?v=bd98177329"></script>
+<script src="loomiq-select.js?v=62e7052447"></script>
+<script src="loomiq-fingerprint.js?v=62e7052447"></script>
+<script src="loomiq-pricing.js?v=62e7052447"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=bd98177329"></script>
-<script src="loomiq-mock.js?v=bd98177329"></script>
+<script src="loomiq-design.js?v=62e7052447"></script>
+<script src="loomiq-mock.js?v=62e7052447"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=bd98177329"></script>
-<script src="loomiq-threads.js?v=bd98177329"></script>
+<script src="imagetracer.js?v=62e7052447"></script>
+<script src="loomiq-threads.js?v=62e7052447"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=bd98177329"></script>
+<script src="loomiq-cards.js?v=62e7052447"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7025,7 +7077,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'bd98177329';
+var LQ_VER = '62e7052447';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9454,6 +9506,9 @@ function renderFin(){
   const an = document.getElementById('fin-pane-an');
   if(acc) acc.hidden = finAn.tab !== 'acc';
   if(an) an.hidden = finAn.tab !== 'an';
+  const tm = document.getElementById('fin-pane-team');
+  if(tm) tm.hidden = finAn.tab !== 'team';
+  if(finAn.tab === 'team'){ try{ renderTeam(); }catch(e){ console.warn('команда', e); } }
   document.querySelectorAll('[data-fin-tab]').forEach(b =>
     b.classList.toggle('on', b.dataset.finTab === finAn.tab));
   if(finAn.tab === 'an'){ try{ renderFinAn(); }catch(e){ console.warn('аналітика', e); } }
@@ -9746,6 +9801,473 @@ async function finAddManual(){
     if(!b) return;
     finAn.dir = b.dataset.anDir || '';
     renderFinAn();
+  });
+})();
+/* ══════════ КОМАНДА: ЩО ЗРОБИВ КОЖЕН І СКІЛЬКИ ЙОМУ ПЛАТИМО ══════════
+
+   Андрій: «аналітика для кожної ролі… і розрахунок зп зі ставкою».
+   Зарплата = ставка + фіксована сума за кожну зроблену одиницю роботи:
+     акаунт-менеджер / менеджер — за замовлення;
+     графічний дизайнер         — за погоджений дизайн;
+     вишивальний дизайнер       — за здану оцифровку;
+     виробництво                — за виріб;
+     закупівля, контроль        — лише ставка (цифри видно, бонусу немає).
+
+   Бонус іде в той місяць, коли людина ЗРОБИЛА роботу: замовлення — коли
+   створене, дизайн — коли здано версію, яку погодили, оцифровка — коли
+   здана, виріб — коли цех поставив «Готово». Ставка — за місяць або за
+   відпрацьований день (дні рахуються з графіка, їх можна поправити).
+
+   Цифри беруться з того, що система й так записує по ходу роботи, — ніхто
+   нічого окремо не відмічає. Кожен бачить свій розрахунок у «Задачах» і
+   може звірити його рядок за рядком: які саме замовлення й дизайни туди
+   увійшли. */
+const PAY_KINDS = [
+  { k:'order',  label:'Замовлення',        one:'за замовлення' },
+  { k:'design', label:'Погоджені дизайни', one:'за дизайн' },
+  { k:'stitch', label:'Оцифровки',         one:'за оцифровку' },
+  { k:'piece',  label:'Вироби',            one:'за виріб' }
+];
+function payCfg(){
+  const p = (contentData && contentData.payroll && typeof contentData.payroll === 'object') ? contentData.payroll : {};
+  return { roles: p.roles || {}, people: p.people || {}, months: p.months || {} };
+}
+/* Firestore зливає вкладені поля, тож «прибрати» тут означає записати
+   null, а не стерти ключ: стертий ключ повернувся б із бази. */
+async function paySave(patch){
+  const c = JSON.parse(JSON.stringify(payCfg()));
+  patch(c);
+  contentData.payroll = c;
+  try{ await PHOTOS_DOC.set({ payroll: c }, { merge:true }); return true; }
+  catch(e){ console.error('зарплата', e); toast('Не збереглось'); return false; }
+}
+function payYm(t){
+  if(!t) return '';
+  const d = new Date(t);
+  return isNaN(d) ? '' : (d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+}
+const payNum = v => (v !== undefined && v !== null && v !== '');
+/* Умови людини: її власні, якщо поставили, інакше — ролі. */
+function payTerms(email, role){
+  const c = payCfg(), r = c.roles[role] || {}, pp = c.people[email] || {};
+  const pick = k => payNum(pp[k]) ? pp[k] : r[k];
+  const out = { base: +pick('base') || 0, mode: pick('mode') === 'day' ? 'day' : 'month',
+                own: Object.keys(pp).some(k => payNum(pp[k])) };
+  PAY_KINDS.forEach(x => { out[x.k] = +pick(x.k) || 0; });
+  return out;
+}
+/* Робочих днів у місяці: будні мінус вихідні з графіка людини. */
+function payWorkDays(email, m){
+  const y = +m.slice(0, 4), mm = +m.slice(5, 7);
+  const n = new Date(y, mm, 0).getDate();
+  let d = 0;
+  for(let i = 1; i <= n; i++){
+    const wd = new Date(y, mm - 1, i).getDay();
+    if(wd === 0 || wd === 6) continue;
+    if(shiftOff(email, m + '-' + String(i).padStart(2, '0'))) continue;
+    d++;
+  }
+  return d;
+}
+/* Хто веде замовлення. У B2B — `mgrEmail`. У B2C його доти не писали
+   зовсім, тож для старих беремо того, хто першим передав дизайн у роботу. */
+function orderMgr(o){
+  if(o && o.mgrEmail) return String(o.mgrEmail).trim().toLowerCase();
+  if(!o || orderDir(o) !== 'b2c') return '';
+  const j = (designJobs || {})[o.orderId];
+  if(!j) return '';
+  let best = null;
+  (j.units || []).forEach(u => ['graphic', 'stitch'].forEach(k => (u[k] || []).forEach(d => {
+    [[d.attachedBy, d.attachedAt], [d.sentBy, d.sentAt]].forEach(p => {
+      if(p[0] && p[1] && (!best || p[1] < best.at)) best = { by: p[0], at: p[1] };
+    });
+  })));
+  if(!best && Array.isArray(j.ds)){ const e = j.ds.filter(x => x && x.by)[0]; if(e) best = { by: e.by }; }
+  return best ? String(best.by).trim().toLowerCase() : '';
+}
+/* «Зроблене замовлення»: у B2C — будь-яке, крім відмови (їх заводять, коли
+   клієнт уже замовляє); у B2B — те, що дійшло хоча б до «Чекаємо оплату»,
+   а не звернення чи прорахунок. */
+function orderMade(o){
+  if(!o || o.status === 'cancel') return false;
+  if(orderDir(o) === 'b2c') return true;
+  const st = (STATUSES || []).filter(s => s.key === o.status)[0];
+  if(st && st.off) return false;
+  const keys = (STATUSES || []).map(s => s.key);
+  const i = keys.indexOf(o.status), n = keys.indexOf('new');
+  return n >= 0 ? i >= n : ['new', 'paid', 'production', 'done'].indexOf(o.status) >= 0;
+}
+function orderPieces(o){
+  if(orderDir(o) === 'b2c'){
+    const j = (designJobs || {})[o.orderId];
+    return ((j && j.units) || []).reduce((a, u) => a + (+u.qty || 0), 0);
+  }
+  return (o.items || []).filter(i => itemKind(i) === 'main').reduce((a, i) => a + (+i.qty || 0), 0);
+}
+function payWorkEmpty(){
+  return { order: [], design: [], stitch: [], piece: [], leads: 0, vers: 0, taken: 0, buys: 0, qc: 0 };
+}
+/* Уся робота за місяць, розкладена по людях. */
+function teamWork(m){
+  const W = {};
+  const of = e => { e = String(e || '').trim().toLowerCase() || '—'; return W[e] || (W[e] = payWorkEmpty()); };
+  (orders || []).forEach(o => {
+    if(!o || !o.orderId) return;
+    const dir = orderDir(o);
+    if(finOrderMonth(o) === m){
+      const mg = orderMgr(o);
+      const w = of(mg);
+      w.leads++;
+      if(orderMade(o)) w.order.push({ id: o.orderId, dir, sum: +o.totalPrice || 0,
+        margin: (+o.totalCost > 0) ? (+o.totalPrice || 0) - (+o.totalCost) : null });
+    }
+    if(dir === 'b2b'){
+      /* Макет B2B — версія, яку погодив клієнт; зараховуємо тому, хто її зробив. */
+      (o.art || []).forEach(v => {
+        if(v && v.by && v.approvals && v.approvals.client && payYm(v.at) === m)
+          of(v.by).design.push({ id: o.orderId, dir, label: 'v' + v.n });
+      });
+    }
+    /* Треки: рахуємо лише ПЕРШЕ «Готово» — повернули й поставили вдруге, то
+       це та сама робота, а не дві. */
+    const h = (o.trackHist || []).filter(Boolean);
+    const перше = (t, s) => h.filter(x => x.t === t && s.indexOf(x.s) >= 0)[0];
+    const pr = перше('prod', ['done']);
+    if(pr && payYm(pr.at) === m) of(pr.by).piece.push({ id: o.orderId, dir, qty: orderPieces(o) });
+    if(dir === 'b2b'){
+      const em = перше('embro', ['ok']);
+      if(em && payYm(em.at) === m) of(em.by).stitch.push({ id: o.orderId, dir, label: '' });
+    }
+    h.forEach(x => { if(x.t === 'qc' && (x.s === 'ok' || x.s === 'bad') && x.by && payYm(x.at) === m) of(x.by).qc++; });
+  });
+  Object.keys(designJobs || {}).forEach(id => {
+    const j = designJobs[id];
+    if(!j || j.kind || !Array.isArray(j.units)) return;
+    j.units.forEach(u => {
+      (u.graphic || []).forEach(d => {
+        if(!d) return;
+        const vers = (d.vers || []).filter(Boolean);
+        vers.forEach(v => { if(v.by && !v.byAcct && payYm(v.at) === m) of(v.by).vers++; });
+        if(d.who && payYm(d.takenAt) === m) of(d.who).taken++;
+        if(!d.ok || !d.who) return;
+        const v = vers.filter(x => +x.n === +d.ok.ver)[0] || vers[vers.length - 1];
+        if(payYm((v && v.at) || d.ok.at) !== m) return;
+        const свої = vers.filter(x => !x.byAcct && (!d.ok.ver || +x.n <= +d.ok.ver));
+        const старт = d.takenAt || d.sentAt, перша = vers.filter(x => !x.byAcct)[0];
+        of(d.who).design.push({ id, dir: 'b2c', label: d.name || '',
+          revisions: Math.max(0, свої.length - 1),
+          firstH: (старт && перша) ? Math.max(0, (new Date(перша.at) - new Date(старт)) / 36e5) : null });
+      });
+      (u.stitch || []).forEach(d => {
+        if(!d || !d.ok) return;
+        const vers = (d.vers || []).filter(Boolean);
+        const v = vers.filter(x => +x.n === +d.ok.ver)[0] || vers[vers.length - 1];
+        const who = d.who || (v && v.by), at = (v && v.at) || d.ok.at;
+        if(!who || payYm(at) !== m) return;
+        const старт = d.takenAt || d.sentAt;
+        of(who).stitch.push({ id, dir: 'b2c', label: d.name || '',
+          hours: старт ? Math.max(0, (new Date(at) - new Date(старт)) / 36e5) : null });
+      });
+    });
+  });
+  Object.keys(designBuys || {}).forEach(k => {
+    const b = designBuys[k];
+    if(b && b.by && !b.stock && payYm(b.at) === m) of(b.by).buys++;
+  });
+  return W;
+}
+function payRow(p, m, W){
+  const email = String(p.email || '').trim().toLowerCase();
+  const t = payTerms(email, p.role);
+  const w = W[email] || payWorkEmpty();
+  const mm = (payCfg().months[m] || {})[email] || {};
+  const days = payNum(mm.days) ? Math.max(0, +mm.days || 0) : payWorkDays(email, m);
+  const base = t.mode === 'day' ? Math.round(t.base * days) : Math.round(t.base);
+  const lines = PAY_KINDS.map(x => {
+    const n = x.k === 'piece' ? w.piece.reduce((a, q) => a + (+q.qty || 0), 0) : w[x.k].length;
+    return { k: x.k, label: x.label, one: x.one, n, rate: t[x.k], sum: Math.round(n * t[x.k]) };
+  });
+  const bonus = lines.reduce((a, l) => a + l.sum, 0);
+  const adj = Math.round(+mm.adj || 0);
+  return { email, role: p.role, name: p.name || personName(email) || email, t, w, days,
+           daysOwn: payNum(mm.days), base, lines, bonus, adj, adjNote: mm.adjNote || '',
+           total: base + bonus + adj, paid: (mm.paid && mm.paid.sum != null) ? mm.paid : null };
+}
+/* Хто в розрахунку: уся команда плюс ті, хто щось зробив, але вже не в
+   ній (звільнився посеред місяця — гроші йому однаково винні). */
+function payPeople(m, W){
+  const seen = {}, out = [];
+  /* Збережений список, а не чернетка вкладки «Команда й доступи»: незбережена
+     правка там не має міняти чиюсь зарплату. */
+  (((contentData && contentData.team) || [])).forEach(p => {
+    const e = String((p && p.email) || '').trim().toLowerCase();
+    if(!e || seen[e]) return;
+    seen[e] = 1;
+    out.push({ email: e, name: personName(e) || p.name || e, role: roleDef(p.role) ? p.role : 'manager' });
+  });
+  Object.keys(W).forEach(e => {
+    if(e === '—' || seen[e]) return;
+    const w = W[e];
+    if(!(w.order.length || w.design.length || w.stitch.length || w.piece.length)) return;
+    seen[e] = 1;
+    out.push({ email: e, name: personName(e) || e, role: '', gone: true });
+  });
+  return out;
+}
+const payMoney0 = n => fmt(n) + ' ₴';
+/* Цифри по людині — ті, що стосуються її роботи; нулів не показуємо. */
+function payStatsHtml(r){
+  const w = r.w, c = [];
+  const avg = (l, f) => { const v = l.map(f).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  if(w.leads || w.order.length){
+    const сума = w.order.reduce((a, o) => a + o.sum, 0);
+    const мар = w.order.filter(o => o.margin != null);
+    c.push(['Замовлень', w.order.length + (w.leads > w.order.length ? ' з ' + w.leads + ' звернень' : '')]);
+    if(w.leads) c.push(['Конверсія', Math.round(w.order.length / w.leads * 100) + '%']);
+    if(сума) c.push(['Сума замовлень', payMoney0(сума)]);
+    if(w.order.length && сума) c.push(['Середній чек', payMoney0(сума / w.order.length)]);
+    if(мар.length) c.push(['Маржа', payMoney0(мар.reduce((a, o) => a + o.margin, 0))]);
+  }
+  if(w.taken) c.push(['Взято в роботу', w.taken]);
+  if(w.vers) c.push(['Здано версій', w.vers]);
+  if(w.design.length){
+    c.push(['Погоджено дизайнів', w.design.length]);
+    const пр = avg(w.design, d => d.revisions);
+    if(пр != null) c.push(['Правок на дизайн', (Math.round(пр * 10) / 10).toString().replace('.', ',')]);
+    const fh = avg(w.design, d => d.firstH);
+    if(fh != null) c.push(['До першої версії', Math.round(fh) + ' год']);
+  }
+  if(w.stitch.length){
+    c.push(['Здано оцифровок', w.stitch.length]);
+    const sh = avg(w.stitch, d => d.hours);
+    if(sh != null) c.push(['Від передачі до здачі', Math.round(sh) + ' год']);
+  }
+  if(w.piece.length){
+    c.push(['Виробів', w.piece.reduce((a, q) => a + (+q.qty || 0), 0) + ' шт']);
+    c.push(['Замовлень у цеху', w.piece.length]);
+  }
+  if(w.buys) c.push(['Закупівель', w.buys]);
+  if(w.qc) c.push(['Перевірок якості', w.qc]);
+  if(!c.length) return '<div class="tm-none">За цей місяць робіт не записано.</div>';
+  return '<div class="tm-stats">' + c.map(x => '<div class="tm-st"><span>' + escapeHtml(x[0]) + '</span><b>' +
+    escapeHtml(String(x[1])) + '</b></div>').join('') + '</div>';
+}
+/* Розшифровка «з чого склалось»: щоб людина могла звірити кожне число. */
+function payBreakHtml(r, m){
+  const рядки = [];
+  рядки.push('<div class="tm-l"><span>Ставка' + (r.t.mode === 'day'
+    ? ' · ' + payMoney0(r.t.base) + ' × ' + r.days + ' ' + (r.days === 1 ? 'день' : 'днів') + (r.daysOwn ? '' : ' (за графіком)')
+    : ' за місяць') + '</span><b>' + payMoney0(r.base) + '</b></div>');
+  r.lines.forEach(l => {
+    if(!l.n && !l.rate) return;
+    const список = l.k === 'piece'
+      ? r.w.piece.map(q => '#' + q.id + (q.qty ? ' · ' + q.qty + ' шт' : ''))
+      : r.w[l.k].map(x => '#' + x.id + (x.label ? ' ' + x.label : ''));
+    рядки.push('<div class="tm-l"><span>' + escapeHtml(l.label) + ': ' + l.n + (l.k === 'piece' ? ' шт' : '') +
+      ' × ' + payMoney0(l.rate) + '</span><b>' + payMoney0(l.sum) + '</b></div>' +
+      (список.length ? '<div class="tm-ids">' + список.map(escapeHtml).join(', ') + '</div>' : ''));
+  });
+  if(r.adj) рядки.push('<div class="tm-l"><span>Коригування' + (r.adjNote ? ' · ' + escapeHtml(r.adjNote) : '') +
+    '</span><b>' + (r.adj > 0 ? '+' : '−') + payMoney0(Math.abs(r.adj)) + '</b></div>');
+  рядки.push('<div class="tm-l is-total"><span>До виплати за ' + escapeHtml(finMonthLabel(m).toLowerCase()) +
+    '</span><b>' + payMoney0(r.total) + '</b></div>');
+  if(r.paid) рядки.push('<div class="tm-paid">Виплачено ' + payMoney0(r.paid.sum) + ' · ' +
+    escapeHtml(new Date(r.paid.at).toLocaleDateString('uk-UA')) + '</div>');
+  return '<div class="tm-break">' + рядки.join('') + '</div>';
+}
+let payView = { m: '', open: '' };
+function renderTeam(){
+  const box = document.getElementById('fin-team');
+  if(!box) return;
+  try{ watchDesign(); }catch(e){}
+  const місяці = finMonths(12);
+  if(!payView.m) payView.m = місяці[0];
+  const m = payView.m;
+  const W = teamWork(m);
+  const rows = payPeople(m, W).map(p => payRow(p, m, W));
+  const нар = rows.reduce((a, r) => a + r.total, 0);
+  const вип = rows.reduce((a, r) => a + (r.paid ? +r.paid.sum || 0 : 0), 0);
+  const нічия = W['—'];
+  const ролі = roleDefs().filter(r => r && r.key);
+  const c = payCfg();
+  const inp = (attrs, v, ph) => '<input type="number" step="1" ' + attrs + ' value="' +
+    (payNum(v) ? escapeHtml(String(v)) : '') + '" placeholder="' + escapeHtml(ph == null ? '0' : String(ph)) + '">';
+  box.innerHTML =
+    '<div class="fin-an-bar"><select id="tm-month">' + місяці.map(x =>
+      '<option value="' + x + '"' + (x === m ? ' selected' : '') + '>' + escapeHtml(finMonthLabel(x)) + '</option>').join('') +
+    '</select></div>' +
+    '<div class="an-row">' +
+      '<div class="an-c"><span>Людей</span><b>' + rows.length + '</b></div>' +
+      '<div class="an-c"><span>Нараховано</span><b>' + payMoney0(нар) + '</b></div>' +
+      '<div class="an-c"><span>Виплачено</span><b>' + payMoney0(вип) + '</b></div>' +
+      '<div class="an-c is-net"><span>Лишилось виплатити</span><b>' + payMoney0(Math.max(0, нар - вип)) + '</b></div>' +
+    '</div>' +
+    '<table class="an-t tm-t"><thead><tr><th>Людина</th><th>Ставка</th><th>Бонус</th><th>Коригування</th>' +
+      '<th>До виплати</th><th></th></tr></thead><tbody>' +
+    rows.map(r => {
+      const on = payView.open === r.email;
+      return '<tr class="tm-r' + (on ? ' on' : '') + '" data-tm-open="' + escapeHtml(r.email) + '">' +
+        '<td><b>' + escapeHtml(r.name) + '</b><i>' + escapeHtml(r.role ? roleName(r.role) : 'не в команді') +
+          (r.t.own ? ' · особисті умови' : '') + '</i></td>' +
+        '<td>' + payMoney0(r.base) + '</td><td>' + payMoney0(r.bonus) + '</td>' +
+        '<td>' + (r.adj ? (r.adj > 0 ? '+' : '−') + payMoney0(Math.abs(r.adj)) : '—') + '</td>' +
+        '<td><b>' + payMoney0(r.total) + '</b></td>' +
+        '<td class="tm-act">' + (r.paid
+          ? '<span class="tm-ok">✓ ' + payMoney0(r.paid.sum) + '</span><button type="button" class="tm-undo" data-tm-unpaid="' +
+            escapeHtml(r.email) + '" title="Скасувати виплату">↺</button>'
+          : '<button type="button" class="tm-pay" data-tm-paid="' + escapeHtml(r.email) + '"' + (r.total > 0 ? '' : ' disabled') +
+            '>Виплачено</button>') + '</td></tr>' +
+        (on ? '<tr class="tm-d"><td colspan="6">' +
+          '<div class="tm-dg"><div>' + '<div class="an-h">Аналітика</div>' + payStatsHtml(r) +
+            '<div class="an-h">Розрахунок</div>' + payBreakHtml(r, m) + '</div>' +
+          '<div class="tm-ed"><div class="an-h">Цей місяць</div>' +
+            (r.t.mode === 'day' ? '<label>Відпрацьовано днів' + inp('data-tm-days="' + escapeHtml(r.email) + '" min="0"', r.daysOwn ? r.days : '', payWorkDays(r.email, m)) + '</label>' : '') +
+            '<label>Коригування, ₴ (премія або утримання з мінусом)' + inp('data-tm-adj="' + escapeHtml(r.email) + '"', r.adj || '', 0) + '</label>' +
+            '<label>За що<input type="text" data-tm-adjnote="' + escapeHtml(r.email) + '" value="' + escapeHtml(r.adjNote) + '" placeholder="наприклад, премія за терміновий тираж"></label>' +
+            '<div class="an-h">Особисті умови</div><div class="tm-hint">Порожньо — як у ролі.</div>' +
+            '<label>Ставка' + inp('data-tm-p="base" data-tm-e="' + escapeHtml(r.email) + '" min="0"', (c.people[r.email] || {}).base, (c.roles[r.role] || {}).base || 0) + '</label>' +
+            '<label>Як рахувати ставку<select data-tm-p="mode" data-tm-e="' + escapeHtml(r.email) + '">' +
+              '<option value="">як у ролі</option><option value="month"' + ((c.people[r.email] || {}).mode === 'month' ? ' selected' : '') + '>за місяць</option>' +
+              '<option value="day"' + ((c.people[r.email] || {}).mode === 'day' ? ' selected' : '') + '>за день</option></select></label>' +
+            PAY_KINDS.map(x => '<label>' + escapeHtml(x.one[0].toUpperCase() + x.one.slice(1)) +
+              inp('data-tm-p="' + x.k + '" data-tm-e="' + escapeHtml(r.email) + '" min="0"', (c.people[r.email] || {})[x.k], (c.roles[r.role] || {})[x.k] || 0) + '</label>').join('') +
+          '</div></div></td></tr>' : '');
+    }).join('') + '</tbody></table>' +
+    (нічия && (нічия.order.length || нічия.piece.length || нічия.stitch.length)
+      ? '<div class="an-note">Без відповідального: ' + [нічия.order.length ? нічия.order.length + ' замовл. (' + нічия.order.map(o => '#' + o.id).slice(0, 8).join(', ') + ')' : '',
+          нічия.piece.length ? нічия.piece.length + ' у цеху' : '', нічия.stitch.length ? нічия.stitch.length + ' оцифровок' : ''].filter(Boolean).join(' · ') +
+        '. Їх нікому не зараховано — призначте менеджера в картці замовлення.</div>' : '') +
+    '<details class="tm-rates"' + (payView.rates ? ' open' : '') + '><summary>Ставки й бонуси за ролями</summary>' +
+      '<table class="an-t"><thead><tr><th>Роль</th><th>Ставка</th><th>Як</th>' +
+        PAY_KINDS.map(x => '<th>' + escapeHtml(x.one[0].toUpperCase() + x.one.slice(1)) + '</th>').join('') + '</tr></thead><tbody>' +
+      ролі.map(rl => {
+        const v = c.roles[rl.key] || {};
+        return '<tr><td>' + escapeHtml(rl.name || rl.key) + '</td>' +
+          '<td>' + inp('data-tm-r="base" data-tm-role="' + escapeHtml(rl.key) + '" min="0"', v.base) + '</td>' +
+          '<td><select data-tm-r="mode" data-tm-role="' + escapeHtml(rl.key) + '"><option value="month">за місяць</option>' +
+            '<option value="day"' + (v.mode === 'day' ? ' selected' : '') + '>за день</option></select></td>' +
+          PAY_KINDS.map(x => '<td>' + inp('data-tm-r="' + x.k + '" data-tm-role="' + escapeHtml(rl.key) + '" min="0"', v[x.k]) + '</td>').join('') +
+        '</tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="tm-hint">Бонус нараховується за кожну одиницю роботи в місяці, коли її зроблено. Порожня клітинка — нуль.</div>' +
+    '</details>';
+}
+async function payMark(email){
+  const m = payView.m, W = teamWork(m);
+  const p = payPeople(m, W).filter(x => x.email === email)[0];
+  if(!p) return;
+  const r = payRow(p, m, W);
+  const s = prompt('Виплачено: ' + r.name + ' за ' + finMonthLabel(m).toLowerCase() + ', грн', String(r.total));
+  if(s === null) return;
+  const n = Math.round(parseFloat(String(s).replace(',', '.').replace(/\s/g, '')) || 0);
+  if(!(n > 0)) return toast('Сума не схожа на число');
+  const accs = finAccounts();
+  const at = new Date().toISOString();
+  let payId = '';
+  try{
+    const ref = await PAY_COL.add({ at, amount: -n, ccy:'UAH', acc: (finView.acc || (accs[0] && accs[0].id) || ''),
+      counter: r.name, desc: 'Зарплата · ' + finMonthLabel(m), src:'salary', by: myEmail() || '',
+      salary: { month: m, email } });
+    payId = (ref && ref.id) || '';
+  }catch(e){ console.error(e); return toast('Витрата у Фінансах не записалась'); }
+  await paySave(c => { c.months[m] = c.months[m] || {};
+    c.months[m][email] = Object.assign({}, c.months[m][email], { paid: { at, by: myEmail() || '', sum: n, payId } }); });
+  await payFixedSync(m);
+  toast('Виплачено ' + payMoney0(n) + ' · записано у Фінанси');
+  renderTeam();
+}
+async function payUnmark(email){
+  const m = payView.m;
+  const mm = (payCfg().months[m] || {})[email] || {};
+  if(!mm.paid) return;
+  if(!confirm('Скасувати виплату ' + payMoney0(mm.paid.sum) + '? Витрата у Фінансах теж прибереться.')) return;
+  if(mm.paid.payId){ try{ await PAY_COL.doc(mm.paid.payId).delete(); }catch(e){ console.warn(e); } }
+  await paySave(c => { c.months[m] = c.months[m] || {};
+    c.months[m][email] = Object.assign({}, c.months[m][email], { paid: null }); });
+  await payFixedSync(m);
+  renderTeam();
+}
+/* «Зарплати» в постійних витратах аналітики — сумою виплаченого. Якщо там
+   уже вписали число руками, не чіпаємо: руками — значить свідомо. */
+async function payFixedSync(m){
+  const all = (payCfg().months[m]) || {};
+  const total = Object.keys(all).reduce((a, e) => a + ((all[e] && all[e].paid) ? (+all[e].paid.sum || 0) : 0), 0);
+  try{
+    const ref = fbDb.collection('loomiq').doc('fixedcosts');
+    const d = await ref.get();
+    const months = (d && d.exists && (d.data() || {}).months) || {};
+    const cur = Object.assign({}, months[m] || {});
+    if(+cur.salary && !cur.salaryAuto) return;
+    if(total > 0){ cur.salary = total; cur.salaryAuto = true; }
+    else { delete cur.salary; delete cur.salaryAuto; }
+    months[m] = cur;
+    await ref.set({ months }, { merge:false });
+  }catch(e){ console.warn('постійні витрати', e); }
+}
+/* «Мій розрахунок» — у «Задачах», у кожного: те саме, що бачить власник,
+   але тільки про себе. */
+let myPayM = '';
+function renderMyPay(){
+  const box = document.getElementById('td-pay');
+  if(!box) return;
+  const me = String(myEmail() || '').trim().toLowerCase();
+  if(!me){ box.innerHTML = ''; return; }
+  try{ watchDesign(); }catch(e){}
+  const місяці = finMonths(6);
+  if(!myPayM) myPayM = місяці[0];
+  const W = teamWork(myPayM);
+  const p = payPeople(myPayM, W).filter(x => x.email === me)[0] ||
+            { email: me, name: personName(me) || me, role: myRole() || 'manager' };
+  const r = payRow(p, myPayM, W);
+  const was = box.querySelector('details');
+  const open = was ? was.open : false;
+  box.innerHTML = '<details class="tm-my"' + (open ? ' open' : '') + '><summary><b>Мій розрахунок</b> · ' +
+      escapeHtml(finMonthLabel(myPayM)) + ' — <b>' + payMoney0(r.total) + '</b>' + (r.paid ? ' · виплачено' : '') + '</summary>' +
+    '<div class="fin-an-bar"><select id="tm-my-month">' + місяці.map(x => '<option value="' + x + '"' +
+      (x === myPayM ? ' selected' : '') + '>' + escapeHtml(finMonthLabel(x)) + '</option>').join('') + '</select></div>' +
+    payStatsHtml(r) + payBreakHtml(r, myPayM) + '</details>';
+}
+(function(){
+  document.addEventListener('change', async e => {
+    const t = e.target;
+    if(!t || !t.closest) return;
+    if(t.id === 'tm-my-month'){ myPayM = t.value; return renderMyPay(); }
+    if(!t.closest('#fin-team')) return;
+    if(t.id === 'tm-month'){ payView.m = t.value; payView.open = ''; return renderTeam(); }
+    const m = payView.m;
+    const val = v => (String(v).trim() === '' ? null : (isNaN(+v) ? null : +v));
+    if(t.dataset.tmR){
+      const role = t.dataset.tmRole, k = t.dataset.tmR;
+      await paySave(c => { c.roles[role] = Object.assign({}, c.roles[role], { [k]: k === 'mode' ? t.value : val(t.value) }); });
+    } else if(t.dataset.tmP){
+      const em = t.dataset.tmE, k = t.dataset.tmP;
+      await paySave(c => { c.people[em] = Object.assign({}, c.people[em], { [k]: k === 'mode' ? (t.value || null) : val(t.value) }); });
+    } else if(t.dataset.tmDays != null){
+      const em = t.dataset.tmDays;
+      await paySave(c => { c.months[m] = c.months[m] || {}; c.months[m][em] = Object.assign({}, c.months[m][em], { days: val(t.value) }); });
+    } else if(t.dataset.tmAdj != null){
+      const em = t.dataset.tmAdj;
+      await paySave(c => { c.months[m] = c.months[m] || {}; c.months[m][em] = Object.assign({}, c.months[m][em], { adj: val(t.value) }); });
+    } else if(t.dataset.tmAdjnote != null){
+      const em = t.dataset.tmAdjnote;
+      await paySave(c => { c.months[m] = c.months[m] || {}; c.months[m][em] = Object.assign({}, c.months[m][em], { adjNote: String(t.value || '').trim() || null }); });
+    } else return;
+    payView.rates = !!(document.querySelector('#fin-team .tm-rates') || {}).open;
+    renderTeam();
+  });
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if(!t || !t.closest || !t.closest('#fin-team')) return;
+    const pd = t.closest('[data-tm-paid]');
+    if(pd) return payMark(pd.dataset.tmPaid);
+    const un = t.closest('[data-tm-unpaid]');
+    if(un) return payUnmark(un.dataset.tmUnpaid);
+    const row = t.closest('[data-tm-open]');
+    if(row){
+      payView.open = payView.open === row.dataset.tmOpen ? '' : row.dataset.tmOpen;
+      payView.rates = !!(document.querySelector('#fin-team .tm-rates') || {}).open;
+      renderTeam();
+    }
   });
 })();
 /* ══════════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════════
@@ -19079,6 +19601,7 @@ function todaySection(r){
   return r.wait ? 'wait' : 'mine';
 }
 function renderToday(){
+  try{ renderMyPay(); }catch(e){ console.warn('мій розрахунок', e); }
   const list = document.getElementById('td-list');
   const kpis = document.getElementById('td-kpis');
   if(!list) return;
@@ -27469,7 +27992,9 @@ async function designJobNew(){
     name: '', phone: '', company: '', instagram: '',
     items: [], totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
     createdAt: new Date().toISOString(), touchedAt: new Date().toISOString(),
-    hist: [{ s: B2C_STATUS, at: new Date().toISOString() }]
+    hist: [{ s: B2C_STATUS, at: new Date().toISOString() }],
+    /* Хто завів — той і веде: від цього рахується його бонус за замовлення. */
+    mgrEmail: (myEmail() || '').trim().toLowerCase()
   };
   orders.unshift(o);
   try{ await storeSet('orders', orders); }
