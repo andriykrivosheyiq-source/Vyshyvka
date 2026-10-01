@@ -100,7 +100,7 @@ await p.evaluate((PNGURL) => {
      повна позиція (для закупівлі з двох замовлень). */
   const j = designJobMake('2000201');
   j.units = [
-    Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'', size:'', note:'Лого' }),
+    Object.assign(U.unitNew(), { gid:'polo', name:'Поло', color:'', size:'', note:'Лого' }),
     Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'L', qty:3, note:'Лого' })];
   const j2 = designJobMake('2000202');
   j2.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:2, note:'Лого' })];
@@ -109,6 +109,8 @@ await p.evaluate((PNGURL) => {
   openDesign();
   U.host.upload = async f => 'https://cdn.test/' + encodeURIComponent(f.name || 'f');
   U.host.widthCm = () => 52;
+  /* Футболки — у «Текстиль-Ко», поло — без підрядника. */
+  U.host.supplier = gid => gid === 'tee' ? { id:'s1', name:'Текстиль-Ко' } : null;
   U.host.sides = () => [{ key:'front', label:'Перед', url: PNGURL }];
   window.LQMock.host.widthCm = () => 52;
   window.LQMock.host.cal = () => ({ x1:0.2, x2:0.8, y:0.15 });
@@ -308,8 +310,8 @@ await p.evaluate(() => { const D = window.LQDesign; const d = D.dzList(__j.units
 await p.waitForTimeout(400);
 const бриф = await p.evaluate(() => [...document.querySelectorAll('.dz-panel .dz-spot')].map(x => x.textContent.replace(/\s+/g, ' ')));
 console.log('  ' + JSON.stringify(бриф));
-ok(бриф.some(t => /ширина 52 см/.test(t)) && бриф.some(t => /принт 21,7 см × 21,7 см/.test(t) && /від горловини 12,1 см/.test(t)),
-  'у брифі вишивальника — ширина принта, відступ і ширина виробу', 'бриф: ' + JSON.stringify(бриф));
+ok(бриф.length && бриф.every(t => /^Ширина вишивки\s?21,7 см$/.test(t)) && !бриф.some(t => /горловини|виробу|52/.test(t)),
+  'у брифі вишивальника — лише ширина вишивки, без відступів і ширини виробу', 'бриф: ' + JSON.stringify(бриф));
 await p.evaluate(() => document.querySelector('.dz-panel [data-do="dz-stitch-up"][data-dz^="' + __j.units[1].id + '|"]').click());
 await p.waitForTimeout(300);
 const [fc1] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(() => document.querySelector('.dz-su [data-su="file"]').click())]);
@@ -348,16 +350,17 @@ console.log('═══ 5. ЗАКУПІВЛЯ: ГАЛОЧКАМИ — ОФОРМ�
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('supply'); U.open(''); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(400);
 const треба = await p.evaluate(() => ({
-  груп: document.querySelectorAll('.dz-buy-need .dz-buy-g').length,
+  підрядники: [...document.querySelectorAll('.dz-buy-need .dz-buy-suph')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
   рядки: [...document.querySelectorAll('.dz-buy-need .dz-buy-g')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
   кнопка: !!document.querySelector('[data-do="buy-make"][disabled]'),
-  дошка: document.querySelectorAll('.dz-col').length }));
+  дошка: document.querySelectorAll('.dz-col').length, склад: !!document.querySelector('.dz-buy-stock') }));
 console.log('  ' + JSON.stringify(треба));
-ok(треба.груп === 2 && треба.рядки.some(t => /Чорний/.test(t) && /5 шт/.test(t) && /L/.test(t) && /M/.test(t)),
-  'потреба зведена: виріб · колір → розміри (чорні M і L з двох замовлень разом)', 'потреба: ' + JSON.stringify(треба.рядки));
-ok(треба.кнопка && треба.дошка === 4, 'нічого не позначено — «Оформити» неактивна; дошка закупівлі на місці', 'екран: ' + JSON.stringify(треба));
-const наДошці = await p.evaluate(() => [...document.querySelectorAll('.dz-boards [data-open]')].map(x => x.dataset.open).sort());
-ok(наДошці.join() === '2000201,2000202', 'на дошці закупівлі — лише замовлення з підтвердженим одягом (третього немає)', 'дошка: ' + JSON.stringify(наДошці));
+ok(треба.підрядники.length === 2 && /Текстиль-Ко/.test(треба.підрядники[0]) && /5 шт/.test(треба.підрядники[0]) &&
+   /Підрядник не вказаний/.test(треба.підрядники[1]),
+  'потреба — за підрядниками; без підрядника — окремо, з підказкою', 'підрядники: ' + JSON.stringify(треба.підрядники));
+ok(треба.рядки.some(t => /Чорний/.test(t) && /5 шт/.test(t) && /L/.test(t) && /M/.test(t)),
+  'усередині — виріб · колір → розміри (чорні M і L з двох замовлень разом)', 'потреба: ' + JSON.stringify(треба.рядки));
+ok(треба.кнопка && треба.дошка === 0 && треба.склад, 'нічого не позначено — «Оформити» неактивна; канбана немає, склад є', 'екран: ' + JSON.stringify(треба));
 /* Позначаємо лише чорні L: розгортаємо номери й ставимо одну галочку. */
 await p.evaluate(() => {
   const s = [...document.querySelectorAll('.dz-buy-s')].find(x => /Чорний/.test(x.closest('.dz-buy-g').textContent) && /\bL\b/.test(x.textContent));
@@ -381,14 +384,32 @@ ok(перша.docs.length === 1 && перша.docs[0].n === 1 && перша.docs
   'оформлено «Закупівля №1 від дд.мм» — рівно з позначеного', 'закупівля: ' + JSON.stringify(перша));
 ok(перша.груп === 2, 'решта лишилась у списку до наступного разу', 'потреба після: ' + перша.груп);
 ok(перша.трек === 'sent', 'трек «Закупки» замовлення — «Замовлено» (частина позицій замовлена)', 'трек: ' + перша.трек);
-/* Друге оформлення того ж дня — усе, що лишилось, галочкою групи. */
-await p.evaluate(() => document.querySelectorAll('[data-buyg]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); }));
+/* Склад: одне біле поло S уже лежить — беремо зі складу, не купуємо. */
+await p.evaluate(async () => { await window.LQDesign.ui.host.stockSave([{ gid:'polo', name:'Поло', color:'Білий', size:'S', qty:1 }]);
+  window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+await p.waitForTimeout(300);
+const склад = await p.evaluate(() => ({ є: ((document.querySelector('.dz-buy-have') || {}).textContent || ''),
+  кнопка: !!document.querySelector('[data-do="stock-take"]') }));
+ok(/на складі 1/.test(склад.є) && склад.кнопка, 'біля розміру видно «на складі 1» і «Взяти зі складу»', 'склад: ' + JSON.stringify(склад));
+await p.evaluate(() => document.querySelector('[data-do="stock-take"]').click());
+await p.waitForTimeout(600);
+const зіСкладу = await p.evaluate(() => { const b = Object.values(designBuys).find(x => x.stock);
+  return { є: !!b, st: b && b.status, лишок: window.LQDesign.ui.host.stock().length,
+           в: [...document.querySelectorAll('.dz-buy-o .dz-buy-oh b')].map(x => x.textContent) }; });
+ok(зіСкладу.є && зіСкладу.st === 'got' && зіСкладу.лишок === 0 && зіСкладу.в.some(t => /^Зі складу від/.test(t)),
+  'позицію закрито зі складу — одразу «Отримано», склад зменшився', 'склад: ' + JSON.stringify(зіСкладу));
+/* Друге оформлення того ж дня — усе, що лишилось, галочкою підрядника. */
+await p.evaluate(() => document.querySelectorAll('[data-buyp]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); }));
 await p.waitForTimeout(200);
 await p.evaluate(() => document.querySelector('[data-do="buy-make"]').click());
 await p.waitForTimeout(600);
-const друга = await p.evaluate(() => ({ ns: Object.values(designBuys).map(b => b.n).sort(),
+const друга = await p.evaluate(() => ({ ns: Object.values(designBuys).filter(b => !b.stock).map(b => b.n).sort(),
+  підрядник: (Object.values(designBuys).find(b => b.n === 2) || {}).sup,
+  день: [...document.querySelectorAll('.dz-buy-day')].map(x => x.textContent),
   порожньо: !document.querySelector('.dz-buy-need .dz-buy-g') }));
-ok(JSON.stringify(друга.ns) === '[1,2]' && друга.порожньо, 'друге оформлення — №2, список порожній', 'закупівлі: ' + JSON.stringify(друга));
+ok(JSON.stringify(друга.ns) === '[1,2]' && друга.підрядник && друга.підрядник.name === 'Текстиль-Ко' && друга.порожньо &&
+   друга.день.length === 1 && /^Замовлення за \d\d\.\d\d$/.test(друга.день[0]),
+  'друге оформлення — №2 у «Текстиль-Ко», під «Замовлення за дд.мм», список порожній', 'закупівлі: ' + JSON.stringify(друга));
 /* ТТН до №1 — стан сам стає «В дорозі». */
 await p.evaluate(() => { const b = Object.values(designBuys).find(x => x.n === 1);
   const el = document.querySelector('[data-buyttn="' + b.id + '"]'); el.value = '2045 0012 3456 78'; el.dispatchEvent(new Event('change')); });
@@ -399,15 +420,20 @@ ok(ттн.ttn === '20450012345678' && ттн.st === 'way' && ттн.лінк, '�
 
 console.log('');
 console.log('═══ 6. ЦЕХ: ОДЯГ, ФАЙЛИ, КАРТКА ═══');
-ok(await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
-  return document.querySelectorAll('.dz-boards [data-open]').length; }) === 0,
-  'поки вишивку погоджено не на всіх позиціях — у цеху замовлення немає', 'у цеху є непогоджене');
+const рано = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
+  return [...document.querySelectorAll('.dz-boards [data-open]')].map(x => x.dataset.open).sort(); });
+ok(рано.length === 0,
+  'поки вишивку здано не на всіх позиціях — у цеху замовлення немає', 'у цеху: ' + JSON.stringify(рано));
 await p.evaluate(() => { const D = window.LQDesign; const d = D.dzList(__j.units[0], 'stitch')[0];
   D.dzClaim(d, 'test@loomiq'); D.dzVer(d, 'test@loomiq', [{ name:'a.dst', url:'https://x/a.dst', role:'machine' },
     { name:'w.png', url:'https://x/w.png', role:'shot' }], '', null, 'stitch'); D.dzOk(d, 'test@loomiq', 'acct', 1); });
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open('2000201'); U.render(document.getElementById('dzRoot')); });
 const цехДошка = await p.evaluate(() => [...document.querySelectorAll('.dz-boards [data-open]')].map(x => x.dataset.open).sort());
-ok(цехДошка.join() === '2000201', 'у виробництві — лише замовлення з погодженою вишивкою', 'дошка цеху: ' + JSON.stringify(цехДошка));
+ok(цехДошка.join() === '2000201', 'здали вишивку на всіх позиціях — замовлення в цеху; інших немає', 'дошка цеху: ' + JSON.stringify(цехДошка));
+const шапка = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000201'); U.render(document.getElementById('dzRoot'));
+  const t = ((document.querySelector('.dz-panel .dz-panel-id .dz-state') || {}).textContent || '');
+  U.setTab('prod'); U.open('2000201'); U.render(document.getElementById('dzRoot')); return t; });
+ok(/^Виробництво · (Нове|Очікуємо одяг)/.test(шапка.trim()), 'у шапці картки менеджера — статус цеху: «' + шапка.trim() + '»', 'шапка: ' + шапка);
 await p.waitForTimeout(400);
 const цех = await p.evaluate(() => ({
   одяг: [...document.querySelectorAll('.dz-panel .dz-cloth')].map(x => x.textContent.replace(/\s+/g, ' ')),
@@ -417,7 +443,7 @@ const цех = await p.evaluate(() => ({
   машина: [...document.querySelectorAll('.dz-panel .dz-tile-f')].map(b => b.dataset.name),
   картка: document.querySelectorAll('.dz-panel [data-do="prod-card"]').length }));
 console.log('  ' + JSON.stringify(цех));
-ok(цех.одяг.length === 2 && /В дорозі · №1/.test(цех.одяг[1]) && /ТТН 20450012345678/.test(цех.одяг[1]) && /Замовлено · №2/.test(цех.одяг[0]),
+ok(цех.одяг.length === 2 && /В дорозі · №1/.test(цех.одяг[1]) && /ТТН 20450012345678/.test(цех.одяг[1]) && /Отримано/.test(цех.одяг[0]),
   'біля кожного одягу — стан закупівлі, номер і ТТН', 'одяг: ' + JSON.stringify(цех.одяг));
 ok(цех.машина.indexOf(N1 + '-2_v1.dst') >= 0, 'файли для машини — у цеху, з підписом', 'файли: ' + JSON.stringify(цех.машина));
 ok(new RegExp('^' + N1 + '-2_v1_.+_L_Чорний_52см$').test(цех.мокап), 'мокап у цеху підписаний з одягом, розміром, кольором і шириною', 'мокап: ' + цех.мокап);

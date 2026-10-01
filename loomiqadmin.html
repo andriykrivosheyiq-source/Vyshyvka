@@ -4456,6 +4456,28 @@
     width:170px;font-variant-numeric:tabular-nums;}
   .dz-buy-t input:focus{outline:none;border-color:var(--accent);}
   .dz-buy-t a{font-size:12.5px;color:var(--accent);}
+  .dz-buy-side{display:flex;flex-direction:column;gap:14px;min-width:0;}
+  .dz-buy-sup{display:flex;flex-direction:column;gap:6px;padding-top:4px;}
+  .dz-buy-sup + .dz-buy-sup{border-top:1px dashed var(--line);padding-top:10px;}
+  .dz-buy-suph{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;}
+  .dz-buy-suph b{font-weight:800;}
+  .dz-buy-suph b.is-bad{color:#B91C1C;}
+  .dz-buy-suph i{font-style:normal;font-size:12px;color:var(--muted);}
+  .dz-buy-suph em{margin-left:auto;font-style:normal;font-weight:800;font-variant-numeric:tabular-nums;}
+  .dz-buy-have{font-size:12px;color:#047857;background:#ECFDF5;border-radius:999px;padding:1px 8px;}
+  .dz-buy-day{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:4px;}
+  .dz-buy-sn{font-size:12px;font-weight:700;color:var(--ink-soft);background:#F1F5F9;border-radius:999px;padding:1px 8px;}
+  .dz-buy-o.is-stock{border-left-color:#10B981;}
+  .dz-buy-stock{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+    display:flex;flex-direction:column;gap:8px;}
+  .dz-buy-sk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;}
+  .dz-buy-sk label{display:inline-flex;align-items:center;gap:4px;}
+  .dz-buy-sk input{width:56px;font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:3px 6px;}
+  .dz-buy-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .dz-buy-add select,.dz-buy-add input{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;
+    padding:5px 7px;background:#fff;min-width:0;}
+  .dz-buy-add select{flex:1 1 110px;}
+  .dz-buy-add input{width:64px;}
   /* ── Одяг у цеху: стан закупівлі біля виробу ── */
   .dz-prod-u{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
   .dz-prod-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;}
@@ -4467,6 +4489,7 @@
   .dz-cloth.is-way{background:#FFFBEB;color:#B45309;border-color:#FDE68A;}
   .dz-cloth.is-got{background:#ECFDF5;color:#047857;border-color:#A7F3D0;}
   .dz-cloth a{color:inherit;}
+  .dz-panel-id .dz-cloth{margin-left:8px;}
   .dz-prod-cap{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
   .dz-pick{position:fixed;inset:0;z-index:260;background:rgba(15,32,52,.42);
     display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -6882,19 +6905,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b136e4b30a"></script>
-<script src="loomiq-fingerprint.js?v=b136e4b30a"></script>
-<script src="loomiq-pricing.js?v=b136e4b30a"></script>
+<script src="loomiq-select.js?v=89b90567f2"></script>
+<script src="loomiq-fingerprint.js?v=89b90567f2"></script>
+<script src="loomiq-pricing.js?v=89b90567f2"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b136e4b30a"></script>
-<script src="loomiq-mock.js?v=b136e4b30a"></script>
+<script src="loomiq-design.js?v=89b90567f2"></script>
+<script src="loomiq-mock.js?v=89b90567f2"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b136e4b30a"></script>
+<script src="loomiq-cards.js?v=89b90567f2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6919,7 +6942,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b136e4b30a';
+var LQ_VER = '89b90567f2';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -27041,6 +27064,7 @@ let designDirty = {};             // що чекає запису
    задачі відділу (окремі документи з `kind:'buy'`): нова колекція потребувала
    б нових правил доступу, а ці вже пускають усіх із команди. */
 let designBuys = {};              // id → замовлення закупівлі
+let designStock = [];             // вільний одяг на складі: { gid, name, color, size, qty }
 
 /* Замовлення, які взагалі стосуються відділу. Скасовані й виконані свою
    дизайнерську долю вже прожили — тримати їх на дошці означає ховати
@@ -27344,6 +27368,7 @@ function watchDesign(){
     snap.forEach(d=>{
       const v = d.data();
       if(v && v.kind === 'buy' && v.id){ designBuys[v.id] = v; return; }
+      if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : []; return; }
       if(!v || !v.orderId) return;
       // Локальні незбережені правки чужим знімком не затираємо
       if(designDirty[v.orderId]) return;
@@ -27537,6 +27562,16 @@ function openDesign(){
       if(!b || !b.id) return;
       designBuys[b.id] = b;
       await DESIGN_COL.doc(b.id).set(JSON.parse(JSON.stringify(b)));
+    },
+    /* Підрядник виробу — та сама привʼязка, що в картці товару. */
+    supplier: gid => { const id = supOfGarment(gid); const s = id ? supById(id) : null;
+                       return s ? { id: s.id, name: s.name || s.id } : null; },
+    /* Вільний одяг на складі — один документ на весь склад. */
+    stock: () => (designStock || []).slice(),
+    stockSave: async list => {
+      designStock = (list || []).slice();
+      await DESIGN_COL.doc('stock').set({ kind:'stock', items: JSON.parse(JSON.stringify(designStock)),
+                                          at: new Date().toISOString(), by: myEmail() || '' });
     },
     toast: m => toast(m),
     upload: f => uploadCloudinaryAuto(f),
