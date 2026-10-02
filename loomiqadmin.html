@@ -4833,6 +4833,8 @@
   .fin-amt{text-align:right;font-weight:700;font-size:14px;color:#B03A1A;
     font-variant-numeric:tabular-nums;}
   .fin-amt.is-in{color:#1B6B3A;}
+  .fin-chip.is-own{background:#EEF2FF;color:#3730A3;border-color:#C7D2FE;}
+  .fin-row.is-own .fin-amt{color:var(--muted);}
   .fin-chip{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
     border:1px dashed var(--line);border-radius:7px;padding:5px 9px;display:inline-block;}
   .fin-chip:hover{border-color:var(--accent);color:var(--accent-deep);}
@@ -7070,24 +7072,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=33c55fe370"></script>
-<script src="loomiq-fingerprint.js?v=33c55fe370"></script>
-<script src="loomiq-pricing.js?v=33c55fe370"></script>
+<script src="loomiq-select.js?v=daca141957"></script>
+<script src="loomiq-fingerprint.js?v=daca141957"></script>
+<script src="loomiq-pricing.js?v=daca141957"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=33c55fe370"></script>
-<script src="loomiq-mock.js?v=33c55fe370"></script>
+<script src="loomiq-design.js?v=daca141957"></script>
+<script src="loomiq-mock.js?v=daca141957"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=33c55fe370"></script>
-<script src="loomiq-threads.js?v=33c55fe370"></script>
+<script src="imagetracer.js?v=daca141957"></script>
+<script src="loomiq-threads.js?v=daca141957"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=33c55fe370"></script>
+<script src="loomiq-cards.js?v=daca141957"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7112,7 +7114,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '33c55fe370';
+var LQ_VER = 'daca141957';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9618,13 +9620,16 @@ function renderAnAll(days, month, spend){
   });
   const ids = {};
   (orders || []).forEach(o => { if(o && o.orderId) ids[String(o.orderId)] = 1; });
-  let безПривʼязки = 0, витрачено = 0, зарплати = 0;
+  let безПривʼязки = 0, витрачено = 0, зарплати = 0, міжСвоїми = 0;
   const поДнях = {};
   const день = d => (поДнях[d] = поДнях[d] || { in: 0, out: 0 });
+  const свої = finOwnSet();
   (payments || []).forEach(p => {
     const d = anDayOf(p.at);
     if(!set[d]) return;
     const n = Math.round(+p.amount || 0);
+    /* Переказ між своїми рахунками — гроші просто переїхали. */
+    if(свої[p.id]){ if(n > 0) міжСвоїми += n; return; }
     if(n > 0 && !ids[String(p.orderId || '')]){ безПривʼязки += n; день(d).in += n; }
     if(n < 0){ витрачено += -n; день(d).out += -n; if(p.src === 'salary') зарплати += -n; }
   });
@@ -9676,9 +9681,33 @@ function renderAnAll(days, month, spend){
       return '<tr><td>' + E(d) + '</td><td>' + гр(r.in) + '</td><td>' + (r.out ? гр(r.out) : '—') + '</td><td>' + гр(r.in - r.out) + '</td></tr>'; })
       .join('') || '<tr><td colspan="4" class="an-empty">За цей період руху грошей не записано</td></tr>') +
     '</tbody></table>' +
+    (міжСвоїми ? '<div class="tm-hint">Перекази між своїми рахунками за період: ' + гр(міжСвоїми) +
+      ' — не враховані ні в надходженнях, ні у витратах.</div>' : '') +
     '<div class="tm-hint">Нові замовлення — створені за період (у B2B — від «Чекаємо оплату» й далі). Надійшло — оплати за період; ' +
       'у B2B беремо оплати з картки, якщо вони є, інакше привʼязані платежі з рахунків. Джерело — позначка в картці, а якщо її немає, ' +
       'канал розмови з клієнтом.</div>';
+}
+/* ПЕРЕКАЗИ МІЖ СВОЇМИ РАХУНКАМИ. З ФОПа на картку Катерини, з картки далі —
+   це гроші, які просто переїхали, а не прийшли й не пішли. Без цього той
+   самий переказ рахувався б двічі: мінусом як витрата і плюсом як
+   надходження «не привʼязано». Впізнаємо пару самі: та сама сума з мінусом
+   на одному нашому рахунку й з плюсом на іншому, з різницею до 30 хвилин.
+   Помилку виправляють руками у вікні платежу («між своїми» / «не між своїми»). */
+function finOwnSet(){
+  const all = (payments || []).filter(p => p && p.id && !p.orderId && Math.round(+p.amount || 0) !== 0);
+  const own = {};
+  all.forEach(p => { if(p.tag === 'own') own[p.id] = 1; });
+  const вільні = all.filter(p => !own[p.id] && p.tag !== 'notown' && p.acc);
+  const ins = вільні.filter(p => +p.amount > 0);
+  const used = {};
+  вільні.filter(p => +p.amount < 0).forEach(a => {
+    const ta = Date.parse(a.at);
+    const b = ins.filter(x => !used[x.id] && x.acc !== a.acc &&
+      Math.round(+x.amount) === -Math.round(+a.amount) &&
+      Math.abs(Date.parse(x.at) - ta) <= 30 * 60000)[0];
+    if(b){ used[b.id] = 1; own[a.id] = 1; own[b.id] = 1; }
+  });
+  return own;
 }
 function renderFin(){
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
@@ -9700,13 +9729,16 @@ function renderFin(){
       (finView.acc === a.id ? ' on' : '') + '" data-fin-acc="' + escapeHtml(a.id) + '">' +
       escapeHtml(a.name) + '</button>')).join('');
   const rows = finRows();
-  const дохід = rows.reduce((s, p) => s + Math.max(0, Math.round(+p.amount || 0)), 0);
-  const витрата = rows.reduce((s, p) => s + Math.max(0, -Math.round(+p.amount || 0)), 0);
+  const свої = finOwnSet();
+  const дохід = rows.reduce((s, p) => s + (свої[p.id] ? 0 : Math.max(0, Math.round(+p.amount || 0))), 0);
+  const витрата = rows.reduce((s, p) => s + (свої[p.id] ? 0 : Math.max(0, -Math.round(+p.amount || 0))), 0);
+  const переказів = rows.filter(p => свої[p.id] && +p.amount > 0).reduce((s, p) => s + Math.round(+p.amount || 0), 0);
   const sum = document.getElementById('fin-sum');
   if(sum) sum.innerHTML = rows.length
     ? '<span>Рухів: <b>' + rows.length + '</b></span>' +
       '<span class="is-in">Надійшло: <b>' + payMoney(дохід) + '</b></span>' +
-      '<span class="is-out">Витрачено: <b>' + payMoney(-витрата) + '</b></span>'
+      '<span class="is-out">Витрачено: <b>' + payMoney(-витрата) + '</b></span>' +
+      (переказів ? '<span>Між своїми рахунками: <b>' + escapeHtml(payMoney(переказів).replace('+', '')) + '</b> — не враховано</span>' : '')
     : '';
   const box = document.getElementById('fin-list');
   if(!box) return;
@@ -9720,7 +9752,7 @@ function renderFin(){
   box.innerHTML = rows.map(p => {
     const дохід = (+p.amount || 0) > 0;
     const o = p.orderId ? (orders || []).filter(x => x.orderId === p.orderId)[0] : null;
-    return '<div class="fin-row' + (дохід ? '' : ' is-out') + '" data-fin-id="' + escapeHtml(p.id) + '">' +
+    return '<div class="fin-row' + (дохід ? '' : ' is-out') + (свої[p.id] ? ' is-own' : '') + '" data-fin-id="' + escapeHtml(p.id) + '">' +
       '<span class="fin-at">' + escapeHtml(payDate(p.at)) + '</span>' +
       '<span class="fin-who"><b>' + escapeHtml(p.counter || (дохід ? 'Надходження' : 'Витрата')) + '</b>' +
         (p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : '') + '</span>' +
@@ -9732,6 +9764,7 @@ function renderFin(){
             escapeHtml('#' + p.orderId +
               (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) +
             (o ? '' : ' <i>картки немає</i>') + '</button>'
+          : свої[p.id] ? '<button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '">між своїми</button>'
           : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
       '</span>' +
     '</div>';
@@ -9765,6 +9798,12 @@ function finOpen(id){
             <i>${escapeHtml(g.чому.join(' · '))}</i>
           </button>`).join('')}</div>`
         : `<div class="fin-none">Схожих замовлень не знайшлось — знайдіть за номером.</div>`}
+      ${!p.orderId ? `<div class="fin-l">Переказ між своїми рахунками</div>
+        <div class="fin-tags">
+          <button class="fin-tag${finOwnSet()[p.id] ? ' on' : ''}" data-fin-own="own">Так, між своїми</button>
+          <button class="fin-tag${finOwnSet()[p.id] ? '' : ' on'}" data-fin-own="notown">Ні</button>
+        </div>
+        <div class="fin-note">Такий рух — гроші, що переїхали між вашими рахунками; він не рахується ні як надходження, ні як витрата.</div>` : ''}
       <div class="fin-l">Знайти за номером або імʼям</div>
       <input type="search" class="fin-find" placeholder="номер замовлення, імʼя, нік">
       <div class="fin-found"></div>
@@ -9796,6 +9835,8 @@ function finOpen(id){
     if(pick){ обране = pick.dataset.finPick; await зберегти(); return закрити(); }
     if(e.target.hasAttribute('data-fin-unlink')){ обране = ''; тег = '';
       await зберегти(); return закрити(); }
+    const own = e.target.closest && e.target.closest('[data-fin-own]');
+    if(own){ обране = ''; тег = own.dataset.finOwn; await зберегти(); return закрити(); }
     const tag = e.target.closest && e.target.closest('[data-fin-tag]');
     if(tag){
       тег = tag.dataset.finTag;

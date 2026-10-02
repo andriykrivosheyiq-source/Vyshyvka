@@ -71,7 +71,7 @@ await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g
 await p.evaluate(() => {
   const now = new Date().toISOString();
   payWatching = true;                 // підписку не вмикаємо — платежі кладемо самі
-  contentData.fin = Object.assign({}, contentData.fin, { accounts:[{ id:'a1', name:'Моно', bank:'mono', start: 5000 }] });
+  contentData.fin = Object.assign({}, contentData.fin, { accounts:[{ id:'a1', name:'Моно', bank:'mono', start: 5000 }, { id:'a2', name:'Картка Катерини', bank:'mono' }] });
   orders.length = 0;
   orders.push(
     { id:'b1', orderId:'1000001', status:'paid', source:'сайт', createdAt: now, totalPrice: 10000, items:[],
@@ -86,7 +86,10 @@ await p.evaluate(() => {
     { id:'p2', at: now, amount: 800,  acc:'a1', orderId:'5000002', tag:'pay' },
     { id:'p3', at: now, amount: 700,  acc:'a1' },                               // без привʼязки
     { id:'p4', at: now, amount: -2000, acc:'a1', src:'salary', desc:'Зарплата' },
-    { id:'p5', at: now, amount: -500, acc:'a1', desc:'Нитки' });
+    { id:'p5', at: now, amount: -500, acc:'a1', desc:'Нитки' },
+    /* Переказ з ФОПа на картку Катерини — гроші просто переїхали. */
+    { id:'p6', at: now, amount: -3000, acc:'a1', desc:'Переказ на картку' },
+    { id:'p7', at: new Date(Date.now() + 60000).toISOString(), amount: 3000, acc:'a2', desc:'З рахунку ФОП' });
 });
 
 console.log('\n═══ ФІНАНСИ — РАХУНКИ Й КОМАНДА ═══');
@@ -150,6 +153,20 @@ ok(R['Сайт'] && R['Сайт'][0] === '1' && R['Сайт'][1] === '10000₴' 
    R['Не привʼязано до замовлення'][4].indexOf('700₴') === 0,
   'звідки: сайт 1 замовлення на 10 000 і 4 000 надійшло; Instagram 1 000; Telegram 800; вручну 3 000; без привʼязки 700',
   'джерела: ' + JSON.stringify(R));
+const свої = await p.evaluate(() => ({ hint: [...document.querySelectorAll('#an-all .tm-hint')].map(x => x.textContent).join(' '),
+  set: Object.keys(finOwnSet()).sort() }));
+ok(JSON.stringify(свої.set) === '["p6","p7"]' && /між своїми рахунками за період: 3\s?000/.test(свої.hint),
+  'переказ ФОП → картка впізнано «між своїми»: не надходження й не витрата (надійшло так і 6 500, витрачено 2 500)',
+  'перекази: ' + JSON.stringify(свої));
+/* Помилилась пара — позначаємо руками «не між своїми», і рух рахується. */
+const вручну = await p.evaluate(() => { payments.find(x => x.id === 'p7').tag = 'notown'; const o = finOwnSet(); payments.find(x => x.id === 'p7').tag = null; return Object.keys(o); });
+ok(!вручну.length, 'позначка «ні, не між своїми» знімає пару з переказів', 'ручна позначка не спрацювала: ' + JSON.stringify(вручну));
+await p.click('[data-view="fin"]'); await p.waitForTimeout(300);
+const список = await p.evaluate(() => ({ sum: (document.getElementById('fin-sum') || {}).textContent || '',
+  чипи: [...document.querySelectorAll('#fin-list .fin-chip.is-own')].length }));
+ok(/Надійшло: \+?2\s?500/.test(список.sum.replace(/\u00a0/g, ' ')) && /Між своїми рахунками: 3\s?000/.test(список.sum.replace(/\u00a0/g, ' ')) && список.чипи === 2,
+  'у Фінансах (лише рухи по рахунках): надійшло 2 500 без переказу, окремо «між своїми рахунками 3 000», два рухи з позначкою', 'Фінанси: ' + JSON.stringify(список));
+await p.click('[data-view="analytics"]'); await p.waitForTimeout(500);
 ok(/За період · /.test(зага.період) && !зага.активна, 'обраний місяць — заголовок періоду, кнопки днів зняті', 'період: ' + JSON.stringify(зага));
 
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
