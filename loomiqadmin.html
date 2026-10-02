@@ -4964,7 +4964,7 @@
   .tm-ed label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--ink-soft);}
   .tm-ed input,.tm-ed select,.tm-rates input,.tm-rates select{font:inherit;font-size:13px;padding:6px 8px;
     border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-width:0;}
-  .tm-rates input{width:96px;text-align:right;}
+  .tm-rates input{width:84px;text-align:right;}
   .tm-hint{font-size:11.5px;color:var(--muted);margin-top:6px;}
   .tm-rates{margin-top:18px;}
   .tm-rates summary,.tm-my summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);padding:6px 0;}
@@ -4972,6 +4972,24 @@
   .tm-my{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 14px 12px;margin-bottom:14px;}
   .tm-my summary{font-weight:500;}
   .tm-my .tm-stats{margin:8px 0 12px;}
+  .tm-g td{background:var(--canvas);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);padding-top:14px;}
+  .tm-add{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-items:center;}
+  .tm-add input,.tm-add select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink);min-width:0;}
+  .tm-add input{width:240px;max-width:100%;}
+  .tm-rd{margin-top:6px;}
+  .tm-rp{display:grid;grid-template-columns:180px minmax(0,1fr);gap:8px 12px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line-soft);}
+  .tm-rp>b{font-size:13px;color:var(--ink);padding-top:22px;}
+  .tm-rf{display:flex;flex-wrap:wrap;gap:8px 10px;}
+  @media (max-width:700px){ .tm-rp{grid-template-columns:1fr;} .tm-rp>b{padding-top:0;} }
+  .tm-rp label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);}
+  .tm-del{all:unset;cursor:pointer;font-size:12px;color:#B42318;margin-top:6px;}
+  .tm-del:hover{text-decoration:underline;}
+  .tm-del:focus-visible{outline:2px solid var(--accent);}
+  .dash-t{margin-top:14px;}
+  .dash-t td i{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px;}
+  #view-dash .fin-an-bar,#fin-team .fin-an-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
   @media (max-width:900px){
     .an-row{grid-template-columns:repeat(2,1fr);}
     .an-tags{grid-template-columns:repeat(2,1fr);}
@@ -5311,6 +5329,7 @@
         <button data-view="design" data-tip="Замовлення B2C — приватні"><i class="nav-e">🎨</i><span>Замовлення B2C</span></button>
         <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc" hidden></i></button>
         <button data-view="analytics" data-tip="Аналітика"><i class="nav-e">📈</i><span>Аналітика</span></button>
+        <button data-view="dash" data-tip="Дашборди відділів"><i class="nav-e">📊</i><span>Дашборди</span></button>
         <button data-view="fin" data-tip="Фінанси — платежі з банків"><i class="nav-e">💳</i><span>Фінанси</span></button>
         <button data-view="calc" class="nav-off" data-tip="Прорахунок"><i class="nav-e">🧮</i><span>Прорахунок</span></button>
         <!-- Ставки, сітки, підрядники, доступи — сюди заходять раз на
@@ -6794,6 +6813,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
     </section>
 
+    <!-- ДАШБОРДИ ВІДДІЛІВ: загальна картина й кожна людина. Хто має доступ
+         до аналітики — бачить усі відділи, решта — свій. Гроші — у Фінансах. -->
+    <section id="view-dash" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Аналітика</div>
+        <h1>Дашборди</h1>
+        <div class="sub">Що зробив відділ за місяць і кожна людина в ньому. Цифри беруться з того,
+          що система й так записує по ходу роботи.</div>
+      </div>
+      <div class="card"><div id="dashRoot"></div></div>
+    </section>
+
     <section id="view-analytics" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Аналітика</div>
@@ -7035,24 +7066,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=62e7052447"></script>
-<script src="loomiq-fingerprint.js?v=62e7052447"></script>
-<script src="loomiq-pricing.js?v=62e7052447"></script>
+<script src="loomiq-select.js?v=d19a626e57"></script>
+<script src="loomiq-fingerprint.js?v=d19a626e57"></script>
+<script src="loomiq-pricing.js?v=d19a626e57"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=62e7052447"></script>
-<script src="loomiq-mock.js?v=62e7052447"></script>
+<script src="loomiq-design.js?v=d19a626e57"></script>
+<script src="loomiq-mock.js?v=d19a626e57"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=62e7052447"></script>
-<script src="loomiq-threads.js?v=62e7052447"></script>
+<script src="imagetracer.js?v=d19a626e57"></script>
+<script src="loomiq-threads.js?v=d19a626e57"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=62e7052447"></script>
+<script src="loomiq-cards.js?v=d19a626e57"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7077,7 +7108,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '62e7052447';
+var LQ_VER = 'd19a626e57';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8415,13 +8446,14 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
     const vSup = document.getElementById('view-suppliers'); if(vSup) vSup.style.display = view==='suppliers' ? 'block':'none';
     const vAn = document.getElementById('view-analytics'); if(vAn) vAn.style.display = view==='analytics' ? 'block':'none';
+    const vDash = document.getElementById('view-dash'); if(vDash) vDash.style.display = view==='dash' ? 'block':'none';
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
     const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
     const vToday = document.getElementById('view-today'); if(vToday) vToday.style.display = view==='today' ? 'block':'none';
     const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
     const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
     const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', dash:'Дашборди', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
       chats:'Чати B2B', chatsc:'Чати B2C', b2c:'Налаштування B2C', fin:'Фінанси'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
@@ -8450,6 +8482,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     if(view==='photos') renderCtor();
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
+    if(view==='dash') renderDash();
     if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='today') renderToday();
     if(view==='design') openDesign();
@@ -9803,37 +9836,88 @@ async function finAddManual(){
     renderFinAn();
   });
 })();
-/* ══════════ КОМАНДА: ЩО ЗРОБИВ КОЖЕН І СКІЛЬКИ ЙОМУ ПЛАТИМО ══════════
+/* ══════════ КОМАНДА: ПОСАДИ, ЗАРПЛАТА Й ДАШБОРДИ ══════════
 
-   Андрій: «аналітика для кожної ролі… і розрахунок зп зі ставкою».
-   Зарплата = ставка + фіксована сума за кожну зроблену одиницю роботи:
-     акаунт-менеджер / менеджер — за замовлення;
-     графічний дизайнер         — за погоджений дизайн;
-     вишивальний дизайнер       — за здану оцифровку;
-     виробництво                — за виріб;
-     закупівля, контроль        — лише ставка (цифри видно, бонусу немає).
-
-   Бонус іде в той місяць, коли людина ЗРОБИЛА роботу: замовлення — коли
-   створене, дизайн — коли здано версію, яку погодили, оцифровка — коли
-   здана, виріб — коли цех поставив «Готово». Ставка — за місяць або за
-   відпрацьований день (дні рахуються з графіка, їх можна поправити).
-
-   Цифри беруться з того, що система й так записує по ходу роботи, — ніхто
-   нічого окремо не відмічає. Кожен бачить свій розрахунок у «Задачах» і
-   може звірити його рядок за рядком: які саме замовлення й дизайни туди
-   увійшли. */
-const PAY_KINDS = [
-  { k:'order',  label:'Замовлення',        one:'за замовлення' },
-  { k:'design', label:'Погоджені дизайни', one:'за дизайн' },
-  { k:'stitch', label:'Оцифровки',         one:'за оцифровку' },
-  { k:'piece',  label:'Вироби',            one:'за виріб' }
+   Андрій: «аналітика для кожної ролі… розрахунок зп зі ставкою», і далі
+   уточнення (02.10):
+     · посада — окремо від доступу до CRM: доступ каже, що людина бачить,
+       посада — за що й скільки їй платимо. Пакувальнику чи монтажеру CRM
+       не потрібна, тож людину можна завести без пошти й без входу;
+     · відділи: продажі (лише B2B) — керівник, менеджер, помічник;
+       акаунт-менеджери (B2B і B2C) — процес-менеджер (погодження, статуси)
+       і комунікейшн-менеджер (сидить у чатах); графічний і вишивальний
+       дизайн; виробництво — керівник, помічник, оператор, помічник
+       оператора, пакувальник, закупівля; контент — монтажер, оператор
+       зйомки, агенції (таргет, контент), які оплачуємо щомісяця;
+     · одна людина працює і в B2B, і в B2C — і ставки за одиницю там різні,
+       тому кожна сума за одиницю має дві клітинки;
+     · бонус зараховуємо, коли робота людини ЗАКІНЧИЛАСЬ: акаунт-менеджеру —
+       коли замовлення пішло у виробництво (за замовлення, за погоджені
+       дизайни в ньому й за кожен виріб), дизайнеру — коли погодили,
+       вишивальному — коли здав, продажам — коли замовлення стало
+       замовленням, цеху — коли поставили «Готово»;
+     · у кожного відділу — свій дашборд у розділі «Дашборди»: загальна
+       картина й кожна людина.
+   Виробництво, закупівлю, контент і двох акаунт-менеджерів на одному
+   замовленні Андрій налаштує пізніше — поля для них уже є. */
+const PAY_F = {
+  order_b2b:  { label:'за замовлення B2B',  kind:'order',  dir:'b2b' },
+  order_b2c:  { label:'за замовлення B2C',  kind:'order',  dir:'b2c' },
+  design_b2b: { label:'за дизайн B2B',      kind:'design', dir:'b2b' },
+  design_b2c: { label:'за дизайн B2C',      kind:'design', dir:'b2c' },
+  stitch_b2b: { label:'за оцифровку B2B',   kind:'stitch', dir:'b2b' },
+  stitch_b2c: { label:'за оцифровку B2C',   kind:'stitch', dir:'b2c' },
+  piece_b2b:  { label:'за виріб B2B',       kind:'piece',  dir:'b2b' },
+  piece_b2c:  { label:'за виріб B2C',       kind:'piece',  dir:'b2c' },
+  buy:        { label:'за закупівлю',       kind:'buy' },
+  unit:       { label:'за одиницю (вручну)', kind:'unit' },
+  pct:        { label:'% від продажів',     kind:'pct' }
+};
+const PF_ACCT = ['order_b2b', 'order_b2c', 'design_b2b', 'design_b2c', 'piece_b2b', 'piece_b2c'];
+const PF_SHOP = ['piece_b2b', 'piece_b2c'];
+const PAY_DEPTS = [
+  { k:'sales', label:'Продажі B2B', pos:[
+    { k:'sales_head', label:'Керівник менеджерів', f:['pct', 'order_b2b'], scope:'dept' },
+    { k:'sales',      label:'Менеджер з продажу',  f:['pct', 'order_b2b'], scope:'own' },
+    { k:'sales_help', label:'Помічник менеджера',  f:['pct', 'order_b2b'], scope:'dept' }] },
+  { k:'acct', label:'Акаунт-менеджери', pos:[
+    { k:'proc', label:'Процес-менеджер',      f: PF_ACCT },
+    { k:'comm', label:'Комунікейшн-менеджер', f: PF_ACCT }] },
+  { k:'gd', label:'Графічний дизайн', pos:[
+    { k:'gd', label:'Графічний дизайнер', f:['design_b2b', 'design_b2c'] }] },
+  { k:'sd', label:'Вишивальний дизайн', pos:[
+    { k:'sd', label:'Вишивальний дизайнер', f:['stitch_b2b', 'stitch_b2c'] }] },
+  { k:'prod', label:'Виробництво', pos:[
+    { k:'prod_head', label:'Керівник виробництва', f: PF_SHOP },
+    { k:'prod_help', label:'Помічник керівника',   f: PF_SHOP },
+    { k:'oper',      label:'Оператор',             f: PF_SHOP },
+    { k:'oper_help', label:'Помічник оператора',   f: PF_SHOP },
+    { k:'pack',      label:'Пакувальник',          f: PF_SHOP },
+    { k:'buy',       label:'Закупівля',            f:['buy'] }] },
+  { k:'content', label:'Контент і маркетинг', pos:[
+    { k:'editor',  label:'Монтажер',           f:['unit'] },
+    { k:'shooter', label:'Оператор зйомки',    f:['unit'] },
+    { k:'agency',  label:'Агенція / підрядник', f:['unit'] }] },
+  { k:'other', label:'Інше', pos:[
+    { k:'owner', label:'Власник', f:[] }] }
 ];
+function payPos(k){
+  for(const d of PAY_DEPTS) for(const p of d.pos) if(p.k === k) return Object.assign({ dept: d.k }, p);
+  return null;
+}
+function payDept(k){ return PAY_DEPTS.filter(d => d.k === k)[0] || null; }
+/* Посада за замовчуванням — з ролі доступу: щоб у перший же день кожен
+   стояв на своєму місці, а міняли тільки винятки. */
+const PAY_POS_OF_ROLE = { manager:'sales', designmgr:'proc', designer:'gd', embroidery:'sd',
+                          production:'oper', supply:'buy', owner:'owner' };
 function payCfg(){
   const p = (contentData && contentData.payroll && typeof contentData.payroll === 'object') ? contentData.payroll : {};
-  return { roles: p.roles || {}, people: p.people || {}, months: p.months || {} };
+  return { pos: p.pos || {}, people: p.people || {}, months: p.months || {}, roles: p.roles || {},
+           staff: Array.isArray(p.staff) ? p.staff.filter(x => x && x.id) : [] };
 }
 /* Firestore зливає вкладені поля, тож «прибрати» тут означає записати
-   null, а не стерти ключ: стертий ключ повернувся б із бази. */
+   null, а не стерти ключ: стертий ключ повернувся б із бази. Масиви
+   (люди без входу) замінюються цілком. */
 async function paySave(patch){
   const c = JSON.parse(JSON.stringify(payCfg()));
   patch(c);
@@ -9843,20 +9927,27 @@ async function paySave(patch){
 }
 function payYm(t){
   if(!t) return '';
-  const d = new Date(t);
+  const d = new Date(String(t).replace(' ', 'T'));
   return isNaN(d) ? '' : (d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
 }
 const payNum = v => (v !== undefined && v !== null && v !== '');
-/* Умови людини: її власні, якщо поставили, інакше — ролі. */
-function payTerms(email, role){
-  const c = payCfg(), r = c.roles[role] || {}, pp = c.people[email] || {};
-  const pick = k => payNum(pp[k]) ? pp[k] : r[k];
+/* Умови людини: її власні, якщо поставили, інакше — посади. Ставки, які
+   встигли вписати за ролями до появи посад, підхоплюються. */
+function payTerms(key, posKey, role){
+  const c = payCfg(), P = c.pos[posKey] || {}, L = c.roles[role] || {}, pp = c.people[key] || {};
+  const leg = f => {
+    if(f === 'base' || f === 'mode') return L[f];
+    const x = PAY_F[f];
+    return (x && x.dir) ? L[x.kind] : undefined;
+  };
+  const pick = f => payNum(pp[f]) ? pp[f] : (payNum(P[f]) ? P[f] : leg(f));
+  const pos = payPos(posKey) || {};
   const out = { base: +pick('base') || 0, mode: pick('mode') === 'day' ? 'day' : 'month',
-                own: Object.keys(pp).some(k => payNum(pp[k])) };
-  PAY_KINDS.forEach(x => { out[x.k] = +pick(x.k) || 0; });
+                scope: (pick('scope') || pos.scope) === 'dept' ? 'dept' : 'own',
+                own: Object.keys(pp).some(k => k !== 'pos' && payNum(pp[k])) };
+  Object.keys(PAY_F).forEach(f => { out[f] = +pick(f) || 0; });
   return out;
 }
-/* Робочих днів у місяці: будні мінус вихідні з графіка людини. */
 function payWorkDays(email, m){
   const y = +m.slice(0, 4), mm = +m.slice(5, 7);
   const n = new Date(y, mm, 0).getDate();
@@ -9864,15 +9955,19 @@ function payWorkDays(email, m){
   for(let i = 1; i <= n; i++){
     const wd = new Date(y, mm - 1, i).getDay();
     if(wd === 0 || wd === 6) continue;
-    if(shiftOff(email, m + '-' + String(i).padStart(2, '0'))) continue;
+    if(email && email.indexOf('@') > 0 && shiftOff(email, m + '-' + String(i).padStart(2, '0'))) continue;
     d++;
   }
   return d;
 }
-/* Хто веде замовлення. У B2B — `mgrEmail`. У B2C його доти не писали
-   зовсім, тож для старих беремо того, хто першим передав дизайн у роботу. */
+const payLow = e => String(e || '').trim().toLowerCase();
+/* Хто веде замовлення як процес-менеджер. У B2C — той, хто завів (а для
+   старих — хто першим передав дизайн у роботу). У B2B відповідальний у
+   картці — менеджер з продажу; процес-менеджером там вважаємо того, хто
+   першим посунув трек акаунт-менеджера, а якщо його ніхто не рухав — того ж
+   відповідального. */
 function orderMgr(o){
-  if(o && o.mgrEmail) return String(o.mgrEmail).trim().toLowerCase();
+  if(o && o.mgrEmail) return payLow(o.mgrEmail);
   if(!o || orderDir(o) !== 'b2c') return '';
   const j = (designJobs || {})[o.orderId];
   if(!j) return '';
@@ -9883,19 +9978,72 @@ function orderMgr(o){
     });
   })));
   if(!best && Array.isArray(j.ds)){ const e = j.ds.filter(x => x && x.by)[0]; if(e) best = { by: e.by }; }
-  return best ? String(best.by).trim().toLowerCase() : '';
+  return best ? payLow(best.by) : '';
 }
-/* «Зроблене замовлення»: у B2C — будь-яке, крім відмови (їх заводять, коли
-   клієнт уже замовляє); у B2B — те, що дійшло хоча б до «Чекаємо оплату»,
-   а не звернення чи прорахунок. */
+function orderProc(o){
+  if(!o) return '';
+  if(o.procEmail) return payLow(o.procEmail);
+  if(orderDir(o) === 'b2c') return orderMgr(o);
+  const h = (o.trackHist || []).filter(x => x && x.t === 'acct' && x.by)[0];
+  return h ? payLow(h.by) : payLow(o.mgrEmail);
+}
+/* Комунікейшн-менеджер — той, хто першим відповів клієнту з CRM. */
+function orderComm(o){ return payLow(o && o.commEmail); }
+/* Відповіли клієнту з CRM: хто й скільки клієнт чекав. Звідси й час
+   відповіді в дашборді, і комунікейшн-менеджер замовлення. Пишемо лише те,
+   що бачимо самі: відповіді з телефона повз CRM сюди не потраплять. */
+function chatReplied(o, ch, waitMin){
+  if(!o) return;
+  const me = payLow(myEmail());
+  if(!me) return;
+  if(!o.commEmail) o.commEmail = me;
+  if(waitMin > 0){
+    o.resp = (Array.isArray(o.resp) ? o.resp : []).concat([{ at: new Date().toISOString(), by: me,
+      min: Math.round(waitMin), ch: ch }]).slice(-100);
+  }
+}
+/* Коли замовлення стало замовленням: перший запис історії на «Чекаємо
+   оплату» чи далі. B2C — одразу, щойно заведене. */
+function orderRank(st){
+  const keys = (STATUSES || []).map(s => s.key);
+  const s = (STATUSES || []).filter(x => x.key === st)[0];
+  if(st === 'cancel' || (s && s.off)) return -1;
+  const i = keys.indexOf(st), n = keys.indexOf('new');
+  if(n >= 0) return i >= n ? 1 : 0;
+  return ['new', 'paid', 'production', 'done'].indexOf(st) >= 0 ? 1 : 0;
+}
 function orderMade(o){
   if(!o || o.status === 'cancel') return false;
   if(orderDir(o) === 'b2c') return true;
-  const st = (STATUSES || []).filter(s => s.key === o.status)[0];
-  if(st && st.off) return false;
-  const keys = (STATUSES || []).map(s => s.key);
-  const i = keys.indexOf(o.status), n = keys.indexOf('new');
-  return n >= 0 ? i >= n : ['new', 'paid', 'production', 'done'].indexOf(o.status) >= 0;
+  return orderRank(o.status) > 0;
+}
+function orderMadeAt(o){
+  if(!orderMade(o)) return '';
+  if(orderDir(o) === 'b2c') return o.createdAt || '';
+  const h = (o.hist || []).filter(x => x && x.at && orderRank(x.s) > 0)[0];
+  return (h && h.at) || o.createdAt || '';
+}
+/* Коли замовлення пішло у виробництво — тут закінчується робота
+   акаунт-менеджера. У B2C це мить, коли здано останню оцифровку (здав
+   вишивальний — і файли одразу йдуть у цех); у B2B — перший рух треку
+   виробництва далі «Заблоковано». */
+function orderProdAt(o){
+  if(!o) return '';
+  if(orderDir(o) === 'b2c'){
+    const j = (designJobs || {})[o.orderId];
+    let last = '', any = false, all = true;
+    ((j && j.units) || []).forEach(u => (u.stitch || []).forEach(d => {
+      if(!d || d.gone) return;
+      any = true;
+      if(!d.ok){ all = false; return; }
+      const v = (d.vers || []).filter(x => x && +x.n === +d.ok.ver)[0] || (d.vers || [])[(d.vers || []).length - 1];
+      const at = (v && v.at) || d.ok.at || '';
+      if(at > last) last = at;
+    }));
+    if(any && all && last) return last;
+  }
+  const h = (o.trackHist || []).filter(x => x && x.t === 'prod' && ['ready', 'work', 'done'].indexOf(x.s) >= 0)[0];
+  return (h && h.at) || o.prodAt || '';
 }
 function orderPieces(o){
   if(orderDir(o) === 'b2c'){
@@ -9904,25 +10052,38 @@ function orderPieces(o){
   }
   return (o.items || []).filter(i => itemKind(i) === 'main').reduce((a, i) => a + (+i.qty || 0), 0);
 }
-function payWorkEmpty(){
-  return { order: [], design: [], stitch: [], piece: [], leads: 0, vers: 0, taken: 0, buys: 0, qc: 0 };
+/* Скільки погоджених дизайнів у замовленні. */
+function orderDesigns(o){
+  if(orderDir(o) === 'b2c'){
+    const j = (designJobs || {})[o.orderId];
+    let n = 0;
+    ((j && j.units) || []).forEach(u => (u.graphic || []).forEach(d => { if(d && d.ok) n++; }));
+    return n;
+  }
+  return (o.art || []).some(v => v && v.approvals && v.approvals.client) ? 1 : 0;
 }
-/* Уся робота за місяць, розкладена по людях. */
+function payWorkEmpty(){
+  return { sales: [], leads: 0, proc: [], comm: [], design: [], stitch: [], piece: [],
+           vers: 0, taken: 0, buys: 0, qc: 0, resp: [] };
+}
+/* Уся робота за місяць, розкладена по людях, плюс підсумок цеху. */
 function teamWork(m){
   const W = {};
-  const of = e => { e = String(e || '').trim().toLowerCase() || '—'; return W[e] || (W[e] = payWorkEmpty()); };
+  const shop = { b2b: 0, b2c: 0, orders: [] };
+  const of = e => { e = payLow(e) || '—'; return W[e] || (W[e] = payWorkEmpty()); };
   (orders || []).forEach(o => {
     if(!o || !o.orderId) return;
     const dir = orderDir(o);
-    if(finOrderMonth(o) === m){
-      const mg = orderMgr(o);
-      const w = of(mg);
-      w.leads++;
-      if(orderMade(o)) w.order.push({ id: o.orderId, dir, sum: +o.totalPrice || 0,
+    if(dir === 'b2b' && finOrderMonth(o) === m && o.status !== 'cancel') of(o.mgrEmail).leads++;
+    if(dir === 'b2b' && payYm(orderMadeAt(o)) === m)
+      of(o.mgrEmail).sales.push({ id: o.orderId, dir, sum: +o.totalPrice || 0,
         margin: (+o.totalCost > 0) ? (+o.totalPrice || 0) - (+o.totalCost) : null });
+    if(o.status !== 'cancel' && payYm(orderProdAt(o)) === m){
+      const rec = { id: o.orderId, dir, pieces: orderPieces(o), designs: orderDesigns(o) };
+      of(orderProc(o)).proc.push(rec);
+      if(orderComm(o)) of(orderComm(o)).comm.push(rec);
     }
     if(dir === 'b2b'){
-      /* Макет B2B — версія, яку погодив клієнт; зараховуємо тому, хто її зробив. */
       (o.art || []).forEach(v => {
         if(v && v.by && v.approvals && v.approvals.client && payYm(v.at) === m)
           of(v.by).design.push({ id: o.orderId, dir, label: 'v' + v.n });
@@ -9933,12 +10094,20 @@ function teamWork(m){
     const h = (o.trackHist || []).filter(Boolean);
     const перше = (t, s) => h.filter(x => x.t === t && s.indexOf(x.s) >= 0)[0];
     const pr = перше('prod', ['done']);
-    if(pr && payYm(pr.at) === m) of(pr.by).piece.push({ id: o.orderId, dir, qty: orderPieces(o) });
+    if(pr && payYm(pr.at) === m){
+      const q = orderPieces(o);
+      shop[dir] += q;
+      shop.orders.push({ id: o.orderId, dir, qty: q });
+      if(pr.by) of(pr.by).piece.push({ id: o.orderId, dir, qty: q });
+    }
     if(dir === 'b2b'){
       const em = перше('embro', ['ok']);
       if(em && payYm(em.at) === m) of(em.by).stitch.push({ id: o.orderId, dir, label: '' });
     }
     h.forEach(x => { if(x.t === 'qc' && (x.s === 'ok' || x.s === 'bad') && x.by && payYm(x.at) === m) of(x.by).qc++; });
+    (Array.isArray(o.resp) ? o.resp : []).forEach(r => {
+      if(r && r.by && payYm(r.at) === m) of(r.by).resp.push({ id: o.orderId, dir, min: +r.min || 0, ch: r.ch || '' });
+    });
   });
   Object.keys(designJobs || {}).forEach(id => {
     const j = designJobs[id];
@@ -9974,80 +10143,157 @@ function teamWork(m){
     const b = designBuys[k];
     if(b && b.by && !b.stock && payYm(b.at) === m) of(b.by).buys++;
   });
+  W['*shop'] = shop;
   return W;
 }
-function payRow(p, m, W){
-  const email = String(p.email || '').trim().toLowerCase();
-  const t = payTerms(email, p.role);
-  const w = W[email] || payWorkEmpty();
-  const mm = (payCfg().months[m] || {})[email] || {};
-  const days = payNum(mm.days) ? Math.max(0, +mm.days || 0) : payWorkDays(email, m);
-  const base = t.mode === 'day' ? Math.round(t.base * days) : Math.round(t.base);
-  const lines = PAY_KINDS.map(x => {
-    const n = x.k === 'piece' ? w.piece.reduce((a, q) => a + (+q.qty || 0), 0) : w[x.k].length;
-    return { k: x.k, label: x.label, one: x.one, n, rate: t[x.k], sum: Math.round(n * t[x.k]) };
-  });
-  const bonus = lines.reduce((a, l) => a + l.sum, 0);
-  const adj = Math.round(+mm.adj || 0);
-  return { email, role: p.role, name: p.name || personName(email) || email, t, w, days,
-           daysOwn: payNum(mm.days), base, lines, bonus, adj, adjNote: mm.adjNote || '',
-           total: base + bonus + adj, paid: (mm.paid && mm.paid.sum != null) ? mm.paid : null };
-}
-/* Хто в розрахунку: уся команда плюс ті, хто щось зробив, але вже не в
-   ній (звільнився посеред місяця — гроші йому однаково винні). */
+/* Хто в розрахунку: команда CRM (з посадою), люди без входу, і ті, хто
+   щось зробив, але вже не в команді (гроші їм однаково винні). */
 function payPeople(m, W){
-  const seen = {}, out = [];
+  const c = payCfg(), seen = {}, out = [];
+  const posOf = (key, role) => (c.people[key] || {}).pos || PAY_POS_OF_ROLE[role] || '';
   /* Збережений список, а не чернетка вкладки «Команда й доступи»: незбережена
      правка там не має міняти чиюсь зарплату. */
   (((contentData && contentData.team) || [])).forEach(p => {
-    const e = String((p && p.email) || '').trim().toLowerCase();
+    const e = payLow(p && p.email);
     if(!e || seen[e]) return;
     seen[e] = 1;
-    out.push({ email: e, name: personName(e) || p.name || e, role: roleDef(p.role) ? p.role : 'manager' });
+    const role = roleDef(p.role) ? p.role : 'manager';
+    out.push({ key: e, email: e, name: personName(e) || p.name || e, role, pos: posOf(e, role) });
   });
-  Object.keys(W).forEach(e => {
-    if(e === '—' || seen[e]) return;
+  c.staff.forEach(s => {
+    const k = 'x:' + s.id;
+    if(seen[k]) return;
+    seen[k] = 1;
+    out.push({ key: k, email: '', name: s.name || 'без імені', role: '', pos: posOf(k, '') || s.pos || '', staff: true });
+  });
+  Object.keys(W || {}).forEach(e => {
+    if(e === '—' || e === '*shop' || seen[e]) return;
     const w = W[e];
-    if(!(w.order.length || w.design.length || w.stitch.length || w.piece.length)) return;
+    if(!(w.sales.length || w.proc.length || w.comm.length || w.design.length || w.stitch.length || w.piece.length)) return;
     seen[e] = 1;
-    out.push({ email: e, name: personName(e) || e, role: '', gone: true });
+    out.push({ key: e, email: e, name: personName(e) || e, role: '', pos: '', gone: true });
   });
   return out;
 }
+/* Скільки одиниць за кожним полем посади — і з яких замовлень. */
+function payCount(f, person, W, m){
+  const x = PAY_F[f], pos = payPos(person.pos) || {}, w = W[person.key] || payWorkEmpty();
+  const byDir = l => x.dir ? l.filter(r => r.dir === x.dir) : l;
+  const ids = l => l.map(r => '#' + r.id + (r.label ? ' ' + r.label : ''));
+  const src = person.pos === 'comm' ? w.comm : w.proc;
+  if(x.kind === 'order'){
+    const l = byDir(pos.dept === 'sales' ? w.sales : src);
+    return { n: l.length, ids: ids(l) };
+  }
+  if(x.kind === 'design'){
+    if(pos.dept === 'acct'){
+      const l = byDir(src).filter(r => r.designs);
+      return { n: l.reduce((a, r) => a + r.designs, 0), ids: l.map(r => '#' + r.id + (r.designs > 1 ? ' × ' + r.designs : '')) };
+    }
+    const l = byDir(w.design);
+    return { n: l.length, ids: ids(l) };
+  }
+  if(x.kind === 'stitch'){ const l = byDir(w.stitch); return { n: l.length, ids: ids(l) }; }
+  if(x.kind === 'piece'){
+    /* Акаунт-менеджеру — штуки його замовлень; цеху — усі вироби цеху за
+       місяць: хто з операторів що шив, CRM не знає. */
+    const l = pos.dept === 'acct' ? byDir(src).map(r => ({ id: r.id, qty: r.pieces }))
+            : pos.dept === 'prod' ? byDir(W['*shop'] ? W['*shop'].orders : [])
+            : byDir(w.piece);
+    return { n: l.reduce((a, r) => a + (+r.qty || 0), 0), ids: l.map(r => '#' + r.id + ' · ' + (+r.qty || 0) + ' шт') };
+  }
+  if(x.kind === 'buy') return { n: w.buys, ids: [] };
+  if(x.kind === 'unit'){
+    const mm = (payCfg().months[m] || {})[person.key] || {};
+    return { n: Math.max(0, +mm.units || 0), ids: [] };
+  }
+  return { n: 0, ids: [] };
+}
+function payRow(person, m, W){
+  const t = payTerms(person.key, person.pos, person.role);
+  const pos = payPos(person.pos);
+  const mm = (payCfg().months[m] || {})[person.key] || {};
+  const days = payNum(mm.days) ? Math.max(0, +mm.days || 0) : payWorkDays(person.email, m);
+  const base = t.mode === 'day' ? Math.round(t.base * days) : Math.round(t.base);
+  const lines = [];
+  ((pos && pos.f) || []).forEach(f => {
+    if(f === 'pct'){
+      /* % від продажів: свої продажі або всього відділу. */
+      const всі = Object.keys(W).filter(k => k !== '*shop').reduce((a, k) => a.concat(W[k].sales || []), []);
+      const l = t.scope === 'dept' ? всі : ((W[person.key] || payWorkEmpty()).sales);
+      const сума = l.reduce((a, r) => a + (+r.sum || 0), 0);
+      lines.push({ f, label: '% від продажів' + (t.scope === 'dept' ? ' відділу' : ''), n: сума, rate: t.pct,
+                   sum: Math.round(сума * t.pct / 100), pct: true, ids: l.map(r => '#' + r.id) });
+      return;
+    }
+    const c = payCount(f, person, W, m);
+    lines.push({ f, label: PAY_F[f].label, n: c.n, rate: t[f], sum: Math.round(c.n * t[f]), ids: c.ids,
+                 pcs: PAY_F[f].kind === 'piece' });
+  });
+  const bonus = lines.reduce((a, l) => a + l.sum, 0);
+  const adj = Math.round(+mm.adj || 0);
+  return { key: person.key, email: person.email, staff: !!person.staff, gone: !!person.gone,
+           role: person.role, pos: person.pos, posLabel: pos ? pos.label : 'посаду не обрано',
+           dept: pos ? pos.dept : '', name: person.name, t, w: W[person.key] || payWorkEmpty(), days,
+           daysOwn: payNum(mm.days), units: +mm.units || 0, base, lines, bonus, adj, adjNote: mm.adjNote || '',
+           total: base + bonus + adj, paid: (mm.paid && mm.paid.sum != null) ? mm.paid : null };
+}
 const payMoney0 = n => fmt(n) + ' ₴';
-/* Цифри по людині — ті, що стосуються її роботи; нулів не показуємо. */
-function payStatsHtml(r){
+const payAvg = (l, f) => { const v = l.map(f).filter(x => x != null && !isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const payHM = min => min == null ? '—' : (min < 60 ? Math.round(min) + ' хв' : (Math.round(min / 6) / 10).toString().replace('.', ',') + ' год');
+/* Хто з клієнтів чекає відповіді просто зараз — по комунікейшн-менеджеру. */
+function payWaitingNow(key){
+  return (orders || []).filter(o => o && orderComm(o) === key &&
+    ((typeof waitingMin === 'function' && waitingMin(o) > 0) || (o.crmTheirs && o.crmInAt))).length;
+}
+/* Цифри людини: ті, що стосуються її роботи; нулів не показуємо. */
+function payStats(r){
   const w = r.w, c = [];
-  const avg = (l, f) => { const v = l.map(f).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-  if(w.leads || w.order.length){
-    const сума = w.order.reduce((a, o) => a + o.sum, 0);
-    const мар = w.order.filter(o => o.margin != null);
-    c.push(['Замовлень', w.order.length + (w.leads > w.order.length ? ' з ' + w.leads + ' звернень' : '')]);
-    if(w.leads) c.push(['Конверсія', Math.round(w.order.length / w.leads * 100) + '%']);
-    if(сума) c.push(['Сума замовлень', payMoney0(сума)]);
-    if(w.order.length && сума) c.push(['Середній чек', payMoney0(сума / w.order.length)]);
+  if(w.leads || w.sales.length){
+    const сума = w.sales.reduce((a, o) => a + o.sum, 0);
+    const мар = w.sales.filter(o => o.margin != null);
+    c.push(['Звернень', w.leads]);
+    c.push(['Замовлень', w.sales.length]);
+    if(w.leads) c.push(['Конверсія', Math.round(w.sales.length / w.leads * 100) + '%']);
+    if(сума) c.push(['Сума продажів', payMoney0(сума)]);
+    if(w.sales.length && сума) c.push(['Середній чек', payMoney0(сума / w.sales.length)]);
     if(мар.length) c.push(['Маржа', payMoney0(мар.reduce((a, o) => a + o.margin, 0))]);
+  }
+  const ac = r.pos === 'comm' ? w.comm : w.proc;
+  if(ac.length){
+    c.push(['Передано у виробництво', ac.length]);
+    c.push(['Виробів у них', ac.reduce((a, x) => a + x.pieces, 0) + ' шт']);
+  }
+  if(w.resp.length){
+    c.push(['Відповідей клієнтам', w.resp.length]);
+    c.push(['Середній час відповіді', payHM(payAvg(w.resp, x => x.min))]);
+  }
+  if(r.email && (r.pos === 'comm' || w.resp.length)){
+    const n = payWaitingNow(r.email);
+    if(n) c.push(['Чекають відповіді зараз', n]);
   }
   if(w.taken) c.push(['Взято в роботу', w.taken]);
   if(w.vers) c.push(['Здано версій', w.vers]);
   if(w.design.length){
     c.push(['Погоджено дизайнів', w.design.length]);
-    const пр = avg(w.design, d => d.revisions);
+    const пр = payAvg(w.design, d => d.revisions);
     if(пр != null) c.push(['Правок на дизайн', (Math.round(пр * 10) / 10).toString().replace('.', ',')]);
-    const fh = avg(w.design, d => d.firstH);
+    const fh = payAvg(w.design, d => d.firstH);
     if(fh != null) c.push(['До першої версії', Math.round(fh) + ' год']);
   }
   if(w.stitch.length){
     c.push(['Здано оцифровок', w.stitch.length]);
-    const sh = avg(w.stitch, d => d.hours);
+    const sh = payAvg(w.stitch, d => d.hours);
     if(sh != null) c.push(['Від передачі до здачі', Math.round(sh) + ' год']);
   }
-  if(w.piece.length){
-    c.push(['Виробів', w.piece.reduce((a, q) => a + (+q.qty || 0), 0) + ' шт']);
-    c.push(['Замовлень у цеху', w.piece.length]);
-  }
+  if(w.piece.length) c.push(['Поставив «Готово»', w.piece.length + ' замовл. · ' + w.piece.reduce((a, q) => a + (+q.qty || 0), 0) + ' шт']);
   if(w.buys) c.push(['Закупівель', w.buys]);
   if(w.qc) c.push(['Перевірок якості', w.qc]);
+  if(r.units) c.push(['Одиниць (вручну)', r.units]);
+  return c;
+}
+function payStatsHtml(r){
+  const c = payStats(r);
   if(!c.length) return '<div class="tm-none">За цей місяць робіт не записано.</div>';
   return '<div class="tm-stats">' + c.map(x => '<div class="tm-st"><span>' + escapeHtml(x[0]) + '</span><b>' +
     escapeHtml(String(x[1])) + '</b></div>').join('') + '</div>';
@@ -10060,12 +10306,11 @@ function payBreakHtml(r, m){
     : ' за місяць') + '</span><b>' + payMoney0(r.base) + '</b></div>');
   r.lines.forEach(l => {
     if(!l.n && !l.rate) return;
-    const список = l.k === 'piece'
-      ? r.w.piece.map(q => '#' + q.id + (q.qty ? ' · ' + q.qty + ' шт' : ''))
-      : r.w[l.k].map(x => '#' + x.id + (x.label ? ' ' + x.label : ''));
-    рядки.push('<div class="tm-l"><span>' + escapeHtml(l.label) + ': ' + l.n + (l.k === 'piece' ? ' шт' : '') +
-      ' × ' + payMoney0(l.rate) + '</span><b>' + payMoney0(l.sum) + '</b></div>' +
-      (список.length ? '<div class="tm-ids">' + список.map(escapeHtml).join(', ') + '</div>' : ''));
+    const що = l.pct
+      ? l.label + ': ' + payMoney0(l.n) + ' × ' + String(l.rate).replace('.', ',') + '%'
+      : l.label[0].toUpperCase() + l.label.slice(1) + ': ' + l.n + (l.pcs ? ' шт' : '') + ' × ' + payMoney0(l.rate);
+    рядки.push('<div class="tm-l"><span>' + escapeHtml(що) + '</span><b>' + payMoney0(l.sum) + '</b></div>' +
+      (l.ids && l.ids.length ? '<div class="tm-ids">' + l.ids.map(escapeHtml).join(', ') + '</div>' : ''));
   });
   if(r.adj) рядки.push('<div class="tm-l"><span>Коригування' + (r.adjNote ? ' · ' + escapeHtml(r.adjNote) : '') +
     '</span><b>' + (r.adj > 0 ? '+' : '−') + payMoney0(Math.abs(r.adj)) + '</b></div>');
@@ -10075,7 +10320,13 @@ function payBreakHtml(r, m){
     escapeHtml(new Date(r.paid.at).toLocaleDateString('uk-UA')) + '</div>');
   return '<div class="tm-break">' + рядки.join('') + '</div>';
 }
-let payView = { m: '', open: '' };
+function payPosOptions(cur, empty){
+  return (empty ? '<option value="">' + escapeHtml(empty) + '</option>' : '') +
+    PAY_DEPTS.map(d => '<optgroup label="' + escapeHtml(d.label) + '">' + d.pos.map(p =>
+      '<option value="' + p.k + '"' + (p.k === cur ? ' selected' : '') + '>' + escapeHtml(p.label) + '</option>').join('') +
+    '</optgroup>').join('');
+}
+let payView = { m: '', open: '', rates: false };
 function renderTeam(){
   const box = document.getElementById('fin-team');
   if(!box) return;
@@ -10088,14 +10339,56 @@ function renderTeam(){
   const нар = rows.reduce((a, r) => a + r.total, 0);
   const вип = rows.reduce((a, r) => a + (r.paid ? +r.paid.sum || 0 : 0), 0);
   const нічия = W['—'];
-  const ролі = roleDefs().filter(r => r && r.key);
   const c = payCfg();
-  const inp = (attrs, v, ph) => '<input type="number" step="1" ' + attrs + ' value="' +
+  const inp = (attrs, v, ph) => '<input type="number" step="any" ' + attrs + ' value="' +
     (payNum(v) ? escapeHtml(String(v)) : '') + '" placeholder="' + escapeHtml(ph == null ? '0' : String(ph)) + '">';
+  const E = escapeHtml;
+  const рядок = r => {
+    const on = payView.open === r.key;
+    const pos = payPos(r.pos), pp = c.people[r.key] || {}, P = c.pos[r.pos] || {};
+    return '<tr class="tm-r' + (on ? ' on' : '') + '" data-tm-open="' + E(r.key) + '">' +
+      '<td><b>' + E(r.name) + '</b><i>' + E(r.posLabel) + (r.staff ? ' · без входу в CRM' : r.gone ? ' · не в команді' : '') +
+        (r.t.own ? ' · особисті умови' : '') + '</i></td>' +
+      '<td>' + payMoney0(r.base) + '</td><td>' + payMoney0(r.bonus) + '</td>' +
+      '<td>' + (r.adj ? (r.adj > 0 ? '+' : '−') + payMoney0(Math.abs(r.adj)) : '—') + '</td>' +
+      '<td><b>' + payMoney0(r.total) + '</b></td>' +
+      '<td class="tm-act">' + (r.paid
+        ? '<span class="tm-ok">✓ ' + payMoney0(r.paid.sum) + '</span><button type="button" class="tm-undo" data-tm-unpaid="' +
+          E(r.key) + '" title="Скасувати виплату">↺</button>'
+        : '<button type="button" class="tm-pay" data-tm-paid="' + E(r.key) + '"' + (r.total > 0 ? '' : ' disabled') +
+          '>Виплачено</button>') + '</td></tr>' +
+      (on ? '<tr class="tm-d"><td colspan="6">' +
+        '<div class="tm-dg"><div><div class="an-h">Аналітика</div>' + payStatsHtml(r) +
+          '<div class="an-h">Розрахунок</div>' + payBreakHtml(r, m) + '</div>' +
+        '<div class="tm-ed">' +
+          '<label>Посада<select data-tm-pos="' + E(r.key) + '">' + payPosOptions(r.pos, 'не обрано') + '</select></label>' +
+          (r.staff ? '<label>Імʼя<input type="text" data-tm-sname="' + E(r.key) + '" value="' + E(r.name) + '"></label>' : '') +
+          '<div class="an-h">Цей місяць</div>' +
+          (r.t.mode === 'day' ? '<label>Відпрацьовано днів' + inp('data-tm-days="' + E(r.key) + '" min="0"', r.daysOwn ? r.days : '', payWorkDays(r.email, m)) + '</label>' : '') +
+          (pos && pos.f.indexOf('unit') >= 0 ? '<label>Одиниць за місяць (відео, зйомки…)' + inp('data-tm-units="' + E(r.key) + '" min="0"', r.units || '', 0) + '</label>' : '') +
+          '<label>Коригування, ₴ (премія або утримання з мінусом)' + inp('data-tm-adj="' + E(r.key) + '"', r.adj || '', 0) + '</label>' +
+          '<label>За що<input type="text" data-tm-adjnote="' + E(r.key) + '" value="' + E(r.adjNote) + '" placeholder="наприклад, премія за терміновий тираж"></label>' +
+          (pos ? '<div class="an-h">Особисті умови</div><div class="tm-hint">Порожньо — як у посади.</div>' +
+            '<label>Ставка' + inp('data-tm-p="base" data-tm-e="' + E(r.key) + '" min="0"', pp.base, P.base || 0) + '</label>' +
+            '<label>Як рахувати ставку<select data-tm-p="mode" data-tm-e="' + E(r.key) + '">' +
+              '<option value="">як у посади</option><option value="month"' + (pp.mode === 'month' ? ' selected' : '') + '>за місяць</option>' +
+              '<option value="day"' + (pp.mode === 'day' ? ' selected' : '') + '>за день</option></select></label>' +
+            pos.f.map(f => '<label>' + E(PAY_F[f].label[0].toUpperCase() + PAY_F[f].label.slice(1)) +
+              inp('data-tm-p="' + f + '" data-tm-e="' + E(r.key) + '" min="0"', pp[f], P[f] || 0) + '</label>').join('') : '') +
+          (r.staff ? '<button type="button" class="tm-del" data-tm-sdel="' + E(r.key) + '">Прибрати з команди</button>' : '') +
+        '</div></div></td></tr>' : '');
+  };
+  /* Рядки — по відділах: так видно і людину, і що в неї за спиною. */
+  const групи = PAY_DEPTS.map(d => ({ d, l: rows.filter(r => r.dept === d.k) }))
+    .concat([{ d: { k:'', label:'Посаду не обрано' }, l: rows.filter(r => !r.dept) }])
+    .filter(g => g.l.length);
   box.innerHTML =
     '<div class="fin-an-bar"><select id="tm-month">' + місяці.map(x =>
-      '<option value="' + x + '"' + (x === m ? ' selected' : '') + '>' + escapeHtml(finMonthLabel(x)) + '</option>').join('') +
-    '</select></div>' +
+      '<option value="' + x + '"' + (x === m ? ' selected' : '') + '>' + E(finMonthLabel(x)) + '</option>').join('') +
+    '</select>' +
+    '<span class="tm-add"><input type="text" id="tm-new-name" placeholder="Людина чи агенція без входу в CRM">' +
+      '<select id="tm-new-pos">' + payPosOptions('pack') + '</select>' +
+      '<button type="button" class="tm-pay" id="tm-new-go">+ Додати</button></span></div>' +
     '<div class="an-row">' +
       '<div class="an-c"><span>Людей</span><b>' + rows.length + '</b></div>' +
       '<div class="an-c"><span>Нараховано</span><b>' + payMoney0(нар) + '</b></div>' +
@@ -10104,57 +10397,34 @@ function renderTeam(){
     '</div>' +
     '<table class="an-t tm-t"><thead><tr><th>Людина</th><th>Ставка</th><th>Бонус</th><th>Коригування</th>' +
       '<th>До виплати</th><th></th></tr></thead><tbody>' +
-    rows.map(r => {
-      const on = payView.open === r.email;
-      return '<tr class="tm-r' + (on ? ' on' : '') + '" data-tm-open="' + escapeHtml(r.email) + '">' +
-        '<td><b>' + escapeHtml(r.name) + '</b><i>' + escapeHtml(r.role ? roleName(r.role) : 'не в команді') +
-          (r.t.own ? ' · особисті умови' : '') + '</i></td>' +
-        '<td>' + payMoney0(r.base) + '</td><td>' + payMoney0(r.bonus) + '</td>' +
-        '<td>' + (r.adj ? (r.adj > 0 ? '+' : '−') + payMoney0(Math.abs(r.adj)) : '—') + '</td>' +
-        '<td><b>' + payMoney0(r.total) + '</b></td>' +
-        '<td class="tm-act">' + (r.paid
-          ? '<span class="tm-ok">✓ ' + payMoney0(r.paid.sum) + '</span><button type="button" class="tm-undo" data-tm-unpaid="' +
-            escapeHtml(r.email) + '" title="Скасувати виплату">↺</button>'
-          : '<button type="button" class="tm-pay" data-tm-paid="' + escapeHtml(r.email) + '"' + (r.total > 0 ? '' : ' disabled') +
-            '>Виплачено</button>') + '</td></tr>' +
-        (on ? '<tr class="tm-d"><td colspan="6">' +
-          '<div class="tm-dg"><div>' + '<div class="an-h">Аналітика</div>' + payStatsHtml(r) +
-            '<div class="an-h">Розрахунок</div>' + payBreakHtml(r, m) + '</div>' +
-          '<div class="tm-ed"><div class="an-h">Цей місяць</div>' +
-            (r.t.mode === 'day' ? '<label>Відпрацьовано днів' + inp('data-tm-days="' + escapeHtml(r.email) + '" min="0"', r.daysOwn ? r.days : '', payWorkDays(r.email, m)) + '</label>' : '') +
-            '<label>Коригування, ₴ (премія або утримання з мінусом)' + inp('data-tm-adj="' + escapeHtml(r.email) + '"', r.adj || '', 0) + '</label>' +
-            '<label>За що<input type="text" data-tm-adjnote="' + escapeHtml(r.email) + '" value="' + escapeHtml(r.adjNote) + '" placeholder="наприклад, премія за терміновий тираж"></label>' +
-            '<div class="an-h">Особисті умови</div><div class="tm-hint">Порожньо — як у ролі.</div>' +
-            '<label>Ставка' + inp('data-tm-p="base" data-tm-e="' + escapeHtml(r.email) + '" min="0"', (c.people[r.email] || {}).base, (c.roles[r.role] || {}).base || 0) + '</label>' +
-            '<label>Як рахувати ставку<select data-tm-p="mode" data-tm-e="' + escapeHtml(r.email) + '">' +
-              '<option value="">як у ролі</option><option value="month"' + ((c.people[r.email] || {}).mode === 'month' ? ' selected' : '') + '>за місяць</option>' +
-              '<option value="day"' + ((c.people[r.email] || {}).mode === 'day' ? ' selected' : '') + '>за день</option></select></label>' +
-            PAY_KINDS.map(x => '<label>' + escapeHtml(x.one[0].toUpperCase() + x.one.slice(1)) +
-              inp('data-tm-p="' + x.k + '" data-tm-e="' + escapeHtml(r.email) + '" min="0"', (c.people[r.email] || {})[x.k], (c.roles[r.role] || {})[x.k] || 0) + '</label>').join('') +
-          '</div></div></td></tr>' : '');
+    групи.map(g => {
+      const s = g.l.reduce((a, r) => a + r.total, 0);
+      return '<tr class="tm-g"><td colspan="4">' + E(g.d.label) + '</td><td>' + payMoney0(s) + '</td><td></td></tr>' + g.l.map(рядок).join('');
     }).join('') + '</tbody></table>' +
-    (нічия && (нічия.order.length || нічия.piece.length || нічия.stitch.length)
-      ? '<div class="an-note">Без відповідального: ' + [нічия.order.length ? нічия.order.length + ' замовл. (' + нічия.order.map(o => '#' + o.id).slice(0, 8).join(', ') + ')' : '',
-          нічия.piece.length ? нічия.piece.length + ' у цеху' : '', нічия.stitch.length ? нічия.stitch.length + ' оцифровок' : ''].filter(Boolean).join(' · ') +
-        '. Їх нікому не зараховано — призначте менеджера в картці замовлення.</div>' : '') +
-    '<details class="tm-rates"' + (payView.rates ? ' open' : '') + '><summary>Ставки й бонуси за ролями</summary>' +
-      '<table class="an-t"><thead><tr><th>Роль</th><th>Ставка</th><th>Як</th>' +
-        PAY_KINDS.map(x => '<th>' + escapeHtml(x.one[0].toUpperCase() + x.one.slice(1)) + '</th>').join('') + '</tr></thead><tbody>' +
-      ролі.map(rl => {
-        const v = c.roles[rl.key] || {};
-        return '<tr><td>' + escapeHtml(rl.name || rl.key) + '</td>' +
-          '<td>' + inp('data-tm-r="base" data-tm-role="' + escapeHtml(rl.key) + '" min="0"', v.base) + '</td>' +
-          '<td><select data-tm-r="mode" data-tm-role="' + escapeHtml(rl.key) + '"><option value="month">за місяць</option>' +
-            '<option value="day"' + (v.mode === 'day' ? ' selected' : '') + '>за день</option></select></td>' +
-          PAY_KINDS.map(x => '<td>' + inp('data-tm-r="' + x.k + '" data-tm-role="' + escapeHtml(rl.key) + '" min="0"', v[x.k]) + '</td>').join('') +
-        '</tr>';
-      }).join('') + '</tbody></table>' +
-      '<div class="tm-hint">Бонус нараховується за кожну одиницю роботи в місяці, коли її зроблено. Порожня клітинка — нуль.</div>' +
+    (нічия && (нічия.sales.length || нічия.proc.length)
+      ? '<div class="an-note">Без відповідального: ' + [нічия.sales.length ? нічия.sales.length + ' продаж(ів) B2B' : '',
+          нічия.proc.length ? нічия.proc.length + ' передано у виробництво (' + нічия.proc.map(o => '#' + o.id).slice(0, 8).join(', ') + ')' : '']
+          .filter(Boolean).join(' · ') + '. Їх нікому не зараховано — призначте менеджера в картці замовлення.</div>' : '') +
+    '<details class="tm-rates"' + (payView.rates ? ' open' : '') + '><summary>Ставки й оплата за посадами</summary>' +
+      PAY_DEPTS.map(d => '<div class="tm-rd"><div class="an-h">' + E(d.label) + '</div>' + d.pos.map(p => {
+        const v = c.pos[p.k] || {};
+        return '<div class="tm-rp"><b>' + E(p.label) + '</b><span class="tm-rf">' +
+          '<label>Ставка' + inp('data-tm-r="base" data-tm-posk="' + p.k + '" min="0"', v.base) + '</label>' +
+          '<label>Як<select data-tm-r="mode" data-tm-posk="' + p.k + '"><option value="month">за місяць</option>' +
+            '<option value="day"' + (v.mode === 'day' ? ' selected' : '') + '>за день</option></select></label>' +
+          p.f.map(f => '<label>' + E(PAY_F[f].label) + inp('data-tm-r="' + f + '" data-tm-posk="' + p.k + '" min="0"', v[f]) + '</label>').join('') +
+          (p.f.indexOf('pct') >= 0 ? '<label>% рахувати з<select data-tm-r="scope" data-tm-posk="' + p.k + '">' +
+            '<option value="own"' + ((v.scope || p.scope) === 'own' ? ' selected' : '') + '>своїх продажів</option>' +
+            '<option value="dept"' + ((v.scope || p.scope) === 'dept' ? ' selected' : '') + '>продажів відділу</option></select></label>' : '') +
+        '</span></div>';
+      }).join('') + '</div>').join('') +
+      '<div class="tm-hint">Сума за одиницю нараховується в місяці, коли робота людини закінчилась. ' +
+        'B2B і B2C — окремі ставки: одна людина працює в обох. Порожня клітинка — нуль.</div>' +
     '</details>';
 }
-async function payMark(email){
+async function payMark(key){
   const m = payView.m, W = teamWork(m);
-  const p = payPeople(m, W).filter(x => x.email === email)[0];
+  const p = payPeople(m, W).filter(x => x.key === key)[0];
   if(!p) return;
   const r = payRow(p, m, W);
   const s = prompt('Виплачено: ' + r.name + ' за ' + finMonthLabel(m).toLowerCase() + ', грн', String(r.total));
@@ -10167,23 +10437,23 @@ async function payMark(email){
   try{
     const ref = await PAY_COL.add({ at, amount: -n, ccy:'UAH', acc: (finView.acc || (accs[0] && accs[0].id) || ''),
       counter: r.name, desc: 'Зарплата · ' + finMonthLabel(m), src:'salary', by: myEmail() || '',
-      salary: { month: m, email } });
+      salary: { month: m, who: key } });
     payId = (ref && ref.id) || '';
   }catch(e){ console.error(e); return toast('Витрата у Фінансах не записалась'); }
   await paySave(c => { c.months[m] = c.months[m] || {};
-    c.months[m][email] = Object.assign({}, c.months[m][email], { paid: { at, by: myEmail() || '', sum: n, payId } }); });
+    c.months[m][key] = Object.assign({}, c.months[m][key], { paid: { at, by: myEmail() || '', sum: n, payId } }); });
   await payFixedSync(m);
   toast('Виплачено ' + payMoney0(n) + ' · записано у Фінанси');
   renderTeam();
 }
-async function payUnmark(email){
+async function payUnmark(key){
   const m = payView.m;
-  const mm = (payCfg().months[m] || {})[email] || {};
+  const mm = (payCfg().months[m] || {})[key] || {};
   if(!mm.paid) return;
   if(!confirm('Скасувати виплату ' + payMoney0(mm.paid.sum) + '? Витрата у Фінансах теж прибереться.')) return;
   if(mm.paid.payId){ try{ await PAY_COL.doc(mm.paid.payId).delete(); }catch(e){ console.warn(e); } }
   await paySave(c => { c.months[m] = c.months[m] || {};
-    c.months[m][email] = Object.assign({}, c.months[m][email], { paid: null }); });
+    c.months[m][key] = Object.assign({}, c.months[m][key], { paid: null }); });
   await payFixedSync(m);
   renderTeam();
 }
@@ -10210,58 +10480,179 @@ let myPayM = '';
 function renderMyPay(){
   const box = document.getElementById('td-pay');
   if(!box) return;
-  const me = String(myEmail() || '').trim().toLowerCase();
+  const me = payLow(myEmail());
   if(!me){ box.innerHTML = ''; return; }
   try{ watchDesign(); }catch(e){}
   const місяці = finMonths(6);
   if(!myPayM) myPayM = місяці[0];
   const W = teamWork(myPayM);
-  const p = payPeople(myPayM, W).filter(x => x.email === me)[0] ||
-            { email: me, name: personName(me) || me, role: myRole() || 'manager' };
+  const p = payPeople(myPayM, W).filter(x => x.key === me)[0] ||
+            { key: me, email: me, name: personName(me) || me, role: myRole() || 'manager', pos: PAY_POS_OF_ROLE[myRole()] || '' };
   const r = payRow(p, myPayM, W);
   const was = box.querySelector('details');
   const open = was ? was.open : false;
   box.innerHTML = '<details class="tm-my"' + (open ? ' open' : '') + '><summary><b>Мій розрахунок</b> · ' +
       escapeHtml(finMonthLabel(myPayM)) + ' — <b>' + payMoney0(r.total) + '</b>' + (r.paid ? ' · виплачено' : '') + '</summary>' +
     '<div class="fin-an-bar"><select id="tm-my-month">' + місяці.map(x => '<option value="' + x + '"' +
-      (x === myPayM ? ' selected' : '') + '>' + escapeHtml(finMonthLabel(x)) + '</option>').join('') + '</select></div>' +
+      (x === myPayM ? ' selected' : '') + '>' + escapeHtml(finMonthLabel(x)) + '</option>').join('') + '</select>' +
+      '<span class="tm-hint">' + escapeHtml(r.posLabel) + '</span></div>' +
     payStatsHtml(r) + payBreakHtml(r, myPayM) + '</details>';
+}
+/* ══════════ ДАШБОРДИ ВІДДІЛІВ ══════════
+   Загальна картина відділу й кожна людина — без грошей (гроші — у
+   Фінансах). Хто має доступ до аналітики, бачить усі відділи; решта —
+   свій. Це каркас: Андрій далі дописуватиме, які цифри важать. */
+let dashView = { m: '', d: '' };
+function dashCanAll(){
+  const nav = (myAcc() || {}).nav;
+  return nav === '*' || !Array.isArray(nav) || nav.indexOf('analytics') >= 0;
+}
+/* Що показувати по відділу: колонки таблиці людей і підсумки зверху. */
+const DASH_COLS = {
+  sales: [['Звернень', r => r.w.leads], ['Замовлень', r => r.w.sales.length],
+          ['Конверсія', r => r.w.leads ? Math.round(r.w.sales.length / r.w.leads * 100) + '%' : '—'],
+          ['Сума продажів', r => payMoney0(r.w.sales.reduce((a, o) => a + o.sum, 0))],
+          ['Середній чек', r => r.w.sales.length ? payMoney0(r.w.sales.reduce((a, o) => a + o.sum, 0) / r.w.sales.length) : '—']],
+  acct:  [['Передано у виробництво', r => (r.pos === 'comm' ? r.w.comm : r.w.proc).length],
+          ['Виробів', r => (r.pos === 'comm' ? r.w.comm : r.w.proc).reduce((a, x) => a + x.pieces, 0)],
+          ['Дизайнів', r => (r.pos === 'comm' ? r.w.comm : r.w.proc).reduce((a, x) => a + x.designs, 0)],
+          ['Відповідей', r => r.w.resp.length],
+          ['Сер. час відповіді', r => payHM(payAvg(r.w.resp, x => x.min))],
+          ['Чекають зараз', r => r.email ? payWaitingNow(r.email) : 0]],
+  gd:    [['Взято', r => r.w.taken], ['Здано версій', r => r.w.vers], ['Погоджено', r => r.w.design.length],
+          ['Правок на дизайн', r => { const v = payAvg(r.w.design, d => d.revisions); return v == null ? '—' : (Math.round(v * 10) / 10).toString().replace('.', ','); }],
+          ['До першої версії', r => { const v = payAvg(r.w.design, d => d.firstH); return v == null ? '—' : Math.round(v) + ' год'; }]],
+  sd:    [['Здано оцифровок', r => r.w.stitch.length],
+          ['Від передачі до здачі', r => { const v = payAvg(r.w.stitch, d => d.hours); return v == null ? '—' : Math.round(v) + ' год'; }]],
+  prod:  [['Поставив «Готово»', r => r.w.piece.length], ['Виробів', r => r.w.piece.reduce((a, q) => a + (+q.qty || 0), 0)],
+          ['Закупівель', r => r.w.buys], ['Перевірок якості', r => r.w.qc]],
+  content: [['Одиниць (вручну)', r => r.units || 0]],
+  other: []
+};
+function dashTotals(k, rows, W){
+  const all = rows;
+  const sum = f => all.reduce((a, r) => a + (+f(r) || 0), 0);
+  if(k === 'sales'){
+    const s = sum(r => r.w.sales.reduce((a, o) => a + o.sum, 0)), n = sum(r => r.w.sales.length), l = sum(r => r.w.leads);
+    return [['Звернень', l], ['Замовлень', n], ['Конверсія', l ? Math.round(n / l * 100) + '%' : '—'], ['Сума продажів', payMoney0(s)]];
+  }
+  if(k === 'acct'){
+    const resp = all.reduce((a, r) => a.concat(r.w.resp), []);
+    const handed = (orders || []).filter(o => o && o.status !== 'cancel' && payYm(orderProdAt(o)) === dashView.m);
+    return [['Передано у виробництво', handed.length], ['Виробів', handed.reduce((a, o) => a + orderPieces(o), 0)],
+            ['Відповідей', resp.length], ['Сер. час відповіді', payHM(payAvg(resp, x => x.min))]];
+  }
+  if(k === 'gd') return [['Погоджено дизайнів', sum(r => r.w.design.length)], ['Здано версій', sum(r => r.w.vers)], ['Взято', sum(r => r.w.taken)]];
+  if(k === 'sd') return [['Здано оцифровок', sum(r => r.w.stitch.length)]];
+  if(k === 'prod'){
+    const s = W['*shop'] || { b2b: 0, b2c: 0, orders: [] };
+    return [['Виробів B2B', s.b2b], ['Виробів B2C', s.b2c], ['Замовлень готово', s.orders.length], ['Закупівель', sum(r => r.w.buys)]];
+  }
+  if(k === 'content') return [['Людей і агенцій', all.length], ['Одиниць (вручну)', sum(r => r.units)]];
+  return [['Людей', all.length]];
+}
+function renderDash(){
+  const box = document.getElementById('dashRoot');
+  if(!box) return;
+  try{ watchDesign(); }catch(e){}
+  const місяці = finMonths(12);
+  if(!dashView.m) dashView.m = місяці[0];
+  const m = dashView.m;
+  const W = teamWork(m);
+  const rows = payPeople(m, W).map(p => payRow(p, m, W));
+  const me = payLow(myEmail());
+  const мій = rows.filter(r => r.key === me)[0];
+  const всі = dashCanAll();
+  const відділи = PAY_DEPTS.filter(d => d.k !== 'other' && (всі || (мій && мій.dept === d.k)));
+  if(!відділи.length){
+    box.innerHTML = '<div class="an-note">Дашборд відділу зʼявиться, щойно вам оберуть посаду (Фінанси → Команда).</div>';
+    return;
+  }
+  if(!dashView.d || !відділи.some(d => d.k === dashView.d)) dashView.d = (мій && відділи.some(d => d.k === мій.dept)) ? мій.dept : відділи[0].k;
+  const d = payDept(dashView.d);
+  const люди = rows.filter(r => r.dept === d.k);
+  const cols = DASH_COLS[d.k] || [];
+  const E = escapeHtml;
+  box.innerHTML =
+    '<div class="fin-an-bar"><select id="dash-month">' + місяці.map(x => '<option value="' + x + '"' +
+      (x === m ? ' selected' : '') + '>' + E(finMonthLabel(x)) + '</option>').join('') + '</select>' +
+    '<div class="fin-tabs" id="dash-tabs">' + відділи.map(x => '<button type="button" class="fin-tab' +
+      (x.k === d.k ? ' on' : '') + '" data-dash-d="' + x.k + '">' + E(x.label) + '</button>').join('') + '</div></div>' +
+    '<div class="an-row">' + dashTotals(d.k, люди, W).map(x => '<div class="an-c"><span>' + E(x[0]) +
+      '</span><b>' + E(String(x[1])) + '</b></div>').join('') + '</div>' +
+    (люди.length ? '<table class="an-t dash-t"><thead><tr><th>Людина</th>' + cols.map(c => '<th>' + E(c[0]) + '</th>').join('') +
+      '</tr></thead><tbody>' + люди.map(r => '<tr' + (r.key === me ? ' class="on"' : '') + '><td><b>' + E(r.name) + '</b><i>' +
+        E(r.posLabel) + '</i></td>' + cols.map(c => '<td>' + E(String(c[1](r))) + '</td>').join('') + '</tr>').join('') +
+      '</tbody></table>'
+      : '<div class="tm-none">У відділі поки нікого — посади обирають у Фінансах → Команда.</div>') +
+    (d.k === 'acct' ? '<div class="tm-hint">Час відповіді рахується з відповідей, надісланих із CRM (Telegram і Instagram), ' +
+      'від 02.10.2026. Комунікейшн-менеджер замовлення — той, хто першим відповів клієнту.</div>' : '') +
+    (d.k === 'prod' ? '<div class="tm-hint">Вироби — замовлення, яким цех поставив «Готово» цього місяця.</div>' : '');
 }
 (function(){
   document.addEventListener('change', async e => {
     const t = e.target;
     if(!t || !t.closest) return;
     if(t.id === 'tm-my-month'){ myPayM = t.value; return renderMyPay(); }
+    if(t.id === 'dash-month'){ dashView.m = t.value; return renderDash(); }
     if(!t.closest('#fin-team')) return;
     if(t.id === 'tm-month'){ payView.m = t.value; payView.open = ''; return renderTeam(); }
+    if(t.id === 'tm-new-name' || t.id === 'tm-new-pos') return;
     const m = payView.m;
-    const val = v => (String(v).trim() === '' ? null : (isNaN(+v) ? null : +v));
+    const val = v => (String(v).trim() === '' ? null : (isNaN(+String(v).replace(',', '.')) ? null : +String(v).replace(',', '.')));
+    const month = (key, patch) => paySave(c => { c.months[m] = c.months[m] || {};
+      c.months[m][key] = Object.assign({}, c.months[m][key], patch); });
     if(t.dataset.tmR){
-      const role = t.dataset.tmRole, k = t.dataset.tmR;
-      await paySave(c => { c.roles[role] = Object.assign({}, c.roles[role], { [k]: k === 'mode' ? t.value : val(t.value) }); });
+      const pk = t.dataset.tmPosk, k = t.dataset.tmR;
+      await paySave(c => { c.pos[pk] = Object.assign({}, c.pos[pk], { [k]: (k === 'mode' || k === 'scope') ? t.value : val(t.value) }); });
     } else if(t.dataset.tmP){
       const em = t.dataset.tmE, k = t.dataset.tmP;
       await paySave(c => { c.people[em] = Object.assign({}, c.people[em], { [k]: k === 'mode' ? (t.value || null) : val(t.value) }); });
-    } else if(t.dataset.tmDays != null){
-      const em = t.dataset.tmDays;
-      await paySave(c => { c.months[m] = c.months[m] || {}; c.months[m][em] = Object.assign({}, c.months[m][em], { days: val(t.value) }); });
-    } else if(t.dataset.tmAdj != null){
-      const em = t.dataset.tmAdj;
-      await paySave(c => { c.months[m] = c.months[m] || {}; c.months[m][em] = Object.assign({}, c.months[m][em], { adj: val(t.value) }); });
-    } else if(t.dataset.tmAdjnote != null){
-      const em = t.dataset.tmAdjnote;
-      await paySave(c => { c.months[m] = c.months[m] || {}; c.months[m][em] = Object.assign({}, c.months[m][em], { adjNote: String(t.value || '').trim() || null }); });
-    } else return;
+    } else if(t.dataset.tmPos != null){
+      const em = t.dataset.tmPos;
+      await paySave(c => { c.people[em] = Object.assign({}, c.people[em], { pos: t.value || null }); });
+    } else if(t.dataset.tmSname != null){
+      const id = t.dataset.tmSname.slice(2);
+      await paySave(c => { c.staff = c.staff.map(s => s.id === id ? Object.assign({}, s, { name: String(t.value || '').trim() || s.name }) : s); });
+    } else if(t.dataset.tmDays != null) await month(t.dataset.tmDays, { days: val(t.value) });
+    else if(t.dataset.tmUnits != null) await month(t.dataset.tmUnits, { units: val(t.value) });
+    else if(t.dataset.tmAdj != null) await month(t.dataset.tmAdj, { adj: val(t.value) });
+    else if(t.dataset.tmAdjnote != null) await month(t.dataset.tmAdjnote, { adjNote: String(t.value || '').trim() || null });
+    else return;
     payView.rates = !!(document.querySelector('#fin-team .tm-rates') || {}).open;
     renderTeam();
   });
-  document.addEventListener('click', e => {
+  document.addEventListener('click', async e => {
     const t = e.target;
-    if(!t || !t.closest || !t.closest('#fin-team')) return;
+    if(!t || !t.closest) return;
+    const dd = t.closest('[data-dash-d]');
+    if(dd){ dashView.d = dd.dataset.dashD; return renderDash(); }
+    if(!t.closest('#fin-team')) return;
+    if(t.id === 'tm-new-go'){
+      const n = String((document.getElementById('tm-new-name') || {}).value || '').trim();
+      const pos = (document.getElementById('tm-new-pos') || {}).value || '';
+      if(!n) return toast('Впишіть імʼя людини чи назву агенції');
+      const id = 's' + Date.now().toString(36);
+      await paySave(c => { c.staff = c.staff.concat([{ id, name: n, pos }]);
+        c.people['x:' + id] = Object.assign({}, c.people['x:' + id], { pos }); });
+      payView.open = 'x:' + id;
+      toast('Додано: ' + n);
+      return renderTeam();
+    }
+    const del = t.closest('[data-tm-sdel]');
+    if(del){
+      const id = del.dataset.tmSdel.slice(2);
+      const s = payCfg().staff.filter(x => x.id === id)[0];
+      if(!s || !confirm('Прибрати «' + s.name + '» з команди? Минулі виплати лишаться у Фінансах.')) return;
+      await paySave(c => { c.staff = c.staff.filter(x => x.id !== id); });
+      payView.open = '';
+      return renderTeam();
+    }
     const pd = t.closest('[data-tm-paid]');
     if(pd) return payMark(pd.dataset.tmPaid);
     const un = t.closest('[data-tm-unpaid]');
     if(un) return payUnmark(un.dataset.tmUnpaid);
+    if(t.closest('.tm-d')) return;
     const row = t.closest('[data-tm-open]');
     if(row){
       payView.open = payView.open === row.dataset.tmOpen ? '' : row.dataset.tmOpen;
@@ -21806,6 +22197,8 @@ async function tgSend(o, text, photo){
     if(!r.ok || !j.ok){ toast('Не надіслалось: ' + tgErrUa(j, r.status)); return; }
     // Стрічку не чіпаємо: воркер записав повідомлення в базу, і підписка
     // принесе його сама — інакше воно з'явилося б двічі.
+    /* Хто відповів і скільки клієнт чекав — для дашборду й комунікейшн-менеджера. */
+    try{ chatReplied(o, 'tg', waitingMin(o)); saveOrderMeta(o).catch(e => console.warn(e)); }catch(e){ console.warn(e); }
   }catch(e){
     toast('Не надіслалось: ' + ((e && e.message) || 'немає звʼязку з воркером'));
   }
@@ -23061,6 +23454,11 @@ async function crmSend(o, text){
     toast('Надіслано');
     crmSent.add(text.trim());
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
+    /* Хто відповів і скільки клієнт чекав — до того, як кружечок згасне. */
+    try{
+      const чекав = (o.crmTheirs && o.crmInAt) ? (Date.now() - new Date(String(o.crmInAt).replace(' ', 'T')).getTime()) / 60000 : 0;
+      chatReplied(o, 'ig', чекав > 0 && isFinite(чекав) ? чекав : 0);
+    }catch(e){ console.warn(e); }
     crmAnswered(o);              // відповіли — кружечок згасає
     /* Записуємо в картку, що це писали ми: Sitniks поверне це повідомлення
        без відправника, і впізнати його більше не буде чим. */
@@ -28485,7 +28883,8 @@ const ROLES = { owner:'Власник', manager:'Менеджер',
                    «оцифрування»: оцифрування — це те, ЩО людина робить,
                    а в списку людей має стояти те, ХТО вона. */
                 designmgr:'Акаунт-менеджер', embroidery:'Вишивальний дизайнер',
-                qa:'Контроль файлів',
+                /* «Контроль файлів» прибрано (Андрій, 02.10): такої людини
+                   немає — вишивальний здав, і файли одразу йдуть у цех. */
                 /* Закупівля поки що робота, а не людина: її виконує
                    менеджер. Але роль заводимо зараз — щойно зʼявиться
                    окремий закупник, його заводять одним рядком, а не
@@ -28580,6 +28979,8 @@ const ZONE_NAV = [
     hint:'Список підрядників, їхні ціни й терміни.' },
   { key:'analytics', label:'Аналітика',
     hint:'Гроші, конверсія, швидкість роботи відділів.' },
+  { key:'dash',      label:'Дашборди',
+    hint:'Дашборд свого відділу: загальна картина й кожна людина. Хто має «Аналітику», бачить усі відділи.' },
   /* Команда й доступи — теж зона, але з подвійним замком: мало мати її в
      списку розділів, треба ще й право міняти налаштування. Інакше вистачило
      б одної забутої галочки, щоб людина роздала доступи сама собі. */
@@ -28750,35 +29151,33 @@ const ROLE_PRESET = {
   owner:      preset({ ui:'manager', nav:'*', boards:'*',
                 see:['client','chat','cost'], can:ALL_CAN.slice() }),
   manager:    preset({ ui:'manager',
-                nav:['today','board','chats','calc','photos','reviews','suppliers'],
+                nav:['today','dash','board','chats','calc','photos','reviews','suppliers'],
                 boards:'*', see:['client','chat'],
                 can:['new','edit','stage','assign','pay','write','files','quick','bind','art'] }),
-  designer:   preset({ ui:'designer', nav:['today','board','design'], boards:['design'],
+  designer:   preset({ ui:'designer', nav:['today','dash','board','design'], boards:['design'],
                 see:[], can:['art','stage'] }),
   /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
      нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
      колись переплутають із потрібним. */
-  production: preset({ ui:'production', nav:['today','board'], boards:['prod'],
+  production: preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
                 see:[], can:['stage'] }),
   /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
      до відправки, в обох напрямах. Собівартість лишається у власника — вона
      не потрібна нікому, хто не ухвалює рішення про ціну закупівлі, а зайве
      поле на екрані колись переплутають із потрібним. */
   designmgr:  preset({ ui:'manager',
-                nav:['today','board','chats','chatsc','design','calc','photos'], boards:'*',
+                nav:['today','dash','board','chats','chatsc','design','calc','photos'], boards:'*',
                 see:['client','chat'],
                 can:['new','edit','stage','assign','pay','write','files','quick','bind',
                      'art','approve','pack'] }),
   /* Закупівля бачить рівно свою дошку: що, якого кольору, яких розмірів,
      скільки й до якого числа. Ні макетів, ні клієнта, ні цін продажу. */
-  supply:     preset({ ui:'production', nav:['today','board'], boards:['supply'],
+  supply:     preset({ ui:'production', nav:['today','dash','board'], boards:['supply'],
                 see:[], can:['stage','export'] }),
   /* Вишивальний дизайнер має свою дошку: він програмує машину, і це окрема
      робота з окремою чергою, а не частина графічного дизайну. */
-  embroidery: preset({ ui:'designer', nav:['today','board','design'], boards:['embro'],
-                see:[], can:['stitch'] }),
-  qa:         preset({ ui:'production', nav:['today','design'], boards:['design'],
-                see:[], can:['qc'] })
+  embroidery: preset({ ui:'designer', nav:['today','dash','board','design'], boards:['embro'],
+                see:[], can:['stitch'] })
 };
 /* ── Розділи, яких не існувало, коли роль зберігали ─────────────────────
    Роль зберігається СПИСКОМ дозволених розділів. Це правильно, поки розділи
@@ -28790,7 +29189,7 @@ const ROLE_PRESET = {
    Тому нові розділи добираються за тим, що роль мала РАНІШЕ: хто веде
    Канбан — бачить і чати цього напряму; хто працює в дизайні — бачить
    приватні розмови. */
-const NAV_FROM = { chats:'nav:board', chatsc:'nav:design', design:'boards:design' };
+const NAV_FROM = { chats:'nav:board', chatsc:'nav:design', design:'boards:design', dash:'nav:today' };
 /* ══════════ РОЛЬ — СУТНІСТЬ, А НЕ ПРЕСЕТ ══════════════════════════════
    Доти роль лише ЗАПОВНЮВАЛА галочки, а далі кожному вмикали своє. Звучало
    гнучко, а виходило навпаки: у пʼяти менеджерів пʼять різних наборів, і на
@@ -28812,7 +29211,7 @@ function roleDefs(){
      як». Пряме звертання там не «порожньо», а помилка, яка вбиває решту
      скрипта. */
   const saved = contentSafe().roles;
-  if(Array.isArray(saved) && saved.length) return saved;
+  if(Array.isArray(saved) && saved.length) return saved.filter(r => !(r && r.key === 'qa'));
   // Першого разу збираємо з вбудованих: починати з порожнечі нікому не треба.
   return Object.keys(ROLE_PRESET).map(k => Object.assign({ key:k, name:ROLES[k] || k },
     JSON.parse(JSON.stringify(ROLE_PRESET[k]))));

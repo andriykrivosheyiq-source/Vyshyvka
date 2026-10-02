@@ -36,13 +36,15 @@ const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong +
 const errs = [];
 
 /* Команда: «я» (test@loomiq) — графічний дизайнер, щоб перевірити й
-   «Мій розрахунок». */
+   «Мій розрахунок». Посади за замовчуванням — з ролі доступу. */
 const CONTENT = { team: [
-  { email:'mgr@loomiq',  name:'Оля',   role:'designmgr' },
-  { email:'test@loomiq', name:'Іра',   role:'designer' },
-  { email:'emb@loomiq',  name:'Петро', role:'embroidery' },
-  { email:'prod@loomiq', name:'Цех',   role:'production' },
-  { email:'buy@loomiq',  name:'Зоя',   role:'supply' }] };
+  { email:'sales@loomiq', name:'Марта', role:'manager' },
+  { email:'mgr@loomiq',   name:'Оля',   role:'designmgr' },
+  { email:'comm@loomiq',  name:'Таня',  role:'designmgr' },
+  { email:'test@loomiq',  name:'Іра',   role:'designer' },
+  { email:'emb@loomiq',   name:'Петро', role:'embroidery' },
+  { email:'prod@loomiq',  name:'Цех',   role:'production' },
+  { email:'buy@loomiq',   name:'Зоя',   role:'supply' }] };
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={', 'window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
@@ -80,6 +82,7 @@ await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await p.waitForTimeout(3000);
 await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none'; });
 
+
 /* ── Місяць роботи ── */
 const M = await p.evaluate(() => {
   const now = new Date().toISOString();
@@ -89,17 +92,28 @@ const M = await p.evaluate(() => {
     totalPrice: 1500, items: [], hist: [] }, extra);
   orders.length = 0;
   orders.push(
-    b2c('5000001', { mgrEmail:'mgr@loomiq', trackHist:[{ t:'prod', s:'done', at: now, by:'prod@loomiq' }] }),
-    /* Старе B2C без відповідального: менеджер — той, хто передав дизайн. */
+    /* B2C: вишивку здано цього місяця — замовлення пішло у виробництво; цех
+       поставив «Готово»; Таня відповідала клієнту двічі (30 і 90 хв). */
+    b2c('5000001', { mgrEmail:'mgr@loomiq', commEmail:'comm@loomiq',
+      trackHist:[{ t:'prod', s:'done', at: now, by:'prod@loomiq' }],
+      resp:[{ at: now, by:'comm@loomiq', min: 30, ch:'tg' }, { at: now, by:'comm@loomiq', min: 90, ch:'ig' }] }),
+    /* Старе B2C без відповідального, вишивки ще немає — у виробництво не пішло. */
     b2c('5000002', {}),
-    b2c('5000003', { mgrEmail:'mgr@loomiq', status:'cancel' }),                 // відмова — не рахуємо
-    b2c('5000004', { mgrEmail:'mgr@loomiq', createdAt: before }),               // минулий місяць
-    { id:'b1', orderId:'1000001', status:'paid', createdAt: now, mgrEmail:'mgr@loomiq',
+    b2c('5000003', { mgrEmail:'mgr@loomiq', status:'cancel' }),
+    b2c('5000004', { mgrEmail:'mgr@loomiq', createdAt: before }),
+    /* B2B: продала Марта, процес вела Оля (рух треку акаунт-менеджера), пішло
+       у виробництво й готове; макет погоджено (робила Іра). */
+    { id:'b1', orderId:'1000001', status:'paid', createdAt: now, mgrEmail:'sales@loomiq',
+      hist:[{ s:'lead', at: now }, { s:'new', at: now }, { s:'paid', at: now }],
       totalPrice: 10000, totalCost: 6000, items:[{ name:'Футболка', qty: 20, price: 10000, cost: 6000 }],
-      trackHist:[{ t:'prod', s:'work', at: now, by:'prod@loomiq' }, { t:'prod', s:'done', at: now, by:'prod@loomiq' },
+      art:[{ n:1, at: now, by:'test@loomiq', approvals:{ client:{ at: now } } }],
+      trackHist:[{ t:'acct', s:'brief', at: now, by:'mgr@loomiq' },
+                 { t:'prod', s:'work', at: now, by:'prod@loomiq' }, { t:'prod', s:'done', at: now, by:'prod@loomiq' },
                  { t:'prod', s:'work', at: now, by:'prod@loomiq' }, { t:'prod', s:'done', at: now, by:'prod@loomiq' }] },
-    { id:'b2', orderId:'1000002', status:'lead', createdAt: now, mgrEmail:'mgr@loomiq', totalPrice: 5000, items:[] });
-  /* Дизайн 5000001: дві версії, погоджена друга; оцифровка здана. */
+    { id:'b2', orderId:'1000002', status:'lead', createdAt: now, mgrEmail:'sales@loomiq', totalPrice: 5000, items:[] },
+    /* Звернення минулого місяця, яке стало замовленням цього: продаж — у цей. */
+    { id:'b3', orderId:'1000003', status:'new', createdAt: before, mgrEmail:'sales@loomiq',
+      hist:[{ s:'lead', at: before }, { s:'new', at: now }], totalPrice: 4000, items:[{ qty: 5, price: 4000 }] });
   designJobs['5000001'] = { orderId:'5000001', units:[{ id:'u1', qty: 3,
     graphic:[{ id:'g1', who:'test@loomiq', takenAt: now, sentAt: now, attachedBy:'mgr@loomiq', attachedAt: now,
       vers:[{ n:1, at: now, by:'test@loomiq', files:[] }, { n:2, at: now, by:'test@loomiq', files:[] }],
@@ -108,8 +122,7 @@ const M = await p.evaluate(() => {
       vers:[{ n:1, at: now, by:'emb@loomiq', files:[{ role:'machine' }] }], ok:{ ver: 1, how:'auto', at: now } }] }] };
   designJobs['5000002'] = { orderId:'5000002', units:[{ id:'u2', qty: 1,
     graphic:[{ id:'g2', who:'test@loomiq', attachedBy:'mgr@loomiq', attachedAt: now, sentBy:'mgr@loomiq', sentAt: now,
-      vers:[{ n:1, at: now, by:'test@loomiq', files:[] }] }] }] };       // ще не погоджено
-  /* Дизайн, погоджений минулого місяця, — не в цей. */
+      vers:[{ n:1, at: now, by:'test@loomiq', files:[] }] }] }] };
   designJobs['5000004'] = { orderId:'5000004', units:[{ id:'u4', qty: 1,
     graphic:[{ id:'g4', who:'test@loomiq', vers:[{ n:1, at: before, by:'test@loomiq' }], ok:{ ver:1, how:'client', at: before } }] }] };
   designBuys['buy1'] = { id:'buy1', kind:'buy', n:1, by:'buy@loomiq', at: now, rows:[], status:'sent' };
@@ -120,113 +133,107 @@ const M = await p.evaluate(() => {
 console.log('\n═══ ХТО ЩО ЗРОБИВ ЗА МІСЯЦЬ ═══');
 const W = await p.evaluate(m => {
   const W = teamWork(m);
-  const s = e => { const w = W[e] || {}; return { order:(w.order || []).map(o => o.id).sort(), leads: w.leads || 0,
-    design:(w.design || []).map(d => d.id), revisions:(w.design || []).map(d => d.revisions), vers: w.vers || 0,
-    stitch:(w.stitch || []).map(d => d.id), piece:(w.piece || []).map(q => q.id + ':' + q.qty).sort(), buys: w.buys || 0 }; };
-  return { mgr: s('mgr@loomiq'), des: s('test@loomiq'), emb: s('emb@loomiq'), prod: s('prod@loomiq'), buy: s('buy@loomiq') };
+  const s = e => { const w = W[e] || payWorkEmpty(); return { sales: w.sales.map(o => o.id).sort(), leads: w.leads,
+    proc: w.proc.map(o => o.id + ':' + o.dir + ':' + o.pieces + ':' + o.designs).sort(), comm: w.comm.map(o => o.id),
+    design: w.design.map(d => d.id + ':' + d.dir).sort(), stitch: w.stitch.map(d => d.id), resp: w.resp.map(r => r.min), buys: w.buys }; };
+  return { sales: s('sales@loomiq'), mgr: s('mgr@loomiq'), comm: s('comm@loomiq'), des: s('test@loomiq'),
+           emb: s('emb@loomiq'), buy: s('buy@loomiq'), shop: { b2b: W['*shop'].b2b, b2c: W['*shop'].b2c } };
 }, M);
 console.log('  ' + JSON.stringify(W));
-ok(JSON.stringify(W.mgr.order) === JSON.stringify(['1000001', '5000001', '5000002']),
-  'менеджеру — три зроблені замовлення: B2B «Оплачено», нове B2C і старе B2C (за тим, хто передав дизайн)',
-  'замовлення менеджера: ' + JSON.stringify(W.mgr.order));
-ok(W.mgr.leads === 5, 'звернення без оплати й відмова в бонус не йдуть, але в конверсії видно (5 звернень)', 'звернень: ' + W.mgr.leads);
-ok(W.des.design.length === 1 && W.des.design[0] === '5000001' && W.des.revisions[0] === 1 && W.des.vers === 3,
-  'графічному — один погоджений дизайн (одна правка); непогоджений і минуломісячний не зараховано',
-  'дизайни: ' + JSON.stringify(W.des));
-ok(JSON.stringify(W.emb.stitch) === '["5000001"]', 'вишивальному — одна здана оцифровка', 'оцифровки: ' + JSON.stringify(W.emb.stitch));
-ok(JSON.stringify(W.prod.piece) === JSON.stringify(['1000001:20', '5000001:3']),
-  'цеху — вироби: 20 шт B2B і 3 шт B2C; повторне «Готово» не подвоює', 'вироби: ' + JSON.stringify(W.prod.piece));
-ok(W.buy.buys === 1, 'закупівлі — одна закупівля', 'закупівлі: ' + W.buy.buys);
+ok(JSON.stringify(W.sales.sales) === '["1000001","1000003"]' && W.sales.leads === 2,
+  'продажі B2B: два замовлення — зокрема звернення минулого місяця, яке стало замовленням цього; звернень 2',
+  'продажі: ' + JSON.stringify(W.sales));
+ok(JSON.stringify(W.mgr.proc) === JSON.stringify(['1000001:b2b:20:1', '5000001:b2c:3:1']),
+  'процес-менеджеру — два замовлення, що пішли у виробництво: B2B 20 шт і B2C 3 шт, по дизайну в кожному',
+  'процес: ' + JSON.stringify(W.mgr.proc));
+ok(JSON.stringify(W.comm.comm) === '["5000001"]' && JSON.stringify(W.comm.resp) === '[30,90]',
+  'комунікейшн-менеджеру — замовлення, де вона відповідала, і дві відповіді (30 і 90 хв)', 'комунікейшн: ' + JSON.stringify(W.comm));
+ok(JSON.stringify(W.des.design) === JSON.stringify(['1000001:b2b', '5000001:b2c']),
+  'графічному — дизайн B2B і дизайн B2C; непогоджений і минуломісячний не зараховано', 'дизайни: ' + JSON.stringify(W.des.design));
+ok(JSON.stringify(W.emb.stitch) === '["5000001"]' && W.buy.buys === 1, 'вишивальному — одна оцифровка; закупівлі — одна закупівля',
+  'інше: ' + JSON.stringify([W.emb, W.buy]));
+ok(W.shop.b2b === 20 && W.shop.b2c === 3, 'цех за місяць: 20 виробів B2B і 3 B2C; повторне «Готово» не подвоює', 'цех: ' + JSON.stringify(W.shop));
 
-console.log('\n═══ ВКЛАДКА «КОМАНДА» У ФІНАНСАХ ═══');
+console.log('\n═══ ВКЛАДКА «КОМАНДА»: ПОСАДИ Й ЛЮДИ БЕЗ ВХОДУ ═══');
 await p.evaluate(() => {
   document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
   document.getElementById('view-fin').style.display = 'block';
   finAn.tab = 'team'; renderFin();
 });
 await p.waitForTimeout(200);
-const вкладка = await p.evaluate(() => ({
-  кнопка: !!document.querySelector('[data-fin-tab="team"]'),
-  видно: !document.getElementById('fin-pane-team').hidden,
-  людей: document.querySelectorAll('#fin-team .tm-r').length }));
-ok(вкладка.кнопка && вкладка.видно && вкладка.людей === 5, 'у Фінансах є вкладка «Команда» — пʼятеро людей', 'вкладка: ' + JSON.stringify(вкладка));
-
-/* Ставки й бонуси — у таблиці ролей, як їх і вписуватиме власник. */
 const вписати = async (sel, v) => { await p.evaluate(({ sel, v }) => { const el = document.querySelector(sel);
-  el.value = v; el.dispatchEvent(new Event('change', { bubbles:true })); }, { sel, v }); await p.waitForTimeout(80); };
+  if(!el) throw new Error('немає ' + sel);
+  el.value = v; el.dispatchEvent(new Event('change', { bubbles:true })); }, { sel, v }); await p.waitForTimeout(60); };
+const додати = async (name, pos) => { await p.evaluate(({ name, pos }) => {
+  document.getElementById('tm-new-name').value = name; document.getElementById('tm-new-pos').value = pos;
+  document.getElementById('tm-new-go').click(); }, { name, pos }); await p.waitForTimeout(150); };
+/* Таня — комунікейшн-менеджер: міняємо посаду в її рядку. */
+await p.evaluate(() => document.querySelector('#fin-team [data-tm-open="comm@loomiq"]').click());
+await p.waitForTimeout(80);
+await вписати('[data-tm-pos="comm@loomiq"]', 'comm');
+/* Пакувальник і агенція — без пошти й без входу в CRM. */
+await додати('Ігор', 'pack');
+await додати('Агенція «Таргет»', 'agency');
+const групи = await p.evaluate(() => ({
+  відділи: [...document.querySelectorAll('#fin-team .tm-g td:first-child')].map(x => x.textContent),
+  людей: document.querySelectorAll('#fin-team .tm-r').length,
+  посади: [...document.querySelectorAll('#fin-team .tm-r')].map(r => r.querySelector('i').textContent.split(' · ')[0]) }));
+console.log('  ' + JSON.stringify(групи));
+ok(групи.людей === 9 && групи.відділи.join('|') === 'Продажі B2B|Акаунт-менеджери|Графічний дизайн|Вишивальний дизайн|Виробництво|Контент і маркетинг',
+  'рядки згруповано по відділах; девʼятеро людей, двоє з них — без входу в CRM', 'групи: ' + JSON.stringify(групи));
+ok(['Менеджер з продажу', 'Процес-менеджер', 'Комунікейшн-менеджер', 'Пакувальник', 'Агенція / підрядник'].every(x => групи.посади.indexOf(x) >= 0),
+  'посади стоять: менеджер з продажу, процес- і комунікейшн-менеджер, пакувальник, агенція', 'посади: ' + JSON.stringify(групи.посади));
+
+console.log('\n═══ СТАВКИ ЗА ПОСАДАМИ: B2B І B2C ОКРЕМО ═══');
 await p.evaluate(() => { document.querySelector('#fin-team .tm-rates').open = true; });
-await вписати('[data-tm-role="designmgr"][data-tm-r="base"]', '10000');
-await вписати('[data-tm-role="designmgr"][data-tm-r="order"]', '150');
-await вписати('[data-tm-role="designer"][data-tm-r="base"]', '800');
-await вписати('[data-tm-role="designer"][data-tm-r="mode"]', 'day');
-await вписати('[data-tm-role="designer"][data-tm-r="design"]', '400');
-await вписати('[data-tm-role="embroidery"][data-tm-r="stitch"]', '250');
-await вписати('[data-tm-role="production"][data-tm-r="piece"]', '12');
-await вписати('[data-tm-role="supply"][data-tm-r="base"]', '9000');
+const R1 = [['sales','base','8000'], ['sales','pct','5'], ['sales','order_b2b','100'],
+  ['proc','base','10000'], ['proc','piece_b2b','5'], ['proc','piece_b2c','20'], ['proc','design_b2c','50'], ['proc','order_b2c','30'],
+  ['comm','base','9000'], ['comm','piece_b2c','10'],
+  ['gd','design_b2b','300'], ['gd','design_b2c','400'], ['sd','stitch_b2c','250'],
+  ['oper','piece_b2b','2'], ['oper','piece_b2c','4'], ['pack','piece_b2b','1'], ['pack','piece_b2c','1'],
+  ['buy','buy','50'], ['agency','base','15000'], ['agency','unit','500']];
+for(const [pk, f, v] of R1) await вписати('[data-tm-posk="' + pk + '"][data-tm-r="' + f + '"]', v);
+/* Агенція за місяць зробила 4 одиниці — вписуємо руками. */
+const агенція = await p.evaluate(() => (contentData.payroll.staff.find(x => /Таргет/.test(x.name)) || {}).id);
+await p.evaluate(k => { payView.open = k; renderTeam(); }, 'x:' + агенція);
+await вписати('[data-tm-units="x:' + агенція + '"]', '4');
 const рядки = () => p.evaluate(m => {
-  const W = teamWork(m);
-  const o = {};
-  payPeople(m, W).forEach(x => { const r = payRow(x, m, W); o[x.email] = { base: r.base, bonus: r.bonus, adj: r.adj, total: r.total, days: r.days }; });
+  const W = teamWork(m), o = {};
+  payPeople(m, W).forEach(x => { const r = payRow(x, m, W); o[x.name] = r.total; });
   return o;
 }, M);
-let R = await рядки();
-const днів = await p.evaluate(m => payWorkDays('test@loomiq', m), M);
+const R = await рядки();
 console.log('  ' + JSON.stringify(R));
-ok(R['mgr@loomiq'].total === 10450, 'акаунт-менеджер: 10 000 ставка + 3 × 150 = 10 450', 'менеджер: ' + JSON.stringify(R['mgr@loomiq']));
-ok(R['test@loomiq'].base === 800 * днів && R['test@loomiq'].bonus === 400,
-  'дизайнер за днями: 800 × ' + днів + ' робочих днів + 400 за дизайн', 'дизайнер: ' + JSON.stringify(R['test@loomiq']));
-ok(R['emb@loomiq'].total === 250 && R['prod@loomiq'].total === 23 * 12 && R['buy@loomiq'].total === 9000,
-  'вишивальний 250; цех 23 шт × 12 = 276; закупівля — лише ставка 9 000', 'інші: ' + JSON.stringify(R));
-ok(await p.evaluate(() => (contentData.payroll.roles.designmgr || {}).order === 150),
-  'ставки збережено в налаштуваннях', 'ставки не збереглись');
-
-/* Розгорнули людину: аналітика, розшифровка, поля місяця. */
-await p.evaluate(() => document.querySelector('#fin-team [data-tm-open="test@loomiq"]').click());
-await p.waitForTimeout(100);
-await вписати('[data-tm-days="test@loomiq"]', '10');
-await p.evaluate(() => document.querySelector('#fin-team [data-tm-open="prod@loomiq"]').click());
-await p.waitForTimeout(100);
-await вписати('[data-tm-adj="prod@loomiq"]', '500');
-await вписати('[data-tm-adjnote="prod@loomiq"]', 'терміновий тираж');
-/* Особисті умови: менеджерці — 200 за замовлення замість 150 ролі. */
-await p.evaluate(() => document.querySelector('#fin-team [data-tm-open="mgr@loomiq"]').click());
-await p.waitForTimeout(100);
-await вписати('[data-tm-p="order"][data-tm-e="mgr@loomiq"]', '200');
-R = await рядки();
-const деталь = await p.evaluate(() => (document.querySelector('#fin-team .tm-d') || {}).textContent || '');
-ok(R['test@loomiq'].total === 8400, 'відпрацьовано 10 днів — 8 000 + 400 = 8 400', 'дизайнер: ' + JSON.stringify(R['test@loomiq']));
-ok(R['prod@loomiq'].total === 776, 'коригування +500 — цех 776', 'цех: ' + JSON.stringify(R['prod@loomiq']));
-ok(R['mgr@loomiq'].total === 10600, 'особисті умови сильніші за роль: 10 000 + 3 × 200 = 10 600', 'менеджер: ' + JSON.stringify(R['mgr@loomiq']));
-ok(/Замовлень3 з 5 звернень/.test(деталь) && /Конверсія60%/.test(деталь) && /#1000001/.test(деталь) && /#5000002/.test(деталь),
-  'у розгорнутому рядку — аналітика (3 з 5, конверсія 60%) і номери замовлень, з яких склався бонус',
-  'деталь: ' + деталь.slice(0, 300));
+ok(R['Марта'] === 8000 + 700 + 200, 'менеджер з продажу: 8 000 + 5% від 14 000 + 2 × 100 = 8 900', 'Марта: ' + R['Марта']);
+ok(R['Оля'] === 10000 + 100 + 60 + 50 + 30,
+  'процес-менеджер: 10 000 + 20 шт B2B × 5 + 3 шт B2C × 20 + дизайн B2C 50 + замовлення B2C 30 = 10 240', 'Оля: ' + R['Оля']);
+ok(R['Таня'] === 9030, 'комунікейшн-менеджер: 9 000 + 3 шт B2C × 10 = 9 030', 'Таня: ' + R['Таня']);
+ok(R['Іра'] === 700, 'графічний: дизайн B2B 300 + дизайн B2C 400 — різні ставки', 'Іра: ' + R['Іра']);
+ok(R['Петро'] === 250 && R['Зоя'] === 50, 'вишивальний 250; закупівля без ставки — 50 за закупівлю', 'інші: ' + JSON.stringify(R));
+ok(R['Цех'] === 20 * 2 + 3 * 4 && R['Ігор'] === 23,
+  'цеху — усі вироби цеху за місяць за своєю ціною: оператор 52, пакувальник 23', 'цех: ' + JSON.stringify([R['Цех'], R['Ігор']]));
+ok(R['Агенція «Таргет»'] === 17000, 'агенція: 15 000 щомісяця + 4 одиниці × 500 = 17 000', 'агенція: ' + R['Агенція «Таргет»']);
 
 console.log('\n═══ «ВИПЛАЧЕНО» ═══');
 await p.evaluate(() => { window.__ADDED = []; window.__SETS = []; window.__DELS = []; });
-await p.evaluate(() => document.querySelector('#fin-team [data-tm-paid="mgr@loomiq"]').click());
+await p.evaluate(() => document.querySelector('#fin-team [data-tm-paid="sales@loomiq"]').click());
 await p.waitForTimeout(400);
 const виплата = await p.evaluate(m => ({
   витрата: (window.__ADDED || []).filter(x => x.src === 'salary').map(x => ({ amount: x.amount, desc: x.desc, counter: x.counter })),
-  paid: ((contentData.payroll.months[m] || {})['mgr@loomiq'] || {}).paid,
-  постійні: (window.__SETS || []).filter(x => x.col === 'loomiq' && x.id === 'fixedcosts').map(x => x.v.months[m]).pop(),
-  рядок: (document.querySelector('#fin-team [data-tm-open="mgr@loomiq"] .tm-act') || {}).textContent }), M);
-console.log('  ' + JSON.stringify(виплата));
-ok(виплата.витрата.length === 1 && виплата.витрата[0].amount === -10600 && /^Зарплата · /.test(виплата.витрата[0].desc) && виплата.витрата[0].counter === 'Оля',
-  'у Фінанси записано витрату −10 600 «Зарплата · місяць» на Олю', 'витрата: ' + JSON.stringify(виплата.витрата));
-ok(виплата.paid && виплата.paid.sum === 10600 && /10\s?600/.test(виплата.рядок || ''),
-  'у рядку — «✓ 10 600», виплату запамʼятовано', 'виплата: ' + JSON.stringify(виплата));
-ok(виплата.постійні && виплата.постійні.salary === 10600 && виплата.постійні.salaryAuto,
-  '«Зарплати» в постійних витратах аналітики — сумою виплаченого', 'постійні: ' + JSON.stringify(виплата.постійні));
-await p.evaluate(() => document.querySelector('#fin-team [data-tm-unpaid="mgr@loomiq"]').click());
-await p.waitForTimeout(400);
-const скасовано = await p.evaluate(m => ({
-  стерто: (window.__DELS || []).filter(x => x.col === 'payments').map(x => x.id),
-  paid: ((contentData.payroll.months[m] || {})['mgr@loomiq'] || {}).paid,
+  paid: ((contentData.payroll.months[m] || {})['sales@loomiq'] || {}).paid,
   постійні: (window.__SETS || []).filter(x => x.col === 'loomiq' && x.id === 'fixedcosts').map(x => x.v.months[m]).pop() }), M);
-ok(скасовано.стерто.length === 1 && !скасовано.paid && скасовано.постійні && !скасовано.постійні.salary,
-  '↺ скасовує виплату: витрату стерто, «Зарплати» прибрано', 'скасування: ' + JSON.stringify(скасовано));
+console.log('  ' + JSON.stringify(виплата));
+ok(виплата.витрата.length === 1 && виплата.витрата[0].amount === -8900 && /^Зарплата · /.test(виплата.витрата[0].desc) && виплата.витрата[0].counter === 'Марта',
+  'у Фінанси записано витрату −8 900 «Зарплата · місяць»', 'витрата: ' + JSON.stringify(виплата.витрата));
+ok(виплата.paid && виплата.paid.sum === 8900 && виплата.постійні && виплата.постійні.salary === 8900,
+  'виплату запамʼятовано, «Зарплати» в постійних витратах — сумою виплаченого', 'виплата: ' + JSON.stringify(виплата));
+await p.evaluate(() => document.querySelector('#fin-team [data-tm-unpaid="sales@loomiq"]').click());
+await p.waitForTimeout(400);
+const скасовано = await p.evaluate(m => ({ стерто: (window.__DELS || []).filter(x => x.col === 'payments').length,
+  paid: ((contentData.payroll.months[m] || {})['sales@loomiq'] || {}).paid }), M);
+ok(скасовано.стерто === 1 && !скасовано.paid, '↺ скасовує виплату разом із витратою', 'скасування: ' + JSON.stringify(скасовано));
 
-console.log('\n═══ МІЙ РОЗРАХУНОК — У КОЖНОГО ═══');
+console.log('\n═══ МІЙ РОЗРАХУНОК ═══');
 await p.evaluate(() => {
   document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
   document.getElementById('view-today').style.display = 'block';
@@ -235,15 +242,60 @@ await p.evaluate(() => {
 });
 await p.waitForTimeout(150);
 const мій = await p.evaluate(() => (document.querySelector('#td-pay') || {}).textContent || '');
-console.log('  ' + мій.replace(/\s+/g, ' ').slice(0, 260));
-ok(/Мій розрахунок/.test(мій) && /8\s?400/.test(мій) && /Погоджені дизайни: 1 × 400/.test(мій) && /#5000001/.test(мій),
-  'у «Задачах» людина бачить свій розрахунок: 8 400, «Погоджені дизайни: 1 × 400», номер замовлення',
-  'мій розрахунок: ' + мій.slice(0, 300));
-ok(!/Оля|10\s?600/.test(мій), 'і тільки свій — чужих сум там немає', 'у моєму розрахунку чужі дані');
+console.log('  ' + мій.replace(/\s+/g, ' ').slice(0, 220));
+ok(/Мій розрахунок/.test(мій) && /— 700/.test(мій) && /За дизайн B2B: 1 × 300/.test(мій) && /За дизайн B2C: 1 × 400/.test(мій) && /#5000001/.test(мій),
+  'у «Задачах» — свій розрахунок: 700, окремо дизайн B2B і B2C, номери замовлень', 'мій: ' + мій.slice(0, 300));
+ok(!/Марта|8\s?900/.test(мій), 'і тільки свій', 'у моєму розрахунку чужі дані');
+
+console.log('\n═══ ДАШБОРДИ ═══');
+const дашборд = () => p.evaluate(() => {
+  document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
+  document.getElementById('view-dash').style.display = 'block';
+  renderDash();
+  return { вкладки: [...document.querySelectorAll('#dash-tabs [data-dash-d]')].map(b => b.textContent),
+           on: (document.querySelector('#dash-tabs .on') || {}).textContent,
+           kpi: [...document.querySelectorAll('#dashRoot .an-c')].map(c => c.querySelector('span').textContent + '=' + c.querySelector('b').textContent),
+           люди: [...document.querySelectorAll('#dashRoot .dash-t tbody tr')].map(r => r.querySelector('b').textContent) };
+});
+let д = await дашборд();
+console.log('  ' + JSON.stringify(д));
+ok(д.вкладки.length === 1 && д.on === 'Графічний дизайн' && д.люди.join() === 'Іра' && д.kpi.indexOf('Погоджено дизайнів=2') >= 0,
+  'дизайнер без доступу до аналітики бачить лише дашборд свого відділу', 'дашборд: ' + JSON.stringify(д));
+await p.evaluate(() => { window.__myAcc = myAcc; myAcc = () => ({ nav:'*' }); dashView.d = 'acct'; });
+д = await дашборд();
+console.log('  ' + JSON.stringify(д));
+ok(д.вкладки.length === 6 && д.on === 'Акаунт-менеджери' && JSON.stringify(д.люди) === '["Оля","Таня"]' &&
+   д.kpi.indexOf('Передано у виробництво=2') >= 0 && д.kpi.indexOf('Сер. час відповіді=1 год') >= 0,
+  'з доступом до аналітики — усі шість відділів; акаунт-менеджери: 2 у виробництво, середня відповідь 1 год',
+  'дашборд: ' + JSON.stringify(д));
+await p.evaluate(() => { dashView.d = 'prod'; });
+д = await дашборд();
+ok(д.kpi.indexOf('Виробів B2B=20') >= 0 && д.kpi.indexOf('Виробів B2C=3') >= 0 && д.люди.indexOf('Ігор') >= 0,
+  'виробництво: 20 B2B і 3 B2C, у таблиці й люди без входу', 'дашборд цеху: ' + JSON.stringify(д));
+await p.evaluate(() => { myAcc = window.__myAcc; });
+
+console.log('\n═══ ВІДПОВІДЬ ІЗ CRM ЗАПИСУЄ, ХТО Й ЯК ШВИДКО ═══');
+const відповідь = await p.evaluate(async () => {
+  const t = new Date(Date.now() - 45 * 60000);
+  const pad = n => String(n).padStart(2, '0');
+  const o = { id:'oc', orderId:'5000009', dir:'b2c', status:'b2c-new', createdAt: new Date().toISOString(), items:[], hist:[],
+    crmChatId:'c9', crmTheirs: true, crmUnread: 1,
+    crmInAt: t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate()) + ' ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) };
+  orders.push(o);
+  crmFetch = async () => ({ id: 77 });
+  await crmSend(o, 'Добрий день!');
+  return { comm: o.commEmail, resp: o.resp };
+});
+console.log('  ' + JSON.stringify(відповідь));
+ok(відповідь.comm === 'test@loomiq' && відповідь.resp && відповідь.resp.length === 1 &&
+   відповідь.resp[0].by === 'test@loomiq' && відповідь.resp[0].min >= 44 && відповідь.resp[0].min <= 47 && відповідь.resp[0].ch === 'ig',
+  'відповів з CRM — я комунікейшн-менеджер цього замовлення, і записано: клієнт чекав ~45 хв', 'відповідь: ' + JSON.stringify(відповідь));
 
 console.log('\n═══ НОВЕ B2C ЗАПИСУЄ ВІДПОВІДАЛЬНОГО ═══');
 const нове = await p.evaluate(async () => { const r = await designJobNew(); return r.order.mgrEmail; });
-ok(нове === 'test@loomiq', 'хто завів B2C-замовлення — той його й веде (від цього бонус)', 'mgrEmail: ' + нове);
+ok(нове === 'test@loomiq', 'хто завів B2C-замовлення — той його й веде', 'mgrEmail: ' + нове);
+ok(await p.evaluate(() => !roleDef('qa') && !/Контроль файлів/.test(JSON.stringify(roleDefs()))),
+  'ролі «Контроль файлів» більше немає', 'роль контролю файлів лишилась');
 
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 console.log('\n' + (bad ? '✗ провалів: ' + bad : '✓ усе гаразд'));
