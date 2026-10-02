@@ -103,6 +103,9 @@ await p.click('[data-view="analytics"]');
 await p.waitForTimeout(2500);
 await p.click('#an-period [data-d="30"]');
 await p.waitForTimeout(2500);
+/* «Прибуток і гроші» — у вкладці «Аналітика B2B» (Андрій, 02.10). */
+await p.click('#an-tabs [data-an-top="b2b"]');
+await p.waitForTimeout(200);
 await p.click('#an-block [data-b="money"]');
 await p.waitForTimeout(1200);
 
@@ -152,6 +155,8 @@ ok(/без жодного запису про оплату/.test(M.тривог�
 
 console.log('');
 console.log('═══ ГОЛОВНЕ ═══');
+await p.click('#an-tabs [data-an-top="site"]');
+await p.waitForTimeout(200);
 await p.click('#an-block [data-b="main"]');
 await p.waitForTimeout(900);
 const G = await p.evaluate(() => {

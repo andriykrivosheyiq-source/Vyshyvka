@@ -437,6 +437,10 @@
   .an-flat{color:var(--ink-soft);}
 
   .an-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
+  .an-month{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;
+    background:#fff;color:var(--ink);}
+  #an-tabs{margin-bottom:14px;}
+  .an-src-t td i{font-style:normal;font-size:11px;color:var(--muted);margin-left:6px;}
   /* Обраний період і сайт було видно ТІЛЬКИ в розмітці: клас .active
      проставлявся, а стилю під нього не існувало — фарбувались лише
      .active.print і .active.emb з іншого місця. Людина натискала «30 днів» і
@@ -5835,7 +5839,6 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
            кожен платіж окремо, у другому — жоден, важать тільки підсумки. -->
       <div class="fin-top">
         <button class="fin-top-b on" data-fin-tab="acc">Рахунки</button>
-        <button class="fin-top-b" data-fin-tab="an">Аналітика</button>
         <button class="fin-top-b" data-fin-tab="team">Команда</button>
       </div>
 
@@ -5867,20 +5870,6 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div id="fin-sum" class="fin-sum"></div>
         <div id="fin-list"></div>
       </div>
-      </div>
-
-      <div id="fin-pane-an" hidden>
-        <div class="card">
-          <div class="fin-an-bar">
-            <select id="fin-an-per"></select>
-            <div class="fin-tabs" id="fin-an-dir">
-              <button class="fin-tab on" data-an-dir="b2c">B2C</button>
-              <button class="fin-tab" data-an-dir="b2b">B2B</button>
-              <button class="fin-tab" data-an-dir="">Разом</button>
-            </div>
-          </div>
-          <div id="fin-an"></div>
-        </div>
       </div>
 
       <!-- КОМАНДА: що зробив кожен за місяць і скільки йому нараховано —
@@ -6827,11 +6816,20 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
     <section id="view-analytics" style="display:none;">
       <div class="page-head">
-        <div class="eyebrow">Аналітика</div>
-        <h1>Що відбувається на сайтах</h1>
-        <div class="sub">Власний облік: рахуємо все самі, ні від кого не залежимо.
-          Свої заходи не потрапляють у статистику — превʼю в адмінці, режим менеджера
-          і будь-який пристрій, відкритий за посиланням <code>?staff=1</code>.</div>
+        <div class="eyebrow">Гроші й продажі</div>
+        <h1>Аналітика</h1>
+        <div class="sub">Загальна картина грошей, окремо B2B, окремо B2C і окремо сайт. Власний облік:
+          рахуємо все самі. Свої заходи на сайт у статистику не потрапляють — превʼю в адмінці,
+          режим менеджера і будь-який пристрій, відкритий за посиланням <code>?staff=1</code>.</div>
+      </div>
+
+      <!-- ЧОТИРИ ВКЛАДКИ (Андрій, 02.10): у Фінансах лишились рахунки й
+           команда, а все «як ідуть справи» — тут, і кожен бізнес окремо. -->
+      <div class="fin-top" id="an-tabs">
+        <button class="fin-top-b on" data-an-top="all">Загальна</button>
+        <button class="fin-top-b" data-an-top="b2b">Аналітика B2B</button>
+        <button class="fin-top-b" data-an-top="b2c">Аналітика B2C</button>
+        <button class="fin-top-b" data-an-top="site">Аналітика сайту</button>
       </div>
 
       <div class="an-bar">
@@ -6841,6 +6839,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button data-d="30">30 днів</button>
           <button data-d="90">90 днів</button>
         </div>
+        <select id="an-month" class="an-month" title="Або конкретний місяць"></select>
         <div class="seg" id="an-site">
           <button data-s="" class="active">Усі сайти</button>
           <button data-s="main">Головний</button>
@@ -6854,17 +6853,22 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
       <div class="sub" id="an-state" style="margin:0 0 14px;"></div>
 
-      <div class="seg an-blocks" id="an-block">
-        <button data-b="main" class="active">1 · Головне</button>
-        <button data-b="traffic">2 · Трафік</button>
-        <button data-b="behav">3 · Поведінка</button>
-        <button data-b="sales">4 · Продажі</button>
-        <button data-b="money">5 · Прибуток і гроші</button>
-        <button data-b="ads">6 · Реклама</button>
+      <div class="seg an-blocks" id="an-block" hidden>
+        <button data-b="main" data-top="site" class="active">Головне</button>
+        <button data-b="traffic" data-top="site">Трафік</button>
+        <button data-b="behav" data-top="site">Поведінка</button>
+        <button data-b="ads" data-top="site">Реклама</button>
+        <button data-b="sales" data-top="b2b">Продажі</button>
+        <button data-b="money" data-top="b2b">Прибуток і гроші</button>
       </div>
 
+      <!-- ── ЗАГАЛЬНА: гроші обох напрямів і звідки вони ─────────── -->
+      <div class="an-pane" id="an-pane-all"><div id="an-all"></div></div>
+      <!-- ── АНАЛІТИКА B2C ─────────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-b2c" hidden><div class="card"><div id="fin-an"></div></div></div>
+
       <!-- ── 1. ГОЛОВНЕ ─────────────────────────────────────────── -->
-      <div class="an-pane" id="an-pane-main">
+      <div class="an-pane" id="an-pane-main" hidden>
         <div id="an-alerts"></div>
         <div class="an-kpis" id="an-kpis"></div>
         <div class="card">
@@ -7066,24 +7070,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d19a626e57"></script>
-<script src="loomiq-fingerprint.js?v=d19a626e57"></script>
-<script src="loomiq-pricing.js?v=d19a626e57"></script>
+<script src="loomiq-select.js?v=33c55fe370"></script>
+<script src="loomiq-fingerprint.js?v=33c55fe370"></script>
+<script src="loomiq-pricing.js?v=33c55fe370"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d19a626e57"></script>
-<script src="loomiq-mock.js?v=d19a626e57"></script>
+<script src="loomiq-design.js?v=33c55fe370"></script>
+<script src="loomiq-mock.js?v=33c55fe370"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=d19a626e57"></script>
-<script src="loomiq-threads.js?v=d19a626e57"></script>
+<script src="imagetracer.js?v=33c55fe370"></script>
+<script src="loomiq-threads.js?v=33c55fe370"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d19a626e57"></script>
+<script src="loomiq-cards.js?v=33c55fe370"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7108,7 +7112,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd19a626e57';
+var LQ_VER = '33c55fe370';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9274,11 +9278,29 @@ async function finAdSet(month, dir, sum){
    змішуємо їх: замовлення кажуть, на скільки ми продали, платежі — скільки
    грошей справді прийшло. Це різні числа, і саме різниця між ними і є
    «лишилось отримати». */
-function finStats(month, dir){
+/* День замовлення чи платежу за Києвом — так само, як рахує решта аналітики. */
+function anDayOf(t){
+  if(!t) return '';
+  const d = new Date(t);
+  if(isNaN(d)) return '';
+  try{ return d.toLocaleDateString('sv-SE', { timeZone:'Europe/Kyiv' }); }
+  catch(e){ return d.toISOString().slice(0, 10); }
+}
+/* Реклама вписана по місяцях; за довільні дні беремо частку місяця. */
+function finAdIn(days, dir){
+  const by = {};
+  (days || []).forEach(d => { const m = d.slice(0, 7); by[m] = (by[m] || 0) + 1; });
+  return Math.round(Object.keys(by).reduce((a, m) =>
+    a + finAdOf(m, dir) * by[m] / new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate(), 0));
+}
+/* `days` — список днів періоду (з аналітики); без нього — місяць, як доти. */
+function finStats(month, dir, days){
+  const set = {};
+  (days || []).forEach(d => { set[d] = 1; });
   const свої = (orders || []).filter(o => o && o.orderId &&
     o.status !== 'cancel' &&
     (!dir || orderDir(o) === dir) &&
-    (!month || finOrderMonth(o) === month));
+    (days ? !!set[anDayOf(o.createdAt || ((o.hist || [])[0] || {}).at)] : (!month || finOrderMonth(o) === month)));
   const ids = {};
   свої.forEach(o => { if(o.orderId) ids[o.orderId] = 1; });
   let сума = 0, соб = 0, безСоб = 0;
@@ -9296,7 +9318,7 @@ function finStats(month, dir){
     надійшло += n;
     if(теги[p.tag] !== undefined) теги[p.tag] += n; else теги.інше += n;
   });
-  const реклама = finAdOf(month, dir);
+  const реклама = days ? finAdIn(days, dir) : finAdOf(month, dir);
   /* Прибуток рахуємо тільки тоді, коли собівартість відома по ВСІХ
      замовленнях місяця. Часткова відповідь тут гірша за мовчання: вона
      виглядає як прибуток і завжди більша за справжній. */
@@ -9455,23 +9477,21 @@ function finRows(){
       .some(v => String(v || '').toLowerCase().indexOf(q) >= 0);
   });
 }
-/* Один малювальник на всю аналітику. Числа зверху — ті, які питають щодня;
-   розбивка надходжень — рівно за тими підписами, які менеджер і так ставить
-   на платежах; реклама — єдине поле, яке тут заповнюють руками. */
-function renderFinAn(){
+/* АНАЛІТИКА B2C — тепер вкладка розділу «Аналітика» (доти жила у Фінансах).
+   Період той самий, що в усіх вкладках: дні або місяць. Числа зверху — ті,
+   які питають щодня; розбивка надходжень — рівно за тими підписами, які
+   менеджер і так ставить на платежах; реклама — єдине поле, яке тут
+   заповнюють руками, і вписують її по місяцях. */
+let finAnLast = { days: null, month: '' };
+function renderFinAn(days, month){
+  if(days !== undefined){ finAnLast = { days: days || null, month: month || '' }; }
+  days = finAnLast.days; month = finAnLast.month;
   const box = document.getElementById('fin-an');
   if(!box) return;
   const місяці = finMonths(12);
-  const per = document.getElementById('fin-an-per');
-  if(per && per.options.length !== місяці.length + 1){
-    per.innerHTML = '<option value="">За весь час</option>' +
-      місяці.map(m => `<option value="${m}">${escapeHtml(finMonthLabel(m))}</option>`).join('');
-  }
-  if(per) per.value = finAn.per || '';
-  document.querySelectorAll('#fin-an-dir [data-an-dir]').forEach(b =>
-    b.classList.toggle('on', (b.dataset.anDir || '') === (finAn.dir || '')));
-  const m = finAn.per || '';
-  const st = finStats(m, finAn.dir);
+  finAn.dir = 'b2c';
+  const m = month || '';
+  const st = finStats(m, 'b2c', m ? null : days);
   const гр = n => fmt(Math.round(n || 0)) + ' ₴';
   const ч = (v, всього) => всього ? Math.round(v / всього * 100) + '%' : '0%';
   const ТЕГИ = [['prepay','Передоплати'],['pay','Оплати'],['final','Доплати'],
@@ -9497,7 +9517,7 @@ function renderFinAn(){
       <div class="an-c is-net"><span>Чистий прибуток</span><b>${
         st.чистий === null ? '—' : гр(st.чистий)}</b></div>
     </div>
-    ${!m ? '<div class="an-note">Рекламу вписують по місяцях — оберіть місяць угорі.</div>' : ''}
+    ${!m ? '<div class="an-note">Рекламу вписують по місяцях — оберіть місяць угорі. За дні береться частка місяця.</div>' : ''}
     ${st.безСоб ? `<div class="an-note">Прибутку немає: у ${st.безСоб} ${
       st.безСоб === 1 ? 'замовленні' : 'замовленнях'} не вписана собівартість.
       Вписати її можна в Налаштуваннях B2C, поруч із ціною.</div>` : ''}
@@ -9517,7 +9537,7 @@ function renderFinAn(){
     <table class="an-t"><thead><tr><th>Місяць</th><th>Замовлень</th><th>Сума</th>
       <th>Надійшло</th><th>Реклама</th><th>Чистий</th></tr></thead><tbody>${
       місяці.map(mm => {
-        const r = finStats(mm, finAn.dir);
+        const r = finStats(mm, 'b2c');
         if(!r.замовлень && !r.надійшло && !r.реклама) return '';
         return `<tr${mm === m ? ' class="on"' : ''}><td>${escapeHtml(finMonthLabel(mm))}</td>
           <td>${r.замовлень}</td><td>${гр(r.сума)}</td><td>${гр(r.надійшло)}</td>
@@ -9527,24 +9547,151 @@ function renderFinAn(){
     </tbody></table>`;
   const ad = box.querySelector('[data-an-ad]');
   if(ad) ad.addEventListener('change', async ()=>{
-    await finAdSet(m, finAn.dir, ad.value);
+    await finAdSet(m, 'b2c', ad.value);
     renderFinAn();
   });
+}
+/* ══════════ ЗАГАЛЬНА: ГРОШІ ОБОХ НАПРЯМІВ І ЗВІДКИ ВОНИ ══════════
+   Андрій: «загальні панелі, кешфлоу, щоб все було зрозуміло: гроші за
+   період, гроші зараз… розділено по сайту, Telegram, Instagram».
+
+   Гроші зараз — дві цифри: що лежить на рахунках і що клієнти ще мають
+   доплатити за замовленнями в роботі. Гроші за період — що прийшло й що
+   пішло. Надходження по замовленню беремо з одного джерела, щоб не
+   порахувати двічі: у B2B — оплати з картки (там їх і записують), якщо
+   вони є; інакше — привʼязані платежі з рахунків. Платежі на рахунок без
+   привʼязки до замовлення — окремим рядком: це теж гроші, просто ще
+   невідомо чиї. */
+const AN_SRC = [['site', 'Сайт'], ['tg', 'Telegram'], ['ig', 'Instagram'], ['manual', 'Вручну / інше']];
+/* Звідки замовлення: позначка «джерело» в картці, а де її нема чи вона
+   загальна («повтор», «B2C») — канал, у якому йде розмова з клієнтом. */
+function orderSrc(o){
+  const s = String((o && o.source) || '').toLowerCase();
+  if(/сайт|заявка|site|web/.test(s)) return 'site';
+  if(/telegram|телеграм/.test(s)) return 'tg';
+  if(/instagram|інстаграм/.test(s)) return 'ig';
+  if(o && o.webId && String(o.webId).indexOf('tg:') === 0) return 'tg';
+  if(o && (o.crmChatId || o.ig)) return 'ig';
+  try{ if(typeof tgChatOf === 'function' && tgChatOf(o)) return 'tg'; }catch(e){}
+  if(o && o.webId) return 'site';
+  return 'manual';
+}
+function anPaidOf(o){
+  if(orderDir(o) === 'b2b' && payList(o).length) return paidSum(o);
+  return payPaid(o.orderId);
+}
+function anInOf(o, set){
+  if(orderDir(o) === 'b2b' && payList(o).length)
+    return payList(o).reduce((a, p) => a + (set[anDayOf(p.at)] ? Math.round(+p.sum || 0) : 0), 0);
+  const id = String(o.orderId || '');
+  return (payments || []).reduce((a, p) => a + ((String(p.orderId || '') === id && (+p.amount || 0) > 0 &&
+    set[anDayOf(p.at)]) ? Math.round(+p.amount) : 0), 0);
+}
+function renderAnAll(days, month, spend){
+  const box = document.getElementById('an-all');
+  if(!box) return;
+  try{ watchPayments(); }catch(e){}
+  days = days || [];
+  const set = {};
+  days.forEach(d => { set[d] = 1; });
+  const гр = n => fmt(Math.round(n || 0)) + ' ₴';
+  const E = escapeHtml;
+  const живі = (orders || []).filter(o => o && o.orderId && o.status !== 'cancel');
+  /* Гроші зараз. */
+  const наРахунках = finAccounts().reduce((a, x) => a + finBalance(x.id), 0);
+  const винні = { b2b: 0, b2c: 0 };
+  живі.forEach(o => {
+    if(typeof orderMade === 'function' && !orderMade(o)) return;
+    const t = Math.round(+o.totalPrice || 0);
+    if(t > 0) винні[orderDir(o)] += Math.max(0, t - anPaidOf(o));
+  });
+  /* Гроші за період — по джерелах і напрямах. */
+  const рядки = {};
+  AN_SRC.forEach(x => { рядки[x[0]] = { n: 0, сума: 0, b2b: 0, b2c: 0 }; });
+  живі.forEach(o => {
+    const r = рядки[orderSrc(o)];
+    const dir = orderDir(o);
+    if(set[anDayOf(o.createdAt || ((o.hist || [])[0] || {}).at)] && (typeof orderMade !== 'function' || orderMade(o))){
+      r.n++; r.сума += Math.round(+o.totalPrice || 0);
+    }
+    r[dir] += anInOf(o, set);
+  });
+  const ids = {};
+  (orders || []).forEach(o => { if(o && o.orderId) ids[String(o.orderId)] = 1; });
+  let безПривʼязки = 0, витрачено = 0, зарплати = 0;
+  const поДнях = {};
+  const день = d => (поДнях[d] = поДнях[d] || { in: 0, out: 0 });
+  (payments || []).forEach(p => {
+    const d = anDayOf(p.at);
+    if(!set[d]) return;
+    const n = Math.round(+p.amount || 0);
+    if(n > 0 && !ids[String(p.orderId || '')]){ безПривʼязки += n; день(d).in += n; }
+    if(n < 0){ витрачено += -n; день(d).out += -n; if(p.src === 'salary') зарплати += -n; }
+  });
+  /* Надходження по замовленнях — у рух по днях теж. */
+  живі.forEach(o => {
+    if(orderDir(o) === 'b2b' && payList(o).length){
+      payList(o).forEach(p => { const d = anDayOf(p.at); if(set[d]) день(d).in += Math.round(+p.sum || 0); });
+    } else {
+      const id = String(o.orderId || '');
+      (payments || []).forEach(p => {
+        const d = anDayOf(p.at);
+        if(set[d] && String(p.orderId || '') === id && (+p.amount || 0) > 0) день(d).in += Math.round(+p.amount);
+      });
+    }
+  });
+  const поЗамовл = AN_SRC.reduce((a, x) => a + рядки[x[0]].b2b + рядки[x[0]].b2c, 0);
+  const надійшло = поЗамовл + безПривʼязки;
+  const підпис = month ? finMonthLabel(month) : (days.length ? days[0] + ' — ' + days[days.length - 1] : '');
+  const частка = v => надійшло ? ' <i>' + Math.round(v / надійшло * 100) + '%</i>' : '';
+  box.innerHTML =
+    '<div class="an-h">Гроші зараз</div>' +
+    '<div class="an-row">' +
+      '<div class="an-c"><span>На рахунках</span><b>' + гр(наРахунках) + '</b></div>' +
+      '<div class="an-c"><span>Клієнти винні · B2B</span><b>' + гр(винні.b2b) + '</b></div>' +
+      '<div class="an-c"><span>Клієнти винні · B2C</span><b>' + гр(винні.b2c) + '</b></div>' +
+      '<div class="an-c"><span>Разом очікуємо</span><b>' + гр(винні.b2b + винні.b2c) + '</b></div>' +
+    '</div>' +
+    '<div class="an-h">За період · ' + E(підпис) + '</div>' +
+    '<div class="an-row">' +
+      '<div class="an-c"><span>Надійшло</span><b>' + гр(надійшло) + '</b></div>' +
+      '<div class="an-c"><span>Витрачено' + (зарплати ? ' (з них зарплати ' + гр(зарплати) + ')' : '') + '</span><b>' + гр(витрачено) + '</b></div>' +
+      '<div class="an-c is-net"><span>Кешфлоу</span><b>' + гр(надійшло - витрачено) + '</b></div>' +
+      '<div class="an-c"><span>Реклама (внесена в аналітиці)</span><b>' + (spend ? гр(spend) : '—') + '</b></div>' +
+    '</div>' +
+    '<div class="an-h">Звідки прийшли замовлення й гроші</div>' +
+    '<table class="an-t an-src-t"><thead><tr><th>Джерело</th><th>Нових замовлень</th><th>Сума замовлень</th>' +
+      '<th>Надійшло B2B</th><th>Надійшло B2C</th><th>Разом надійшло</th></tr></thead><tbody>' +
+    AN_SRC.map(x => { const r = рядки[x[0]];
+      return '<tr><td>' + E(x[1]) + '</td><td>' + r.n + '</td><td>' + гр(r.сума) + '</td><td>' + гр(r.b2b) + '</td><td>' +
+        гр(r.b2c) + '</td><td><b>' + гр(r.b2b + r.b2c) + '</b>' + частка(r.b2b + r.b2c) + '</td></tr>'; }).join('') +
+    '<tr><td>Не привʼязано до замовлення</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>' + гр(безПривʼязки) + '</b>' + частка(безПривʼязки) + '</td></tr>' +
+    '<tr class="on"><td>Разом</td><td>' + AN_SRC.reduce((a, x) => a + рядки[x[0]].n, 0) + '</td><td>' +
+      гр(AN_SRC.reduce((a, x) => a + рядки[x[0]].сума, 0)) + '</td><td>' + гр(AN_SRC.reduce((a, x) => a + рядки[x[0]].b2b, 0)) +
+      '</td><td>' + гр(AN_SRC.reduce((a, x) => a + рядки[x[0]].b2c, 0)) + '</td><td>' + гр(надійшло) + '</td></tr>' +
+    '</tbody></table>' +
+    '<div class="an-h">Рух грошей по днях</div>' +
+    '<table class="an-t"><thead><tr><th>День</th><th>Надійшло</th><th>Витрачено</th><th>Різниця</th></tr></thead><tbody>' +
+    (days.filter(d => поДнях[d]).reverse().map(d => { const r = поДнях[d];
+      return '<tr><td>' + E(d) + '</td><td>' + гр(r.in) + '</td><td>' + (r.out ? гр(r.out) : '—') + '</td><td>' + гр(r.in - r.out) + '</td></tr>'; })
+      .join('') || '<tr><td colspan="4" class="an-empty">За цей період руху грошей не записано</td></tr>') +
+    '</tbody></table>' +
+    '<div class="tm-hint">Нові замовлення — створені за період (у B2B — від «Чекаємо оплату» й далі). Надійшло — оплати за період; ' +
+      'у B2B беремо оплати з картки, якщо вони є, інакше привʼязані платежі з рахунків. Джерело — позначка в картці, а якщо її немає, ' +
+      'канал розмови з клієнтом.</div>';
 }
 function renderFin(){
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
      дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
      мати два різні числа про той самий день. */
+  if(finAn.tab !== 'team') finAn.tab = 'acc';     // у Фінансах лишились рахунки й команда
   const acc = document.getElementById('fin-pane-acc');
-  const an = document.getElementById('fin-pane-an');
   if(acc) acc.hidden = finAn.tab !== 'acc';
-  if(an) an.hidden = finAn.tab !== 'an';
   const tm = document.getElementById('fin-pane-team');
   if(tm) tm.hidden = finAn.tab !== 'team';
   if(finAn.tab === 'team'){ try{ renderTeam(); }catch(e){ console.warn('команда', e); } }
   document.querySelectorAll('[data-fin-tab]').forEach(b =>
     b.classList.toggle('on', b.dataset.finTab === finAn.tab));
-  if(finAn.tab === 'an'){ try{ renderFinAn(); }catch(e){ console.warn('аналітика', e); } }
   renderFinCards();
   const accs = document.getElementById('fin-accs');
   if(accs) accs.innerHTML = ['<button class="fin-tab' + (finView.acc ? '' : ' on') +
@@ -9826,15 +9973,6 @@ async function finAddManual(){
      розійшлися б у тому, що вважати поточним вибором. */
   document.querySelectorAll('[data-fin-tab]').forEach(b =>
     b.addEventListener('click', ()=>{ finAn.tab = b.dataset.finTab; renderFin(); }));
-  const per = document.getElementById('fin-an-per');
-  if(per) per.addEventListener('change', ()=>{ finAn.per = per.value; renderFinAn(); });
-  const dirs = document.getElementById('fin-an-dir');
-  if(dirs) dirs.addEventListener('click', e => {
-    const b = e.target.closest ? e.target.closest('[data-an-dir]') : null;
-    if(!b) return;
-    finAn.dir = b.dataset.anDir || '';
-    renderFinAn();
-  });
 })();
 /* ══════════ КОМАНДА: ПОСАДИ, ЗАРПЛАТА Й ДАШБОРДИ ══════════
 
@@ -33779,7 +33917,7 @@ async function init(){
 (function(){
   var ROLLUP_V = 3;          // зміна набору полів = старі підсумки перерахувати
   var RAW_LIMIT = 8000;      // запобіжник на випадок сплеску трафіку
-  var AN = { days:7, site:'', block:'main', attr:'first',
+  var AN = { days:7, month:'', top:'all', site:'', block:'main', attr:'first',
              cache:{}, spend:null, busy:false, opened:false, truncated:0 };
 
   function kyivDay(d){
@@ -33795,6 +33933,21 @@ async function init(){
     return out;
   }
   function today(){ return kyivDay(new Date()); }
+  /* Конкретний місяць — усі його дні (поточний — до сьогодні). */
+  function monthDays(m){
+    var y = +m.slice(0, 4), mm = +m.slice(5, 7), n = new Date(y, mm, 0).getDate(), out = [], t = today();
+    for(var i = 1; i <= n; i++){
+      var k = m + '-' + String(i).padStart(2, '0');
+      if(k > t) break;
+      out.push(k);
+    }
+    return out;
+  }
+  function prevMonth(m){
+    var y = +m.slice(0, 4), mm = +m.slice(5, 7) - 1;
+    if(mm < 1){ mm = 12; y--; }
+    return y + '-' + String(mm).padStart(2, '0');
+  }
   function state(msg){ var el = document.getElementById('an-state'); if(el) el.textContent = msg || ''; }
 
   /* ── Підсумки ─────────────────────────────────────────────── */
@@ -35058,8 +35211,8 @@ async function init(){
       state('База не відповідає вже хвилину. Спробуйте «Оновити» ще раз ' +
             'або звузьте період.');
     }, 60000);
-    var days = dayList(AN.days);
-    var prevDays = dayList(AN.days, AN.days);
+    var days = AN.month ? monthDays(AN.month) : dayList(AN.days);
+    var prevDays = AN.month ? monthDays(prevMonth(AN.month)) : dayList(AN.days, AN.days);
     state('Рахуємо за ' + days.length + ' дн…');
     try{
       await loadSpend();
@@ -35078,6 +35231,9 @@ async function init(){
       renderSales(days, ords);
       renderMoney(days);
       fxFill();
+      /* Загальна й B2C — ті самі дні, що й решта вкладок. */
+      try{ renderAnAll(days, AN.month, spendIn(days)); }catch(e){ console.warn('загальна', e); }
+      try{ renderFinAn(days, AN.month); }catch(e){ console.warn('B2C', e); }
       // Порожньо — це не помилка читання, тож окремим повідомленням пояснюємо,
       // де шукати причину. Інакше нуль виглядає як «просто ніхто не заходив».
       if(!cur.A.visits && !AN.site)
@@ -35122,18 +35278,71 @@ async function init(){
       });
     });
   }
-  seg('an-period', 'd', function(v){ AN.days = +v || 7; });
+  seg('an-period', 'd', function(v){
+    AN.days = +v || 7; AN.month = '';
+    var ms = document.getElementById('an-month'); if(ms) ms.value = '';
+  });
+  /* Або конкретний місяць — один перемикач на всі вкладки. */
+  (function(){
+    var ms = document.getElementById('an-month');
+    if(!ms) return;
+    var назви = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+    var d = new Date(), opts = ['<option value="">або місяць…</option>'];
+    for(var i = 0; i < 12; i++){
+      var m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      opts.push('<option value="' + m + '">' + назви[d.getMonth()] + ' ' + d.getFullYear() + '</option>');
+      d.setMonth(d.getMonth() - 1);
+    }
+    ms.innerHTML = opts.join('');
+    ms.addEventListener('change', function(){
+      AN.month = ms.value || '';
+      document.querySelectorAll('#an-period button').forEach(function(b){
+        b.classList.toggle('active', !AN.month && +b.dataset.d === AN.days); });
+      load();
+    });
+  })();
   seg('an-site', 's', function(v){ AN.site = v || ''; });
   seg('an-block', 'b', function(v){
     AN.block = v || 'main';
-    ['main','traffic','behav','sales','money','ads'].forEach(function(k){
-      var el = document.getElementById('an-pane-' + k);
-      if(el) el.hidden = (k !== AN.block);
-    });
+    showPanes();
     const mScroll = document.querySelector('main');
     if(mScroll) mScroll.scrollTop = 0;
     window.scrollTo({ top:0, behavior:'instant' });
   }, false);
+
+  /* ВКЛАДКИ: Загальна і B2C — по одній панелі; B2B і сайт мають свої блоки. */
+  var TOP_FIRST = { b2b:'sales', site:'main' };
+  function showPanes(){
+    var top = AN.top;
+    var blocks = document.getElementById('an-block');
+    if(blocks){
+      blocks.hidden = !(top === 'b2b' || top === 'site');
+      blocks.querySelectorAll('button').forEach(function(b){
+        b.hidden = b.dataset.top !== top;
+        b.classList.toggle('active', b.dataset.b === AN.block);
+      });
+    }
+    ['main','traffic','behav','sales','money','ads'].forEach(function(k){
+      var el = document.getElementById('an-pane-' + k);
+      if(el) el.hidden = !((top === 'b2b' || top === 'site') && k === AN.block);
+    });
+    var all = document.getElementById('an-pane-all'); if(all) all.hidden = top !== 'all';
+    var b2c = document.getElementById('an-pane-b2c'); if(b2c) b2c.hidden = top !== 'b2c';
+    /* Фільтр сайтів — там, де він щось означає: сайт і B2B. */
+    var site = document.getElementById('an-site'); if(site) site.hidden = !(top === 'b2b' || top === 'site');
+    document.querySelectorAll('#an-tabs [data-an-top]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.anTop === top); });
+  }
+  document.querySelectorAll('#an-tabs [data-an-top]').forEach(function(b){
+    b.addEventListener('click', function(){
+      AN.top = b.dataset.anTop || 'all';
+      var blk = document.querySelector('#an-block button[data-b="' + AN.block + '"]');
+      if(TOP_FIRST[AN.top] && (!blk || blk.dataset.top !== AN.top)) AN.block = TOP_FIRST[AN.top];
+      showPanes();
+      window.scrollTo({ top:0, behavior:'instant' });
+    });
+  });
+  showPanes();
 
   var rl = document.getElementById('an-reload');
   if(rl) rl.addEventListener('click', function(){
@@ -35337,6 +35546,8 @@ async function init(){
 
   window.__anOpen = function(){
     paintStaff();
+    try{ watchPayments(); }catch(e){}
+    showPanes();
     var el = document.getElementById('an-spend-date');
     if(el && !el.value) el.value = today();
     var fm = document.getElementById('an-fx-month');
