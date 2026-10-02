@@ -309,13 +309,16 @@ function privatDate(d) {
   return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear();
 }
 async function privatPoll(env, acc) {
+  /* Новий Автоклієнт видає лише токен; старий — ще й ID. Шлемо, що є. */
   const id = env['PRIVAT_ID_' + acc.id], token = env['PRIVAT_TOKEN_' + acc.id];
-  if (!id || !token) return { acc: acc.id, skip: 'немає секретів PRIVAT_ID_/PRIVAT_TOKEN_' };
+  if (!token) return { acc: acc.id, skip: 'немає секрета PRIVAT_TOKEN_' + acc.id };
   if (!acc.iban) return { acc: acc.id, skip: 'у рахунку не заповнений IBAN' };
   const від = new Date(Date.now() - 2 * 864e5);
   const url = PRIVAT_URL + '?acc=' + encodeURIComponent(acc.iban) +
               '&startDate=' + privatDate(від) + '&limit=200';
-  const r = await fetch(url, { headers: { id, token, 'Content-Type': 'application/json;charset=utf8' } });
+  const h = { token: String(token).trim(), 'Content-Type': 'application/json;charset=utf8' };
+  if (id) h.id = String(id).trim();
+  const r = await fetch(url, { headers: h });
   const d = await r.json().catch(() => null);
   if (!d) return { acc: acc.id, error: 'Приват відповів не JSON (' + r.status + ')' };
   if (d.status && d.status !== 'SUCCESS')
