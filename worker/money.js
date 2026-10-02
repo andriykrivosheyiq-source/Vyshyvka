@@ -223,9 +223,40 @@ async function accounts(env) {
    ненульову відповідь невдачею й шле те саме ще раз; а оскільки номер руху в
    нас стійкий, повтор і так нешкідливий — але краще його не викликати.
    ══════════════════════════════════════════════════════════════════════════ */
+/* ТІЛЬКИ РАХУНОК ФОПА. Токен Монобанку — людини, а не рахунку: з ним видно
+   всі її рахунки, і особисті картки теж, і вебхук шле рухи по кожному.
+   Записати їх усі в рахунок ФОПа означало б покласти у Фінанси особисті
+   покупки власника. Тому під час підключення (/mono/setup) знаходимо в
+   Монобанку рахунок із тим IBAN, що вписаний у Фінансах, запамʼятовуємо
+   його номер, і далі пишемо лише рухи цього рахунку. */
+let MONO_MAP = null;
+async function monoMap(env, fresh) {
+  if (MONO_MAP && !fresh && MONO_MAP.until > Date.now()) return MONO_MAP.map;
+  const d = await fsGet(env, 'loomiq/monoMap');
+  MONO_MAP = { map: d || {}, until: Date.now() + 5 * 60000 };
+  return MONO_MAP.map;
+}
+/* Рахунок Монобанку за IBAN — чисте перетворення, перевіряється без банку. */
+function monoPick(info, iban) {
+  const want = String(iban || '').replace(/\s+/g, '').toUpperCase();
+  if (!want) return null;
+  return ((info && info.accounts) || []).filter(a =>
+    String(a.iban || '').replace(/\s+/g, '').toUpperCase() === want)[0] || null;
+}
 async function monoHook(env, acc, body) {
-  const it = ((body || {}).data || {}).statementItem;
+  const data = (body || {}).data || {};
+  const it = data.statementItem;
   if (!it || !it.id) return 0;
+  const map = await monoMap(env);
+  /* Рух кладемо в той рахунок Фінансів, якому належить рахунок Монобанку.
+     Вебхук у Монобанку один на токен: якщо в однієї людини кілька
+     рахунків ФОП (гривня й валюта, кілька ФОПів), адреса в нього остання з
+     підключених — тому шукаємо рахунок за номером, а не за адресою.
+     Підключення не зроблене чи рахунок у Фінансах не заведений — не пишемо. */
+  const mono = String(data.account || '');
+  const куди = Object.keys(map).filter(k => mono && String(map[k]) === mono)[0];
+  if (!куди) return 0;
+  acc = куди;
   await payment(env, {
     id: 'mono_' + it.id,
     at: new Date((+it.time || 0) * 1000).toISOString(),
@@ -242,6 +273,18 @@ async function monoHook(env, acc, body) {
 async function monoSetup(env, acc, url) {
   const token = env['MONO_TOKEN_' + acc];
   if (!token) throw new Error('Немає секрета MONO_TOKEN_' + acc);
+  /* Спершу — який саме рахунок цієї людини наш (за IBAN із Фінансів). */
+  const mine = (await accounts(env)).filter(a => a.id === acc)[0];
+  if (!mine) throw new Error('У Фінансах немає рахунку з кодом ' + acc);
+  if (!mine.iban) throw new Error('У рахунку ' + acc + ' (Фінанси → Рахунки) не вписаний IBAN — без нього не відрізнити рахунок ФОПа від особистих карток');
+  const ci = await fetch(MONO_URL + '/personal/client-info', { headers: { 'X-Token': token } });
+  const info = await ci.json().catch(() => null);
+  if (!ci.ok || !info) throw new Error('Монобанк не віддав список рахунків: ' + JSON.stringify(info).slice(0, 200));
+  const hit = monoPick(info, mine.iban);
+  if (!hit) throw new Error('Серед рахунків цього токена немає IBAN ' + mine.iban +
+    '. Є: ' + ((info.accounts || []).map(a => '…' + String(a.iban || '').slice(-4) + ' (' + (a.type || '') + ')').join(', ') || 'жодного'));
+  await fsWrite(env, 'loomiq/monoMap', { [acc]: hit.id });
+  MONO_MAP = null;
   const r = await fetch(MONO_URL + '/personal/webhook', {
     method: 'POST',
     headers: { 'X-Token': token, 'Content-Type': 'application/json' },
@@ -428,7 +471,7 @@ async function poll(env) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, fval };
+export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, fval, monoPick };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 export default {
@@ -455,7 +498,7 @@ export default {
         const acc = parts[2] || '';
         const hook = url.origin + '/mono/' + acc + '?s=' + env.HOOK_SECRET;
         const r = await monoSetup(env, acc, hook);
-        return json({ ok: true, acc, hook, monobank: r });
+        return json({ ok: true, acc, monobank: r, рахунок: 'знайдено за IBAN — пишемо лише його рухи' });
       }
       if (parts[0] === 'mono' && request.method === 'POST') {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
