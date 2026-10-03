@@ -86,6 +86,11 @@ globalThis.fetch = async (url, opt) => {
         if(k === 105) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'1500.50',
           AmountPaid:'1500.50', MoneyTransferNumber:'TR77', PaymentStatusDate:'02.10.2026 12:00:00',
           PaymentStatus:'Виплачено', RecipientFullName:'Олена' };
+        /* Контроль оплати: 110 — отримано (2 080), 111 — відмова, 112 — ще в дорозі. */
+        if(k === 110) return { Number:n, StatusCode:'9', Status:'Відправлення отримано', AfterpaymentOnGoodsCost:2080,
+          RecipientDateTime:'28.09.2026 08:34:37', RecipientFullName:'Мороз  Євгенія', LastAmountTransferGM:'' };
+        if(k === 111) return { Number:n, StatusCode:'102', Status:'Відмова від отримання', AfterpaymentOnGoodsCost:1500 };
+        if(k === 112) return { Number:n, StatusCode:'7', Status:'Прибув у відділення', AfterpaymentOnGoodsCost:990 };
         if(k === 107) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'640', PaymentStatus:'PAYED' };
         if(k % 10 === 0) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'800', PaymentStatus:'' };
         return { Number:n, Status:'Відправлення отримано' };
@@ -166,10 +171,22 @@ ok(npo.накладних === 130, 'перевірено всі 130 наклад
   'накладних: ' + npo.накладних);
 ok(npo.виплат === 1 && npo.сума === 1501 && num((DB['payments/np_TR77_20450000000105'] || {}).amount) === 1500.5,
   'виплачена наложка записана рухом — з копійками й номером переказу', 'виплати: ' + JSON.stringify(npo));
+const ко = DB['payments/npc_20450000000110'] || {};
+ok(npo.контроль_оплати && npo.контроль_оплати.отримано === 1 && npo.контроль_оплати.сума === 2080,
+  'контроль оплати: отримана посилка — одна, 2 080 ₴; відмова й «у відділенні» не рахуються',
+  'контроль оплати: ' + JSON.stringify(npo.контроль_оплати));
+ok(num(ко.amount) === 2080 && (ко.ttn || {}).stringValue === '20450000000110' &&
+   (ко.at || {}).stringValue === '2026-09-28T08:34:37.000Z' &&
+   /NovaPay · Мороз Євгенія/.test((ко.counter || {}).stringValue || '') &&
+   /ТТН 20450000000110/.test((ко.desc || {}).stringValue || ''),
+  'рух записано: сума клієнта, дата отримання, хто, номер ТТН — за ним привʼяжеться замовлення',
+  'рух не той: ' + JSON.stringify(ко));
+ok(!DB['payments/npc_20450000000111'] && !DB['payments/npc_20450000000112'],
+  'для відмови й не забраної посилки руху немає', 'зайві рухи для незабраних посилок');
 ok((npo.виплачено_але_не_розпізнано || []).join() === '20450000000107',
   'накладна, яку НП називає виплаченою (PAYED), але без суми з переказом, — окремим списком для /np/probe',
   'виплачену без переказу не видно: ' + JSON.stringify(npo.виплачено_але_не_розпізнано));
-ok(npo.з_наложкою === 15 && (npo.перевірити_через_probe || []).length === 5,
+ok(npo.з_наложкою === 17 && (npo.перевірити_через_probe || []).length === 5,
   'і видно, скільки накладних з наложкою та які ТТН перевірити через /np/probe',
   'підказки немає: ' + JSON.stringify(npo));
 
