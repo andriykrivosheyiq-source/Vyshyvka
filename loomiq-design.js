@@ -7948,10 +7948,12 @@
         var pside = [];
         try{ pside = (host().sides && host().sides(du.gid, du.color)) || []; }catch(e){}
         if(!pside.length) return say('У цього виробу немає фото в каталозі');
-        /* Положення з версії. Старі версії його не зберігали — тоді роботи
-           лягають по центру, і менеджер ставить їх сам. */
-        var pplaces = D.verSpots(pv).filter(function(sp){ return +sp.w > 0 && sp.side; })
-          .map(function(sp){ return { side: sp.side, work: +sp.work || 0, x: +sp.x, y: +sp.y, w: +sp.w }; });
+        /* Положення з версії — як є, без перетворень: биті (без координат, за
+           кадром, без сторони) вікно саме поставить видимо на виріб. Доти тут
+           відкидались роботи без ширини, а відсутні координати ставали NaN —
+           і картинка «зависала» під краєм фото (баг 03.10, docs/BUGS.md). */
+        var pplaces = D.verSpots(pv).filter(Boolean)
+          .map(function(sp){ return { side: sp.side || '', work: sp.work, x: sp.x, y: sp.y, w: sp.w }; });
         return window.LQMock.openWork({
           placeOnly: true,
           gid: du.gid, size: du.size || '', color: du.color || '',
