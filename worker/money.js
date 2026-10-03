@@ -496,10 +496,15 @@ async function np(env, model, method, props) {
       : d.success ? '' : ([].concat(d.errors || [], d.warnings || [])
           .filter(Boolean).join('; ') || 'Нова пошта відмовила без пояснення');
     if (!помилка) return d.data || [];
-    if ((r.status === 429 || /many requests/i.test(помилка)) && спроба < NP_WAIT.length) {
+    const частота = r.status === 429 || /many requests/i.test(помилка);
+    if (частота && спроба < NP_WAIT.length) {
       await sleep(NP_WAIT[спроба]);
       continue;
     }
+    /* Словами, щоб було видно: це вже нова версія, вона чекала й повторювала,
+       і НП досі просить паузу — отже треба просто почекати довше. */
+    if (частота) throw new Error('Нова пошта: забагато запитів (' + помилка + '). Спробував ' +
+      (NP_WAIT.length + 1) + ' рази з паузами — НП досі просить зачекати. Повторіть за 15–30 хв.');
     throw new Error(помилка);
   }
 }
