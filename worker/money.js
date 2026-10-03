@@ -67,6 +67,7 @@
  *   GET  /mono/setup/<acc>?s=...       — сказати Монобанку цю адресу
  *   GET  /poll?s=...                   — опитати Приват і Нову пошту зараз
  *   GET  /np/probe/<ttn>?s=...         — показати, що САМЕ каже НП про накладну
+ *   GET  /privat/balance/<acc>?s=...   — що САМЕ каже Приват про залишок
  *
  * Розклад (у wrangler.toml) викликає опитування сам, без жодного натиску.
  */
@@ -74,6 +75,7 @@
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
+const PRIVAT_BAL_URL = 'https://acp.privatbank.ua/api/statements/balance';
 const MONO_URL = 'https://api.monobank.ua';
 
 /* ── Дрібниці ─────────────────────────────────────────────────────────── */
@@ -131,7 +133,25 @@ function fval(v) {
   if (v === null || v === undefined) return { nullValue: null };
   if (typeof v === 'number') return { doubleValue: v };
   if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'object') {
+    const fields = {};
+    for (const k of Object.keys(v)) if (v[k] !== undefined) fields[k] = fval(v[k]);
+    return { mapValue: { fields } };
+  }
   return { stringValue: String(v) };
+}
+/* Мапа з fsGet приходить сирими полями Firestore — розбираємо до звичайних. */
+function fplain(fields) {
+  const out = {};
+  for (const k of Object.keys(fields || {})) {
+    const f = fields[k] || {};
+    out[k] = f.stringValue !== undefined ? f.stringValue
+           : f.doubleValue !== undefined ? f.doubleValue
+           : f.integerValue !== undefined ? +f.integerValue
+           : f.booleanValue !== undefined ? f.booleanValue
+           : null;
+  }
+  return out;
 }
 async function fsGet(env, path) {
   const r = await fetch(docPath(env, path),
@@ -180,15 +200,44 @@ async function fsWrite(env, path, obj) {
    `id` — стійкий номер руху в його джерелі. Саме він і робить повторний
    прогін нешкідливим: другий запис просто ляже на перший.
    ══════════════════════════════════════════════════════════════════════════ */
+/* З копійками. Доти суму округлювали до гривні, і на сотнях рухів залишок,
+   порахований з них, розходився з банком на десятки гривень (03.10). */
+const kop = n => Math.round((+n || 0) * 100) / 100;
 async function payment(env, p) {
   if (!p.id || !p.amount) return false;
   await fsWrite(env, 'payments/' + p.id, {
     at: p.at,                       // ISO, рядком — як його кладе адмінка
-    amount: Math.round(p.amount),   // гривні; мінус — витрата
+    amount: kop(p.amount),          // гривні з копійками; мінус — витрата
     acc: p.acc || '',
     counter: (p.counter || '').slice(0, 120),
     desc: (p.desc || '').slice(0, 300),
-    src: p.src || ''                // mono | privat | np — видно, звідки взялось
+    src: p.src || '',               // mono | privat | np — видно, звідки взялось
+    /* Залишок після цього руху — коли банк його каже (Монобанк каже). */
+    balAfter: p.balAfter == null ? undefined : kop(p.balAfter)
+  });
+  return true;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ЗАЛИШОК ВІД БАНКУ
+
+   Скільки на рахунку — питання до банку, а не до нашої арифметики. Сума
+   «початковий залишок + рухи» розходиться з банком щоразу, коли рух пройшов
+   повз нас (вебхук ще не стояв, Приват не віддав), або коли початковий
+   залишок вписали не на ту дату. Тому банк, який називає залишок, і є
+   правдою: пишемо його в loomiq/bankBal, по полю на рахунок.
+
+   `at` — момент, на який банк назвав це число. Вебхуки Монобанку бувають не
+   по порядку: старіший рух, що прийшов пізніше, не має права затерти
+   свіжіший залишок.
+   ══════════════════════════════════════════════════════════════════════════ */
+async function bankBalance(env, acc, bal, at, src) {
+  if (!acc || !/^[A-Za-z0-9_]+$/.test(acc) || !isFinite(+bal)) return false;
+  const doc = await fsGet(env, 'loomiq/bankBal');
+  const was = doc && doc[acc] ? fplain(doc[acc]) : null;
+  if (was && was.at && String(was.at) > String(at)) return false;
+  await fsWrite(env, 'loomiq/bankBal', {
+    [acc]: { bal: kop(bal), at: String(at), src: src || '', got: new Date().toISOString() }
   });
   return true;
 }
@@ -257,15 +306,20 @@ async function monoHook(env, acc, body) {
   const куди = Object.keys(map).filter(k => mono && String(map[k]) === mono)[0];
   if (!куди) return 0;
   acc = куди;
+  const at = new Date((+it.time || 0) * 1000).toISOString();
+  /* `balance` у Монобанку — залишок ПІСЛЯ цього руху, у копійках. */
+  const після = it.balance == null ? null : (+it.balance || 0) / 100;
   await payment(env, {
     id: 'mono_' + it.id,
-    at: new Date((+it.time || 0) * 1000).toISOString(),
+    at,
     amount: (+it.amount || 0) / 100,
     acc,
     counter: it.counterName || it.counterEdrpou || '',
     desc: [it.description, it.comment].filter(Boolean).join(' · '),
-    src: 'mono'
+    src: 'mono',
+    balAfter: після
   });
+  if (після != null) await bankBalance(env, acc, після, at, 'mono');
   return 1;
 }
 /* Сказати Монобанку, куди слати. Робиться один раз на рахунок; повторний
@@ -285,6 +339,10 @@ async function monoSetup(env, acc, url) {
     '. Є: ' + ((info.accounts || []).map(a => '…' + String(a.iban || '').slice(-4) + ' (' + (a.type || '') + ')').join(', ') || 'жодного'));
   await fsWrite(env, 'loomiq/monoMap', { [acc]: hit.id });
   MONO_MAP = null;
+  /* Залишок — одразу, не чекаючи першого руху: інакше картка рахунку до
+     першої покупки показувала б нашу арифметику, а не банк. */
+  if (hit.balance != null)
+    await bankBalance(env, acc, (+hit.balance || 0) / 100, new Date().toISOString(), 'mono');
   const r = await fetch(MONO_URL + '/personal/webhook', {
     method: 'POST',
     headers: { 'X-Token': token, 'Content-Type': 'application/json' },
@@ -305,6 +363,41 @@ async function monoSetup(env, acc, url) {
    протягом дня, і рух, який прийшов о 23:58, інакше не потрапив би нікуди.
    Повтори нешкідливі — номер руху в Привату свій, стійкий (REF).
    ══════════════════════════════════════════════════════════════════════════ */
+/* Залишок Привату. Автоклієнт віддає `balances[]` — по запису на день, з
+   вихідним залишком `balanceOut`. Беремо найсвіжіший день саме цього IBAN.
+   Імена полів читаємо з запасом, але не вигадуємо: немає числа — немає
+   залишку, і картка лишається на нашій арифметиці. Що саме віддає банк,
+   видно за адресою /privat/balance/<acc>. */
+function privatDay(s) {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(String(s || '').trim());
+  return m ? m[3] + '-' + m[2] + '-' + m[1] : String(s || '');
+}
+function privatBalPick(d, iban) {
+  const want = String(iban || '').replace(/\s+/g, '').toUpperCase();
+  const list = ((d && d.balances) || []).filter(b =>
+    !want || !b.acc || String(b.acc).replace(/\s+/g, '').toUpperCase() === want);
+  let best = null;
+  for (const b of list) {
+    const v = parseFloat(String(b.balanceOut ?? b.balanceOutEq ?? '').replace(',', '.'));
+    if (!isFinite(v)) continue;
+    const day = privatDay(b.dpd || b.date || '');
+    if (!best || day >= best.day) best = { bal: v, day };
+  }
+  return best;
+}
+async function privatBalance(env, acc, raw) {
+  const id = env['PRIVAT_ID_' + acc.id], token = env['PRIVAT_TOKEN_' + acc.id];
+  if (!token || !acc.iban) return null;
+  const h = { token: String(token).trim(), 'Content-Type': 'application/json;charset=utf8' };
+  if (id) h.id = String(id).trim();
+  const r = await fetch(PRIVAT_BAL_URL + '?acc=' + encodeURIComponent(acc.iban) +
+                        '&startDate=' + privatDate(new Date(Date.now() - 3 * 864e5)) +
+                        '&limit=20', { headers: h });
+  const d = await r.json().catch(() => null);
+  if (raw) return d;
+  if (!d || (d.status && d.status !== 'SUCCESS')) return null;
+  return privatBalPick(d, acc.iban);
+}
 function privatDate(d) {
   return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear();
 }
@@ -341,7 +434,13 @@ async function privatPoll(env, acc) {
     });
     n++;
   }
-  return { acc: acc.id, рухів: n };
+  /* Залишок — окремим запитом. Не вдався — рухи від цього не гірші. */
+  let залишок = null;
+  try {
+    const b = await privatBalance(env, acc);
+    if (b) { await bankBalance(env, acc.id, b.bal, new Date().toISOString(), 'privat'); залишок = b.bal; }
+  } catch (e) { залишок = 'не прочитано: ' + e.message; }
+  return { acc: acc.id, рухів: n, залишок };
 }
 /* Приват віддає час як «01.02.2026 13:45:00» або окремими полями. Беремо те,
    що є, і завжди повертаємо ISO: адмінка сортує рядком. */
@@ -474,7 +573,8 @@ async function poll(env) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, fval, monoPick };
+export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, fval, fplain, monoPick,
+                       privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 export default {
@@ -514,6 +614,14 @@ export default {
       if (parts[0] === 'poll') {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
         return json({ ok: true, ...(await poll(env)) });
+      }
+      /* Що САМЕ каже Приват про залишок рахунку — сирий відгук і розібране. */
+      if (parts[0] === 'privat' && parts[1] === 'balance') {
+        if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
+        const a = (await accounts(env)).filter(x => x.id === parts[2])[0];
+        if (!a) return json({ ok: false, error: 'У Фінансах немає рахунку ' + (parts[2] || '') }, 404);
+        const d = await privatBalance(env, a, true);
+        return json({ ok: true, сире: d, розібрано: privatBalPick(d, a.iban) });
       }
       /* Показати, що САМЕ каже Нова пошта про накладну. Потрібно рівно один
          раз — коли підключаємо накладений платіж і хочемо бачити справжні

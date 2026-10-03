@@ -4879,6 +4879,35 @@
   .fin-tag{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink-soft);
     border:1px solid var(--line);border-radius:8px;padding:7px 12px;}
   .fin-tag.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600;}
+  /* Картка рахунку: натиск розгортає виписку, ⚙ — налаштування. */
+  .fin-c{position:relative;}
+  .fin-c.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink);}
+  .fin-c-set{all:unset;cursor:pointer;position:absolute;top:8px;right:9px;font-size:13px;
+    line-height:1;padding:3px 4px;border-radius:6px;color:var(--muted);}
+  .fin-c-set:hover{background:var(--canvas);color:var(--ink);}
+  .fin-c-at{font-size:11px;color:var(--muted);}
+  .fin-c-at.is-calc{color:#B54708;}
+  /* Виписка рахунку — як у банку: нові зверху, залишок після кожного руху. */
+  .fin-hist{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .fin-hist-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .fin-hist-h b{font-size:15px;color:var(--ink);}
+  .fin-hist-h .fin-tabs{margin-left:auto;}
+  .fin-hist-x{all:unset;cursor:pointer;font-size:18px;line-height:1;color:var(--muted);
+    padding:2px 6px;border-radius:6px;}
+  .fin-hist-x:hover{background:var(--canvas);color:var(--ink);}
+  .fin-hrow{display:grid;grid-template-columns:110px 1fr 130px 130px 150px;gap:12px;
+    align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13px;}
+  .fin-hrow:last-child{border-bottom:0;}
+  .fin-bal{text-align:right;font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .fin-bal.is-calc{color:var(--muted);font-style:italic;}
+  .fin-more{all:unset;cursor:pointer;display:block;margin:12px auto 0;font-size:13px;
+    color:var(--accent);font-weight:600;}
+  @media (max-width:900px){
+    .fin-hrow{grid-template-columns:1fr auto;gap:4px 10px;}
+    .fin-hrow .fin-at{grid-area:1/1/2/2;} .fin-hrow .fin-bal{grid-area:1/2/2/3;}
+    .fin-hrow .fin-who{grid-area:2/1/3/3;} .fin-hrow .fin-amt{grid-area:3/1/4/2;text-align:left;}
+    .fin-hrow .fin-link{grid-area:3/2/4/3;text-align:right;}
+  }
   @media (max-width:900px){
     .fin-row{grid-template-columns:1fr auto;gap:4px 10px;}
     .fin-at{grid-area:1/1/2/2;} .fin-acc{grid-area:1/2/2/3;text-align:right;}
@@ -5853,6 +5882,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button class="pc-btn" id="fin-acc-add">+ Рахунок</button>
         </div>
         <div id="fin-cards" class="fin-cards"></div>
+        <div id="fin-hist" class="fin-hist" hidden></div>
       </div>
 
       <div class="card">
@@ -7074,24 +7104,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=92504ea0c8"></script>
-<script src="loomiq-fingerprint.js?v=92504ea0c8"></script>
-<script src="loomiq-pricing.js?v=92504ea0c8"></script>
+<script src="loomiq-select.js?v=4e7ec6e14c"></script>
+<script src="loomiq-fingerprint.js?v=4e7ec6e14c"></script>
+<script src="loomiq-pricing.js?v=4e7ec6e14c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=92504ea0c8"></script>
-<script src="loomiq-mock.js?v=92504ea0c8"></script>
+<script src="loomiq-design.js?v=4e7ec6e14c"></script>
+<script src="loomiq-mock.js?v=4e7ec6e14c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=92504ea0c8"></script>
-<script src="loomiq-threads.js?v=92504ea0c8"></script>
+<script src="imagetracer.js?v=4e7ec6e14c"></script>
+<script src="loomiq-threads.js?v=4e7ec6e14c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=92504ea0c8"></script>
+<script src="loomiq-cards.js?v=4e7ec6e14c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7116,7 +7146,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '92504ea0c8';
+var LQ_VER = '4e7ec6e14c';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9222,6 +9252,9 @@ function readExtras(){
 const PAY_COL = fbDb.collection('payments');
 let payments = [];
 let payWatching = false;
+let bankBal = {};          // { acc: { bal, at, src, got } } — залишок від банку
+/* Розгорнута виписка рахунку (див. renderFinHist). */
+const finHist = { acc: '', days: 30, shown: 100, all: {}, loading: '' };
 let finView = { acc:'', kind:'', link:'', q:'' };
 let finAn = { tab:'acc', dir:'b2c', per:'' };
 /* ── АНАЛІТИКА ФІНАНСІВ ──────────────────────────────────────────────────
@@ -9346,6 +9379,11 @@ function watchPayments(){
     payments = l;
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
   }, e => console.warn('платежі', e));
+  /* Залишки, які назвав сам банк (пише грошовий воркер). */
+  fbDb.collection('loomiq').doc('bankBal').onSnapshot(sn => {
+    bankBal = sn.exists ? (sn.data() || {}) : {};
+    if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
+  }, e => console.warn('залишки банку', e));
 }
 /* Рахунки — довідник. Назва людська («ФОП Моно · основний»), бо в списку
    рухів має бути видно, куди саме прийшло, а не номер картки.
@@ -9374,12 +9412,33 @@ function finAccounts(){
 /* СКІЛЬКИ НА РАХУНКУ. Поки банк не підключено, це початковий залишок
    плюс усі рухи, які ми знаємо. Коли підключимо — банк казатиме точно, і
    число просто стане чеснішим; рахунок від цього не зміниться. */
+/* ЗАЛИШОК ВІД БАНКУ — ГОЛОВНИЙ (03.10). Арифметика «початковий + рухи»
+   розходилась із банком: копійки округлювались на кожному русі, рухи, що
+   пройшли повз вебхук, не потрапляли в суму, а початковий залишок вписували
+   руками на іншу дату. Тепер, коли банк назвав залишок (Монобанк — з кожним
+   рухом, Приват — при кожному опитуванні), показуємо його. Арифметика
+   лишилась запасною — для рахунків, де банк ще не підключено. */
+function finBankBal(id){
+  const b = bankBal && bankBal[id];
+  return (b && b.bal != null && isFinite(+b.bal)) ? b : null;
+}
 function finBalance(id){
+  const bb = finBankBal(id);
+  if(bb) return Math.round(+bb.bal * 100) / 100;
   const a = finAccounts().filter(x => x.id === id)[0] || {};
   if(a.balance != null) return Math.round(+a.balance || 0);
-  const старт = Math.round(+a.start || 0);
-  return (payments || []).reduce((s, p) =>
-    s + ((p.acc === id) ? Math.round(+p.amount || 0) : 0), старт);
+  const старт = +a.start || 0;
+  return Math.round((payments || []).reduce((s, p) =>
+    s + ((p.acc === id) ? (+p.amount || 0) : 0), старт) * 100) / 100;
+}
+/* Гроші з копійками — для залишків і виписки, де їх видно в банку теж. */
+function payMoneyK(n){
+  const v = Math.round((+n || 0) * 100) / 100;
+  const abs = Math.abs(v);
+  const грн = Math.floor(abs + 1e-9), коп = Math.round((abs - грн) * 100);
+  return (v > 0 ? '+' : v < 0 ? '−' : '') +
+    String(грн).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') +
+    (коп ? ',' + String(коп).padStart(2, '0') : '') + ' ₴';
 }
 async function finAccsSave(list){
   const fin = Object.assign({}, contentData.fin || {}, { accounts: list });
@@ -9398,18 +9457,114 @@ function renderFinCards(){
   const разом = accs.reduce((s, a) => s + finBalance(a.id), 0);
   box.innerHTML = accs.map(a => {
     const b = finBalance(a.id);
+    const bb = finBankBal(a.id);
     const жив = !!a.linked;
-    return '<button class="fin-c" data-fin-acc-edit="' + escapeHtml(a.id) + '">' +
+    return '<div class="fin-c' + (finHist.acc === a.id ? ' on' : '') + '" role="button" tabindex="0" ' +
+        'data-fin-acc-open="' + escapeHtml(a.id) + '" title="Показати виписку рахунку">' +
+      '<button class="fin-c-set" data-fin-acc-edit="' + escapeHtml(a.id) + '" title="Налаштування рахунку">⚙</button>' +
       '<span class="fin-c-b">' + escapeHtml(FIN_BANKS[a.bank] || a.bank || '—') +
         (жив ? '<i class="fin-c-on" title="Банк підключено">●</i>'
              : '<i class="fin-c-off" title="Банк ще не підключено">○</i>') + '</span>' +
       '<span class="fin-c-n">' + escapeHtml(a.name || a.id) + '</span>' +
-      '<span class="fin-c-s">' + escapeHtml(payMoney(b).replace('+', '')) + '</span>' +
-    '</button>';
+      '<span class="fin-c-s">' + escapeHtml(payMoneyK(b).replace('+', '')) + '</span>' +
+      (bb ? '<span class="fin-c-at" title="Залишок, який назвав банк">банк · ' + escapeHtml(payDate(bb.at)) + '</span>'
+          : '<span class="fin-c-at is-calc" title="Банк ще не називав залишок: початковий залишок плюс рухи">розрахунок</span>') +
+    '</div>';
   }).join('') +
     '<div class="fin-c is-all"><span class="fin-c-b">Разом</span>' +
       '<span class="fin-c-n">на всіх рахунках</span>' +
-      '<span class="fin-c-s">' + escapeHtml(payMoney(разом).replace('+', '')) + '</span></div>';
+      '<span class="fin-c-s">' + escapeHtml(payMoneyK(разом).replace('+', '')) + '</span></div>';
+  renderFinHist();
+}
+
+/* ══════════ ВИПИСКА РАХУНКУ ══════════
+   Натиск на картку рахунку розгортає під картками всю його історію, як
+   виписку в банку: нові зверху, від кого/кому, призначення, сума й залишок
+   після руху. Список унизу сторінки тримає лише пів року — виписка тягне
+   рухи цього рахунку за весь час окремим запитом. */
+function finHistOpen(id){
+  if(finHist.acc === id){ finHist.acc = ''; return renderFinCards(); }
+  finHist.acc = id; finHist.shown = 100;
+  renderFinCards();
+  if(finHist.all[id] || finHist.loading === id) return;
+  finHist.loading = id;
+  PAY_COL.where('acc', '==', id).get().then(snap => {
+    const l = [];
+    snap.forEach(d => { const v = d.data() || {}; v.id = d.id; l.push(v); });
+    finHist.all[id] = l;
+  }).catch(e => { console.warn('виписка', e); finHist.all[id] = finHist.all[id] || []; finHist.err = id; })
+    .then(() => { if(finHist.loading === id) finHist.loading = ''; renderFinCards(); });
+}
+/* Усі відомі рухи рахунку: повна історія з запиту плюс живі зміни. */
+function finHistRows(id){
+  const m = {};
+  (finHist.all[id] || []).forEach(p => { m[p.id] = p; });
+  (payments || []).forEach(p => { if(p.acc === id) m[p.id] = p; });
+  return Object.keys(m).map(k => m[k])
+    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+function renderFinHist(){
+  const box = document.getElementById('fin-hist');
+  if(!box) return;
+  const id = finHist.acc;
+  const a = id ? finAccounts().filter(x => x.id === id)[0] : null;
+  if(!a){ box.hidden = true; box.innerHTML = ''; finHist.acc = ''; return; }
+  box.hidden = false;
+  const всі = finHistRows(id);
+  /* Залишок після кожного руху: від поточного назад, мінус рух за рухом.
+     Де банк сам назвав залишок після руху (Монобанк), беремо його — і від
+     нього рахуємо далі, тож похибка не тягнеться через усю історію. */
+  let cur = finBalance(id);
+  const після = {};
+  всі.forEach(p => {
+    const bank = (p.balAfter != null && isFinite(+p.balAfter));
+    const v = bank ? +p.balAfter : cur;
+    після[p.id] = { v, bank };
+    cur = v - (+p.amount || 0);
+  });
+  const від = finHist.days ? new Date(Date.now() - finHist.days * 864e5).toISOString() : '';
+  const rows = від ? всі.filter(p => String(p.at || '') >= від) : всі;
+  const прийшло = rows.reduce((s, p) => s + Math.max(0, +p.amount || 0), 0);
+  const пішло = rows.reduce((s, p) => s + Math.max(0, -(+p.amount || 0)), 0);
+  const ПЕРІОДИ = [[7, '7 днів'], [30, '30 днів'], [90, '90 днів'], [0, 'Уся історія']];
+  const вантажу = finHist.loading === id && !finHist.all[id];
+  box.innerHTML =
+    '<div class="fin-hist-h"><b>' + escapeHtml(a.name || a.id) + ' · виписка</b>' +
+      '<div class="fin-tabs">' + ПЕРІОДИ.map(([d, t]) =>
+        '<button class="fin-tab' + (finHist.days === d ? ' on' : '') + '" data-fin-hist-days="' + d + '">' + t + '</button>').join('') +
+      '</div><button class="fin-hist-x" data-fin-hist-x title="Згорнути">×</button></div>' +
+    '<div class="fin-sum">' +
+      '<span>Рухів: <b>' + rows.length + '</b></span>' +
+      '<span class="is-in">Прийшло: <b>' + escapeHtml(payMoneyK(прийшло)) + '</b></span>' +
+      '<span class="is-out">Пішло: <b>' + escapeHtml(payMoneyK(-пішло)) + '</b></span>' +
+      '<span>Залишок зараз: <b>' + escapeHtml(payMoneyK(finBalance(id)).replace('+', '')) + '</b></span>' +
+    '</div>' +
+    (вантажу ? '<div class="fin-none">Завантажую всю історію рахунку…</div>' : '') +
+    (finHist.err === id ? '<div class="fin-none">Повну історію не вдалось завантажити — показано рухи за пів року.</div>' : '') +
+    (!rows.length && !вантажу ? '<div class="fin-none">' + (всі.length
+        ? 'За цей період рухів немає. Оберіть довший період або «Уся історія».'
+        : 'По цьому рахунку ще немає жодного руху.') + '</div>' : '') +
+    rows.slice(0, finHist.shown).map(p => {
+      const дохід = (+p.amount || 0) > 0;
+      const з = після[p.id];
+      return '<div class="fin-hrow">' +
+        '<span class="fin-at">' + escapeHtml(payDate(p.at)) + '</span>' +
+        '<span class="fin-who"><b>' + escapeHtml(p.counter || (дохід ? 'Надходження' : 'Витрата')) + '</b>' +
+          (p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : '') + '</span>' +
+        '<span class="fin-amt' + (дохід ? ' is-in' : '') + '">' + escapeHtml(payMoneyK(p.amount)) + '</span>' +
+        '<span class="fin-bal' + (з.bank ? '' : ' is-calc') + '" title="' +
+          (з.bank ? 'Залишок після руху — так каже банк' : 'Залишок після руху — пораховано від поточного') + '">' +
+          escapeHtml(payMoneyK(з.v).replace('+', '')) + '</span>' +
+        '<span class="fin-link">' +
+          (p.orderId
+            ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
+              escapeHtml('#' + p.orderId + (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) + '</button>'
+            : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
+        '</span>' +
+      '</div>';
+    }).join('') +
+    (rows.length > finHist.shown
+      ? '<button class="fin-more" data-fin-hist-more>Показати ще (' + (rows.length - finHist.shown) + ')</button>' : '');
 }
 function finAccName(id){
   const a = finAccounts().filter(x => x.id === id)[0];
@@ -9777,7 +9932,8 @@ function renderFin(){
    чи доплатою. У рядку списку на це немає місця, а без підпису сума лягає
    в картку без значення. */
 function finOpen(id){
-  const p = (payments || []).filter(x => x.id === id)[0];
+  const p = (payments || []).filter(x => x.id === id)[0] ||
+    Object.keys(finHist.all).reduce((f, k) => f || finHist.all[k].filter(x => x.id === id)[0], null);
   if(!p) return;
   const guess = payGuess(p);
   const d = document.createElement('div');
@@ -9998,11 +10154,21 @@ async function finAddManual(){
     const acc = e.target.closest && e.target.closest('[data-fin-acc]');
     if(acc){ finView.acc = acc.dataset.finAcc; return renderFin(); }
     const edit = e.target.closest && e.target.closest('[data-fin-acc-edit]');
-    if(edit) return finAccEdit(edit.dataset.finAccEdit);
+    if(edit){ e.stopPropagation(); return finAccEdit(edit.dataset.finAccEdit); }
+    const hopen = e.target.closest && e.target.closest('[data-fin-acc-open]');
+    if(hopen) return finHistOpen(hopen.dataset.finAccOpen);
+    const hd = e.target.closest && e.target.closest('[data-fin-hist-days]');
+    if(hd){ finHist.days = +hd.dataset.finHistDays || 0; finHist.shown = 100; return renderFinHist(); }
+    if(e.target.closest && e.target.closest('[data-fin-hist-more]')){ finHist.shown += 100; return renderFinHist(); }
+    if(e.target.closest && e.target.closest('[data-fin-hist-x]')){ finHist.acc = ''; return renderFinCards(); }
     const open = e.target.closest && e.target.closest('[data-fin-open]');
     if(open) return finOpen(open.dataset.finOpen);
     if(e.target.id === 'fin-add') return finAddManual();
     if(e.target.id === 'fin-acc-add') return finAccAdd();
+  });
+  root.addEventListener('keydown', e => {
+    const c = e.target.closest && e.target.closest('[data-fin-acc-open]');
+    if(c && e.target === c && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); finHistOpen(c.dataset.finAccOpen); }
   });
   ['fin-kind','fin-link'].forEach(id => {
     const el = document.getElementById(id);
