@@ -7104,24 +7104,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4e7ec6e14c"></script>
-<script src="loomiq-fingerprint.js?v=4e7ec6e14c"></script>
-<script src="loomiq-pricing.js?v=4e7ec6e14c"></script>
+<script src="loomiq-select.js?v=d0c9b84d5d"></script>
+<script src="loomiq-fingerprint.js?v=d0c9b84d5d"></script>
+<script src="loomiq-pricing.js?v=d0c9b84d5d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4e7ec6e14c"></script>
-<script src="loomiq-mock.js?v=4e7ec6e14c"></script>
+<script src="loomiq-design.js?v=d0c9b84d5d"></script>
+<script src="loomiq-mock.js?v=d0c9b84d5d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=4e7ec6e14c"></script>
-<script src="loomiq-threads.js?v=4e7ec6e14c"></script>
+<script src="imagetracer.js?v=d0c9b84d5d"></script>
+<script src="loomiq-threads.js?v=d0c9b84d5d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4e7ec6e14c"></script>
+<script src="loomiq-cards.js?v=d0c9b84d5d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7146,7 +7146,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '4e7ec6e14c';
+var LQ_VER = 'd0c9b84d5d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9253,6 +9253,7 @@ const PAY_COL = fbDb.collection('payments');
 let payments = [];
 let payWatching = false;
 let bankBal = {};          // { acc: { bal, at, src, got } } — залишок від банку
+let payErr = '';           // чому рухи не читаються — показуємо словами
 /* Розгорнута виписка рахунку (див. renderFinHist). */
 const finHist = { acc: '', days: 30, shown: 100, all: {}, loading: '' };
 let finView = { acc:'', kind:'', link:'', q:'' };
@@ -9376,9 +9377,17 @@ function watchPayments(){
     const l = [];
     snap.forEach(d => { const v = d.data() || {}; v.id = d.id; l.push(v); });
     l.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
-    payments = l;
+    payments = l; payErr = '';
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
-  }, e => console.warn('платежі', e));
+  }, e => {
+    /* Не мовчимо: без цього порожній список читався як «банк ще не
+       прислав рухів», хоча рухи в базі лежали, а не пускали правила. */
+    console.warn('платежі', e);
+    payErr = (e && e.code === 'permission-denied')
+      ? 'База не дає читати рухи. Опублікуйте правила з firestore.rules (FIREBASE.md, крок 2) або попросіть право «Записувати оплату».'
+      : 'Рухи не завантажились: ' + ((e && e.message) || e);
+    if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
+  });
   /* Залишки, які назвав сам банк (пише грошовий воркер). */
   fbDb.collection('loomiq').doc('bankBal').onSnapshot(sn => {
     bankBal = sn.exists ? (sn.data() || {}) : {};
@@ -9540,7 +9549,8 @@ function renderFinHist(){
       '<span>Залишок зараз: <b>' + escapeHtml(payMoneyK(finBalance(id)).replace('+', '')) + '</b></span>' +
     '</div>' +
     (вантажу ? '<div class="fin-none">Завантажую всю історію рахунку…</div>' : '') +
-    (finHist.err === id ? '<div class="fin-none">Повну історію не вдалось завантажити — показано рухи за пів року.</div>' : '') +
+    (payErr ? '<div class="fin-none">' + escapeHtml(payErr) + '</div>'
+      : finHist.err === id ? '<div class="fin-none">Повну історію не вдалось завантажити — показано рухи за пів року.</div>' : '') +
     (!rows.length && !вантажу ? '<div class="fin-none">' + (всі.length
         ? 'За цей період рухів немає. Оберіть довший період або «Уся історія».'
         : 'По цьому рахунку ще немає жодного руху.') + '</div>' : '') +
@@ -9900,7 +9910,7 @@ function renderFin(){
   const box = document.getElementById('fin-list');
   if(!box) return;
   if(!rows.length){
-    box.innerHTML = '<div class="fin-none">' + (payments.length
+    box.innerHTML = '<div class="fin-none">' + (payErr ? escapeHtml(payErr) : payments.length
       ? 'За цим добором рухів немає.'
       : 'Рухів ще немає. Вони зʼявляться, коли підключимо банки — або запишіть платіж руками.') +
       '</div>';
