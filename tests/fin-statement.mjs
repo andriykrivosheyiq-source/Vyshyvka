@@ -62,11 +62,27 @@ PAY.push({ id:'man_2', acc:'cash', at:D(2), amount: -50.10, counter:'Кава', 
 for(let i = 0; i < 150; i++)
   PAY.push({ id:'many_' + i, acc:'mono4', at:D(i % 25, i % 24), amount: (i % 2 ? 10 : -5), counter:'Рух ' + i, desc:'', src:'mono' });
 
+/* Контроль оплати: рух із ТТН, і замовлення з тією самою накладною. */
+PAY.push({ id:'npc_20451542410918', acc:'npacc', at:D(5), amount:2080, counter:'NovaPay · Мороз Євгенія',
+  desc:'Контроль оплати · ТТН 20451542410918', src:'np', ttn:'20451542410918' });
+/* Цей уже раз привʼязувався автоматично, і людина його відвʼязала — не чіпаємо. */
+PAY.push({ id:'npc_20451549274434', acc:'npacc', at:D(4), amount:2110, counter:'NovaPay · Король',
+  desc:'Контроль оплати · ТТН 20451549274434', src:'np', ttn:'20451549274434', autoLinked:true, orderId:null });
+/* Для цієї накладної замовлення немає — лишається вільним. */
+PAY.push({ id:'npc_20450000000999', acc:'npacc', at:D(3), amount:990, counter:'NovaPay · Хтось',
+  desc:'Контроль оплати · ТТН 20450000000999', src:'np', ttn:'20450000000999' });
+const ORD = [
+  { id:'o1', orderId:'1000777', name:'Мороз Євгенія', status:'done', ttn:'2045 1542 4109 18',
+    createdAt:D(9), totalPrice:2080, items:[], hist:[], payments:[] },
+  { id:'o2', orderId:'1000778', name:'Король', status:'done', ttn:'20451549274434',
+    createdAt:D(9), totalPrice:2110, items:[], hist:[], payments:[] }
+];
 const ACCS = [
   { id:'mono1', name:'Моно ФОП Малєєва', bank:'mono', linked:true, start: 0 },
   { id:'mono3', name:'Приват ФОП Зелена', bank:'privat', linked:true },
   { id:'cash',  name:'Каса', bank:'other', start: 1000 },
-  { id:'mono4', name:'Моно ФОП 4', bank:'mono', start: 0 }
+  { id:'mono4', name:'Моно ФОП 4', bank:'mono', start: 0 },
+  { id:'npacc', name:'NovaPay', bank:'np', start: 0 }
 ];
 const BANKBAL = {
   mono1: { bal: 52572.35, at: D(1), src:'mono', got: D(1) },
@@ -77,6 +93,11 @@ const BANKBAL = {
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={',
   'window.__PAY=' + JSON.stringify(PAY) + '; window.__BB=' + JSON.stringify(BANKBAL) + '; window.__GETS=0;\n' +
+  'window.__ORD=' + JSON.stringify(ORD) + '; window.__SETS=[];\n' +
+  '  function OrdCol(){}\n' +
+  '  OrdCol.prototype = Object.create(Col.prototype);\n' +
+  '  OrdCol.prototype.onSnapshot = function(cb){ var l = window.__ORD; setTimeout(function(){ cb({ docs: l.map(function(o){ return new Snap(o.id, o); }),\n' +
+  '    forEach: function(f){ l.forEach(function(o){ f(new Snap(o.id, JSON.parse(JSON.stringify(o)))); }); }, empty: !l.length, docChanges: function(){ return []; } }); }, 0); return function(){}; };\n' +
   '  function PayCol(f){ this.f = f || []; }\n' +
   '  PayCol.prototype = Object.create(Col.prototype);\n' +
   '  PayCol.prototype.where = function(k, op, v){ return new PayCol(this.f.concat([[k, op, v]])); };\n' +
@@ -86,6 +107,7 @@ fbstub = fbstub.replace('window.firebase={',
   '    forEach: function(cb){ l.forEach(function(o){ cb(new Snap(o.id, JSON.parse(JSON.stringify(o)))); }); }, empty: !l.length }; };\n' +
   '  PayCol.prototype.onSnapshot = function(cb, err){ var s = this._s(); setTimeout(function(){\n' +
   '    if(window.__PAYDENY) return err && err({ code:"permission-denied", message:"Missing or insufficient permissions." }); cb(s); }, 0); return function(){}; };\n' +
+  '  PayCol.prototype.doc = function(id){ var d = new Doc(); d.set = function(data){ window.__SETS.push({ id: id, data: data }); return Promise.resolve(); }; return d; };\n' +
   '  PayCol.prototype.get = function(){ window.__GETS++; var s = this._s(); return new Promise(function(r){ setTimeout(function(){ r(s); }, 150); }); };\n' +
   '  function LqCol(){}\n' +
   '  LqCol.prototype = Object.create(Col.prototype);\n' +
@@ -95,7 +117,7 @@ fbstub = fbstub.replace('window.firebase={',
 fbstub = fbstub.replace(
   'var fs=function(){ return { collection:function(){ return new Col(); },',
   'var fs=function(){ return { collection:function(n){\n' +
-  '      return n === "payments" ? new PayCol() : n === "loomiq" ? new LqCol() : new Col(); },');
+  '      return n === "payments" ? new PayCol() : n === "loomiq" ? new LqCol() : n === "kanbanOrders" ? new OrdCol() : new Col(); },');
 
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 async function open(viewport, deny){
@@ -118,6 +140,23 @@ async function open(viewport, deny){
 }
 const p = await open({ width:1400, height:1000 });
 
+console.log('═══ КОНТРОЛЬ ОПЛАТИ: ПРИВʼЯЗКА ДО ЗАМОВЛЕННЯ ЗА ТТН ═══');
+const sets = await p.evaluate(() => window.__SETS.slice());
+const set1 = sets.filter(x => x.id === 'npc_20451542410918');
+console.log('   записи привʼязки: ' + JSON.stringify(sets.map(x => [x.id, x.data.orderId, x.data.tag])));
+ok(set1.length === 1 && set1[0].data.orderId === '1000777' && set1[0].data.tag === 'cod' && set1[0].data.autoLinked === true,
+  'рух із ТТН сам привʼязався до замовлення з тією самою накладною (пробіли в номері не заважають), підпис «Наложка»',
+  'автопривʼязки немає або не та: ' + JSON.stringify(set1));
+ok(!sets.some(x => x.id === 'npc_20451549274434'),
+  'рух, який людина відвʼязала після автопривʼязки, назад не чіпляється', 'відвʼязаний рух привʼязано знову');
+ok(!sets.some(x => x.id === 'npc_20450000000999'),
+  'накладна без замовлення лишається вільною', 'привʼязано до чужого замовлення');
+await p.evaluate(() => { renderFin(); renderFin(); });
+await p.waitForTimeout(200);
+ok((await p.evaluate(() => window.__SETS.filter(x => x.id === 'npc_20451542410918').length)) === 1,
+  'і привʼязує один раз, а не при кожному перемальовуванні', 'пише привʼязку повторно');
+
+console.log('');
 console.log('═══ ЗАЛИШОК НА КАРТЦІ ═══');
 const cards = await p.evaluate(() => Array.from(document.querySelectorAll('#fin-cards .fin-c')).map(c => ({
   id: c.dataset.finAccOpen || 'all',
@@ -134,8 +173,8 @@ ok(card('mono3').s === '5 000 ₴' && /^банк/.test(card('mono3').at),
 ok(card('cash').s === '1 050,45 ₴' && card('cash').at === 'розрахунок',
   'рахунок без банку — початковий + рухи, копійки не губляться (1000 + 100,55 − 50,10)',
   'розрахунок неточний: ' + JSON.stringify(card('cash')));
-ok(card('all').s === '58 997,80 ₴',
-  '«Разом» — сума карток (52 572,35 + 5 000 + 1 050,45 + 375)',
+ok(card('all').s === '64 177,80 ₴',
+  '«Разом» — сума карток (52 572,35 + 5 000 + 1 050,45 + 375 + 5 180)',
   '«Разом» не сходиться: ' + card('all').s);
 
 console.log('');

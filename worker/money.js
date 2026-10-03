@@ -212,6 +212,7 @@ async function payment(env, p) {
     counter: (p.counter || '').slice(0, 120),
     desc: (p.desc || '').slice(0, 300),
     src: p.src || '',               // mono | privat | np — видно, звідки взялось
+    ttn: p.ttn || undefined,        // номер накладної — за ним адмінка привʼязує рух до замовлення
     /* Залишок після цього руху — коли банк його каже (Монобанк каже). */
     balAfter: p.balAfter == null ? undefined : kop(p.balAfter)
   });
@@ -538,6 +539,18 @@ function npCod(x) {
     .map(a => parseFloat(String(a ?? '').replace(',', '.')) || 0);
   return Math.max(0, ...v);
 }
+/* Посилка з контролем оплати, яку отримувач уже забрав, — скільки він
+   заплатив. Коди НП: 9 «отримано», 10 і 11 — «отримано, переказ готується /
+   виданий», 106 — «отримано, створено зворотну доставку». Відмова,
+   повернення й не забрані — нуль. */
+function npControl(x) {
+  const сума = parseFloat(String(x.AfterpaymentOnGoodsCost ?? '').replace(',', '.')) || 0;
+  if (сума <= 0) return 0;
+  const код = String(x.StatusCode || '');
+  const забрали = ['9', '10', '11', '106'].indexOf(код) >= 0 ||
+    (!код && /^Відправлення отримано/i.test(String(x.Status || '')));
+  return забрали ? сума : 0;
+}
 async function npPoll(env, accId) {
   if (!env.NP_API_KEY) return { skip: 'немає секрета NP_API_KEY' };
   /* Місяць назад: накладений платіж їде до нас тижнями, і вікно в кілька днів
@@ -558,12 +571,32 @@ async function npPoll(env, accId) {
     }
     if (docs.length < 100 || !нових) break;
   }
-  let n = 0, виплачено = 0, зНаложкою = 0;
+  let n = 0, виплачено = 0, зНаложкою = 0, ко = 0, коСума = 0;
   const перевірити = [], оплачені = [], стани = {};
   for (let i = 0; i < ttns.length; i += 100) {
     const part = ttns.slice(i, i + 100).map(t => ({ DocumentNumber: t, Phone: '' }));
     const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part });
     for (const x of st) {
+      /* КОНТРОЛЬ ОПЛАТИ (03.10). Гроші за такі посилки NovaPay переказує
+         пулом — один платіж на 20–30 посилок, і розібрати його не можна, а
+         поля виплати (…GM) у трекінгу лишаються порожніми й через тиждень.
+         Тому домовились з Андрієм: посилку з контролем оплати ОТРИМАЛИ —
+         значить, її сума надійшла на рахунок NovaPay. Пишемо повну суму
+         клієнта (комісію поки не віднімаємо), один рух на ТТН. */
+      const ко_сума = npControl(x);
+      if (ко_сума > 0) {
+        await payment(env, {
+          id: 'npc_' + String(x.Number || ''),
+          at: npIso(x.RecipientDateTime || x.ActualDeliveryDate || ''),
+          amount: ко_сума,
+          acc: accId || '',
+          counter: 'NovaPay · ' + String(x.RecipientFullName || x.RecipientFullNameEW || '').replace(/\s+/g, ' ').trim(),
+          desc: 'Контроль оплати · ТТН ' + String(x.Number || ''),
+          src: 'np',
+          ttn: String(x.Number || '')
+        });
+        ко++; коСума += ко_сума;
+      }
       const p = npPayout(x);
       if (npCod(x) > 0) {
         зНаложкою++;
@@ -597,7 +630,9 @@ async function npPoll(env, accId) {
       виплачено += p.сума; n++;
     }
   }
-  return { накладних: ttns.length, з_наложкою: зНаложкою, виплат: n,
+  return { накладних: ttns.length, з_наложкою: зНаложкою,
+           контроль_оплати: { отримано: ко, сума: Math.round(коСума) },
+           виплат: n,
            сума: Math.round(виплачено), стани_наложки: стани,
            виплачено_але_не_розпізнано: оплачені,
            перевірити_через_probe: перевірити };
@@ -642,7 +677,7 @@ async function poll(env, opts) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, fval, fplain, monoPick,
+export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
