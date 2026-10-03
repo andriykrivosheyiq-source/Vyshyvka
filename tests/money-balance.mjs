@@ -43,10 +43,24 @@ DB['loomiq/photos'] = { fin: { mapValue: { fields: { accounts: { arrayValue: { v
 ] } } } } } };
 DB['loomiq/monoMap'] = { mono1: sv('monoAcc1') };
 
+let calls = 0, commits = 0;
 globalThis.fetch = async (url, opt) => {
   url = String(url); opt = opt || {};
+  calls++;
   const res = (body, status) => new Response(JSON.stringify(body), { status: status || 200 });
   if(url.startsWith('https://oauth2.googleapis.com/token')) return res({ access_token:'tok', expires_in:3600 });
+  if(/documents:commit$/.test(url)){
+    /* Пакетний запис: те саме, що PATCH з updateMask, але багато документів разом. */
+    commits++;
+    const body = JSON.parse(opt.body);
+    body.writes.forEach(w => {
+      const pth = w.update.name.split('/documents/')[1];
+      DB[pth] = DB[pth] || {};
+      w.updateMask.fieldPaths.forEach(k => { DB[pth][k] = w.update.fields[k]; });
+      writes.push({ p: pth, fields: w.update.fields });
+    });
+    return res({});
+  }
   const m = /documents\/([^?]+)/.exec(url);
   if(m){
     const p = decodeURIComponent(m[1]);
@@ -146,7 +160,12 @@ ok(writes.length === before, 'рух особистої картки не пиш
 
 console.log('');
 console.log('═══ ПРИВАТ: РУХИ З КОПІЙКАМИ Й ЗАЛИШОК ═══');
+calls = 0; commits = 0;
 const po = await call('/poll?s=sek');
+console.log('   звернень назовні за одне опитування: ' + calls + ', пакетних записів: ' + commits);
+ok(calls < 50 && commits >= 2,
+  'одне опитування вкладається в ліміт Cloudflare (менше 50 звернень): рухи пишуться пакетами',
+  'звернень ' + calls + ' — Cloudflare обірве воркер («Too many subrequests»)');
 const pr = (po.privat || [])[0] || {};
 console.log('   опитування: ' + JSON.stringify(pr));
 ok(num((DB['payments/privat_R1'] || {}).amount) === 1500.55 && num((DB['payments/privat_R2'] || {}).amount) === -320.2,

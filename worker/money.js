@@ -176,14 +176,39 @@ async function fsGet(env, path) {
    документі вже можуть лежати `orderId` і `tag`, проставлені людиною, і
    перезаписати їх банківським прогоном означало б щоночі втрачати ручну
    роботу. */
-async function fsWrite(env, path, obj) {
-  const fields = {};
-  const mask = [];
+function fsFields(obj) {
+  const fields = {}, keys = [];
   for (const k of Object.keys(obj)) {
     if (obj[k] === undefined) continue;
     fields[k] = fval(obj[k]);
-    mask.push('updateMask.fieldPaths=' + encodeURIComponent(k));
+    keys.push(k);
   }
+  return { fields, keys };
+}
+/* ПАКЕТОМ. Cloudflare на безкоштовному тарифі дає воркеру 50 звернень
+   назовні за один запуск («Too many subrequests», 03.10). Кілька сотень
+   отриманих посилок, записані по одній, у це не влазили. Тому рухи
+   опитування складаємо в пакет і пишемо одним зверненням на 300 записів —
+   з тим самим updateMask, тобто ручну привʼязку так само не чіпаємо. */
+async function fsCommit(env, list) {
+  for (let i = 0; i < list.length; i += 300) {
+    const writes = list.slice(i, i + 300).map(w => {
+      const { fields, keys } = fsFields(w.obj);
+      return { update: { name: 'projects/' + env.FIREBASE_PROJECT + '/databases/(default)/documents/' + w.path, fields },
+               updateMask: { fieldPaths: keys } };
+    });
+    const r = await fetch(FS + '/projects/' + env.FIREBASE_PROJECT + '/databases/(default)/documents:commit', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + await accessToken(env), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ writes })
+    });
+    if (!r.ok) throw new Error('Firestore commit ' + r.status + ': ' + (await r.text()).slice(0, 300));
+  }
+  return list.length;
+}
+async function fsWrite(env, path, obj) {
+  const { fields, keys } = fsFields(obj);
+  const mask = keys.map(k => 'updateMask.fieldPaths=' + encodeURIComponent(k));
   const r = await fetch(docPath(env, path) + '?' + mask.join('&'), {
     method: 'PATCH',
     headers: { Authorization: 'Bearer ' + await accessToken(env),
@@ -203,9 +228,9 @@ async function fsWrite(env, path, obj) {
 /* З копійками. Доти суму округлювали до гривні, і на сотнях рухів залишок,
    порахований з них, розходився з банком на десятки гривень (03.10). */
 const kop = n => Math.round((+n || 0) * 100) / 100;
-async function payment(env, p) {
+async function payment(env, p, batch) {
   if (!p.id || !p.amount) return false;
-  await fsWrite(env, 'payments/' + p.id, {
+  const obj = {
     at: p.at,                       // ISO, рядком — як його кладе адмінка
     amount: kop(p.amount),          // гривні з копійками; мінус — витрата
     acc: p.acc || '',
@@ -215,7 +240,9 @@ async function payment(env, p) {
     ttn: p.ttn || undefined,        // номер накладної — за ним адмінка привʼязує рух до замовлення
     /* Залишок після цього руху — коли банк його каже (Монобанк каже). */
     balAfter: p.balAfter == null ? undefined : kop(p.balAfter)
-  });
+  };
+  if (batch) batch.push({ path: 'payments/' + p.id, obj });
+  else await fsWrite(env, 'payments/' + p.id, obj);
   return true;
 }
 
@@ -403,6 +430,7 @@ function privatDate(d) {
   return pad(d.getDate()) + '-' + pad(d.getMonth() + 1) + '-' + d.getFullYear();
 }
 async function privatPoll(env, acc) {
+  const пакет = [];
   /* Новий Автоклієнт видає лише токен; старий — ще й ID. Шлемо, що є. */
   const id = env['PRIVAT_ID_' + acc.id], token = env['PRIVAT_TOKEN_' + acc.id];
   if (!token) return { acc: acc.id, skip: 'немає секрета PRIVAT_TOKEN_' + acc.id };
@@ -432,9 +460,10 @@ async function privatPoll(env, acc) {
       counter: t.AUT_CNTR_NAM || t.AUT_MY_CRF_NAM || '',
       desc: t.OSND || '',
       src: 'privat'
-    });
+    }, пакет);
     n++;
   }
+  await fsCommit(env, пакет);
   /* Залишок — окремим запитом. Не вдався — рухи від цього не гірші. */
   let залишок = null;
   try {
@@ -553,6 +582,7 @@ function npControl(x) {
 }
 async function npPoll(env, accId) {
   if (!env.NP_API_KEY) return { skip: 'немає секрета NP_API_KEY' };
+  const пакет = [];
   /* Місяць назад: накладений платіж їде до нас тижнями, і вікно в кілька днів
      просто не побачило б половини виплат. */
   const до = new Date(), від = new Date(Date.now() - 31 * 864e5);
@@ -594,7 +624,7 @@ async function npPoll(env, accId) {
           desc: 'Контроль оплати · ТТН ' + String(x.Number || ''),
           src: 'np',
           ttn: String(x.Number || '')
-        });
+        }, пакет);
         ко++; коСума += ко_сума;
       }
       const p = npPayout(x);
@@ -626,10 +656,11 @@ async function npPoll(env, accId) {
         desc: 'Накладений платіж ' + String(x.Number || '') +
               ' · переказ ' + p.переказ + (p.стан ? ' · ' + p.стан : ''),
         src: 'np'
-      });
+      }, пакет);
       виплачено += p.сума; n++;
     }
   }
+  await fsCommit(env, пакет);
   return { накладних: ttns.length, з_наложкою: зНаложкою,
            контроль_оплати: { отримано: ко, сума: Math.round(коСума) },
            виплат: n,
