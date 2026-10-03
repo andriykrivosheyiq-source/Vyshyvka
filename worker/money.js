@@ -509,24 +509,54 @@ function npIso(s) {
   const d = new Date(s);
   return isNaN(d) ? new Date().toISOString() : d.toISOString();
 }
+/* Скільки накладеного платежу на накладній (зібрати з отримувача) — щоб
+   відрізнити накладні з наложкою від звичайних і підказати, що перевірити. */
+function npCod(x) {
+  const v = [x.RedeliverySum, x.AfterpaymentOnGoodsCost, x.BackwardDeliverySum]
+    .map(a => parseFloat(String(a ?? '').replace(',', '.')) || 0);
+  return Math.max(0, ...v);
+}
 async function npPoll(env, accId) {
   if (!env.NP_API_KEY) return { skip: 'немає секрета NP_API_KEY' };
   /* Місяць назад: накладений платіж їде до нас тижнями, і вікно в кілька днів
      просто не побачило б половини виплат. */
   const до = new Date(), від = new Date(Date.now() - 31 * 864e5);
-  const docs = await np(env, 'InternetDocument', 'getDocumentList', {
-    DateTimeFrom: npDate(від), DateTimeTo: npDate(до), GetFullList: '1'
-  });
-  const ttns = docs.map(d => String(d.IntDocNumber || d.Number || '')).filter(Boolean);
-  let n = 0, виплачено = 0;
+  /* СТОРІНКАМИ. НП віддає список по 100; доти брали лише першу сторінку —
+     і «накладних: 100» означало «перші сто», а решта місяця не перевірялась. */
+  const ttns = [], бачили = {};
+  for (let page = 1; page <= 30; page++) {
+    const docs = await np(env, 'InternetDocument', 'getDocumentList', {
+      DateTimeFrom: npDate(від), DateTimeTo: npDate(до), GetFullList: '1',
+      Page: String(page), Limit: '100'
+    });
+    let нових = 0;
+    for (const d of docs) {
+      const t = String(d.IntDocNumber || d.Number || '');
+      if (t && !бачили[t]) { бачили[t] = 1; ttns.push(t); нових++; }
+    }
+    if (docs.length < 100 || !нових) break;
+  }
+  let n = 0, виплачено = 0, зНаложкою = 0;
+  const перевірити = [], стани = {};
   for (let i = 0; i < ttns.length; i += 100) {
     const part = ttns.slice(i, i + 100).map(t => ({ DocumentNumber: t, Phone: '' }));
     const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part });
     for (const x of st) {
       const p = npPayout(x);
+      if (npCod(x) > 0) {
+        зНаложкою++;
+        const k = p.стан || String(x.Status || '') || '—';
+        стани[k] = (стани[k] || 0) + 1;
+      }
       /* І сума, І номер переказу. Одне без іншого означає «гроші зібрані, але
          ще не в нас» — а такий рядок у підсумку був би обіцянкою, не грошима. */
-      if (!p.сума || !p.переказ) continue;
+      if (!p.сума || !p.переказ) {
+        /* Наложка, яку отримувач уже забрав, а виплати ми не бачимо, —
+           саме її варто показати через /np/probe: там видно справжні поля. */
+        if (npCod(x) > 0 && /отрим|вручен|received/i.test(String(x.Status || '')) && перевірити.length < 5)
+          перевірити.push(String(x.Number || ''));
+        continue;
+      }
       await payment(env, {
         id: 'np_' + p.переказ + '_' + String(x.Number || ''),
         at: npIso(p.коли),
@@ -540,7 +570,9 @@ async function npPoll(env, accId) {
       виплачено += p.сума; n++;
     }
   }
-  return { накладних: ttns.length, виплат: n, сума: Math.round(виплачено) };
+  return { накладних: ttns.length, з_наложкою: зНаложкою, виплат: n,
+           сума: Math.round(виплачено), стани_наложки: стани,
+           перевірити_через_probe: перевірити };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -573,7 +605,7 @@ async function poll(env) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, fval, fplain, monoPick,
+export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, npCod, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */

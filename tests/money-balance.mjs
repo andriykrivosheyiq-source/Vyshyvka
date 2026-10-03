@@ -24,7 +24,8 @@ const env = {
   FIREBASE_SA: JSON.stringify({ client_email: 'sa@test', private_key: privateKey.export({ type:'pkcs8', format:'pem' }) }),
   HOOK_SECRET: 'sek',
   MONO_TOKEN_mono1: 'mt',
-  PRIVAT_TOKEN_mono3: 'pt'
+  PRIVAT_TOKEN_mono3: 'pt',
+  NP_API_KEY: 'npk'
 };
 
 /* ── Підставний світ ──────────────────────────────────────────────────── */
@@ -65,7 +66,27 @@ globalThis.fetch = async (url, opt) => {
       { REF:'R1', SUM:'1500.55', TRANTYPE:'C', DATE_TIME_DAT_OD_TIM_P:'03.10.2026 10:00:00', AUT_CNTR_NAM:'ТОВ Ромашка', OSND:'Оплата' },
       { REF:'R2', SUM:'320.20',  TRANTYPE:'D', DATE_TIME_DAT_OD_TIM_P:'03.10.2026 11:00:00', AUT_CNTR_NAM:'Постачальник', OSND:'Тканина' } ] });
   if(url.startsWith('https://acp.privatbank.ua/api/statements/balance')) return res(privatBal);
-  if(url.startsWith('https://api.novaposhta.ua')) return res({ success:true, data:[] });
+  if(url.startsWith('https://api.novaposhta.ua')){
+    const b = JSON.parse(opt.body);
+    if(b.calledMethod === 'getDocumentList'){
+      /* 130 накладних за місяць: сторінка 1 — 100, сторінка 2 — 30. */
+      const page = +b.methodProperties.Page || 1;
+      const from = (page - 1) * 100, to = Math.min(130, page * 100);
+      const data = [];
+      for(let i = from; i < to; i++) data.push({ IntDocNumber: String(20450000000000 + i) });
+      return res({ success:true, data });
+    }
+    if(b.calledMethod === 'getStatusDocuments')
+      return res({ success:true, data: b.methodProperties.Documents.map(d => {
+        const n = d.DocumentNumber, k = +n.slice(-3);
+        if(k === 105) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'1500.50',
+          AmountPaid:'1500.50', MoneyTransferNumber:'TR77', PaymentStatusDate:'02.10.2026 12:00:00',
+          PaymentStatus:'Виплачено', RecipientFullName:'Олена' };
+        if(k % 10 === 0) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'800', PaymentStatus:'' };
+        return { Number:n, Status:'Відправлення отримано' };
+      }) });
+    return res({ success:true, data:[] });
+  }
   throw new Error('неочікуваний запит ' + url);
 };
 
@@ -131,6 +152,18 @@ const po2 = await call('/poll?s=sek');
 ok(((po2.privat || [])[0] || {}).рухів === 2 && JSON.stringify(bb('mono3')) === JSON.stringify(prevBal),
   'банк не віддав залишок — рухи пишуться, а залишок лишається попереднім, не нуль',
   'без залишку: ' + JSON.stringify({ po2: po2.privat, bal: bb('mono3') }));
+
+console.log('');
+console.log('═══ НОВА ПОШТА: УСІ СТОРІНКИ НАКЛАДНИХ І ВИПЛАТА ═══');
+const npo = po2.np || {};
+console.log('   ' + JSON.stringify(npo));
+ok(npo.накладних === 130, 'перевірено всі 130 накладних — обидві сторінки, а не перші 100',
+  'накладних: ' + npo.накладних);
+ok(npo.виплат === 1 && npo.сума === 1501 && num((DB['payments/np_TR77_20450000000105'] || {}).amount) === 1500.5,
+  'виплачена наложка записана рухом — з копійками й номером переказу', 'виплати: ' + JSON.stringify(npo));
+ok(npo.з_наложкою === 14 && (npo.перевірити_через_probe || []).length === 5,
+  'і видно, скільки накладних з наложкою та які ТТН перевірити через /np/probe',
+  'підказки немає: ' + JSON.stringify(npo));
 
 console.log('');
 console.log('═══ ЩО КАЖЕ ПРИВАТ ПРО ЗАЛИШОК ═══');
