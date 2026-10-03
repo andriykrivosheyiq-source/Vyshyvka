@@ -2374,7 +2374,14 @@
          не прочитались через CORS) — лишаються межі, як було. */
       if(!byPixel) return true;             // питали лише про межі
       var mask = maskOf(layer);
-      if(!mask || !mask.w || !mask.h) return false;
+      /* МАСКИ НЕМАЄ — БЕРЕМОСЬ ЗА МЕЖІ, А НЕ ВІДМОВЛЯЄМО.
+
+         Маска живе лише в памʼяті вкладки. Позиція, відкрита наново (інший
+         менеджер, друге відкриття КП), приходила без неї, і шар не брався
+         взагалі: натиск провалювався на фото виробу (баг 03.10, BUGS.md).
+         Тепер без маски шар ловиться рамкою форми, як до 28.09, а саму маску
+         тим часом знімаємо — з наступного дотику вибір знову точний. */
+      if(!mask || !mask.w || !mask.h){ ensureMask(layer); return true; }
       var u = lx / box.w + 0.5, v = ly / box.h + 0.5;
       var mx = Math.min(mask.w - 1, Math.max(0, Math.floor(u * mask.w)));
       var my = Math.min(mask.h - 1, Math.max(0, Math.floor(v * mask.h)));
@@ -3261,6 +3268,27 @@
     }
     function maskOf(layer){
       return (layer && layer.url) ? SHAPE_MASKS[layer.url] : null;
+    }
+    /* Зняти маску форми з файлу шару, не чіпаючи нічого іншого: відбиток,
+       межі й ціна в збереженої позиції вже правильні, перераховувати їх при
+       кожному відкритті нема чого. Один запит на адресу; не вдалось (CORS,
+       файл зник) — лишаємось на межах, шар береться все одно. */
+    var MASK_PENDING = Object.create(null);
+    function ensureMask(layer){
+      if(!layer || layer.text || !layer.url) return;
+      var url = layer.url;
+      if(SHAPE_MASKS[url] || MASK_PENDING[url]) return;
+      MASK_PENDING[url] = 1;
+      loadImgEl(url).then(function(img){
+        var m = null;
+        try{ m = measureShape(img); }catch(e){}
+        rememberMask(url, m && m.mask);
+      }, function(){}).then(function(){ delete MASK_PENDING[url]; });
+    }
+    function ensureMasks(){
+      Object.keys(pm.logos || {}).forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){ if(l && !l.hidden) ensureMask(l); });
+      });
     }
     function measureLayerShape(layer, url){
       return loadImgEl(url).then(function(img){
@@ -9026,6 +9054,7 @@
       window.__pmEditIndex = (editIdx == null) ? null : editIdx;
       try{ syncAddLabels(); }catch(e){}
       try{ remeasureMissing(); }catch(e){ console.warn('відбитки', e); }
+      try{ ensureMasks(); }catch(e){ console.warn('маски', e); }
       try{ renderTabPanel(); renderRecommended(); updatePriceBar(); }catch(e){}
     };
     /* Проставити тираж ззовні. Потрібно рекомендованим: їхня кількість іде за
