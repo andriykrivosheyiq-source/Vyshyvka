@@ -86,6 +86,7 @@ globalThis.fetch = async (url, opt) => {
         if(k === 105) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'1500.50',
           AmountPaid:'1500.50', MoneyTransferNumber:'TR77', PaymentStatusDate:'02.10.2026 12:00:00',
           PaymentStatus:'Виплачено', RecipientFullName:'Олена' };
+        if(k === 107) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'640', PaymentStatus:'PAYED' };
         if(k % 10 === 0) return { Number:n, Status:'Відправлення отримано', RedeliverySum:'800', PaymentStatus:'' };
         return { Number:n, Status:'Відправлення отримано' };
       }) });
@@ -165,7 +166,10 @@ ok(npo.накладних === 130, 'перевірено всі 130 наклад
   'накладних: ' + npo.накладних);
 ok(npo.виплат === 1 && npo.сума === 1501 && num((DB['payments/np_TR77_20450000000105'] || {}).amount) === 1500.5,
   'виплачена наложка записана рухом — з копійками й номером переказу', 'виплати: ' + JSON.stringify(npo));
-ok(npo.з_наложкою === 14 && (npo.перевірити_через_probe || []).length === 5,
+ok((npo.виплачено_але_не_розпізнано || []).join() === '20450000000107',
+  'накладна, яку НП називає виплаченою (PAYED), але без суми з переказом, — окремим списком для /np/probe',
+  'виплачену без переказу не видно: ' + JSON.stringify(npo.виплачено_але_не_розпізнано));
+ok(npo.з_наложкою === 15 && (npo.перевірити_через_probe || []).length === 5,
   'і видно, скільки накладних з наложкою та які ТТН перевірити через /np/probe',
   'підказки немає: ' + JSON.stringify(npo));
 
