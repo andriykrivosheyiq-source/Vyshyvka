@@ -559,7 +559,7 @@ async function npPoll(env, accId) {
     if (docs.length < 100 || !нових) break;
   }
   let n = 0, виплачено = 0, зНаложкою = 0;
-  const перевірити = [], стани = {};
+  const перевірити = [], оплачені = [], стани = {};
   for (let i = 0; i < ttns.length; i += 100) {
     const part = ttns.slice(i, i + 100).map(t => ({ DocumentNumber: t, Phone: '' }));
     const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part });
@@ -573,6 +573,11 @@ async function npPoll(env, accId) {
       /* І сума, І номер переказу. Одне без іншого означає «гроші зібрані, але
          ще не в нас» — а такий рядок у підсумку був би обіцянкою, не грошима. */
       if (!p.сума || !p.переказ) {
+        /* НП сама каже «виплачено» (PaymentStatus, напр. PAYED), а суми з
+           переказом ми не знайшли — значить, у цьому договорі поля звуться
+           інакше. Саме такі ТТН і треба показати через /np/probe (03.10). */
+        if (npCod(x) > 0 && /payed|paid|виплач|оплач/i.test(p.стан) && оплачені.length < 5)
+          оплачені.push(String(x.Number || ''));
         /* Наложка, яку отримувач уже забрав, а виплати ми не бачимо, —
            саме її варто показати через /np/probe: там видно справжні поля. */
         if (npCod(x) > 0 && /отрим|вручен|received/i.test(String(x.Status || '')) && перевірити.length < 5)
@@ -594,6 +599,7 @@ async function npPoll(env, accId) {
   }
   return { накладних: ttns.length, з_наложкою: зНаложкою, виплат: n,
            сума: Math.round(виплачено), стани_наложки: стани,
+           виплачено_але_не_розпізнано: оплачені,
            перевірити_через_probe: перевірити };
 }
 
