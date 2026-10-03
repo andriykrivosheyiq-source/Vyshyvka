@@ -391,10 +391,25 @@
     var works = (opt.works || []).slice();
     var places = {};
     сторони.forEach(function(s){ places[s.key] = []; });
+    /* БИТІ ПОЛОЖЕННЯ З ВЕРСІЙ (баг 03.10, див. docs/BUGS.md).
+       Старе вікно встигло зберегти положення за кадром («упала крізь ногу»),
+       а в деяких версіях координат немає зовсім. Нове вікно показувало їх
+       чесно — під нижнім краєм фото чи в куті поза ним, — і картинку не можна
+       було ні побачити, ні схопити: «зависла». Тому все, що приходить ззовні,
+       спершу лагодимо: чого бракує — ставимо на груди, а за кадр не пускаємо
+       (`втисни`, щойно відомі пропорції фото й роботи). */
+    var число = function(v){ var n = parseFloat(v); return isFinite(n) ? n : NaN; };
+    var працює = function(w){ return (+w === +w) && works[+w] ? +w : 0; };
     (opt.places || []).forEach(function(p){
-      if(places[p.side]) places[p.side].push({ work:+p.work || 0,
-        box:{ x:+p.x, y:+p.y, w:+p.w } });
+      if(!p) return;
+      var side = places[p.side] ? p.side : сторони[0].key;     // невідома сторона — на перед
+      var x = число(p.x), y = число(p.y), w = число(p.w);
+      var ar = число(p.ar);
+      places[side].push({ work: працює(p.work), ar: ar > 0 ? ar : null,
+        box:{ x: isFinite(x) ? x : 0.5, y: isFinite(y) ? y : 0.3,
+              w: (w > 0) ? Math.min(w, 1) : 0.26 } });
     });
+    var втиснуто = {};
 
     var бік = сторони[0].key;
     /* Перше нанесення обране одразу: числа під ним — головне, що тут є, і
@@ -494,6 +509,7 @@
        відсотках: хай сцена міняє розмір як завгодно — роботи їдуть разом
        із фото, а не повз нього. */
     var асп = {};            // пропорції фото кожної сторони (висота/ширина)
+    var артГотові = false;   // картинки робіт довантажились — відомі їхні пропорції
     var ro = null;
     function малюй(){
       var body0 = el.querySelector('.mko-body');
@@ -542,6 +558,9 @@
             '<div class="mko-side">' +
               '<div class="mko-num" data-mko-nums></div>' +
               '<div class="mko-note" data-mko-note></div>' +
+              /* Запасний вихід: що б не сталося з положенням — обрана робота
+                 одним натиском стає на груди по центру. */
+              '<button type="button" class="mko-b mko-center" data-mko-center hidden>↺ У центр</button>' +
               '<div class="mko-acts">' +
                 '<button class="mko-b" data-mko-x>Скасувати</button>' +
                 '<button class="mko-b pri" data-mko-save>' +
@@ -570,6 +589,12 @@
       if(!st || !fr) return;
       if(b && b.naturalWidth) асп[бік] = b.naturalHeight / b.naturalWidth;
       var a = асп[бік];
+      /* Щойно знаємо пропорції фото цієї сторони й робіт — повертаємо в кадр
+         усе, що з версії приїхало за його межі. Один раз на сторону. */
+      if(a && артГотові && !втиснуто[бік]){
+        втиснуто[бік] = 1;
+        (places[бік] || []).forEach(втисни);
+      }
       var sw = st.clientWidth, sh = st.clientHeight;
       if(a && sw && sh){
         var fw = Math.min(sw, sh / a);
@@ -581,9 +606,11 @@
     /* Найменша робота — 6% ширини фото: менше вже не схопити мишею, а кут
        і × налазять один на одного. Нашивок, менших за це, ми не шиємо. */
     var МІН = 0.06;
+    /* Пропорції роботи: з картинки, а поки вона не довантажилась чи не
+       відкрилась — з версії (там вони записані при здачі). */
     function арПро(pl){
       var a = арт[pl.work];
-      return (a && a.width) ? a.height / a.width : 1;
+      return (a && a.width) ? a.height / a.width : ((pl && pl.ar > 0) ? pl.ar : 1);
     }
     /* Робота завжди ЦІЛКОМ у кадрі: що вилізло за фото — того не видно й
        не схопити, а в мокап воно однаково не ляже. */
@@ -623,6 +650,8 @@
       var note = el.querySelector('[data-mko-note]');
       if(!nums || !note) return;
       var pl = (places[бік] || [])[обране];
+      var cb = el.querySelector('[data-mko-center]');
+      if(cb) cb.hidden = !pl;
       if(!pl){
         nums.innerHTML = '';
         note.innerHTML = (places[бік] || []).length
@@ -801,6 +830,14 @@
         нове(+wk.getAttribute('data-mko-w'));
         return малюй();
       }
+      if(t.closest && t.closest('[data-mko-center]')){
+        var cp = (places[бік] || [])[обране];
+        if(!cp) return;
+        cp.box.x = 0.5; cp.box.y = 0.3;
+        if(!(cp.box.w > 0) || cp.box.w > 0.6) cp.box.w = 0.26;
+        втисни(cp);
+        return постав();
+      }
       if(t.closest && t.closest('[data-mko-up]')) return вантажити();
       var ad = t.closest && t.closest('[data-mko-adapt]');
       if(ad && opt.onAdapt){
@@ -816,7 +853,23 @@
       if(bgb) return фон(bgb.getAttribute('data-mko-bg'));
       if(t.closest && t.closest('[data-mko-save]')) return зберегти();
     });
-    var esk = function(ev){ if(ev.key === 'Escape') прибрати(); };
+    /* Стрілки посувають обрану роботу (Shift — більшим кроком): коли мишею
+       незручно чи робота дрібна. У полях вводу стрілки свої — не чіпаємо. */
+    var esk = function(ev){
+      /* Escape закриває лише це вікно, а не ще й картку замовлення під ним. */
+      if(ev.key === 'Escape'){ ev.stopPropagation(); ev.preventDefault(); return прибрати(); }
+      var крок = { ArrowLeft:[-1, 0], ArrowRight:[1, 0], ArrowUp:[0, -1], ArrowDown:[0, 1] }[ev.key];
+      if(!крок || drag) return;
+      var tg = ev.target && ev.target.tagName;
+      if(tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+      var pl = (places[бік] || [])[обране];
+      if(!pl) return;
+      ev.preventDefault();
+      var k = ev.shiftKey ? 0.02 : 0.005;
+      pl.box.x += крок[0] * k; pl.box.y += крок[1] * k;
+      втисни(pl);
+      постав();
+    };
     document.addEventListener('keydown', esk, true);
     W.esk = esk;
     /* Для перевірок: що зараз лежить і що обрано — лише читати. */
@@ -850,6 +903,25 @@
         Object.keys(places).forEach(function(k){ places[k].forEach(function(pl){
           var w = works[pl.work]; if(w && !w.threads) неАд[pl.work] = 1; }); });
         if(Object.keys(неАд).length) return say('Спершу адаптуйте роботу під нитки — кнопка «Під нитки» під нею');
+      }
+      /* НІЧОГО НЕ ГУБИМО МОВЧКИ. Доти робота, картинку якої не вдалося
+         відкрити для мокапа, просто випадала з версії разом зі своїм
+         положенням, а сторона з невідкритим фото — цілком. Виходила версія без
+         розкладки, і наступне «✎ Розміщення» відкривало порожній виріб. Тепер
+         кажемо, що не так, і нічого не зберігаємо — розкладка лишається у вікні. */
+      for(var ci = 0; ci < сторони.length; ci++){
+        var cs = сторони[ci];
+        var cpl = places[cs.key] || [];
+        if(!cpl.length) continue;
+        if(!кадри[cs.key]) кадри[cs.key] = await img(cs.url);
+        if(!кадри[cs.key]) return say('Фото сторони «' + cs.label + '» не відкрилось — мокап без нього не зібрати. ' +
+          'Перезавантажте фото в каталозі товарів; розкладка у вікні лишилась.');
+        for(var cj = 0; cj < cpl.length; cj++){
+          var cw = cpl[cj].work;
+          if(!арт[cw]) арт[cw] = await img((works[cw] || {}).url);
+          if(!арт[cw]) return say('Робота «' + ((works[cw] || {}).name || 'робота') + '» не відкрилась — мокап без неї не зібрати. ' +
+            'Розкладка у вікні лишилась; спробуйте ще раз або перезавантажте роботу.');
+        }
       }
       btn.disabled = true; btn.textContent = 'Збираю…';
       try{
@@ -909,7 +981,8 @@
     /* Картинки робіт і фото сторони можуть ще вантажитись — перше
        малювання лягло б у порожнечу. */
     for(var i = 0; i < works.length; i++) арт[i] = await img(works[i].url);
-    /* Пропорції робіт тепер відомі — ставимо їх точно. */
+    артГотові = true;
+    /* Пропорції робіт тепер відомі — ставимо їх точно (і повертаємо в кадр). */
     влаштуй();
     if(!works.length && !opt.placeOnly) вантажити();
   }
