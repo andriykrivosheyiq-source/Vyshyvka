@@ -72,6 +72,9 @@
  * Розклад (у wrangler.toml) викликає опитування сам, без жодного натиску.
  */
 
+/* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
+   «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
+const VERSION = '2026-10-03.3 · пакетний запис';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -79,7 +82,8 @@ const PRIVAT_BAL_URL = 'https://acp.privatbank.ua/api/statements/balance';
 const MONO_URL = 'https://api.monobank.ua';
 
 /* ── Дрібниці ─────────────────────────────────────────────────────────── */
-const json = (body, status) => new Response(JSON.stringify(body, null, 2),
+const json = (body, status) => new Response(JSON.stringify(
+    (body && typeof body === 'object' && !Array.isArray(body)) ? Object.assign({ версія: VERSION }, body) : body, null, 2),
   { status: status || 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
   .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
