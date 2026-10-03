@@ -474,17 +474,34 @@ function privatIso(t) {
    виплата справді сталась. Побачити, що саме віддає НП конкретно вам, можна
    адресою /np/probe/<ttn>: вона показує сирий відгук, не вигадуючи нічого.
    ══════════════════════════════════════════════════════════════════════════ */
+/* ЧАСТОТА. НП обмежує, як часто до неї звертаються («To many requests»,
+   03.10): опитування кожні 5 хв плюс кілька запитів поспіль (сторінки
+   накладних, стани) упирались у ліміт. Тому між запитами — пауза, а на
+   «забагато запитів» — повтор після очікування, двічі. */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let NP_LAST = 0;
+const NP_GAP = 1200, NP_WAIT = [5000, 15000];
 async function np(env, model, method, props) {
-  const r = await fetch(NP_URL, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey: env.NP_API_KEY, modelName: model,
-                           calledMethod: method, methodProperties: props || {} })
-  });
-  const d = await r.json().catch(() => null);
-  if (!d) throw new Error('Нова пошта відповіла не JSON');
-  if (!d.success) throw new Error([].concat(d.errors || [], d.warnings || [])
-    .filter(Boolean).join('; ') || 'Нова пошта відмовила без пояснення');
-  return d.data || [];
+  for (let спроба = 0; ; спроба++) {
+    const чекати = NP_LAST + NP_GAP - Date.now();
+    if (чекати > 0) await sleep(чекати);
+    NP_LAST = Date.now();
+    const r = await fetch(NP_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: env.NP_API_KEY, modelName: model,
+                             calledMethod: method, methodProperties: props || {} })
+    });
+    const d = await r.json().catch(() => null);
+    const помилка = !d ? 'Нова пошта відповіла не JSON (' + r.status + ')'
+      : d.success ? '' : ([].concat(d.errors || [], d.warnings || [])
+          .filter(Boolean).join('; ') || 'Нова пошта відмовила без пояснення');
+    if (!помилка) return d.data || [];
+    if ((r.status === 429 || /many requests/i.test(помилка)) && спроба < NP_WAIT.length) {
+      await sleep(NP_WAIT[спроба]);
+      continue;
+    }
+    throw new Error(помилка);
+  }
 }
 function npDate(d) {
   return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
@@ -582,7 +599,13 @@ async function npPoll(env, accId) {
    Приват уміє відповідати технічною помилкою пів години, і зупиняти через
    це Нову пошту означало б втратити виплати за цей час.
    ══════════════════════════════════════════════════════════════════════════ */
-async function poll(env) {
+/* За розкладом Нову пошту питаємо раз на пів години, а не кожні 5 хв:
+   наложка приходить днями, а частіші запити впираються в ліміт НП. */
+function npDue(t) {
+  return new Date(t || Date.now()).getUTCMinutes() % 30 < 5;
+}
+async function poll(env, opts) {
+  opts = opts || {};
   const out = { at: new Date().toISOString(), privat: [], np: null };
   let accs = [];
   try { accs = await accounts(env); }
@@ -596,8 +619,11 @@ async function poll(env) {
      підписом «рахунок не вказано». Вигадувати рахунок не можна: гроші
      лягли б у чужий підсумок. */
   const npAcc = (accs.filter(x => x.bank === 'np')[0] || {}).id || env.NP_ACCOUNT || '';
-  try { out.np = await npPoll(env, npAcc); }
-  catch (e) { out.np = { error: e.message }; }
+  if (opts.np === false) out.np = { skip: 'за розкладом — раз на 30 хв' };
+  else {
+    try { out.np = await npPoll(env, npAcc); }
+    catch (e) { out.np = { error: e.message }; }
+  }
   return out;
 }
 
@@ -605,7 +631,7 @@ async function poll(env) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, npCod, fval, fplain, monoPick,
+export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -672,6 +698,7 @@ export default {
 
   /* Розклад. Приват і Нова пошта самі нічого не шлють, тож питаємо їх ми. */
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(poll(env).then(r => console.log('опитано', JSON.stringify(r))));
+    ctx.waitUntil(poll(env, { np: npDue(event && event.scheduledTime) })
+      .then(r => console.log('опитано', JSON.stringify(r))));
   }
 };

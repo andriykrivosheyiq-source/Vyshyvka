@@ -30,6 +30,7 @@ const env = {
 
 /* ── Підставний світ ──────────────────────────────────────────────────── */
 const DB = {};                 // шлях → { поле: значення Firestore }
+const npCalls = []; let npDeny = 1;
 const writes = [];
 let privatBal = { status:'SUCCESS', balances:[
   { acc:'UA111', balanceOut:'4980.10', dpd:'02.10.2026 00:00:00' },
@@ -68,6 +69,9 @@ globalThis.fetch = async (url, opt) => {
   if(url.startsWith('https://acp.privatbank.ua/api/statements/balance')) return res(privatBal);
   if(url.startsWith('https://api.novaposhta.ua')){
     const b = JSON.parse(opt.body);
+    npCalls.push(Date.now());
+    /* Перший запит до НП — відмова за частотою, як 03.10. */
+    if(npDeny > 0){ npDeny--; return res({ success:false, errors:['To many requests'], data:[] }); }
     if(b.calledMethod === 'getDocumentList'){
       /* 130 накладних за місяць: сторінка 1 — 100, сторінка 2 — 30. */
       const page = +b.methodProperties.Page || 1;
@@ -164,6 +168,24 @@ ok(npo.виплат === 1 && npo.сума === 1501 && num((DB['payments/np_TR77_
 ok(npo.з_наложкою === 14 && (npo.перевірити_через_probe || []).length === 5,
   'і видно, скільки накладних з наложкою та які ТТН перевірити через /np/probe',
   'підказки немає: ' + JSON.stringify(npo));
+
+const gaps = npCalls.slice(1).map((t, i) => t - npCalls[i]);
+ok(gaps.length && Math.min(...gaps) >= 1100,
+  'між запитами до НП — пауза не менше секунди (ліміт частоти)', 'запити впритул: ' + JSON.stringify(gaps));
+ok(gaps.some(g => g >= 4500),
+  '«To many requests» — воркер почекав і повторив, а не здався', 'повтору не було: ' + JSON.stringify(gaps));
+
+console.log('');
+console.log('═══ РОЗКЛАД: НОВА ПОШТА — РАЗ НА ПІВ ГОДИНИ ═══');
+const { _pure } = await import(path.join(ROOT, 'worker/money.js'));
+const at = m => Date.UTC(2026, 9, 3, 12, m);
+ok(_pure.npDue(at(0)) && _pure.npDue(at(4)) && !_pure.npDue(at(5)) && !_pure.npDue(at(25)) && _pure.npDue(at(30)),
+  'з 5-хвилинного розкладу НП питаємо лише на :00 і :30', 'npDue не те');
+const npBefore = npCalls.length;
+let job = null;
+await worker.scheduled({ scheduledTime: at(10) }, env, { waitUntil: p => { job = p; } });
+await job;
+ok(npCalls.length === npBefore, 'о :10 Нову пошту не питаємо — лише банки', 'НП питали поза своїм часом');
 
 console.log('');
 console.log('═══ ЩО КАЖЕ ПРИВАТ ПРО ЗАЛИШОК ═══');
