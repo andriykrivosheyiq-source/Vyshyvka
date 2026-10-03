@@ -84,7 +84,8 @@ fbstub = fbstub.replace('window.firebase={',
   '    return f.every(function(w){ var x = p[w[0]]; return w[1] === "==" ? x === w[2] : w[1] === ">=" ? String(x) >= String(w[2]) : true; }); }); };\n' +
   '  PayCol.prototype._s = function(){ var l = this._l(); return { docs: l.map(function(o){ return new Snap(o.id, o); }),\n' +
   '    forEach: function(cb){ l.forEach(function(o){ cb(new Snap(o.id, JSON.parse(JSON.stringify(o)))); }); }, empty: !l.length }; };\n' +
-  '  PayCol.prototype.onSnapshot = function(cb){ var s = this._s(); setTimeout(function(){ cb(s); }, 0); return function(){}; };\n' +
+  '  PayCol.prototype.onSnapshot = function(cb, err){ var s = this._s(); setTimeout(function(){\n' +
+  '    if(window.__PAYDENY) return err && err({ code:"permission-denied", message:"Missing or insufficient permissions." }); cb(s); }, 0); return function(){}; };\n' +
   '  PayCol.prototype.get = function(){ window.__GETS++; var s = this._s(); return new Promise(function(r){ setTimeout(function(){ r(s); }, 150); }); };\n' +
   '  function LqCol(){}\n' +
   '  LqCol.prototype = Object.create(Col.prototype);\n' +
@@ -97,8 +98,9 @@ fbstub = fbstub.replace(
   '      return n === "payments" ? new PayCol() : n === "loomiq" ? new LqCol() : new Col(); },');
 
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
-async function open(viewport){
+async function open(viewport, deny){
   const p = await browser.newPage({ viewport });
+  if(deny) await p.addInitScript(() => { window.__PAYDENY = true; });
   p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
   await p.route('**://**', r => {
     const u = r.request().url();
@@ -245,6 +247,20 @@ const ov = await ph.evaluate(() => ({ sw: document.documentElement.scrollWidth, 
 ok(ov.rows === 3 && ov.sw <= ov.w + 1, 'на телефоні виписка вміщається, сторінка не їде вбік',
   'на телефоні: ' + JSON.stringify(ov));
 await ph.close();
+
+console.log('');
+console.log('═══ БАЗА НЕ ПУСКАЄ ДО РУХІВ — КАЖЕМО СЛОВАМИ ═══');
+/* Так і було до 03.10: правила не мали дозволу на payments, і порожній
+   список читався як «банк ще нічого не прислав». */
+const dp = await open({ width:1280, height:900 }, true);
+const dn = await dp.evaluate(() => (document.getElementById('fin-list') || {}).textContent || '');
+await dp.click('#fin-cards [data-fin-acc-open="mono1"]');
+await dp.waitForTimeout(500);
+const dh = await dp.evaluate(() => (document.getElementById('fin-hist') || {}).textContent || '');
+ok(/не дає читати рухи/.test(dn) && /не дає читати рухи/.test(dh),
+  'база не пускає — і список, і виписка кажуть це словами й підказують, що робити',
+  'мовчить: ' + JSON.stringify({ dn: dn.slice(0, 80), dh: dh.slice(0, 80) }));
+await dp.close();
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
