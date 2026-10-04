@@ -202,9 +202,10 @@
      та розмір нанесення». Картку пересилають далі й дивляться з телефона,
      де колір передається як завгодно, тож сказати це треба тут, а не тільки
      на сторінці. Коротше, ніж у КП: на картці це виноска, а не розділ. */
-  var WARN = 'Кольори на екрані передаються по-різному — відтінок на виробі ' +
-             'може трохи відрізнятись. Пропорції нанесення змінюються від розміру ' +
-             'до розміру.';
+  /* Текст — Андріїв (04.10), без заголовка «Примітка»: на картці це виноска,
+     і заголовок над одним реченням важив більше за саме речення. */
+  var WARN = 'Через різну передачу кольорів на різних екранах відтінок одягу та ' +
+             'ниток на ескізі може трохи відрізнятися від їх реального кольору.';
 
   /* ══════════ СКЛАД КАРТОК ══════════
      Збирається сам, із позицій пропозиції. Менеджер не «створює картку» —
@@ -489,7 +490,24 @@
        Беремо з самої позиції: способи, якими зроблено нанесення. Їх може
        бути й два, якщо на переді друк, а на спині вишивка, — тоді так і
        пишемо. */
+    /* НАНЕСЕННЯ — СПОСІБ І РОЗМІР (04.10): «Вишивка 10 × 10 см, вишивка
+       10 × 15 см». Розміри в позиції вже є (ті самі, що на сторінці КП) —
+       картка їх доти просто не показувала. Розміру немає — лишається спосіб. */
+    var cm = function(mm){ return Math.round((+mm || 0) / 10); };
     var doneWith = function(it){
+      var з_розміром = (printsOf(it) || []).filter(function(p){
+        return p && p.technique && +p.widthMm > 0 && +p.heightMm > 0; });
+      if(з_розміром.length){
+        var бачили = {}, рядки = [];
+        з_розміром.forEach(function(p, i){
+          var tech = String(p.technique).trim();
+          var r = (рядки.length ? tech.toLowerCase() : tech) + ' ' + cm(p.widthMm) + ' × ' + cm(p.heightMm) + ' см';
+          var k = r.toLowerCase();
+          if(бачили[k]) return;
+          бачили[k] = 1; рядки.push(r);
+        });
+        return рядки.join(', ');
+      }
       var из = (it.techniques || []).filter(Boolean);
       if(!из.length) из = (printsOf(it) || []).map(function(p){ return p.technique; }).filter(Boolean);
       if(!из.length && it.print) из = [it.print];
@@ -891,6 +909,23 @@
     x.arcTo(X, Y, X + w, Y, r);
     x.closePath();
   }
+  /* Перенос ПЕРЕЛІКУ «а, б, в» цілими пунктами: «Вишивка 10 × 6 см» не
+     рветься посередині розміру. Пункт ширший за рядок — тоді вже по словах. */
+  function wrapList(x, text, maxW){
+    var parts = String(text || '').split(/,\s+/).filter(Boolean), lines = [], line = '';
+    parts.forEach(function(pt, i){
+      var piece = pt + (i < parts.length - 1 ? ',' : '');
+      var t = line ? line + ' ' + piece : piece;
+      if(x.measureText(t).width <= maxW){ line = t; return; }
+      if(line) lines.push(line);
+      if(x.measureText(piece).width <= maxW){ line = piece; return; }
+      var w2 = wrap(x, piece, maxW, 0);
+      line = w2.pop() || '';
+      lines = lines.concat(w2);
+    });
+    if(line) lines.push(line);
+    return lines;
+  }
   function wrap(x, text, maxW, maxLines){
     var words = String(text || '').split(/\s+/).filter(Boolean);
     var lines = [], line = '';
@@ -1151,7 +1186,9 @@
      примітка — це одна й та сама будова, і код у них має бути один: інакше
      дві сусідні колонки почнуть по-різному переносити рядки. */
   function textCell(x, t, lab, s, X, yLab, w, size, color, maxLines){
-    eyebrow(x, lab, X, yLab, t.dim, 21);
+    /* Без заголовка текст стає на місце заголовка, а не під порожнім рядком. */
+    if(lab) eyebrow(x, lab, X, yLab, t.dim, 21);
+    else yLab -= 24;
     x.fillStyle = color;
     var n = size, lines;
     do {
@@ -1199,7 +1236,7 @@
       x.font = '400 16px ' + t.body;
       var lab = String(sp.label || '');
       var lw = x.measureText(lab).width;
-      x.fillStyle = t.dim;
+      x.fillStyle = t.ink;                 // назва характеристики — теж чорнилом (04.10)
       x.fillText(lab, X, y);
       x.font = '600 18px ' + t.body;
       x.fillStyle = t.ink;
@@ -1337,7 +1374,7 @@
         else textCell(x, t, 'Про товар', about, cx, yLab, aboutW, 22, t.ink, 4);
         cx += aboutW + GAPC;
       }
-      if(warn) textCell(x, t, 'Примітка', warn, cx, yLab, warnW2, 15, t.dim, 5);
+      if(warn) textCell(x, t, '', warn, cx, yLab, warnW2, 15, t.dim, 5);
     }
     // розділювачі — те, що робить смугу смугою
     var seps = [];
@@ -1470,60 +1507,112 @@
          Колір фону беремо з кутів кадру: у мокапі там завжди фон. Пікселі,
          близькі до нього, — теж фон. Прозоре й майже біле лишаємо як було:
          це окремі, теж чесні ознаки. */
-      var bg = (function(){
-        var pts = [[0,0], [c.width-1,0], [0,c.height-1], [c.width-1,c.height-1],
-                   [(c.width>>1),0], [(c.width>>1),c.height-1]];
-        var got = [];
-        pts.forEach(function(pt){
-          var i = (pt[1] * c.width + pt[0]) * 4;
-          if(d[i+3] < 24) return;
-          got.push([d[i], d[i+1], d[i+2]]);
-        });
-        if(!got.length) return null;
-        var r = 0, g = 0, b = 0;
-        got.forEach(function(p2){ r += p2[0]; g += p2[1]; b += p2[2]; });
-        r /= got.length; g /= got.length; b /= got.length;
-        /* ДОПУСК ПІДБИРАЄМО ПІД САМ КАДР, А НЕ НАВМАННЯ.
+      /* ФОН — ЗА ЧОТИРМА КУТАМИ, А НЕ ОДНИМ КОЛЬОРОМ (04.10).
 
-           Фіксовані 14 одиниць — це багато для чистого фону й мало для
-           шумного. А головне: БІЛЕ ПОЛО на світло-сірому папері відрізняється
-           від фону всього на десяток одиниць. З широким допуском виріб
-           цілком потрапляв у «фон», меж у нього не лишалось — і картка
-           підрізала його зверху, бо вважала виробом самі темні деталі:
-           комір, шов, вишивку.
+         Доти фон був одним кольором — середнім по кутах. Мокап із рівним
+         фоном це витримував, а мокап зі світлом збоку (фон світліший зліва,
+         темніший справа) — ні: смуга біля темнішого краю виходила «не фоном»,
+         межі виробу тягнулись до самого краю кадру, і виріб на картці
+         зʼїжджав убік — на картці «Варіанти на вибір» спина світшота стояла
+         впритул до лівого краю плитки з порожниною справа.
 
-           Тому дивимось, наскільки самі кути розходяться між собою. Фон
-           рівний — допуск вузький, і біле поло від нього відрізняється.
-           Фон із градієнтом — допуск ширший, бо інакше градієнт почали б
-           рахувати за виріб. */
-        var dev = 0;
-        got.forEach(function(p2){
-          dev = Math.max(dev, Math.abs(p2[0] - r), Math.abs(p2[1] - g), Math.abs(p2[2] - b));
-        });
-        return { r:r, g:g, b:b, near: Math.max(5, Math.min(12, dev + 3)) };
-      })();
-      var isBg = function(i){
-        if(!bg) return false;
-        return Math.abs(d[i] - bg.r) <= bg.near &&
-               Math.abs(d[i+1] - bg.g) <= bg.near &&
-               Math.abs(d[i+2] - bg.b) <= bg.near;
+         Тепер фон у кожній точці — плавний перехід між кольорами чотирьох
+         кутів (білінійно): рівний фон дає те саме, що й доти, а градієнт
+         світла фоном і лишається. Допуск — за тим, наскільки краї кадру
+         відходять від такої моделі. */
+      var W0 = c.width, H0 = c.height;
+      var at = function(px, py){ var i = (py * W0 + px) * 4; return [d[i], d[i+1], d[i+2], d[i+3]]; };
+      var patch = function(cx, cy){
+        var n = 0, r = 0, g = 0, b2 = 0;
+        for(var yy = Math.max(0, cy - 1); yy <= Math.min(H0 - 1, cy + 1); yy++)
+          for(var xx = Math.max(0, cx - 1); xx <= Math.min(W0 - 1, cx + 1); xx++){
+            var p = at(xx, yy); if(p[3] < 24) continue; r += p[0]; g += p[1]; b2 += p[2]; n++;
+          }
+        return n ? [r / n, g / n, b2 / n] : null;
       };
-      var x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
-      for(var py = 0; py < c.height; py++){
-        for(var px = 0; px < c.width; px++){
-          var i = (py * c.width + px) * 4;
+      var cTL = patch(0, 0), cTR = patch(W0 - 1, 0), cBL = patch(0, H0 - 1), cBR = patch(W0 - 1, H0 - 1);
+      var bg = (cTL && cTR && cBL && cBR) ? { tl: cTL, tr: cTR, bl: cBL, br: cBR } : null;
+      var bgAt = function(px, py){
+        var u = W0 > 1 ? px / (W0 - 1) : 0, v = H0 > 1 ? py / (H0 - 1) : 0;
+        var o = [];
+        for(var ch = 0; ch < 3; ch++)
+          o.push((bg.tl[ch] * (1 - u) + bg.tr[ch] * u) * (1 - v) + (bg.bl[ch] * (1 - u) + bg.br[ch] * u) * v);
+        return o;
+      };
+      if(bg){
+        /* Допуск: як далеко краї кадру відходять від моделі фону. Беремо не
+           найбільше відхилення (його дає край виробу, що торкається рамки), а
+           90-й відсоток — шум і нерівності паперу, але не сам виріб. */
+        var devs = [];
+        var edge = function(px, py){
+          var p = at(px, py); if(p[3] < 24) return;
+          var m = bgAt(px, py);
+          devs.push(Math.max(Math.abs(p[0] - m[0]), Math.abs(p[1] - m[1]), Math.abs(p[2] - m[2])));
+        };
+        for(var ex = 0; ex < W0; ex += 2){ edge(ex, 0); edge(ex, H0 - 1); }
+        for(var ey = 0; ey < H0; ey += 2){ edge(0, ey); edge(W0 - 1, ey); }
+        devs.sort(function(p1, p2){ return p1 - p2; });
+        var p90 = devs.length ? devs[Math.floor(devs.length * 0.9)] : 0;
+        bg.near = Math.max(5, Math.min(14, p90 + 4));
+      }
+      var isBg = function(i, px, py){
+        if(!bg) return false;
+        var m = bgAt(px, py);
+        return Math.abs(d[i] - m[0]) <= bg.near &&
+               Math.abs(d[i+1] - m[1]) <= bg.near &&
+               Math.abs(d[i+2] - m[2]) <= bg.near;
+      };
+      /* Маска «тут виріб». */
+      var mask = new Uint8Array(W0 * H0);
+      for(var py = 0; py < H0; py++){
+        for(var px = 0; px < W0; px++){
+          var i = (py * W0 + px) * 4;
           if(d[i + 3] < 24) continue;                               // прозоре
           /* «Майже біле — це фон» лишається ЛИШЕ там, де кольору фону взяти
              нізвідки: кадр прозорий по кутах. Інакше це правило зʼїдало б
              білі вироби — а білих футболок і поло в нас не менше, ніж
              чорних. Коли фон відомий, він і вирішує. */
           if(!bg && d[i] > 243 && d[i+1] > 243 && d[i+2] > 243) continue;
-          if(isBg(i)) continue;                                      // колір фону кадру
-          if(px < x0) x0 = px;
-          if(px > x1) x1 = px;
-          if(py < y0) y0 = py;
-          if(py > y1) y1 = py;
+          if(isBg(i, px, py)) continue;                             // фон кадру
+          mask[py * W0 + px] = 1;
         }
+      }
+      /* ВИРІБ — НАЙБІЛЬША ПЛЯМА, А НЕ ВСЕ НЕФОНОВЕ.
+
+         Межі рахуємо за звʼязними плямами маски. Найбільша — це виріб. Інші
+         додаємо, тільки якщо вони чималі й не притулені до краю кадру:
+         окрема шнурівка чи деталь лишається, а пил, тінь у кутку, смуга
+         світла біля рамки — ні. Одна така пляма доти розтягувала межі
+         на півкадру. */
+      var lab = new Int32Array(W0 * H0), comps = [], stack = [];
+      for(var s0 = 0; s0 < W0 * H0; s0++){
+        if(!mask[s0] || lab[s0]) continue;
+        var id = comps.length + 1, cnt = 0, bx0 = W0, by0 = H0, bx1 = -1, by1 = -1, edgeHit = false;
+        lab[s0] = id; stack.push(s0);
+        while(stack.length){
+          var q2 = stack.pop(), qx = q2 % W0, qy = (q2 - qx) / W0;
+          cnt++;
+          if(qx < bx0) bx0 = qx; if(qx > bx1) bx1 = qx;
+          if(qy < by0) by0 = qy; if(qy > by1) by1 = qy;
+          if(qx === 0 || qy === 0 || qx === W0 - 1 || qy === H0 - 1) edgeHit = true;
+          var nb = [q2 - 1, q2 + 1, q2 - W0, q2 + W0];
+          for(var z = 0; z < 4; z++){
+            var nn = nb[z];
+            if(nn < 0 || nn >= W0 * H0) continue;
+            if((z === 0 && qx === 0) || (z === 1 && qx === W0 - 1)) continue;
+            if(mask[nn] && !lab[nn]){ lab[nn] = id; stack.push(nn); }
+          }
+        }
+        comps.push({ n: cnt, x0: bx0, y0: by0, x1: bx1, y1: by1, edge: edgeHit });
+      }
+      var x0 = W0, y0 = H0, x1 = -1, y1 = -1;
+      if(comps.length){
+        var big = comps.reduce(function(m2, cc){ return cc.n > m2.n ? cc : m2; }, comps[0]);
+        comps.forEach(function(cc){
+          if(cc !== big && (cc.edge || cc.n < Math.max(4, big.n * 0.005))) return;
+          if(cc.x0 < x0) x0 = cc.x0; if(cc.x1 > x1) x1 = cc.x1;
+          if(cc.y0 < y0) y0 = cc.y0; if(cc.y1 > y1) y1 = cc.y1;
+        });
       }
       if(x1 >= 0){
         x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1);
@@ -1996,9 +2085,12 @@
       x.fillStyle = t.ink;
       fitFont(x, c.name, tw, 30, '700', t.display, 22);
       x.fillText(clip1(x, c.name, tw), tx, ty);
+      /* УСЕ, КРІМ НАЗВИ, — ЧОРНИЛОМ (04.10): колір і нанесення, характеристики,
+         умова ціни. Сірим лишилась тільки закреслена стара ціна — вона й має
+         читатись як минула. */
       if(c.sub){
         ty += 30;
-        x.fillStyle = tint(t.dim, 0.75);
+        x.fillStyle = t.ink;
         x.font = '400 17px ' + t.body;
         x.fillText(clip1(x, c.sub, tw), tx, ty);
       }
@@ -2025,25 +2117,27 @@
           badge(x, t, '−' + Math.round((base - c.unit) / base * 100) + '%', tx + ww + 14, ty);
         }
         ty += 24;
-        x.fillStyle = tint(t.dim, 0.7);
+        x.fillStyle = t.ink;
         x.font = '400 15px ' + t.body;
         var tq = card.tier || card.qty;
         x.fillText((tq > 1) ? 'ціна від ' + tq + ' шт' : 'ціна за 1 шт', tx, ty);
       }
       ty += 44;
-      /* Склад — парами «про що / скільки». Однакове в усіх товарах
-         бліднішає: воно лишається видимим, бо заспокоює, але погляд сам
-         падає на те, що відрізняється. */
+      /* Склад — парами «про що / скільки», усе чорнилом. Однакове в усіх
+         товарах доти бліднішало — Андрій попросив читати все однаково (04.10). */
       (card.rows || []).slice(0, 5).forEach(function(row){
         var v = row.vals[ci] || '—';
         x.font = '400 16px ' + t.body;
-        x.fillStyle = tint(t.dim, 0.65);
+        x.fillStyle = t.ink;
         var lw = x.measureText(row.label).width;
         x.fillText(row.label, tx, ty);
-        x.font = (row.same ? '400 ' : '600 ') + '17px ' + t.body;
-        x.fillStyle = row.same ? tint(t.dim, 0.6) : t.ink;
-        x.fillText(clip1(x, v, tw - lw - 14), tx + lw + 14, ty);
-        ty += 29;
+        x.font = '600 17px ' + t.body;
+        x.fillStyle = t.ink;
+        /* Довге значення ПЕРЕНОСИМО, а не обрізаємо: «Вишивка 10 × 6 см,
+           вишивка 25 × 30 см» з трикрапкою губило саме другий розмір. */
+        var ряд = wrapList(x, v, tw - lw - 14).slice(0, 3);
+        ряд.forEach(function(ln, li){ x.fillText(ln, tx + lw + 14, ty + li * 24); });
+        ty += 29 + Math.max(0, ряд.length - 1) * 24;
       });
       y += CMP_PH;
       /* Розділювач між смугами. Під останньою його немає: далі йде
@@ -2067,7 +2161,7 @@
       textCell(x, t, 'Про добірку', note, PAD, y, W - PAD * 2, 17, t.ink, 3);
       y += 78;
     }
-    if(warn) textCell(x, t, 'Примітка', warn, PAD, y, W - PAD * 2, 15, t.dim, 3);
+    if(warn) textCell(x, t, '', warn, PAD, y, W - PAD * 2, 15, t.dim, 3);
   }
 
   function paintSet(x, card, t, imgs, show, o, W){
