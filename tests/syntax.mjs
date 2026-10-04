@@ -27,7 +27,7 @@ const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong +
    валить одразу все — і сайт, і адмінку, і сторінку пропозиції. */
 console.log('\n── Окремі файли');
 ['loomiq-pricing.js', 'loomiq-fingerprint.js', 'loomiq-design.js',
- 'loomiq-cards.js', 'loomiq-select.js', 'loomiq-constructor.js'].forEach(f => {
+ 'loomiq-cards.js', 'loomiq-select.js', 'loomiq-constructor.js', 'loomiq-money-core.js'].forEach(f => {
   const p = path.join(ROOT, f);
   if(!fs.existsSync(p)) return;
   let err = '';

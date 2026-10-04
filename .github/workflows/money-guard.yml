@@ -1,0 +1,22 @@
+name: Грошове ядро
+
+# Замок грошей (04.10): на кожен пуш і PR — перевірка правил, за якими
+# рахується «скільки сплачено», привʼязуються платежі й працює Звірка.
+# Червоний значок тут — зміна зламала гроші; зливати не можна.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  money-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Грошове ядро
+        run: node tests/money-core.mjs

@@ -331,8 +331,44 @@ service cloud.firestore {
     // було видно, а рухи й виписка лишались порожніми (03.10, BUGS.md).
     // Бачить гроші й записує оплату той, кому дано «Записувати оплату»,
     // або власник (налаштування).
+    //
+    // ГРОШОВЕ ЯДРО (04.10). Андрій: «щоб платежі ніяк ніде нікуди не
+    // утікали». Тому база сама, а не лише інтерфейс, тримає три речі:
+    //   1. Рух із банку (src mono / privat / np) з адмінки не видаляють, а
+    //      його суму, дату, рахунок, ТТН, платника й призначення не правлять.
+    //      Їх пише лише воркер — і лише він знає, що сказав банк.
+    //   2. Рух «від банку» з адмінки не створити: підробити надходження
+    //      не можна.
+    //   3. Привʼязаний до замовлення рух не перекидається в інше одним
+    //      записом: спершу відвʼязати, тоді привʼязати (і так видно в
+    //      історії руху, linkHist). Мовчки «вкрасти» платіж з чужої картки
+    //      не вийде.
+    // Записи руками (src manual, зарплата) — як і доти: їх можна прибрати.
+    // Перевіряє tests/money-rules.mjs на емуляторі Firestore.
+    function bankSrc(d) {
+      return d.get('src', '') in ['mono', 'privat', 'np'];
+    }
+    function payFixed() {
+      return ['amount', 'at', 'acc', 'ccy', 'src', 'ttn', 'counter', 'desc', 'balAfter'];
+    }
+    function noSteal() {
+      return resource.data.get('orderId', null) == null
+        || resource.data.get('orderId', null) == ''
+        || request.resource.data.get('orderId', null) == null
+        || request.resource.data.get('orderId', null) == ''
+        || request.resource.data.get('orderId', null) == resource.data.get('orderId', null);
+    }
     match /payments/{id} {
-      allow read, write: if known() && (may('pay') || may('setup'));
+      allow read: if known() && (may('pay') || may('setup'));
+      allow create: if known() && (may('pay') || may('setup'))
+        && !bankSrc(request.resource.data);
+      allow delete: if known() && (may('pay') || may('setup'))
+        && !bankSrc(resource.data);
+      allow update: if known() && (may('pay') || may('setup'))
+        && !bankSrc(request.resource.data) == !bankSrc(resource.data)
+        && (!bankSrc(resource.data)
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(payFixed()))
+        && noSteal();
     }
 
     match /loomiq/{doc} {

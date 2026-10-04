@@ -1,0 +1,24 @@
+#!/bin/sh
+# ЗАМОК ГРОШЕЙ (04.10). Перед кожним комітом перевіряємо грошове ядро.
+# Зміна, яка ламає «скільки сплачено», привʼязку платежів, контроль оплати
+# чи Звірку, — не комітиться. Вмикається один раз на клон:
+#   git config core.hooksPath .githooks
+# Обійти (лише якщо справді знаєте, що робите): git commit --no-verify
+cd "$(git rev-parse --show-toplevel)" || exit 1
+if git diff --cached --name-only | grep -qE '^(loomiq-money-core\.js|loomiqadmin\.html|loomiq-design\.js|firestore\.rules|worker/money\.js|worker/novaposhta-proxy\.js|tests/money-)'; then
+  node tests/money-core.mjs >/tmp/lq-money-core.log 2>&1 || {
+    echo "✗ Грошове ядро зламано — коміт зупинено. Подробиці: /tmp/lq-money-core.log"
+    grep '✗' /tmp/lq-money-core.log
+    exit 1
+  }
+  # Правила бази — коли є емулятор (інакше тест сам каже «пропущено»).
+  if git diff --cached --name-only | grep -q '^firestore\.rules$'; then
+    node tests/money-rules.mjs >/tmp/lq-money-rules.log 2>&1 || {
+      echo "✗ Правила бази для грошей зламано — коміт зупинено. Подробиці: /tmp/lq-money-rules.log"
+      grep '✗' /tmp/lq-money-rules.log
+      exit 1
+    }
+  fi
+  echo "✓ грошове ядро ціле"
+fi
+exit 0
