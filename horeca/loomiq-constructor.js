@@ -1847,6 +1847,30 @@
         requestAnimationFrame(fitGarmentStage); });
     };
     (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitStageTwice(); }); })();
+    /* СЦЕНА СТАЛА ВИДИМОЮ — ПЕРЕМІРЯТИ (04.10).
+
+       Розмір сцени міряється в мить відкриття. Робоче місце КП відкриває
+       позицію, поки його вікно ще приховане (кадр вантажиться), — і сцена
+       отримувала 0×0. Коли вікно зʼявлялось, ніхто не переміряв: на екрані
+       були логотипи без одягу, доки менеджер не гортав ракурси (той перемальовував
+       сцену). Події resize тут немає — міняється не вікно, а сам блок, тож
+       стежимо за блоком. */
+    (function(){
+      if(typeof ResizeObserver === 'undefined' || !pmSwipeWrapEl) return;
+      var lastW = -1, lastH = -1, pending = false;
+      new ResizeObserver(function(){
+        var w = pmSwipeWrapEl.clientWidth, h = pmSwipeWrapEl.clientHeight;
+        if(w === lastW && h === lastH) return;
+        lastW = w; lastH = h;
+        if(!w || !h || pending) return;
+        pending = true;
+        requestAnimationFrame(function(){
+          pending = false;
+          try{ renderGarment(); }catch(e){}
+          try{ renderLogoLayers(); }catch(e){}
+        });
+      }).observe(pmSwipeWrapEl);
+    })();
     window.addEventListener('orientationchange', function(){ setTimeout(fitStageTwice, 60); });
 
     function currentLayers(){ return pm.logos[pm.side]; }
