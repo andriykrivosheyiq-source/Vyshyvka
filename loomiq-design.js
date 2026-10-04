@@ -2128,6 +2128,86 @@
     if(isNaN(d)) return String(v || '');
     return d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
   }
+  /* ══════════ КАРТКА КАНБАНУ B2C (04.10) ══════════
+
+     Андрій: картки «важкувато сприймаються». Доти це був стовпчик тексту
+     без жодної картинки: номер, нік, сума, курсив. Щоб зрозуміти, ЩО це
+     за замовлення, картку відкривали.
+
+     Тепер один скелет на всі ролі, а зміст — свій у кожної:
+       ┌ ескіз │ номер · нік             годинник ┐
+       │  64   │ що (виріб · колір · шт)           │
+       │       │ стан — одна фраза                 │
+       ├ [смужка етапів — у менеджера]             ┤
+       ├ сума · оплачено %   до відправки   хто   ┤
+       └ мітки (правка, чекають) · канал клієнта  ┘
+     Червоне — лише там, де треба діяти зараз. Порядок рядків однаковий у
+     всіх ролях: людина, що дивиться дві дошки, не перевчається. */
+  function cardV2Html(c, годинник, лишок){
+    var pic = c.pic
+      ? '<span class="dz-c-pic"><img src="' + esc(c.pic) + '" alt="" loading="lazy"></span>'
+      : '<span class="dz-c-pic is-none">' + esc(c.picTxt || '—') + '</span>';
+    var кроки = '';
+    if(c.steps && c.steps.n){
+      var dots = [];
+      for(var i = 0; i < c.steps.n; i++)
+        dots.push('<i class="' + (i < c.steps.at ? 'done' : i === c.steps.at ? 'now' : '') + '"' +
+                  (c.steps.labels && c.steps.labels[i] ? ' title="' + esc(c.steps.labels[i]) + '"' : '') + '></i>');
+      кроки = '<span class="dz-c-steps" title="' + esc(c.steps.txt || '') + '">' + dots.join('') + '</span>';
+    }
+    var готово = (c.ready || []).length
+      ? '<span class="dz-c-ready">' + c.ready.map(function(r){
+          return '<b class="' + (r.ok ? 'ok' : 'no') + '" title="' + esc(r.title || '') + '">' +
+                 (r.ok ? '✓ ' : '· ') + esc(r.label) + '</b>'; }).join('') + '</span>'
+      : '';
+    var гроші = c.sum
+      ? '<span class="dz-card-sum' + (c.sum >= 20000 ? ' big' : '') + '">' + esc(c.sumTxt || c.sum) +
+          (c.paidPct != null
+            ? ' <em class="dz-c-paid' + (c.paidPct >= 100 ? ' full' : c.paidPct > 0 ? ' part' : ' none') + '">' +
+              (c.paidPct >= 100 ? 'оплачено' : c.paidPct > 0 ? 'оплачено ' + c.paidPct + ' %' : 'не оплачено') + '</em>'
+            : '') + '</span>'
+      : '';
+    /* Внизу — обіцянка клієнту, і підписана саме так. Угорі вже стоїть
+       годинник етапу, і два однакові «лишилось» поруч читались як одне. */
+    var строк = лишок
+      ? '<em class="dz-card-due' + (лишок.late ? ' late' : лишок.soon ? ' soon' : '') + '" title="Відправка клієнту до ' +
+          esc(dueShort(c.due)) + '">' + esc(String(лишок.txt).replace(/^лишилось\s+/i, 'до відправки ')) + '</em>'
+      : '';
+    var хто = c.who
+      ? '<span class="dz-c-who" title="' + esc(c.whoTitle || c.who) + '">' + esc(String(c.who).trim().charAt(0).toUpperCase()) + '</span>'
+      : '';
+    return '<div class="dz-card-w is-v2' + (c.fix ? ' is-fix' : '') + (c.unseen ? ' has-n' : '') +
+        (c.green ? ' is-go' : '') + '">' +
+      '<button class="dz-card' + (c.id === openKey ? ' on' : '') + '" data-open="' + esc(c.id) + '">' +
+        '<span class="dz-c-top">' + pic +
+          '<span class="dz-c-main">' +
+            '<b>' + esc(c.title) + годинник + '</b>' +
+            (c.nick ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
+            (c.what ? '<span class="dz-c-what">' +
+               (c.swatch ? '<b class="dz-sw" style="background:' + esc(c.swatch) + '"></b>' : '') +
+               esc(c.what) + '</span>' : '') +
+            (c.foot ? '<i class="dz-c-state">' + esc(c.foot) + '</i>' : '') +
+          '</span>' +
+        '</span>' +
+        кроки + готово +
+        ((гроші || строк || хто)
+          ? '<span class="dz-c-bot">' + гроші + '<span class="dz-c-bot-r">' + строк + хто + '</span></span>' : '') +
+        (c.unseen ? '<span class="dz-card-n" title="Пропущених повідомлень: ' + c.unseen + '">' + c.unseen + '</span>' : '') +
+        ((c.wait || c.fix)
+          ? '<span class="dz-card-m">' +
+              (c.fix ? '<b class="dz-m-fix">' + esc(c.fixLabel || 'правка') + '</b>' : '') +
+              (c.wait ? '<b class="dz-m-wait">чекають відповіді</b>' : '') +
+            '</span>'
+          : '') +
+      '</button>' +
+      /* Канал клієнта — внизу картки, як і доти (Андрій: «хай посилання
+         внизу на канал клієнтам залишається»). */
+      (c.chat ? '<button class="dz-card-ig" data-do="chat" data-id="' + esc(c.id) +
+                '" title="Відкрити розмову з клієнтом">' + esc(c.chatTxt || 'Instagram') +
+                (c.igN ? '<span class="dz-ig-n" title="Клієнт написав, не прочитано">' + c.igN + '</span>' : '') +
+                '</button>' : '') +
+    '</div>';
+  }
   function boardHtml(steps, cards){
     return '<div class="dz-board">' + steps.map(function(s){
       var mine = cards.filter(function(c){ return c.step === s.key; });
@@ -2159,6 +2239,7 @@
               '<em class="dz-card-h' + (c.left < 0 ? ' late' : c.left < 180 ? ' soon' : '') +
               '">' + esc(c.left < 0 ? ('прострочено ' + hm(-c.left)) : ('лишилось ' + hm(c.left))) +
               '</em>';
+            if(c.v2) return cardV2Html(c, годинник, лишок);
             return '<div class="dz-card-w' + (c.fix ? ' is-fix' : '') + (c.unseen ? ' has-n' : '') + '">' +
               '<button class="dz-card' + (c.id === openKey ? ' on' : '') +
                    '" data-open="' + esc(c.id) + '">' +
@@ -4588,7 +4669,7 @@
        картку з них, а не малюють кожна свій варіант того самого. */
     zoneHtml: zoneHtml, foldHtml: foldHtml, FOLD: FOLD,
     unitsSub: unitsSub, shipSub: shipSub,
-    moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum,
+    moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum, paidOf: paidOf,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
     orderCost: orderCost, sumRows: sumRows,
@@ -4950,7 +5031,24 @@
       var col = D.chainAt(p.job, p.o);
       var open = D.taskOpen(p.job).length;
       var mk = cardMarks(p.job, m);
-      return { id: p.o.orderId, step: col,
+      var сума = jobSum(p.o), оплачено = U.paidOf ? U.paidOf(p.o) : 0;
+      var хто = holderOf(p.job);
+      var at = CHAIN_STEP[col] != null ? CHAIN_STEP[col] : 0;
+      /* Контроль якості своєї колонки в менеджера не має — доти таке
+         замовлення просто зникало з його дошки. Воно ще у виробництві. */
+      var стан = stateOf(p.job, p.o, col, open);
+      /* Клієнт просить зміни — червоним, як правка в дизайнера: це те, що
+         губилось найчастіше. */
+      var правки = col === 'fixes';
+      if(col === 'qc') col = 'prod';
+      return { id: p.o.orderId, step: col, v2: true,
+        pic: jobPic(p.job, ['graphic', 'stitch']),
+        /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
+        what: whatOf(p.job, p.o),
+        paidPct: сума ? Math.min(100, Math.round(оплачено / сума * 100)) : null,
+        steps: { n: 5, at: at, labels: CHAIN_STEP_L, txt: CHAIN_STEP_L[at] },
+        who: хто ? nameOf(хто) : '', whoTitle: хто ? 'Зараз працює: ' + nameOf(хто) : '',
+        fix: правки, fixLabel: правки ? 'правки клієнта' : '',
         title: U.jobNo(p.job),
         /* Свій годинник — від приходу замовлення до передачі у
            виробництво. Доти тут не світилось нічого, і замовлення могло
@@ -4967,8 +5065,99 @@
            дизайнерів — кружечком на самій картці. */
         igN: clientUnread(p.o),
         wait: mk.wait, unseen: mk.unseen,
-        foot: jobWhere(p.job) + (open ? ' · доручень ' + open : '') };
+        foot: стан };
     });
+  }
+  /* СТАН ОДНІЄЮ ФРАЗОЮ — по етапу. Після дизайну «ще не передано» брехало:
+     усе передано й погоджено, замовлення вже в цеху. */
+  function stateOf(job, o, col, open){
+    var доруч = open ? ' · доручень ' + open : '';
+    if(col === 'shipped') return (o && o.ttn ? 'відправлено · ТТН ' + o.ttn : 'відправлено') + доруч;
+    if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn : 'чекає ТТН') + доруч;
+    if(col === 'qc')      return 'на контролі якості' + доруч;
+    if(col === 'prod'){
+      var pk = D.prodAt(job, o);
+      var pl = (D.PROD.filter(function(x){ return x.key === pk; })[0] || {}).label || '';
+      return 'у цеху' + (pl ? ' · ' + pl.toLowerCase() : '') + доруч;
+    }
+    return jobWhere(job) + доруч;
+  }
+  /* ── Що показати на картці (04.10) ─────────────────────────────────── */
+  /* ЕСКІЗ НА КАРТЦІ. Андрій обрав ескіз, а не фото виробу. Беремо мокап
+     найсвіжішої версії (погоджену — першою); для вишивальника й цеху —
+     скрін вишивки, якщо він уже є. Нічого не здано — фото виробу в його
+     кольорі, далі перша картинка з ТЗ. */
+  function verUrl(v, kind){
+    if(!v) return '';
+    var pr = D.verParts(v);
+    var f = kind === 'stitch'
+      ? (pr.shot[0] || pr.mock[0] || pr.work[0])
+      : (pr.mock[0] || pr.work[0] || pr.shot[0]);
+    return (f && f.url) || U.verPic(v) || '';
+  }
+  function jobPic(job, kinds, only){
+    var us = U.unitsOf(job), best = '', bestOk = '';
+    kinds.forEach(function(kind){
+      if(bestOk) return;
+      us.forEach(function(u){
+        D.dzList(u, kind).forEach(function(d){
+          if(only && only.indexOf(d) < 0) return;
+          var v = d.vers[d.vers.length - 1];
+          var url = verUrl(v, kind);
+          if(!url) return;
+          if(d.ok || d.status === 'approved'){ if(!bestOk) bestOk = url; }
+          else if(!best) best = url;
+        });
+      });
+    });
+    if(bestOk || best) return bestOk || best;
+    for(var i = 0; i < us.length; i++){ var ph = U.unitPhoto(us[i]); if(ph) return ph; }
+    var bp = ((job && job.brief && job.brief.pics) || [])[0];
+    return (bp && bp.url) || '';
+  }
+  /* ЩО В ЗАМОВЛЕННІ — одним рядком: «Худі білий, Футболка чорна · 7 шт». */
+  function whatOf(job, o, withSizes){
+    var us = U.unitsOf(job).filter(function(u){ return u && (u.name || u.gid); });
+    var шт = 0, групи = [], за = {};
+    if(us.length){
+      us.forEach(function(u){
+        var q = +u.qty || 0; шт += q;
+        var k = [u.name || '', String(u.color || '').toLowerCase()].filter(Boolean).join(' ');
+        if(!за[k]){ за[k] = { name: k, sizes: [] }; групи.push(за[k]); }
+        if(u.size) за[k].sizes.push(u.size + (q > 1 ? '×' + q : ''));
+      });
+    } else {
+      ((o && o.items) || []).filter(function(i){ return (i.kind || 'main') !== 'reco'; }).forEach(function(i){
+        шт += +i.qty || 0;
+        var k = [i.name || '', String(i.color || '').toLowerCase()].filter(Boolean).join(' ');
+        if(!за[k]){ за[k] = { name: k, sizes: [] }; групи.push(за[k]); }
+        if(i.sizes) за[k].sizes.push(String(i.sizes));
+      });
+    }
+    var назви = групи.slice(0, 2).map(function(g){
+      return g.name + (withSizes && g.sizes.length ? ' ' + g.sizes.join(', ') : ''); });
+    if(групи.length > 2) назви.push('ще ' + (групи.length - 2));
+    return назви.join(', ') + (шт ? ' · ' + шт + ' шт' : '');
+  }
+  /* Хто зараз тримає замовлення — для кружечка з ініціалом. */
+  function holderOf(job){
+    var хто = '';
+    U.unitsOf(job).forEach(function(u){
+      ['graphic','stitch'].forEach(function(k){
+        D.dzList(u, k).forEach(function(d){
+          if(!хто && d.sentAt && d.status !== 'approved' && !d.ok && d.who) хто = d.who;
+        });
+      });
+    });
+    return хто;
+  }
+  /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
+  var CHAIN_STEP = { new:0, design:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, qc:2, ready:3, shipped:4 };
+  var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
+  function cmTxt(mm){
+    if(!mm || !(+mm.w > 0)) return '';
+    var r = function(v){ return String(Math.round(+v / 10)); };
+    return r(mm.w) + ' × ' + r(mm.h) + ' см';
   }
   /* Нік клієнта коротко. Імʼя лишається в картці; на дошці важить саме нік —
      за ним людину впізнають з одного погляду. */
@@ -5154,7 +5343,25 @@
       var верс = mine.reduce(function(a, x){ return Math.max(a, x.d.vers.length); }, 0);
       var крок = DZ_COL[st] || 'new';
       if(kind === 'stitch') крок = крок === 'revision' ? 'work' : крок === 'review' ? 'done' : крок;
-      return { id: p.o.orderId, step: крок,
+      var u0 = mine[0].u;
+      /* Що малювати — нанесення з розмірами: «груди 10 × 6 см, спина 25 × 30 см». */
+      var місця = mine.map(function(x){
+        var н = String(x.d.name || '').trim() || ({ front:'перед', back:'спина', sleeve:'рукав' })[x.d.side] || x.d.side || 'нанесення';
+        var см = cmTxt(x.d.mm);
+        return String(н).toLowerCase() + (см ? ' ' + см : '');
+      });
+      var хто = (mine.filter(function(x){ return x.d.who; })[0] || {}).d;
+      return { id: p.o.orderId, step: крок, v2: true,
+        pic: jobPic(p.job, kind === 'stitch' ? ['stitch', 'graphic'] : ['graphic'],
+                    mine.map(function(x){ return x.d; })) ||
+             jobPic(p.job, ['graphic']),
+        /* Виріб і колір тканини — вишивальнику колір важить для ниток. */
+        what: [u0.name || '', String(u0.color || '').toLowerCase()].filter(Boolean).join(' · ') +
+              (+u0.qty ? ' · ' + u0.qty + ' шт' : ''),
+        swatch: u0.colorHex || '',
+        /* У черзі видно, хто вже взяв, — щоб двоє не брали одне. */
+        who: (крок === 'queue' && хто && хто.who) ? nameOf(хто.who) : '',
+        whoTitle: (хто && хто.who) ? 'Взяв: ' + nameOf(хто.who) : '',
         title: U.jobNo(p.job),
         /* НІ ІМЕНІ КЛІЄНТА, НІ СУМИ, НІ РОЗМОВИ. Дизайнеру вони не
            потрібні для роботи, а бачити їх означає мати доступ до чужих
@@ -5163,8 +5370,7 @@
         left: лишок, unseen: нових,
         /* Правка — найгучніша позначка на дошці: за неї сідають першою. */
         fix: st === 'revision',
-        foot: (верс ? 'v' + верс : 'версій ще немає') +
-              (mine.length > 1 ? ' · нанесень ' + mine.length : '') };
+        foot: (верс ? 'v' + верс : 'версій ще немає') + ' · ' + місця.join(', ') };
     }).filter(Boolean);
   }
   function stitchCards(filterStatus){
@@ -6133,10 +6339,29 @@
         var вишивка = us.every(function(u){
           var l = D.dzList(u, 'stitch'); return l.length && l.every(function(d){ return !!d.ok; }); });
         r = { ok: true, why: [] };
-        r.foot = (вишивка ? 'вишивка готова' : 'вишивка ще йде') + ' · одяг: ' +
+        /* Вишивку й файл видно значками — тут лишається тільки, ДЕ одяг. */
+        r.foot = 'одяг: ' +
           Object.keys(ст).map(function(k){ return k.toLowerCase() + (us.length > 1 ? ' ' + ст[k] : ''); }).join(', ');
       }
-      return { id: p.o.orderId, step: D.prodAt(p.job, p.o),
+      /* Чи можна шити — трьома значками: одяг, вишивка, файл для машини.
+         Усі три є — картка з зеленим краєм. */
+      var готов = [];
+      if(us.length){
+        var одяг = us.every(function(u){ return D.buyStateOf(всі, p.o.orderId, u.id).key === 'got'; });
+        var виш = us.every(function(u){ var l = D.dzList(u, 'stitch'); return l.length && l.every(function(d){ return !!d.ok; }); });
+        var файл = us.every(function(u){ var l = D.dzList(u, 'stitch');
+          return l.length && l.every(function(d){ var v = d.vers[d.vers.length - 1]; return v && D.verParts(v).machine.length; }); });
+        готов = [{ label:'одяг', ok: одяг, title: одяг ? 'Одяг отримано' : 'Одягу ще немає' },
+                 { label:'вишивка', ok: виш, title: виш ? 'Вишивку погоджено' : 'Вишивка ще йде' },
+                 { label:'файл', ok: файл, title: файл ? 'Файл для машини є' : 'Файлу для машини ще немає' }];
+      }
+      var крокП = D.prodAt(p.job, p.o);
+      return { id: p.o.orderId, step: крокП, v2: true,
+        pic: jobPic(p.job, ['stitch', 'graphic']),
+        what: whatOf(p.job, p.o, true),
+        ready: готов,
+        green: готов.length && готов.every(function(r){ return r.ok; }) && крокП !== 'shipped',
+        due: p.job.due || p.job.readyAt || '',
         title: U.jobNo(p.job),
         left: D.stageLeft(p.job, p.o, 'prod', termHours('prod')),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
