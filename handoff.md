@@ -6,6 +6,16 @@
 **loomiq.net** (адмінка: `loomiq.net/loomiqadmin.html`). Іноді Pages не
 стартує після пушу — допомагає порожній коміт у `main` («Перезапуск публікації»).
 
+## ⚠️ Гроші — грошове ядро (04.10)
+
+Читати `CLAUDE.md` → «Гроші». Коротко: «сплачено» рахує лише
+`loomiq-money-core.js`; привʼязка — лише `payLinkSet`; правила бази
+стережуть банківські рухи; Звірка грошей у Фінансах. На початку сесії:
+`git config core.hooksPath .githooks` (хук не пустить коміт, що ламає гроші).
+Правила бази перевіряються на емуляторі: один раз
+`mkdir -p /tmp/claude-0/emu && cd /tmp/claude-0/emu && npm i firebase-tools@13 @firebase/rules-unit-testing firebase && npx firebase setup:emulators:firestore`,
+далі `node tests/money-rules.mjs`.
+
 ## Правила роботи з Андрієм
 
 - Спілкування українською. На великих задачах — спершу **переказати, як

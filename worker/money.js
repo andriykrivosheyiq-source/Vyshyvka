@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-03.3 · пакетний запис';
+const VERSION = '2026-10-04.1 · стан посилок для Звірки';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -607,6 +607,7 @@ async function npPoll(env, accId) {
   }
   let n = 0, виплачено = 0, зНаложкою = 0, ко = 0, коСума = 0;
   const перевірити = [], оплачені = [], стани = {};
+  const посилки = {};   // loomiq/npState: стан кожної посилки з контролем оплати
   for (let i = 0; i < ttns.length; i += 100) {
     const part = ttns.slice(i, i + 100).map(t => ({ DocumentNumber: t, Phone: '' }));
     const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part });
@@ -618,6 +619,17 @@ async function npPoll(env, accId) {
          значить, її сума надійшла на рахунок NovaPay. Пишемо повну суму
          клієнта (комісію поки не віднімаємо), один рух на ТТН. */
       const ко_сума = npControl(x);
+      /* СТАН ПОСИЛКИ ДЛЯ ЗВІРКИ (04.10). Забрали — гроші мають бути за 2
+         дні; відмова чи повернення — грошей не буде, треба стежити за
+         товаром. Без цього адмінка знала б про посилку лише те, що їй
+         вручну сказали кнопкою «Оновити статус». */
+      const ко_план = parseFloat(String(x.AfterpaymentOnGoodsCost ?? '').replace(',', '.')) || 0;
+      if (ко_план > 0 && x.Number) {
+        const коли = String(x.RecipientDateTime || x.ActualDeliveryDate || '').trim();
+        посилки['t' + String(x.Number).replace(/\D/g, '')] = {
+          code: String(x.StatusCode || ''), status: String(x.Status || '').slice(0, 120),
+          at: коли ? npIso(коли) : '', cod: ко_план, seen: new Date().toISOString() };
+      }
       if (ко_сума > 0) {
         await payment(env, {
           id: 'npc_' + String(x.Number || ''),
@@ -664,6 +676,7 @@ async function npPoll(env, accId) {
       виплачено += p.сума; n++;
     }
   }
+  if (Object.keys(посилки).length) пакет.push({ path: 'loomiq/npState', obj: посилки });
   await fsCommit(env, пакет);
   return { накладних: ttns.length, з_наложкою: зНаложкою,
            контроль_оплати: { отримано: ко, сума: Math.round(коСума) },

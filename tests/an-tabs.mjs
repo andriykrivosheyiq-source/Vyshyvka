@@ -71,6 +71,7 @@ await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g
 await p.evaluate(() => {
   const now = new Date().toISOString();
   payWatching = true;                 // підписку не вмикаємо — платежі кладемо самі
+  payLoaded = true;                   // …і вони «прийшли з бази»: грошове ядро рахує з них
   contentData.fin = Object.assign({}, contentData.fin, { accounts:[{ id:'a1', name:'Моно', bank:'mono', start: 5000 }, { id:'a2', name:'Картка Катерини', bank:'mono' }] });
   orders.length = 0;
   orders.push(

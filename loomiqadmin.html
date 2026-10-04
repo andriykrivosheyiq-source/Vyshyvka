@@ -4936,6 +4936,23 @@
     font-weight:600;}
   .fin-chip i{font-style:normal;color:#B03A1A;}
   .fin-none{padding:22px 0;color:var(--ink-soft);font-size:13px;}
+  .fin-audit{padding:12px 16px;}
+  .fa-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;}
+  .fa-h b{font-weight:800;}
+  .fa-ok{color:#1d7a3e;font-weight:700;}
+  .fa-n{font-size:12px;font-weight:800;border-radius:20px;padding:2px 9px;}
+  .fa-n.red{background:#fde6e4;color:#b42318;} .fa-n.amber{background:#fff3d6;color:#8a5a00;}
+  .fa-t{margin-left:auto;background:none;border:0;color:var(--ink-soft);font:inherit;font-size:12.5px;cursor:pointer;}
+  .fa-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .fa-i{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--bg-soft,#f6f6f4);font-size:13px;line-height:1.4;}
+  .fa-i.red{box-shadow:inset 3px 0 0 #d92d20;} .fa-i.amber{box-shadow:inset 3px 0 0 #f0a000;}
+  .fa-x{flex:1;min-width:0;}
+  .fa-b{display:flex;gap:6px;flex-wrap:wrap;flex:none;}
+  .fa-b button{border:1px solid var(--line,#ddd);background:#fff;border-radius:8px;padding:4px 9px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;}
+  .fa-b button.pri{background:#111;color:#fff;border-color:#111;}
+  .fa-sub{margin-top:6px;font-size:12px;color:var(--ink-soft);display:flex;flex-direction:column;gap:2px;}
+  .pay-row.pay-off{opacity:.55;text-decoration:line-through;}
+  @media (max-width:700px){ .fa-i{flex-direction:column;} }
   /* Вікно привʼязки: підказки зверху, пошук нижче, підпис останнім. */
   .fin-modal{position:fixed;inset:0;z-index:300;background:rgba(15,32,52,.42);
     display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -5968,6 +5985,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
 
       <div id="fin-pane-acc">
+      <!-- Звірка грошей: усе, де гроші можуть загубитись з поля зору (04.10). -->
+      <div class="card fin-audit" id="fin-audit"></div>
       <div class="card">
         <div class="fin-accs-h">
           <span>Рахунки</span>
@@ -7205,24 +7224,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e1c5ce2982"></script>
-<script src="loomiq-fingerprint.js?v=e1c5ce2982"></script>
-<script src="loomiq-pricing.js?v=e1c5ce2982"></script>
+<script src="loomiq-select.js?v=da1eea4aee"></script>
+<script src="loomiq-fingerprint.js?v=da1eea4aee"></script>
+<script src="loomiq-pricing.js?v=da1eea4aee"></script>
+<!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
+     Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
+<script src="loomiq-money-core.js?v=da1eea4aee"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e1c5ce2982"></script>
-<script src="loomiq-mock.js?v=e1c5ce2982"></script>
+<script src="loomiq-design.js?v=da1eea4aee"></script>
+<script src="loomiq-mock.js?v=da1eea4aee"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e1c5ce2982"></script>
-<script src="loomiq-threads.js?v=e1c5ce2982"></script>
+<script src="imagetracer.js?v=da1eea4aee"></script>
+<script src="loomiq-threads.js?v=da1eea4aee"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e1c5ce2982"></script>
+<script src="loomiq-cards.js?v=da1eea4aee"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7247,7 +7269,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e1c5ce2982';
+var LQ_VER = 'da1eea4aee';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9353,6 +9375,8 @@ function readExtras(){
 const PAY_COL = fbDb.collection('payments');
 let payments = [];
 let payWatching = false;
+let payLoaded = false;     // рухи вже прийшли з бази (до того «сплачено» рахуємо лише з картки)
+let npState = {};          // стан посилок з контролем оплати — пише грошовий воркер (loomiq/npState)
 let bankBal = {};          // { acc: { bal, at, src, got } } — залишок від банку
 let payErr = '';           // чому рухи не читаються — показуємо словами
 /* Розгорнута виписка рахунку (див. renderFinHist). */
@@ -9478,7 +9502,7 @@ function watchPayments(){
     const l = [];
     snap.forEach(d => { const v = d.data() || {}; v.id = d.id; l.push(v); });
     l.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
-    payments = l; payErr = '';
+    payments = l; payErr = ''; payLoaded = true;
     try{ payAutoLinkTtn(); }catch(e){ console.warn('привʼязка за ТТН', e); }
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
   }, e => {
@@ -9495,6 +9519,14 @@ function watchPayments(){
     bankBal = sn.exists ? (sn.data() || {}) : {};
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
   }, e => console.warn('залишки банку', e));
+  /* Посилки з контролем оплати: забрали / відмова / повернення. Без цього
+     Звірка не знала б, що посилку отримали, а гроші не прийшли. */
+  fbDb.collection('loomiq').doc('npState').onSnapshot(sn => {
+    const v = sn.exists ? (sn.data() || {}) : {};
+    npState = {};
+    Object.keys(v).forEach(k => { if(/^t\d+$/.test(k)) npState[k.slice(1)] = v[k]; });
+    if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
+  }, e => console.warn('стан посилок', e));
 }
 /* Рахунки — довідник. Назва людська («ФОП Моно · основний»), бо в списку
    рухів має бути видно, куди саме прийшло, а не номер картки.
@@ -9735,20 +9767,71 @@ function payGuess(p){
    Робимо це ОДИН раз на рух (позначка autoLinked): якщо людина потім
    відвʼязала платіж, вона знала краще, і назад ми його не чіпляємо. */
 const payAutoTried = {};
+/* ══════════ ПРИВʼЯЗКА РУХУ ДО ЗАМОВЛЕННЯ — ЄДИНИЙ ЗАПИС (04.10) ══════════
+   Усі місця, що привʼязують чи відвʼязують платіж (картка B2B, картка B2C,
+   Фінанси, авто за ТТН, Звірка), пишуть ЛИШЕ через цю функцію. Вона:
+     — не дає мовчки перекинути привʼязаний рух в інше замовлення
+       (LQMoney.linkCheck; те саме стереже firestore.rules);
+     — тримає копію руху в картці (o.payments з payId) — з нею давні оплати
+       не стають боргом, коли рух випадає з завантаженого півроку;
+     — прибирає копію зі старого замовлення, коли рух відвʼязали;
+     — пише в сам рух історію: хто, коли, звідки й куди (linkHist).
+   opt.move — свідоме перенесення з одного замовлення в інше. */
+async function payLinkSet(p, orderId, tag, opt){
+  opt = opt || {};
+  const to = String(orderId || '');
+  const from = String(p.orderId || '');
+  const why = LQMoney.linkCheck(p, to, opt);
+  if(why) throw new Error(why);
+  const by = opt.by || myEmail() || '';
+  const at = new Date().toISOString();
+  const hist = (Array.isArray(p.linkHist) ? p.linkHist : []).concat([{ at, by, from, to }]).slice(-20);
+  /* Перенесення — двома кроками: спершу відвʼязати, тоді привʼязати. Так
+     вимагають правила бази, і так у історії видно обидва кроки. */
+  if(from && to && from !== to)
+    await PAY_COL.doc(p.id).set({ orderId: null, tag: null, linkedBy: by, linkedAt: at }, { merge:true });
+  const doc = { orderId: to || null, tag: to ? (tag || 'prepay') : (tag || null), linkedBy: by, linkedAt: at, linkHist: hist };
+  if(opt.extra) Object.assign(doc, opt.extra);
+  await PAY_COL.doc(p.id).set(doc, { merge:true });
+  Object.assign(p, doc);
+  const зміни = [];
+  if(from && from !== to){
+    const o = (orders || []).filter(x => String(x.orderId || '') === from)[0];
+    if(o && Array.isArray(o.payments) && o.payments.some(e => e && e.payId === p.id)){
+      o.payments = o.payments.filter(e => !(e && e.payId === p.id));
+      зміни.push(o);
+    }
+  }
+  if(to){
+    const o = (orders || []).filter(x => String(x.orderId || '') === to)[0];
+    if(o){
+      if(!Array.isArray(o.payments)) o.payments = [];
+      if(!o.payments.some(e => e && e.payId === p.id)){
+        o.payments.push({ at: p.at || at, sum: Math.round(+p.amount || 0), kind: doc.tag === 'cod' ? 'cod' : 'prepay',
+                          by, payId: p.id, acc: finAccName(p.acc), counter: p.counter || '' });
+        зміни.push(o);
+      }
+    }
+  }
+  for(const o of зміни){ touchOrder(o); }
+  if(зміни.length){ try{ await saveOrderMeta(зміни[0]); }catch(e){ console.warn('копія оплати в картці', e); } }
+  return doc;
+}
 function payAutoLinkTtn(){
   const ttnOf = v => String(v || '').replace(/\D/g, '');
   const кандидати = (payments || []).filter(p =>
     p && p.ttn && !p.orderId && !p.autoLinked && !payAutoTried[p.id] && (+p.amount || 0) > 0);
   if(!кандидати.length || !(orders || []).length) return 0;
   const заТтн = {};
-  (orders || []).forEach(o => { const t = ttnOf(o && o.ttn); if(t && o.orderId) заТтн[t] = o; });
+  /* Поточна ТТН і замінені (o.ttnHist): гроші за стару накладну з
+     контролем оплати теж мають знайти своє замовлення. */
+  (orders || []).forEach(o => { if(o && o.orderId) LQMoney.ttnsOf(o).forEach(t => { заТтн[t] = o; }); });
   let n = 0;
   кандидати.forEach(p => {
     const o = заТтн[ttnOf(p.ttn)];
     if(!o) return;
     payAutoTried[p.id] = 1;
-    PAY_COL.doc(p.id).set({ orderId: String(o.orderId), tag: 'cod', autoLinked: true,
-      linkedBy: 'авто · ТТН ' + ttnOf(p.ttn), linkedAt: new Date().toISOString() }, { merge:true })
+    payLinkSet(p, String(o.orderId), 'cod', { by: 'авто · ТТН ' + ttnOf(p.ttn), extra: { autoLinked: true } })
       .catch(e => { delete payAutoTried[p.id]; console.warn('привʼязка за ТТН', e); });
     n++;
   });
@@ -9874,16 +9957,9 @@ function orderSrc(o){
   if(o && o.webId) return 'site';
   return 'manual';
 }
-function anPaidOf(o){
-  if(orderDir(o) === 'b2b' && payList(o).length) return paidSum(o);
-  return payPaid(o.orderId);
-}
+function anPaidOf(o){ return paidSum(o); }
 function anInOf(o, set){
-  if(orderDir(o) === 'b2b' && payList(o).length)
-    return payList(o).reduce((a, p) => a + (set[anDayOf(p.at)] ? Math.round(+p.sum || 0) : 0), 0);
-  const id = String(o.orderId || '');
-  return (payments || []).reduce((a, p) => a + ((String(p.orderId || '') === id && (+p.amount || 0) > 0 &&
-    set[anDayOf(p.at)]) ? Math.round(+p.amount) : 0), 0);
+  return paidRows(o).reduce((a, x) => a + ((x.counted && set[anDayOf(x.at)]) ? x.sum : 0), 0);
 }
 function renderAnAll(days, month, spend){
   const box = document.getElementById('an-all');
@@ -10005,9 +10081,88 @@ function finOwnSet(){
   });
   return own;
 }
+/* ══════════ ЗВІРКА ГРОШЕЙ (04.10) ══════════
+   Андрій: «щоб ми на рівному місці не втрачали кошти». Список рахує ядро
+   (LQMoney.audit); тут — лише показ і кнопки. Бачить усякий, кому видно
+   Фінанси. */
+const finAudit = { open: false, more: {} };
+function orderTotalOf(o){
+  let t = 0;
+  try{
+    if(orderDir(o) === 'b2c' && window.LQDesign && window.LQDesign.ui.orderSum)
+      t = window.LQDesign.ui.orderSum(o, (designJobs || {})[o.orderId]) || 0;
+  }catch(e){}
+  return t || +o.totalPrice || 0;
+}
+function moneyAudit(){
+  if(!payLoaded) return [];
+  return LQMoney.audit(orders || [], payments || [], { np: npState, totalOf: orderTotalOf,
+    accs: finAccounts(), ordersLoaded: (orders || []).length > 0 });
+}
+function renderFinAudit(){
+  const box = document.getElementById('fin-audit');
+  if(!box) return;
+  if(!payLoaded){ box.innerHTML = '<div class="fa-h"><b>Звірка грошей</b><span>завантажую рухи…</span></div>'; return; }
+  const list = moneyAudit();
+  const E = escapeHtml;
+  const red = list.filter(x => x.sev === 'red').length, amber = list.length - red;
+  if(!list.length){
+    box.innerHTML = '<div class="fa-h"><b>Звірка грошей</b><span class="fa-ok">✓ Усе сходиться</span></div>';
+    return;
+  }
+  box.innerHTML = `<div class="fa-h"><b>Звірка грошей</b>
+      ${red ? `<span class="fa-n red">${red} терміново</span>` : ''}
+      ${amber ? `<span class="fa-n amber">${amber} перевірити</span>` : ''}
+      <button class="fa-t" data-fa-toggle>${finAudit.open ? 'згорнути ▴' : 'показати ▾'}</button></div>
+    ${finAudit.open ? `<div class="fa-list">${list.map((x, i) => {
+      const key = LQMoney.keyOf(x);
+      const sub = (x.kind === 'cod_orphan' && finAudit.more[key])
+        ? `<div class="fa-sub">${x.list.slice(0, 60).map(id => { const p = (payments || []).filter(q => q.id === id)[0] || {};
+            return `<span>${E(payDate(p.at))} · ${E(payMoneyK(p.amount))} · ТТН ${E(p.ttn || '')} · ${E(p.counter || '')}</span>`; }).join('')}
+            ${x.list.length > 60 ? '<span>…і ще ' + (x.list.length - 60) + '</span>' : ''}</div>` : '';
+      return `<div class="fa-i ${x.sev}" data-fa="${i}">
+        <div class="fa-x">${E(x.text)}${sub}</div>
+        <div class="fa-b">
+          ${x.orderId && (orders || []).some(o => String(o.orderId) === x.orderId) ? `<button data-fa-open="${E(x.orderId)}">#${E(x.orderId)}</button>` : ''}
+          ${x.fix === 'link' ? '<button class="pri" data-fa-fix="link">Привʼязати</button>' : ''}
+          ${x.fix === 'unlink' ? '<button class="pri" data-fa-fix="unlink">Відвʼязати</button>' : ''}
+          ${x.fix === 'own' ? '<button class="pri" data-fa-fix="own">Між своїми</button>' : ''}
+          ${x.kind === 'cod_orphan' ? `<button data-fa-more>${finAudit.more[key] ? 'сховати' : 'показати'}</button>` : ''}
+          ${x.kind !== 'cod_orphan' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+        </div></div>`; }).join('')}</div>` : ''}`;
+  box.onclick = async e => {
+    if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
+    const row = e.target.closest('[data-fa]'); if(!row) return;
+    const x = list[+row.dataset.fa]; if(!x) return;
+    const key = LQMoney.keyOf(x);
+    const p = x.payId ? (payments || []).filter(q => q.id === x.payId)[0] : null;
+    const o = x.orderId ? (orders || []).filter(q => String(q.orderId) === x.orderId)[0] : null;
+    if(e.target.closest('[data-fa-open]')){ if(o) openOrderDrawer(o); return; }
+    if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
+    try{
+      const fix = e.target.closest('[data-fa-fix]');
+      if(fix && p){
+        const f = fix.dataset.faFix;
+        if(f === 'link') await payLinkSet(p, x.orderId, 'cod');
+        if(f === 'unlink'){ if(!confirm('Відвʼязати платіж від #' + x.orderId + '?')) return; await payLinkSet(p, '', null); }
+        if(f === 'own'){ await PAY_COL.doc(p.id).set({ tag: 'own', orderId: null }, { merge:true }); p.tag = 'own'; }
+        toast('Готово'); return renderFin();
+      }
+      if(e.target.closest('[data-fa-okay]')){
+        if(!confirm('Позначити як перевірене? Пункт зникне зі Звірки.')) return;
+        if(o){ o.moneyOk = Object.assign({}, o.moneyOk || {}, { [key]: { by: myEmail() || '', at: new Date().toISOString() } });
+               touchOrder(o); await saveOrderMeta(o); }
+        else if(p){ const ok = (Array.isArray(p.auditOk) ? p.auditOk : []).concat([key]);
+               await PAY_COL.doc(p.id).set({ auditOk: ok }, { merge:true }); p.auditOk = ok; }
+        return renderFin();
+      }
+    }catch(err){ console.error(err); toast('Не вдалось: ' + (err.message || err)); }
+  };
+}
 function renderFin(){
   /* Замовлення могли довантажитись пізніше за рухи — пробуємо ще раз. */
   try{ payAutoLinkTtn(); }catch(e){}
+  try{ renderFinAudit(); }catch(e){ console.warn('звірка', e); }
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
      дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
      мати два різні числа про той самий день. */
@@ -10121,12 +10276,13 @@ function finOpen(id){
   document.addEventListener('keydown', esc, true);
   const зберегти = async () => {
     try{
-      await PAY_COL.doc(p.id).set({ orderId: обране || null, tag: тег || null,
-        linkedBy: myEmail() || '', linkedAt: new Date().toISOString() }, { merge:true });
-      p.orderId = обране; p.tag = тег;
+      const з = String(p.orderId || '');
+      if(з && обране && з !== String(обране) &&
+         !confirm('Платіж уже привʼязаний до #' + з + '. Перенести його в #' + обране + '?')) return;
+      await payLinkSet(p, обране, тег || null, { move: true });
       toast(обране ? ('Привʼязано до #' + обране) : 'Відвʼязано');
       renderFin();
-    }catch(e){ console.error(e); toast('Не збереглось'); }
+    }catch(e){ console.error(e); toast('Не збереглось: ' + (e.message || e)); }
   };
   d.addEventListener('click', async e => {
     if(e.target === d || e.target.hasAttribute('data-fin-x')) return закрити();
@@ -18342,19 +18498,28 @@ async function removeTask(o, id){
   renderOrderDrawer();
 }
 async function removePayment(o, i){
-  const p = payList(o)[i];
+  const p = paidRows(o)[i];
   if(!p) return;
-  if(!confirm('Прибрати запис про оплату ' + fmt(p.sum) + ' ₴ від ' + dtUa(p.at) + '?')) return;
-  o.payments.splice(i, 1);
-  /* Запис із банку — відвʼязуємо й сам платіж у Фінансах: інакше він лишився
-     б «підписаним» за замовленням, у якому його вже немає. */
-  if(p.payId){
-    try{ await PAY_COL.doc(p.payId).set({ orderId: null, tag: null }, { merge:true });
-         const fp = (payments || []).filter(x => x.id === p.payId)[0]; if(fp){ fp.orderId = null; fp.tag = null; } }
-    catch(e){ console.warn('відвʼязка платежу', e); }
-  }
-  try{ await saveOrderMeta(o); toast('Запис прибрано'); }
-  catch(e){ console.error(e); o.payments.splice(i, 0, p); toast('Не збереглось'); }
+  const bank = p.payId && p.counted;
+  if(!confirm((bank ? 'Відвʼязати платіж ' : 'Прибрати запис про оплату ') + fmt(p.sum) + ' ₴ від ' + dtUa(p.at) + '?' +
+     (bank ? '\nУ Фінансах він стане непідписаним — його можна буде привʼязати знову.' : ''))) return;
+  try{
+    /* Рух із банку відвʼязуємо через ядро привʼязки: воно ж прибирає копію
+       з картки. Інакше рух лишився б «підписаним» за замовленням, у якому
+       його вже немає, — або навпаки. */
+    const fp = p.payId ? (payments || []).filter(x => x.id === p.payId)[0] : null;
+    if(bank && fp && String(fp.orderId || '') === String(o.orderId || '')){
+      await payLinkSet(fp, '', null);
+    } else {
+      if(p.idx >= 0) o.payments.splice(p.idx, 1);
+      if(bank && !fp){
+        try{ await PAY_COL.doc(p.payId).set({ orderId: null, tag: null }, { merge:true }); }
+        catch(e){ console.warn('відвʼязка платежу', e); }
+      }
+      await saveOrderMeta(o);
+    }
+    toast(bank ? 'Платіж відвʼязано' : 'Запис прибрано');
+  }catch(e){ console.error(e); toast('Не збереглось: ' + (e.message || e)); }
   renderOrderDrawer();
 }
 // Дедлайн: скільки днів лишилось. Використовується і на картці, і в панелі.
@@ -19255,23 +19420,29 @@ function teamOptionsHtml(sel){
     p.email === sel ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
 }
 function payList(o){ return Array.isArray((o||{}).payments) ? o.payments : []; }
-function paidSum(o){ return payList(o).reduce((a,p)=> a + (+p.sum || 0), 0); }
-function dueSum(o){ return Math.max(0, Math.round((+o.totalPrice || 0) - paidSum(o))); }
-function payState(o){
-  const total = +o.totalPrice || 0, paid = paidSum(o);
-  if(paid <= 0) return 'none';
-  return (paid + 0.5 >= total && total > 0) ? 'full' : 'part';
-}
-const PAY_KIND_UA = { prepay:'передоплата', final:'доплата', other:'оплата' };
+/* «Скільки сплачено» — ЛИШЕ з грошового ядра (loomiq-money-core.js). Не
+   рахуйте це тут чи деінде ще раз: два різні «оплачено» і є те, звідки
+   гроші губляться з поля зору. */
+function payPays(){ return payLoaded ? payments : null; }
+function paidRows(o){ return LQMoney.paid(o, payPays()).rows; }
+function paidSum(o){ return LQMoney.paid(o, payPays()).sum; }
+function dueSum(o){ return LQMoney.due(o, payPays()); }
+function payState(o){ return LQMoney.state(o, payPays()); }
+const PAY_KIND_UA = { prepay:'передоплата', final:'доплата', other:'оплата', cod:'контроль оплати' };
 function odMoneyHtml(o){
   const total = +o.totalPrice || 0, paid = paidSum(o), due = dueSum(o), st = payState(o);
-  const rows = payList(o).map((p, i)=>`
-    <div class="pay-row" data-i="${i}">
+  /* Рядки — з грошового ядра: записи картки й банківські рухи, привʼязані
+     до замовлення (зокрема наложка, що привʼязалась сама за ТТН). */
+  const rows = paidRows(o).map((p, i)=>`
+    <div class="pay-row${p.counted ? '' : ' pay-off'}" data-i="${i}">
       <span class="pay-d">${escapeHtml(dtUa(p.at))}</span>
       <span class="pay-k">${escapeHtml(PAY_KIND_UA[p.kind] || PAY_KIND_UA.other)}${
-        p.payId ? ' · з банку' + (p.acc ? ' · ' + escapeHtml(p.acc) : '') : (p.by ? ' · ' + escapeHtml(personName(p.by)) : '')}</span>
+        !p.counted ? ' · у Фінансах ' + (p.elsewhere ? 'привʼязаний до #' + escapeHtml(p.elsewhere) : 'відвʼязаний') + ' — не рахується'
+        : p.payId ? ' · з банку' + (p.acc ? ' · ' + escapeHtml(p.src === 'bank' ? finAccName(p.acc) : p.acc) : '') +
+                    (p.ttn ? ' · ТТН ' + escapeHtml(p.ttn) : '')
+        : (p.by ? ' · ' + escapeHtml(personName(p.by)) : '')}</span>
       <b class="pay-s">${fmt(p.sum)} ₴</b>
-      <button class="pay-x" data-pay-del="${i}" title="Прибрати запис">✕</button>
+      <button class="pay-x" data-pay-del="${i}" title="${p.payId && p.counted ? 'Відвʼязати платіж від замовлення' : 'Прибрати запис'}">✕</button>
     </div>`).join('');
   return `
     <div class="od-sec">Гроші</div>
@@ -19382,12 +19553,7 @@ async function linkBankPayment(o, p){
   const due = dueSum(o);
   if(due > 0 && s > due && !confirm('Сума більша за залишок (' + fmt(due) + ' ₴). Привʼязати з переплатою ' + fmt(s - due) + ' ₴?'))
     throw new Error('скасовано');
-  await PAY_COL.doc(p.id).set({ orderId: String(o.orderId || ''), tag: 'prepay',
-    linkedBy: myEmail() || '', linkedAt: new Date().toISOString() }, { merge:true });
-  p.orderId = String(o.orderId || ''); p.tag = 'prepay';
-  if(!Array.isArray(o.payments)) o.payments = [];
-  o.payments.push({ at: p.at || new Date().toISOString(), sum: s, kind: 'prepay',
-                    by: myEmail() || '', payId: p.id, acc: finAccName(p.acc), counter: p.counter || '' });
+  await payLinkSet(p, String(o.orderId || ''), 'prepay');   // і рух, і копія в картці
   const started = startProduction(o);
   if(started && ['lead','prorahunok','kp','new'].indexOf(o.status) >= 0) setStatus(o, 'paid');
   await saveOrderMeta(o);
@@ -21120,6 +21286,17 @@ async function shipSetTtn(o, ttn, extra){
   if(!n) return;
   const gate = shipGate(o);
   if(!gate.ok){ toast('Накладну ще рано: ' + gate.why); return; }
+  /* ЗАМІНА НАКЛАДНОЇ. Стару не викидаємо: за накладною з контролем оплати
+     гроші прийдуть пізніше, і їм треба знайти це замовлення (o.ttnHist).
+     А дві накладні з контролем оплати — це дві оплати з клієнта. */
+  const стара = String(o.ttn || '').trim();
+  if(стара && стара !== n){
+    if(+o.ttnCod > 0 && !confirm('У замовленні вже є ТТН ' + стара + ' з контролем оплати ' + fmt(o.ttnCod) +
+        ' ₴.\nЯкщо її не видалено в кабінеті Нової пошти, клієнт може заплатити двічі.\nЗамінити на ' + n + '?')) return;
+    o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0,
+      at: o.ttnAt || '', by: myEmail() || '', till: new Date().toISOString() }]).slice(-10);
+    o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
+  }
   o.ttn = n;
   Object.assign(o, extra || {});
   o.ttnAt = o.ttnAt || new Date().toISOString();
@@ -21251,9 +21428,9 @@ function shipLeft(o){
       total = window.LQDesign.ui.orderSum(o, (designJobs || {})[o.orderId]) || 0;
   }catch(e){}
   if(!total) total = +o.totalPrice || 0;
-  let paid = 0;
-  try{ paid = anPaidOf(o) || 0; }catch(e){}
-  return Math.max(0, Math.round(total - paid));
+  /* Залишок — з грошового ядра: контроль оплати не може бути більшим за
+     те, що клієнт іще винен. */
+  return LQMoney.due(o, payPays(), total);
 }
 /* Поточні значення форми: збережене в o.ship, інакше — із замовлення. */
 function shipVals(o){
@@ -21400,6 +21577,11 @@ function wireShipForm(box, o, persist){
     if(miss.length) return toast('Бракує: ' + miss.join(', '));
     const gate = shipGate(o);
     if(!gate.ok) return toast('Накладну ще рано: ' + gate.why);
+    /* Контроль оплати — не більше за залишок: інакше клієнт переплатить. */
+    if(v.codOn && +v.cod > v.left + 1 && !confirm('Контроль оплати ' + fmt(v.cod) + ' ₴ більший за залишок ' +
+        fmt(v.left) + ' ₴ — клієнт переплатить ' + fmt(v.cod - v.left) + ' ₴. Створити все одно?')) return;
+    if(o.ttn && +o.ttnCod > 0 && !confirm('У замовленні вже є ТТН ' + o.ttn + ' з контролем оплати ' + fmt(o.ttnCod) +
+        ' ₴. Друга накладна — друга оплата з клієнта. Створити все одно?')) return;
     make.disabled = true;
     toast('Створюю накладну…');
     try{
@@ -29614,7 +29796,7 @@ function openDesign(){
     calSave: (gid, c, side) => mockCalSave(gid, c, side),
     /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
        платежів. Рахує робоче місце: воно й тримає список рухів. */
-    paid: o => payPaid(o && o.orderId),
+    paid: o => paidSum(o),
     /* Роздрібна ціна виробу. Відділ рахує суму замовлення з неї, а не з
        поля `totalPrice`: приватні замовлення заводяться прямо у відділі,
        без прорахунку, і те поле в них лишається порожнім. Довідник цін
@@ -29641,14 +29823,13 @@ function openDesign(){
     },
     /* Вибір платежу — те саме вікно рядків із пошуком, що й у B2B. */
     payPick: (o, done) => payPickOpen(o, async p => {
-      await PAY_COL.doc(p.id).set({ orderId: String((o && o.orderId) || ''), tag: 'prepay',
-        linkedBy: myEmail() || '', linkedAt: new Date().toISOString() }, { merge:true });
-      p.orderId = String((o && o.orderId) || ''); p.tag = 'prepay';
+      await payLinkSet(p, String((o && o.orderId) || ''), 'prepay');
       if(done) done();
     }),
-    payLink: (o, id) => PAY_COL.doc(id).set(
-      { orderId: String((o && o.orderId) || ''), tag: 'prepay' }, { merge:true }),
-    payUnlink: id => PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }),
+    payLink: (o, id) => { const p = (payments || []).filter(x => x.id === id)[0];
+      return p ? payLinkSet(p, String((o && o.orderId) || ''), 'prepay') : Promise.reject(new Error('Платежу немає')); },
+    payUnlink: id => { const p = (payments || []).filter(x => x.id === id)[0];
+      return p ? payLinkSet(p, '', null) : PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }); },
     payTag: (id, tag) => PAY_COL.doc(id).set({ tag: tag || null }, { merge:true }),
     /* Як підписаний клієнт: нік і, якщо є, імʼя профілю. Читає це робоче
        місце — воно й ходить у Sitniks. */
