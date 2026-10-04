@@ -4427,6 +4427,32 @@
     font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   .dz-card-w.is-v2 .dz-card-m{margin-top:8px;}
   /* ── Форма відправки (B2B і B2C) і налаштування відправників ── */
+  /* ── Вибір платежу рядками (04.10) ── */
+  .pp-w{width:min(860px,calc(100vw - 24px));}
+  .pp-q{width:100%;box-sizing:border-box;font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:9px;padding:10px 12px;outline:none;}
+  .pp-q:focus{border-color:var(--accent);}
+  .pp-n{font-size:12px;color:var(--muted);margin:8px 2px 6px;}
+  .pp-list{display:flex;flex-direction:column;max-height:min(60vh,560px);overflow:auto;
+    border:1px solid var(--line-soft);border-radius:10px;}
+  .pp-row{all:unset;cursor:pointer;display:grid;grid-template-columns:96px 104px minmax(90px,1fr) minmax(90px,1.4fr) 120px;
+    gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line-soft);font-size:13px;}
+  .pp-row:last-child{border-bottom:0;}
+  .pp-row:hover,.pp-row:focus-visible{background:#F2F7FF;}
+  .pp-row:disabled{opacity:.5;cursor:wait;}
+  .pp-row > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pp-at{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;}
+  .pp-sum{color:#1B6B3A;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+  .pp-who{font-weight:600;color:var(--ink);}
+  .pp-desc{color:var(--ink-soft);font-size:12.5px;}
+  .pp-acc{color:var(--muted);font-size:12px;text-align:right;}
+  @media (max-width:700px){
+    .pp-row{grid-template-columns:auto 1fr auto;grid-template-areas:'at who sum' 'desc desc acc';gap:2px 10px;}
+    .pp-at{grid-area:at;} .pp-who{grid-area:who;} .pp-sum{grid-area:sum;}
+    .pp-desc{grid-area:desc;} .pp-acc{grid-area:acc;}
+  }
+  .pay-pick{all:unset;cursor:pointer;display:block;margin:8px 0;font-size:13px;font-weight:600;color:var(--accent);}
+  .pay-pick i{font-style:normal;font-weight:400;color:var(--muted);}
   .shf{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:6px;}
   .shf-wide{grid-column:1 / -1;}
   .shf-f{display:flex;flex-direction:column;gap:4px;min-width:0;}
@@ -7179,24 +7205,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1b2edd65ee"></script>
-<script src="loomiq-fingerprint.js?v=1b2edd65ee"></script>
-<script src="loomiq-pricing.js?v=1b2edd65ee"></script>
+<script src="loomiq-select.js?v=e1c5ce2982"></script>
+<script src="loomiq-fingerprint.js?v=e1c5ce2982"></script>
+<script src="loomiq-pricing.js?v=e1c5ce2982"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1b2edd65ee"></script>
-<script src="loomiq-mock.js?v=1b2edd65ee"></script>
+<script src="loomiq-design.js?v=e1c5ce2982"></script>
+<script src="loomiq-mock.js?v=e1c5ce2982"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1b2edd65ee"></script>
-<script src="loomiq-threads.js?v=1b2edd65ee"></script>
+<script src="imagetracer.js?v=e1c5ce2982"></script>
+<script src="loomiq-threads.js?v=e1c5ce2982"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1b2edd65ee"></script>
+<script src="loomiq-cards.js?v=e1c5ce2982"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7221,7 +7247,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1b2edd65ee';
+var LQ_VER = 'e1c5ce2982';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -18320,6 +18346,13 @@ async function removePayment(o, i){
   if(!p) return;
   if(!confirm('Прибрати запис про оплату ' + fmt(p.sum) + ' ₴ від ' + dtUa(p.at) + '?')) return;
   o.payments.splice(i, 1);
+  /* Запис із банку — відвʼязуємо й сам платіж у Фінансах: інакше він лишився
+     б «підписаним» за замовленням, у якому його вже немає. */
+  if(p.payId){
+    try{ await PAY_COL.doc(p.payId).set({ orderId: null, tag: null }, { merge:true });
+         const fp = (payments || []).filter(x => x.id === p.payId)[0]; if(fp){ fp.orderId = null; fp.tag = null; } }
+    catch(e){ console.warn('відвʼязка платежу', e); }
+  }
   try{ await saveOrderMeta(o); toast('Запис прибрано'); }
   catch(e){ console.error(e); o.payments.splice(i, 0, p); toast('Не збереглось'); }
   renderOrderDrawer();
@@ -19236,7 +19269,7 @@ function odMoneyHtml(o){
     <div class="pay-row" data-i="${i}">
       <span class="pay-d">${escapeHtml(dtUa(p.at))}</span>
       <span class="pay-k">${escapeHtml(PAY_KIND_UA[p.kind] || PAY_KIND_UA.other)}${
-        p.by ? ' · ' + escapeHtml(personName(p.by)) : ''}</span>
+        p.payId ? ' · з банку' + (p.acc ? ' · ' + escapeHtml(p.acc) : '') : (p.by ? ' · ' + escapeHtml(personName(p.by)) : '')}</span>
       <b class="pay-s">${fmt(p.sum)} ₴</b>
       <button class="pay-x" data-pay-del="${i}" title="Прибрати запис">✕</button>
     </div>`).join('');
@@ -19250,6 +19283,8 @@ function odMoneyHtml(o){
           st==='full' ? 'сплачено повністю' : fmt(due) + ' ₴'}</b></div>
       </div>
       ${rows || '<div class="od-empty">Оплат ще не було</div>'}
+      <button class="pay-pick" data-pay-pick>+ Привʼязати платіж з банку${
+        payFreeList().length ? ' <i>· непідписаних ' + payFreeList().length + '</i>' : ''}</button>
       <div class="pay-add">
         <input class="pay-in" type="number" min="1" step="1" placeholder="сума"
                ${due > 0 ? 'data-due="' + due + '"' : ''}>
@@ -19261,6 +19296,105 @@ function odMoneyHtml(o){
         <button class="pay-go">Записати оплату</button>
       </div>
     </div>`;
+}
+
+/* ══════════ ВИБІР ПЛАТЕЖУ ДЛЯ ПРИВʼЯЗКИ (04.10) ══════════
+   Андрій: «не плиткою, а рядком — маленький, вниз-вниз; по датах; і пошук
+   по всьому: сума, дата, час, хто, підпис». Одне вікно на обидві картки —
+   B2B і B2C. Лише НЕПІДПИСАНІ надходження: не привʼязані до жодного
+   замовлення й не перекази між своїми рахунками. */
+function payFreeList(){
+  const свої = (typeof finOwnSet === 'function') ? finOwnSet() : {};
+  return (payments || []).filter(p => p && !p.orderId && (+p.amount || 0) > 0 && !свої[p.id])
+    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+/* Усе, за чим платіж можна знайти, одним рядком. Сума — кількома
+   записами: «1500», «1 500», «1500,55» — як її набирають. */
+function payHay(p){
+  const v = Math.abs(+p.amount || 0), ціле = String(Math.round(v));
+  const коп = (Math.round(v * 100) % 100) ? String(v.toFixed(2)) : '';
+  const d = new Date(String(p.at || ''));
+  const повна = isNaN(d) ? '' : d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit', year:'numeric' });
+  return [ціле, fmt(Math.round(v)), коп, коп.replace('.', ','), payDate(p.at), повна,
+          p.counter, p.desc, finAccName(p.acc), FIN_BANKS[(finAccounts().filter(a => a.id === p.acc)[0] || {}).bank] || '',
+          p.src, p.ttn, p.id].filter(Boolean).join(' ').toLowerCase();
+}
+function payMatch(p, q){
+  q = String(q || '').toLowerCase().replace(/(\d)\s+(?=\d)/g, '$1').trim();
+  if(!q) return true;
+  const h = payHay(p);
+  return q.split(/\s+/).every(t => h.indexOf(t) >= 0);
+}
+function payPickOpen(o, onPick){
+  try{ watchPayments(); }catch(e){}
+  const E = escapeHtml;
+  const d = document.createElement('div');
+  d.className = 'fin-modal';
+  d.innerHTML = `<div class="fin-w pp-w">
+    <div class="fin-h"><b>Привʼязати платіж</b>
+      <span>${E(orderName ? (orderName(o) || '') : '')} · #${E(o.orderId || '')}</span>
+      <button class="dz-x" data-pp-x>×</button></div>
+    <div class="fin-b">
+      <input type="search" class="pp-q" placeholder="Пошук: сума, дата, час, хто, призначення, рахунок" autocomplete="off">
+      <div class="pp-n"></div>
+      <div class="pp-list"></div>
+    </div></div>`;
+  document.body.appendChild(d);
+  const q = d.querySelector('.pp-q'), list = d.querySelector('.pp-list'), n = d.querySelector('.pp-n');
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = e => { if(e.key === 'Escape'){ e.stopPropagation(); close(); } };
+  document.addEventListener('keydown', esc, true);
+  d.addEventListener('click', e => { if(e.target === d || e.target.closest('[data-pp-x]')) close(); });
+  const draw = () => {
+    const всі = payFreeList();
+    const rows = всі.filter(p => payMatch(p, q.value));
+    n.textContent = всі.length
+      ? (q.value.trim() ? 'Знайдено ' + rows.length + ' з ' + всі.length : 'Непідписаних надходжень: ' + всі.length) + ' · нові зверху'
+      : '';
+    list.innerHTML = rows.length ? rows.slice(0, 300).map(p => `
+      <button type="button" class="pp-row" data-pp="${E(p.id)}" title="${E([payDate(p.at), payMoneyK(p.amount), p.counter, p.desc, finAccName(p.acc)].filter(Boolean).join(' · '))}">
+        <span class="pp-at">${E(payDate(p.at))}</span>
+        <b class="pp-sum">${E(payMoneyK(p.amount))}</b>
+        <span class="pp-who">${E(p.counter || '—')}</span>
+        <span class="pp-desc">${E(p.desc || '')}</span>
+        <span class="pp-acc">${E(finAccName(p.acc))}</span>
+      </button>`).join('')
+      : `<div class="fin-none">${всі.length ? 'За цим пошуком нічого немає.'
+          : 'Непідписаних надходжень немає. Платіж зʼявиться тут сам, коли прийде на підключений рахунок, — або його можна записати руками у Фінансах.'}</div>`;
+  };
+  q.addEventListener('input', draw);
+  list.addEventListener('click', async e => {
+    const b = e.target.closest('[data-pp]'); if(!b) return;
+    const p = (payments || []).filter(x => x.id === b.dataset.pp)[0];
+    if(!p) return;
+    b.disabled = true;
+    try{ await onPick(p); close(); }
+    catch(err){ console.error(err); b.disabled = false; toast('Привʼязати не вдалось'); }
+  });
+  draw();
+  setTimeout(() => q.focus(), 30);
+  return d;
+}
+/* B2B: платіж із банку стає записом оплати картки (з ним рахується залишок і
+   запуск виробництва), а в Фінансах — привʼязаним до замовлення. */
+async function linkBankPayment(o, p){
+  const s = Math.round(+p.amount || 0);
+  const due = dueSum(o);
+  if(due > 0 && s > due && !confirm('Сума більша за залишок (' + fmt(due) + ' ₴). Привʼязати з переплатою ' + fmt(s - due) + ' ₴?'))
+    throw new Error('скасовано');
+  await PAY_COL.doc(p.id).set({ orderId: String(o.orderId || ''), tag: 'prepay',
+    linkedBy: myEmail() || '', linkedAt: new Date().toISOString() }, { merge:true });
+  p.orderId = String(o.orderId || ''); p.tag = 'prepay';
+  if(!Array.isArray(o.payments)) o.payments = [];
+  o.payments.push({ at: p.at || new Date().toISOString(), sum: s, kind: 'prepay',
+                    by: myEmail() || '', payId: p.id, acc: finAccName(p.acc), counter: p.counter || '' });
+  const started = startProduction(o);
+  if(started && ['lead','prorahunok','kp','new'].indexOf(o.status) >= 0) setStatus(o, 'paid');
+  await saveOrderMeta(o);
+  toast(started ? 'Платіж привʼязано — виробництво запущено'
+    : (payState(o) === 'full' ? 'Платіж привʼязано · сплачено повністю' : 'Платіж привʼязано · залишок ' + fmt(dueSum(o)) + ' ₴'));
+  try{ await prodGateCheck(o); }catch(e){}
+  renderOrderDrawer();
 }
 /* ── Нагадування ─────────────────────────────────────────────────────────
    Один блок замість трьох. Доти те саме питання — «що з цією карткою далі»
@@ -21980,6 +22114,7 @@ function odDesignerHtml(o){
 }
 function odPayFold(o){
   if(!canPay()) return '';   // немає права записувати гроші — немає й блоку
+  try{ watchPayments(); }catch(e){}   // лічильник непідписаних на кнопці привʼязки
   const st = payState(o);
   return odFoldHtml('pay', 'Оплата',
     st === 'full' ? 'сплачено' : (st === 'part' ? 'залишок ' + fmt(dueSum(o)) + ' ₴' : 'оплат не було'),
@@ -22628,6 +22763,8 @@ function renderOrderDrawer(){
   }
   panel.querySelectorAll('[data-pay-del]').forEach(b=>
     b.addEventListener('click', ()=> removePayment(o, +b.dataset.payDel)));
+  const pp = panel.querySelector('[data-pay-pick]');
+  if(pp) pp.addEventListener('click', ()=> payPickOpen(o, p => linkBankPayment(o, p)));
   // Нагадування: коментар, дата, час — і Enter у полі теж додає
   panel.querySelectorAll('.rem-add').forEach(box=>{
     const inp = box.querySelector('.rem-in');
@@ -29498,10 +29635,17 @@ function openDesign(){
                                .map(рядок),
         /* Тільки надходження: витрати в передоплату не потрапляють ніколи, і
            показувати їх у цьому списку означало б дати їх туди привʼязати. */
-        free: (payments || []).filter(p => !p.orderId && (+p.amount || 0) > 0)
+        free: payFreeList()
                              .map(рядок)
       };
     },
+    /* Вибір платежу — те саме вікно рядків із пошуком, що й у B2B. */
+    payPick: (o, done) => payPickOpen(o, async p => {
+      await PAY_COL.doc(p.id).set({ orderId: String((o && o.orderId) || ''), tag: 'prepay',
+        linkedBy: myEmail() || '', linkedAt: new Date().toISOString() }, { merge:true });
+      p.orderId = String((o && o.orderId) || ''); p.tag = 'prepay';
+      if(done) done();
+    }),
     payLink: (o, id) => PAY_COL.doc(id).set(
       { orderId: String((o && o.orderId) || ''), tag: 'prepay' }, { merge:true }),
     payUnlink: id => PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }),

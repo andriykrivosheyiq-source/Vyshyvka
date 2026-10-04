@@ -365,11 +365,12 @@ ok(/Привʼязати платіж/.test(пла.кнопка) && /2/.test(п�
   'вільні надходження полічені просто на кнопці: ' + пла.кнопка,
   'кнопки вибору платежу немає: ' + пла.кнопка);
 
-/* Вибір платежу — списком із Фінансів. Витрата в нього не потрапляє:
-   привʼязати мінус до замовлення означало б зменшити внесене. */
+/* Вибір платежу — рядками зі списку Фінансів (04.10: не плитками). Витрата
+   в нього не потрапляє: привʼязати мінус до замовлення означало б зменшити
+   внесене. */
 await p.evaluate(() => { document.querySelector('[data-do="pay-pick"]').click(); });
 await p.waitForTimeout(400);
-const вибір = await p.evaluate(() => [...document.querySelectorAll('.dz-pick-c.is-pay')]
+const вибір = await p.evaluate(() => [...document.querySelectorAll('.pp-list .pp-row')]
   .map(c => c.textContent.replace(/\s+/g, ' ').trim()));
 console.log('  ' + JSON.stringify(вибір));
 ok(вибір.length === 2, 'у виборі рівно вільні надходження: ' + вибір.length,
@@ -377,7 +378,7 @@ ok(вибір.length === 2, 'у виборі рівно вільні надхо�
 ok(!вибір.some(t => /−|-3ic20/.test(t) || /−\s?320/.test(t)),
   'витрата в список не потрапила — мінус у передоплату не привʼязують',
   'у виборі є витрата: ' + JSON.stringify(вибір));
-await p.evaluate(() => { document.querySelectorAll('.dz-pick-c.is-pay')[0].click(); });
+await p.evaluate(() => { document.querySelectorAll('.pp-list .pp-row')[0].click(); });
 await p.waitForTimeout(900);
 const після2 = await p.evaluate(() => {
   const z = [...document.querySelectorAll('.dz-z')].filter(x => /Гроші/.test(x.textContent))[0];
