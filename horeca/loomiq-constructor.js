@@ -792,27 +792,91 @@
        давало інший розмір друку, а отже й іншу ціну, на ті самі секунди
        завантаження. Тепер памʼятаємо порахований масштаб для кожного виробу
        й ракурсу, і на час завантаження беремо його, а не іншу формулу. */
+    /* ══════════ МАСШТАБ «ЧАСТКА → МІЛІМЕТРИ» — ЗА СТОРОНОЮ ШАРУ (04.10) ══════════
+
+       Ціна вишивки — від площі в мм², а мм виходять із частки контейнера,
+       помноженої на масштаб зони нанесення. Доти масштаб брався з того фото,
+       ЯКЕ ЗАРАЗ НА ЕКРАНІ, і ціна скакала, хоча логотип ніхто не чіпав:
+         · відкрили спину — лого на переді рахувалось масштабом спини;
+         · відкрили ракурс без зони (рукав, модель) — запасною формулою;
+         · поки фото вантажилось — теж запасною (на ~10 % більші мм, на ~20 %
+           більша площа), а через мить ціна падала;
+         · поки нове фото вантажилось, у <img> ще лежало ПОПЕРЕДНЄ — чужого
+           виробу чи кольору, — і масштаб із нього запамʼятовувався під новим.
+
+       Тепер масштаб рахується для СТОРОНИ ШАРУ з розмірів фото саме цієї
+       сторони й кольору (міряємо окремою картинкою, памʼятаємо за адресою),
+       а не з того, що на екрані. Поки розмірів ще немає — беремо масштаб,
+       записаний у шар під час збереження (mmPerFrac), і ціна не стрибає. */
     var ZONE_MM_CACHE = {};
     var ZONE_GEO_CACHE = {};   // сторона → вісь, лінія плечей і масштаб (для розмітки)
-    function zoneCacheKey(){ return pm.garmentId + '|' + pm.side + '|' + (pm.printId || ''); }
-    function zoneScaleMmPerFrac(){
-      if(typeof currentPrintCfg !== 'function') return null;
-      var cfg = currentPrintCfg(); if(!cfg) return null;
-      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none'
-         || !(pmGarmentPhoto.naturalWidth > 0)){
-        return ZONE_MM_CACHE[zoneCacheKey()] != null ? ZONE_MM_CACHE[zoneCacheKey()] : null;
-      }
-      var natW = pmGarmentPhoto.naturalWidth, natH = pmGarmentPhoto.naturalHeight;
-      if(!(natW>0) || !(natH>0)) return null;
+    function zoneCacheKey(sideId){ return pm.garmentId + '|' + (sideId || pm.side) + '|' + (pm.printId || ''); }
+    var IMG_DIMS = Object.create(null);
+    function sidePhotoUrl(sideId){
+      var g = getGarment(), c = getColor();
+      if(!g || !c || sideId === MODEL_VIEW) return '';
+      if(!(GARMENT_COLORS[g.id] && (!g.custom || window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+sideId]))) return '';
+      return window.LQ_img('/images/'+g.id+'-'+c.id+'-'+sideId+'.webp');
+    }
+    /* Розміри фото за адресою. Немає — вантажимо окремою картинкою (із кешу
+       браузера це миттєво) і, щойно вони є, перераховуємо ціну один раз. */
+    function photoDims(url){
+      if(!url) return null;
+      var d = IMG_DIMS[url];
+      if(d) return d.w ? d : (d.fail ? { fail:true } : null);
+      IMG_DIMS[url] = { pending:true };
+      var im = new Image();
+      im.onload = function(){
+        IMG_DIMS[url] = (im.naturalWidth > 0) ? { w: im.naturalWidth, h: im.naturalHeight } : { fail:true };
+        try{ updatePriceBar(); }catch(e){}
+      };
+      im.onerror = function(){ IMG_DIMS[url] = { fail:true }; try{ updatePriceBar(); }catch(e){} };
+      im.src = url;
+      return null;
+    }
+    /* Масштаб для сторони: число — зона задана й фото відоме; null — зони на
+       цій стороні немає (рахуємо від висоти виробу); undefined — ЧЕКАЄМО
+       розмірів фото. */
+    function zoneScaleFor(sideId){
+      sideId = sideId || pm.side;
+      var cfg = currentPrintCfg(sideId); if(!cfg) return null;
+      var key = zoneCacheKey(sideId) + '|' + (pm.colorId || '');
+      if(ZONE_MM_CACHE[key] != null) return ZONE_MM_CACHE[key];
+      var dims = photoDims(sidePhotoUrl(sideId));
+      if(!dims) return undefined;
+      if(dims.fail) return null;
       var pa = ((window.SITE_CONTENT||{}).printAreas || {})[pm.garmentId] || {};
       var heightCm = (+pa.heightCm > 0) ? +pa.heightCm : (garmentHeightMm()/10);
-      var arImg = natW/natH, rh = (arImg >= 1) ? 1/arImg : 1;   // висота фото як частка квадратного контейнера
+      var arImg = dims.w/dims.h, rh = (arImg >= 1) ? 1/arImg : 1;   // висота фото як частка квадратного контейнера
       var calT = cfg.calibTop!=null?cfg.calibTop:0.06, calB = cfg.calibBottom!=null?cfg.calibBottom:0.96;
       var ch = (calB - calT) * rh;   // калібрована висота як частка контейнера
       if(!(ch > 0)) return null;
       var mmPerFrac = (heightCm * 10) / ch;   // мм на 1.0 частки контейнера
-      ZONE_MM_CACHE[zoneCacheKey()] = mmPerFrac;
+      ZONE_MM_CACHE[key] = mmPerFrac;
       return mmPerFrac;
+    }
+    /* Масштаб відкритої сторони — для розмітки зони й старих позицій. */
+    function zoneScaleMmPerFrac(){
+      var v = zoneScaleFor(pm.side);
+      return (v > 0) ? v : null;
+    }
+    /* На якій стороні лежить шар (за самим обʼєктом). */
+    function layerSideOf(l){
+      var found = null;
+      Object.keys(pm.logos || {}).forEach(function(sd){
+        if(!found && (pm.logos[sd] || []).indexOf(l) >= 0) found = sd;
+      });
+      return found || pm.side;
+    }
+    /* Масштаб для шару. Чекаємо фото — масштаб, з яким шар збережено;
+       немає й його — висота виробу, і шар позначається «ще рахуємо». */
+    function layerMmPerFrac(l){
+      var s = zoneScaleFor(layerSideOf(l));
+      if(s > 0){ l.mmPerFrac = s; l.__mmWait = false; return s; }
+      if(s === null){ var gh = garmentHeightMm(); l.mmPerFrac = gh; l.__mmWait = false; return gh; }
+      if(+l.mmPerFrac > 0){ l.__mmWait = false; return +l.mmPerFrac; }
+      l.__mmWait = true;
+      return garmentHeightMm();
     }
     /* Пряма дорога з конструктора в наявне замовлення — без кошика й без
        модалки контактів: контакти вже відомі з картки, а «оформлення» тут
@@ -1035,8 +1099,7 @@
     function layerDimsMm(l){
       var ar = (l.ar || 1) || 1;
       var frac = layerFrac(l);                       // сторона квадрата як частка контейнера
-      var mmPerFrac = zoneScaleMmPerFrac();          // масштаб від поля нанесення (якщо зона задана)
-      var szMm = (mmPerFrac != null) ? frac * mmPerFrac : frac * garmentHeightMm();  // фолбек — висота виробу
+      var szMm = frac * layerMmPerFrac(l);           // масштаб зони СТОРОНИ ЦЬОГО ШАРУ (див. zoneScaleFor)
       return (ar >= 1)
         ? { w: szMm,      h: szMm / ar }
         : { w: szMm * ar, h: szMm };
@@ -2026,6 +2089,9 @@
 
     function renderGarment(){
       try{ if(typeof syncTextBar === 'function') syncTextBar(); }catch(e){}
+      /* Розміри фото всіх сторін — наперед: ціна шару на спині не мусить
+         чекати, поки менеджер відкриє спину (див. zoneScaleFor). */
+      try{ printViews().forEach(function(v){ photoDims(sidePhotoUrl(v)); }); }catch(e){}
       fitGarmentStage();
       updateSideMarks();
       var g = getGarment(), c = getColor();
@@ -2678,10 +2744,10 @@
       return pts.concat(mir);
     }
     // Конфіг зони для поточного товару / сторони / кольору (свій полігон кольору → base).
-    function currentPrintCfg(){
+    function currentPrintCfg(sideId){
       var pa = (window.SITE_CONTENT && window.SITE_CONTENT.printAreas) || {};
       var area = pa[pm.garmentId]; if(!area) return null;
-      var side = area[pm.side]; if(!side) return null;
+      var side = area[sideId || pm.side]; if(!side) return null;
       var cfg = (side.colors && side.colors[pm.colorId]) ? side.colors[pm.colorId] : side.base;
       return (cfg && cfg.pts && cfg.pts.length >= 3) ? cfg : null;
     }
@@ -5690,6 +5756,22 @@
        зберігає кнопкою, коли закінчив. Інакше кожен рух логотипа заводив би
        запис у базу й перебудову сторінки — і редактор смикався б під руками
        ще до того, як людина щось вирішила. */
+    /* Ціна ще не остаточна: малюнок не виміряний (заповненість невідома —
+       доти вважалась 85 %, і обводка першу мить коштувала як заливка) або
+       масштаб сторони ще чекає розмірів фото. */
+    function pricePending(){
+      var wait = false;
+      printViews().forEach(function(side){
+        inkLayers(side).forEach(function(l){
+          if(!l) return;
+          if(!l.text && l.url && l.fill == null) wait = true;
+          try{ layerDimsMm(l); }catch(e){}
+          if(l.__mmWait) wait = true;
+        });
+      });
+      return wait;
+    }
+    window.__lqPricePending = function(){ return pricePending(); };
     function updatePriceBar(){
       /* Ліва панель робочого місця тягне ціни звідси ж — смикаємо її
          щоразу, коли перераховується прорахунок. */
@@ -5700,8 +5782,13 @@
       // «Товар», а стоїть там, де людина й так читає, що саме вона купує.
       var cNow = getColor();
       syncPrintSizeLabel();
-      if(u>0){
-        pmPriceText.innerHTML = '<span class="pm-num">'+effUnitPrice()+'</span><span class="pm-unit">грн/шт</span>';
+      var unitNow = (u > 0) ? effUnitPrice() : 0;
+      if(u>0 && pricePending()){
+        /* Ще не знаємо або форми малюнка, або масштабу сторони — показувати
+           проміжне число означало б ціну, яка за мить зміниться сама. */
+        pmPriceText.innerHTML = '<span class="pm-unit">рахуємо…</span>';
+      } else if(u>0){
+        pmPriceText.innerHTML = '<span class="pm-num">'+unitNow+'</span><span class="pm-unit">грн/шт</span>';
       } else {
         pmPriceText.innerHTML = '<span class="pm-unit">від </span><span class="pm-num">'+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
       }
