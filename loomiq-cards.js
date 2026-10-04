@@ -1236,7 +1236,7 @@
       x.font = '400 16px ' + t.body;
       var lab = String(sp.label || '');
       var lw = x.measureText(lab).width;
-      x.fillStyle = t.ink;                 // назва характеристики — теж чорнилом (04.10)
+      x.fillStyle = t.dim;
       x.fillText(lab, X, y);
       x.font = '600 18px ' + t.body;
       x.fillStyle = t.ink;
@@ -2085,12 +2085,13 @@
       x.fillStyle = t.ink;
       fitFont(x, c.name, tw, 30, '700', t.display, 22);
       x.fillText(clip1(x, c.name, tw), tx, ty);
-      /* УСЕ, КРІМ НАЗВИ, — ЧОРНИЛОМ (04.10): колір і нанесення, характеристики,
-         умова ціни. Сірим лишилась тільки закреслена стара ціна — вона й має
-         читатись як минула. */
+      /* ОПИС — ОДНИМ СІРИМ (04.10): колір і нанесення, характеристики, умова
+         ціни. Чорнилом лишились назва й ціна — на них і дивляться. Доти
+         однакове бліднішало, а різне чорніло, і опис читався плямами. */
+      var DESC = t.dim;
       if(c.sub){
         ty += 30;
-        x.fillStyle = t.ink;
+        x.fillStyle = DESC;
         x.font = '400 17px ' + t.body;
         x.fillText(clip1(x, c.sub, tw), tx, ty);
       }
@@ -2117,22 +2118,22 @@
           badge(x, t, '−' + Math.round((base - c.unit) / base * 100) + '%', tx + ww + 14, ty);
         }
         ty += 24;
-        x.fillStyle = t.ink;
+        x.fillStyle = DESC;
         x.font = '400 15px ' + t.body;
         var tq = card.tier || card.qty;
         x.fillText((tq > 1) ? 'ціна від ' + tq + ' шт' : 'ціна за 1 шт', tx, ty);
       }
       ty += 44;
-      /* Склад — парами «про що / скільки», усе чорнилом. Однакове в усіх
+      /* Склад — парами «про що / скільки», одним сірим. Однакове в усіх
          товарах доти бліднішало — Андрій попросив читати все однаково (04.10). */
       (card.rows || []).slice(0, 5).forEach(function(row){
         var v = row.vals[ci] || '—';
         x.font = '400 16px ' + t.body;
-        x.fillStyle = t.ink;
+        x.fillStyle = DESC;
         var lw = x.measureText(row.label).width;
         x.fillText(row.label, tx, ty);
         x.font = '600 17px ' + t.body;
-        x.fillStyle = t.ink;
+        x.fillStyle = DESC;
         /* Довге значення ПЕРЕНОСИМО, а не обрізаємо: «Вишивка 10 × 6 см,
            вишивка 25 × 30 см» з трикрапкою губило саме другий розмір. */
         var ряд = wrapList(x, v, tw - lw - 14).slice(0, 3);
