@@ -1052,6 +1052,8 @@
   .od-ch-b.viber{background:#7360F2;}
   .od-ch-b:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .od-who-row .od-chan-h{flex:1;min-width:0;font-size:13.5px;min-height:34px;padding:7px 10px;}
+  .od-who-row .od-ig-who{display:flex;align-items:center;font-weight:600;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;}
   .od-who-go{all:unset;cursor:pointer;flex:none;width:34px;height:34px;border-radius:9px;
     display:flex;align-items:center;justify-content:center;font-size:14px;
     background:var(--canvas);border:1px solid var(--line);}
@@ -7224,27 +7226,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=da1eea4aee"></script>
-<script src="loomiq-fingerprint.js?v=da1eea4aee"></script>
-<script src="loomiq-pricing.js?v=da1eea4aee"></script>
+<script src="loomiq-select.js?v=591aec6e08"></script>
+<script src="loomiq-fingerprint.js?v=591aec6e08"></script>
+<script src="loomiq-pricing.js?v=591aec6e08"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=da1eea4aee"></script>
+<script src="loomiq-money-core.js?v=591aec6e08"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=da1eea4aee"></script>
-<script src="loomiq-mock.js?v=da1eea4aee"></script>
+<script src="loomiq-design.js?v=591aec6e08"></script>
+<script src="loomiq-mock.js?v=591aec6e08"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=da1eea4aee"></script>
-<script src="loomiq-threads.js?v=da1eea4aee"></script>
+<script src="imagetracer.js?v=591aec6e08"></script>
+<script src="loomiq-threads.js?v=591aec6e08"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=da1eea4aee"></script>
+<script src="loomiq-cards.js?v=591aec6e08"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7269,7 +7271,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'da1eea4aee';
+var LQ_VER = '591aec6e08';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -22683,12 +22685,13 @@ function renderOrderDrawer(){
             data-chan-set="${k}" title="${escapeHtml(CHAN[k].label)}${
               chanFilled(o, k) ? ' · контакт є' : ''}">${escapeHtml(CHAN_MARK[k])}</button>`).join('')}
         </div>
+        ${(ch === 'ig' && igLinkMode(o)) ? igLinkHtml(o) : `
         <input class="od-f od-chan-h" type="text" placeholder="${escapeHtml(CHAN[ch].ph)}"
                value="${escapeHtml(chanHandle(o, ch))}">
         ${chanHandle(o, ch)
           ? `<button class="od-who-go" data-chan-go title="${hasChat
               ? 'Відкрити розмову' : 'Відкрити в месенджері'}">${hasChat ? '💬' : '↗'}</button>`
-          : ''}
+          : ''}`}
         ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
       </div>
       ${crmSeekHtml(o)}
@@ -22984,7 +22987,22 @@ function renderOrderDrawer(){
       const nav = document.querySelector('.nav button[data-view="design"]');
       if(nav) nav.click();
     }));
-  const chanInp = panel.querySelector('.od-chan-h');
+  /* Instagram у B2B: вставили посилання з Sitniks — привʼязуємо одразу. */
+  const igLink = panel.querySelector('.od-ig-link');
+  if(igLink){
+    let пішло = false;
+    const bind = ()=>{
+      const v = igLink.value.trim();
+      if(!v || пішло) return;
+      if(!crmChatIdFromUrl(v)) return toast('Не схоже на посилання з Sitniks — скопіюйте адресу відкритої розмови');
+      пішло = true;
+      crmBindUrl(o, v);
+    };
+    igLink.addEventListener('paste', ()=> setTimeout(bind, 30));
+    igLink.addEventListener('keydown', e=>{ e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); bind(); } });
+    igLink.addEventListener('change', bind);
+  }
+  const chanInp = panel.querySelector('.od-chan-h:not(.od-ig-link):not(.od-ig-who)');
   if(chanInp) chanInp.addEventListener('change', async ()=>{
     chanSet(o, chanActive(o), chanInp.value);
     await saveOrderMeta(o);
@@ -23360,8 +23378,33 @@ function crmShow(o){
    і скасувати помилкову адресу не було чим: блок Sitniks у картці з привʼязаним
    чатом не показується взагалі. А вставити не ту адресу легко: вона береться з
    сусідньої вкладки. */
+/* INSTAGRAM У B2B — ЛИШЕ ПОСИЛАННЯМ НА РОЗМОВУ В SITNIKS (04.10).
+   Андрій: «не по ніку, а чисто по посиланню до Sitniks… щоб не було цього
+   просто ніка, бо він все одно веде на сторінку Instagram і це безтолково».
+   Тож на вкладці Instagram картки B2B поля «нік» немає: одне поле — вставити
+   адресу розмови з Sitniks; нік і імʼя клієнта підтягуються з розмови самі
+   (crmBindUrl → crmPickChat). Привʼязано — замість поля підпис «@нік · імʼя»
+   і 💬, що відкриває саму розмову. Без адреси воркера Sitniks — як доти. */
+function igLinkMode(o){
+  return !!crmBase() && orderDir(o) !== 'b2c' && !tgChatOf(o);
+}
+function igLinkHtml(o){
+  if(o.crmChatId){
+    return `<div class="od-f od-chan-h od-ig-who" title="Розмова в Sitniks">${
+        escapeHtml(crmWhoLabel(o) || ('чат ' + o.crmChatId))}</div>
+      <button class="od-who-go" data-chan-go title="Відкрити розмову">💬</button>`;
+  }
+  const було = String(o.ig || '').replace(/^@/, '').trim();
+  return `<input class="od-f od-chan-h od-ig-link" type="text" ${canBindChat() ? '' : 'disabled'}
+      placeholder="${escapeHtml(canBindChat()
+        ? 'Вставте посилання на розмову в Sitniks' + (було ? ' (було @' + було + ')' : '')
+        : 'Розмову в Sitniks ще не привʼязано')}" value="">`;
+}
 function crmSeekBtnHtml(o){
   if(tgChatOf(o) || !crmBase() || !canBindChat()) return '';
+  /* Без привʼязки поле посилання вже стоїть у самій шапці — друга кнопка
+     для того самого ні до чого. */
+  if(igLinkMode(o) && !o.crmChatId) return '';
   return `<button class="od-ig-find" title="${o.crmChatId
     ? 'Змінити або відвʼязати розмову Sitniks'
     : 'Привʼязати розмову з Sitniks за посиланням'}">🔗</button>`;
@@ -23369,6 +23412,11 @@ function crmSeekBtnHtml(o){
 function crmSeekHtml(o){
   const s = crmSeek[o.id];
   if(!s) return '';
+  /* Привʼязуємо з поля в шапці — тут лише стан: читаємо чи що пішло не так. */
+  if(igLinkMode(o) && !o.crmChatId){
+    if(s.binding) return '<div class="od-seek-hint">Читаємо розмову в Sitniks…</div>';
+    return s.bindErr ? `<div class="od-crm-err">${escapeHtml(s.bindErr)}</div>` : '';
+  }
   /* Коли розмова вже є, сюди повертаються здебільшого через помилку — тож
      спершу видно, хто привʼязаний, і одразу поруч спосіб це скасувати. */
   const now = o.crmChatId
