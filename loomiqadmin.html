@@ -4566,7 +4566,7 @@
   /* ── Екран закупника ── */
   .dz-buy{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;margin:0 0 14px;}
   @media (max-width:980px){ .dz-buy{grid-template-columns:1fr;} }
-  .dz-buy-need,.dz-buy-hist{background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  .dz-buy-need,.dz-buy-take,.dz-buy-hist{background:var(--paper);border:1px solid var(--line);border-radius:14px;
     padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0;}
   .dz-buy-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .dz-buy-h b{font-size:15px;font-weight:800;}
@@ -4613,6 +4613,35 @@
   .dz-buy-day{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:4px;}
   .dz-buy-sn{font-size:12px;font-weight:700;color:var(--ink-soft);background:#F1F5F9;border-radius:999px;padding:1px 8px;}
   .dz-buy-o.is-stock{border-left-color:#10B981;}
+  .dz-buy-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .dz-buy-tab{font:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);background:var(--paper);
+    border-radius:12px;padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .dz-buy-tab i{font-style:normal;font-weight:600;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .dz-buy-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .dz-buy-tab.on i{color:rgba(255,255,255,.75);}
+  .dz-buy-take{border-color:#A7F3D0;}
+  .dz-buy-take .dz-buy-r{padding-left:22px;}
+  .dz-buy-hist{margin:0 0 14px;}
+  .dz-stk{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;}
+  @media (max-width:980px){ .dz-stk{grid-template-columns:1fr;} }
+  .dz-stk .dz-buy-need{display:flex;flex-direction:column;gap:8px;}
+  .dz-stk-q{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;min-width:0;flex:1 1 160px;}
+  .dz-stk-form{border:1px dashed var(--accent);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--canvas);}
+  .dz-stk-fr{display:flex;gap:6px;flex-wrap:wrap;}
+  .dz-stk-fr select,.dz-stk-fr input{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;flex:1 1 120px;min-width:0;}
+  .dz-stk-grid{display:flex;gap:6px;flex-wrap:wrap;}
+  .dz-stk-grid label{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:700;}
+  .dz-stk-grid input{width:58px;font:inherit;font-size:13px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:5px 4px;}
+  .dz-stk-fb{display:flex;gap:6px;flex-wrap:wrap;}
+  .dz-stk-sz{display:flex;gap:6px;flex-wrap:wrap;padding-left:2px;}
+  .dz-stk-sz span{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-variant-numeric:tabular-nums;}
+  .dz-stk-sz span.is-zero{opacity:.45;}
+  .dz-stk-log{display:flex;flex-direction:column;gap:4px;}
+  .dz-stk-m{display:grid;grid-template-columns:96px 44px 1fr;gap:2px 8px;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--line);}
+  .dz-stk-m i{grid-column:3;font-style:normal;color:var(--muted);font-size:11.5px;}
+  .dz-stk-mt{color:var(--muted);font-variant-numeric:tabular-nums;}
+  .dz-stk-mq{font-variant-numeric:tabular-nums;color:#047857;}
+  .dz-stk-m.is-out .dz-stk-mq{color:#B91C1C;}
   .dz-buy-stock{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
     display:flex;flex-direction:column;gap:8px;}
   .dz-buy-sk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;}
@@ -7226,27 +7255,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=591aec6e08"></script>
-<script src="loomiq-fingerprint.js?v=591aec6e08"></script>
-<script src="loomiq-pricing.js?v=591aec6e08"></script>
+<script src="loomiq-select.js?v=71096c64ab"></script>
+<script src="loomiq-fingerprint.js?v=71096c64ab"></script>
+<script src="loomiq-pricing.js?v=71096c64ab"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=591aec6e08"></script>
+<script src="loomiq-money-core.js?v=71096c64ab"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=591aec6e08"></script>
-<script src="loomiq-mock.js?v=591aec6e08"></script>
+<script src="loomiq-design.js?v=71096c64ab"></script>
+<script src="loomiq-mock.js?v=71096c64ab"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=591aec6e08"></script>
-<script src="loomiq-threads.js?v=591aec6e08"></script>
+<script src="imagetracer.js?v=71096c64ab"></script>
+<script src="loomiq-threads.js?v=71096c64ab"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=591aec6e08"></script>
+<script src="loomiq-cards.js?v=71096c64ab"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7271,7 +7300,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '591aec6e08';
+var LQ_VER = '71096c64ab';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -29246,7 +29275,8 @@ let designDirty = {};             // що чекає запису
    задачі відділу (окремі документи з `kind:'buy'`): нова колекція потребувала
    б нових правил доступу, а ці вже пускають усіх із команди. */
 let designBuys = {};              // id → замовлення закупівлі
-let designStock = [];             // вільний одяг на складі: { gid, name, color, size, qty }
+let designStock = [];             // вільний одяг на складі: { gid, name, color, size, qty, cost }
+let designStockMoves = [];        // журнал руху складу (прихід, списання, повернення, інвентаризація)
 
 /* Замовлення, які взагалі стосуються відділу. Скасовані й виконані свою
    дизайнерську долю вже прожили — тримати їх на дошці означає ховати
@@ -29552,7 +29582,8 @@ function watchDesign(){
     snap.forEach(d=>{
       const v = d.data();
       if(v && v.kind === 'buy' && v.id){ designBuys[v.id] = v; return; }
-      if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : []; return; }
+      if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : [];
+        designStockMoves = Array.isArray(v.moves) ? v.moves : []; return; }
       if(!v || !v.orderId) return;
       // Локальні незбережені правки чужим знімком не затираємо
       if(designDirty[v.orderId]) return;
@@ -29754,10 +29785,19 @@ function openDesign(){
                        return s ? { id: s.id, name: s.name || s.id } : null; },
     /* Вільний одяг на складі — один документ на весь склад. */
     stock: () => (designStock || []).slice(),
+    /* Склад разом із журналом руху (04.10): кількість, середня ціна й
+       кожен рух — хто, коли, скільки, чому. Один документ на весь склад. */
+    stockState: () => ({ items: (designStock || []).slice(), moves: (designStockMoves || []).slice() }),
+    stockPut: async st => {
+      designStock = ((st && st.items) || []).slice();
+      designStockMoves = ((st && st.moves) || []).slice(-1500);
+      await DESIGN_COL.doc('stock').set({ kind:'stock', items: JSON.parse(JSON.stringify(designStock)),
+        moves: JSON.parse(JSON.stringify(designStockMoves)), at: new Date().toISOString(), by: myEmail() || '' });
+    },
     stockSave: async list => {
       designStock = (list || []).slice();
       await DESIGN_COL.doc('stock').set({ kind:'stock', items: JSON.parse(JSON.stringify(designStock)),
-                                          at: new Date().toISOString(), by: myEmail() || '' });
+        moves: JSON.parse(JSON.stringify(designStockMoves || [])), at: new Date().toISOString(), by: myEmail() || '' });
     },
     toast: m => toast(m),
     upload: f => uploadCloudinaryAuto(f),

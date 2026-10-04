@@ -369,14 +369,14 @@ const треба = await p.evaluate(() => ({
   підрядники: [...document.querySelectorAll('.dz-buy-need .dz-buy-suph')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
   рядки: [...document.querySelectorAll('.dz-buy-need .dz-buy-g')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
   кнопка: !!document.querySelector('[data-do="buy-make"][disabled]'),
-  дошка: document.querySelectorAll('.dz-col').length, склад: !!document.querySelector('.dz-buy-stock') }));
+  дошка: document.querySelectorAll('.dz-col').length, склад: !!document.querySelector('[data-do="buy-tab"][data-k="stock"]') }));
 console.log('  ' + JSON.stringify(треба));
 ok(треба.підрядники.length === 2 && /Текстиль-Ко/.test(треба.підрядники[0]) && /5 шт/.test(треба.підрядники[0]) &&
    /Підрядник не вказаний/.test(треба.підрядники[1]),
   'потреба — за підрядниками; без підрядника — окремо, з підказкою', 'підрядники: ' + JSON.stringify(треба.підрядники));
 ok(треба.рядки.some(t => /Чорний/.test(t) && /5 шт/.test(t) && /L/.test(t) && /M/.test(t)),
   'усередині — виріб · колір → розміри (чорні M і L з двох замовлень разом)', 'потреба: ' + JSON.stringify(треба.рядки));
-ok(треба.кнопка && треба.дошка === 0 && треба.склад, 'нічого не позначено — «Оформити» неактивна; канбана немає, склад є', 'екран: ' + JSON.stringify(треба));
+ok(треба.кнопка && треба.дошка === 0 && треба.склад, 'нічого не позначено — «Оформити» неактивна; канбана немає, є вкладка «Склад»', 'екран: ' + JSON.stringify(треба));
 /* Позначаємо лише чорні L: розгортаємо номери й ставимо одну галочку. */
 await p.evaluate(() => {
   const s = [...document.querySelectorAll('.dz-buy-s')].find(x => /Чорний/.test(x.closest('.dz-buy-g').textContent) && /\bL\b/.test(x.textContent));
@@ -404,10 +404,16 @@ ok(перша.трек === 'sent', 'трек «Закупки» замовлен
 await p.evaluate(async () => { await window.LQDesign.ui.host.stockSave([{ gid:'polo', name:'Поло', color:'Білий', size:'S', qty:1 }]);
   window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(300);
-const склад = await p.evaluate(() => ({ є: ((document.querySelector('.dz-buy-have') || {}).textContent || ''),
-  кнопка: !!document.querySelector('[data-do="stock-take"]') }));
-ok(/на складі 1/.test(склад.є) && склад.кнопка, 'біля розміру видно «на складі 1» і «Взяти зі складу»', 'склад: ' + JSON.stringify(склад));
-await p.evaluate(() => document.querySelector('[data-do="stock-take"]').click());
+/* 04.10: потреба ділиться сама — поло, що лежить на складі, ліворуч
+   («Треба замовити») вже немає, воно праворуч («Можна взяти зі складу»). */
+const склад = await p.evaluate(() => ({ є: ((document.querySelector('.dz-buy-take .dz-buy-have') || {}).textContent || ''),
+  справа: ((document.querySelector('.dz-buy-take') || {}).textContent || '').replace(/\s+/g, ' '),
+  зліва: [...document.querySelectorAll('.dz-buy-need .dz-buy-g')].map(g => g.textContent.replace(/\s+/g, ' ')) }));
+ok(/на складі 1/.test(склад.є) && /Поло/.test(склад.справа) && !склад.зліва.some(t => /Поло/.test(t)),
+  'поло зі складу — праворуч «Можна взяти зі складу» (на складі 1), ліворуч його немає', 'склад: ' + JSON.stringify(склад));
+await p.evaluate(() => { const c = document.querySelector('[data-taker]'); c.checked = true; c.dispatchEvent(new Event('change')); });
+await p.waitForTimeout(200);
+await p.evaluate(() => document.querySelector('[data-do="take-make"]').click());
 await p.waitForTimeout(600);
 const зіСкладу = await p.evaluate(() => { const b = Object.values(designBuys).find(x => x.stock);
   return { є: !!b, st: b && b.status, лишок: window.LQDesign.ui.host.stock().length,

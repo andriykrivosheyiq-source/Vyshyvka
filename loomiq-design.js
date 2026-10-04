@@ -940,12 +940,30 @@
       return b && (b.rows || []).some(function(r){ return buyKey(r.orderId, r.uid) === k; }); });
     return l[l.length - 1] || null;
   }
+  /* Скільки штук позиції вже закрито оформленими документами (закупівля чи
+     склад). Позицію можна закрити частинами: «2 зі складу, 3 замовити». */
+  function buyCovered(buys, orderId, uid){
+    var k = buyKey(orderId, uid);
+    return (buys || []).reduce(function(a, b){
+      return a + ((b && b.rows) || []).reduce(function(x, r){
+        return x + (buyKey(r.orderId, r.uid) === k ? Math.max(0, Math.round(+r.qty || 0)) : 0); }, 0);
+    }, 0);
+  }
   /* Стан одягу позиції — те, що бачить цех: не замовлено → замовлено →
-     в дорозі → отримано. */
-  function buyStateOf(buys, orderId, uid){
-    var b = buyOf(buys, orderId, uid);
-    if(!b) return { key:'none', label:'Не замовлено', buy:null };
-    var st = BUY_ST.filter(function(x){ return x.key === b.status; })[0] || BUY_ST[0];
+     в дорозі → отримано. Закрито кількома документами — стан найповільнішого;
+     закрито не повністю (qty) — «не замовлено», бо частини ще немає. */
+  function buyStateOf(buys, orderId, uid, qty){
+    var k = buyKey(orderId, uid);
+    var l = (buys || []).filter(function(b){
+      return b && (b.rows || []).some(function(r){ return buyKey(r.orderId, r.uid) === k; }); });
+    if(!l.length) return { key:'none', label:'Не замовлено', buy:null };
+    if(qty != null && buyCovered(buys, orderId, uid) < Math.round(+qty || 0)){
+      var є = buyCovered(buys, orderId, uid);
+      return { key:'none', label:'Не замовлено · ' + є + ' з ' + Math.round(+qty || 0) + ' є', buy: l[l.length - 1] };
+    }
+    var idx = function(b){ var i = BUY_ST.map(function(x){ return x.key; }).indexOf(b.status); return i < 0 ? 0 : i; };
+    var b = l.slice().sort(function(a, c){ return idx(a) - idx(c); })[0];
+    var st = BUY_ST[idx(b)];
     return { key: st.key, label: st.label, buy: b };
   }
   /* Потреба: що готове до закупівлі й ще ніде не оформлене. */
@@ -956,10 +974,12 @@
       if(p.o.status === 'cancel' || p.o.status === 'lost') return;
       jobUnits(p.job).forEach(function(u){
         if(!buyReady(u)) return;
-        if(buyOf(buys, p.o.orderId, u.id)) return;
+        /* Лишок, а не вся позиція: частину могли вже взяти зі складу. */
+        var лишок = Math.round(+u.qty || 0) - buyCovered(buys, p.o.orderId, u.id);
+        if(лишок <= 0) return;
         out.push({ orderId: String(p.o.orderId || ''), uid: u.id, job: p.job, u: u,
                    gid: u.gid, color: String(u.color || ''), colorHex: u.colorHex || '',
-                   size: String(u.size || ''), qty: Math.round(+u.qty || 0) });
+                   size: String(u.size || ''), qty: лишок });
       });
     });
     return out;
@@ -984,12 +1004,98 @@
     b.hist = (b.hist || []).concat([{ at: nowIso(), by: String(by || ''), s: st }]).slice(-30);
     return true;
   }
+  /* ══════════ СКЛАД (04.10) ══════════
+
+     Андрій: склад — модель, колір, розмір; «взяли зі складу» списує одразу;
+     править склад власник; і собівартість — «щоб розуміти, яка ціна в нас
+     на складі в грошах».
+
+     Стан: { items: [{gid,name,color,colorHex,size,qty,cost}], moves: [...] }.
+       • items — що лежить зараз; cost — середня ціна одиниці (₴);
+       • moves — журнал: кожен прихід, списання під замовлення, повернення
+         й інвентаризація (хто, коли, скільки, за якою ціною, чому).
+     Кількість руками не перебивають — лише рухом, і він лишається в журналі:
+     так ніщо не зникає мовчки. */
+  function stockK(gid, color, size){
+    return String(gid || '') + '|' + String(color || '').trim().toLowerCase() + '|' + String(size || '').trim();
+  }
+  function stockFind(items, gid, color, size){
+    var k = stockK(gid, color, size);
+    return (items || []).filter(function(x){ return x && stockK(x.gid, x.color, x.size) === k; })[0] || null;
+  }
+  function stockQty(items, gid, color, size){
+    var x = stockFind(items, gid, color, size);
+    return x ? Math.max(0, Math.round(+x.qty || 0)) : 0;
+  }
+  function money2(n){ return Math.round((+n || 0) * 100) / 100; }
+  function stockValue(items){
+    return money2((items || []).reduce(function(a, x){ return a + Math.max(0, +x.qty || 0) * Math.max(0, +x.cost || 0); }, 0));
+  }
+  /* Один рух складу. mv.kind: in (прихід), back (повернення), out (списання),
+     adj (інвентаризація: qty — скільки є насправді). Повертає { ok, err, st, move }. */
+  function stockApply(st, mv){
+    st = st || {};
+    var items = (st.items || []).map(function(x){ return Object.assign({}, x); });
+    var moves = (st.moves || []).slice();
+    var q = Math.round(+mv.qty || 0);
+    if(!mv.gid || !String(mv.size || '').trim()) return { ok:false, err:'Оберіть модель і розмір' };
+    if(mv.kind !== 'adj' && !(q > 0)) return { ok:false, err:'Кількість має бути більша за нуль' };
+    if(mv.kind === 'adj' && q < 0) return { ok:false, err:'Кількість не може бути мінусовою' };
+    var x = stockFind(items, mv.gid, mv.color, mv.size);
+    var було = x ? Math.max(0, Math.round(+x.qty || 0)) : 0;
+    var ціна = mv.cost == null || mv.cost === '' ? null : Math.max(0, +mv.cost || 0);
+    var зміна = 0, поЦіні = x ? (+x.cost || 0) : (ціна || 0);
+    if(mv.kind === 'in' || mv.kind === 'back'){
+      if(!x){ x = { gid: mv.gid, name: mv.name || '', color: String(mv.color || ''), colorHex: mv.colorHex || '',
+                    size: String(mv.size), qty: 0, cost: 0 }; items.push(x); }
+      var c = ціна == null ? (+x.cost || 0) : ціна;
+      /* Середня ціна: (було × стара + прийшло × нова) / разом. */
+      x.cost = (було + q) ? money2((було * (+x.cost || 0) + q * c) / (було + q)) : c;
+      x.qty = було + q; зміна = q; поЦіні = c;
+    } else if(mv.kind === 'out'){
+      if(q > було) return { ok:false, err:'На складі лише ' + було + ' шт' };
+      x.qty = було - q; зміна = -q; поЦіні = +x.cost || 0;
+    } else if(mv.kind === 'adj'){
+      if(!x){ x = { gid: mv.gid, name: mv.name || '', color: String(mv.color || ''), colorHex: mv.colorHex || '',
+                    size: String(mv.size), qty: 0, cost: ціна || 0 }; items.push(x); }
+      if(ціна != null) x.cost = ціна;
+      x.qty = q; зміна = q - було; поЦіні = +x.cost || 0;
+      if(!зміна && ціна == null) return { ok:false, err:'Нічого не змінилось' };
+    } else return { ok:false, err:'Невідомий рух складу' };
+    if(mv.name && !x.name) x.name = mv.name;
+    var rec = { id: 'sm-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                at: mv.at || nowIso(), by: String(mv.by || ''), kind: mv.kind,
+                gid: x.gid, name: x.name || '', color: x.color || '', size: x.size,
+                qty: зміна, was: було, cost: money2(поЦіні) };
+    if(mv.note) rec.note = String(mv.note).slice(0, 200);
+    if(mv.orderId) rec.orderId = String(mv.orderId);
+    if(mv.buyId) rec.buyId = String(mv.buyId);
+    moves.push(rec);
+    /* Нуль лишаємо в списку, поки є ціна: перерахунок і повторний прихід
+       не губитимуть середню ціну. Порожнє без ціни — прибираємо. */
+    items = items.filter(function(i){ return (+i.qty || 0) > 0 || (+i.cost || 0) > 0; });
+    return { ok:true, st: { items: items, moves: moves.slice(-1500) }, move: rec };
+  }
+  /* Що з потреби можна закрити складом, а що — купувати. Рядок, який склад
+     покриває частково, ділиться: «2 зі складу, 3 замовити». */
+  function stockSplit(rows, items){
+    var є = {};
+    (items || []).forEach(function(x){ var k = stockK(x.gid, x.color, x.size); є[k] = (є[k] || 0) + Math.max(0, Math.round(+x.qty || 0)); });
+    var take = [], buy = [];
+    (rows || []).forEach(function(r){
+      var k = stockK(r.gid, r.color, r.size), q = Math.round(+r.qty || 0);
+      var t = Math.min(є[k] || 0, q);
+      if(t > 0){ take.push(Object.assign({}, r, { qty: t, have: є[k] })); є[k] -= t; }
+      if(q - t > 0) buy.push(Object.assign({}, r, { qty: q - t }));
+    });
+    return { take: take, buy: buy };
+  }
   /* Стан закупівлі на рівні замовлення — для треку «Одяг»: дошки
      виробництва й годинники етапів читають саме його. */
   function buyOrderState(job, orderId, buys){
     var us = jobUnits(job).filter(function(u){ return u && u.gid; });
     if(!us.length) return '';
-    var st = us.map(function(u){ return buyStateOf(buys, orderId, u.id).key; });
+    var st = us.map(function(u){ return buyStateOf(buys, orderId, u.id, u.qty).key; });
     /* Ключі — ті самі, що в треку «Закупки»: «в дорозі» там ще «замовлено»,
        «частково отримано» — коли приїхала лише частина позицій. */
     if(st.every(function(k){ return k === 'got'; })) return 'got';
@@ -1930,7 +2036,9 @@
     clothOk: clothOk, clothConfirm: clothConfirm, dzReal: dzReal,
     BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyOf: buyOf, buyStateOf: buyStateOf,
     buyNeed: buyNeed, buyNew: buyNew, buyNext: buyNext, buySetStatus: buySetStatus,
-    buyOrderState: buyOrderState,
+    buyOrderState: buyOrderState, buyCovered: buyCovered,
+    stockK: stockK, stockFind: stockFind, stockQty: stockQty, stockValue: stockValue,
+    stockApply: stockApply, stockSplit: stockSplit,
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
@@ -5438,7 +5546,7 @@
     var всі = buys();
     var us = U.unitsOf(job).filter(function(u){ return D.clothOk(u); });
     if(!us.length) return '';
-    var st = us.map(function(u){ return D.buyStateOf(всі, o.orderId, u.id).key; });
+    var st = us.map(function(u){ return D.buyStateOf(всі, o.orderId, u.id, u.qty).key; });
     var k = st.indexOf('none') >= 0 ? 'none' : st.indexOf('sent') >= 0 ? 'sent'
           : st.indexOf('way') >= 0 ? 'way' : 'got';
     var t = { none:'Треба замовити одяг', sent:'Одяг замовлено', way:'Одяг в дорозі', got:'Одяг отримано' }[k];
@@ -6129,7 +6237,7 @@
            (d.vers || [])[(d.vers || []).length - 1] || null;
   }
   function clothHtml(o, u){
-    var bs = D.buyStateOf(buys(), o.orderId, u.id);
+    var bs = D.buyStateOf(buys(), o.orderId, u.id, u.qty);
     var b = bs.buy;
     return '<span class="dz-cloth is-' + esc(bs.key) + '">' + esc(bs.label) +
       (b ? (b.stock ? ' · зі складу' : ' · №' + esc(b.n) + ' від ' + esc(buyDate(b.at))) : '') +
@@ -6352,7 +6460,7 @@
       var us = U.unitsOf(p.job).filter(function(u){ return u && u.gid; });
       if(us.length){
         var ст = {};
-        us.forEach(function(u){ var k = D.buyStateOf(всі, p.o.orderId, u.id).label; ст[k] = (ст[k] || 0) + 1; });
+        us.forEach(function(u){ var k = D.buyStateOf(всі, p.o.orderId, u.id, u.qty).label; ст[k] = (ст[k] || 0) + 1; });
         var вишивка = us.every(function(u){
           var l = D.dzList(u, 'stitch'); return l.length && l.every(function(d){ return !!d.ok; }); });
         r = { ok: true, why: [] };
@@ -6364,7 +6472,7 @@
          Усі три є — картка з зеленим краєм. */
       var готов = [];
       if(us.length){
-        var одяг = us.every(function(u){ return D.buyStateOf(всі, p.o.orderId, u.id).key === 'got'; });
+        var одяг = us.every(function(u){ return D.buyStateOf(всі, p.o.orderId, u.id, u.qty).key === 'got'; });
         var виш = us.every(function(u){ var l = D.dzList(u, 'stitch'); return l.length && l.every(function(d){ return !!d.ok; }); });
         var файл = us.every(function(u){ var l = D.dzList(u, 'stitch');
           return l.length && l.every(function(d){ var v = d.vers[d.vers.length - 1]; return v && D.verParts(v).machine.length; }); });
@@ -6855,64 +6963,197 @@
     if(b.stock) return 'Зі складу від ' + buyDate(b.at);
     return 'Закупівля №' + (b.n || '—') + ' від ' + buyDate(b.at);
   }
-  /* ── НАЯВНІСТЬ НА СКЛАДІ ──
-     Вільний одяг, який уже лежить у нас. Закупник вносить його сам; у
-     «Треба замовити» біля кожного розміру видно, скільки його є, і
-     позиції можна закрити зі складу замість закупівлі. */
+  /* ── СКЛАД (04.10) ──
+     Дві вкладки закупівлі: «Замовити одяг» і «Склад». У першій потреба
+     ділиться сама: ліворуч — що треба замовити (по підрядниках), праворуч —
+     що можна взяти зі складу. «Взяли зі складу» списує одразу. Друга — сам
+     склад: залишки з ціною, «+ Заповнити склад» сіткою розмірів,
+     інвентаризація й журнал руху. Правити склад може лише власник. */
+  var BUY_TAB = 'order';
+  var TAKE_SEL = {};
+  var STOCK_FORM = null;
+  var STOCK_EDIT = '';
+  var STOCK_LOG = 30;
+  function stockSt(){
+    try{
+      var st = host().stockState && host().stockState();
+      if(st) return { items: (st.items || []).filter(function(x){ return x && x.gid; }), moves: st.moves || [] };
+    }catch(e){}
+    return { items: stock(), moves: [] };
+  }
   function stock(){
     try{ return ((host().stock && host().stock()) || []).filter(function(x){ return x && x.gid; }); }
     catch(e){ return []; }
   }
-  function stockKey(gid, color, size){
-    return String(gid || '') + '|' + String(color || '').toLowerCase() + '|' + String(size || '');
+  function stockHave(gid, color, size){ return D.stockQty(stock(), gid, color, size); }
+  function stockCan(){
+    var r = '';
+    try{ r = (U.host.role && U.host.role()) || ''; }catch(e){}
+    return !r || r === 'owner';
   }
-  function stockHave(gid, color, size){
-    var k = stockKey(gid, color, size);
-    return stock().filter(function(x){ return stockKey(x.gid, x.color, x.size) === k; })
-      .reduce(function(a, x){ return a + Math.max(0, +x.qty || 0); }, 0);
+  function грнК(n){
+    var v = Math.round((+n || 0) * 100) / 100;
+    var t = String(Math.floor(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    var k = Math.round((v - Math.floor(v)) * 100);
+    return t + (k ? ',' + U.pad2(k) : '') + ' ₴';
   }
-  async function stockSave(list, msg){
-    if(!host().stockSave) return say('Склад недоступний');
-    try{ await host().stockSave(list.filter(function(x){ return (+x.qty || 0) > 0; })); }
+  async function stockCommit(st, msg){
+    if(!host().stockPut) return say('Склад недоступний');
+    try{ await host().stockPut(st); }
     catch(e){ console.error(e); return say('Склад не зберігся'); }
     if(msg) say(msg);
     render(document.getElementById('dzRoot'));
   }
-  var STOCK_NEW = { gid:'', color:'', size:'', qty:'' };
-  function stockHtml(){
+  function catOf(gid){
     var cat = [];
     try{ cat = (host().catalog && host().catalog()) || []; }catch(e){}
-    var g = cat.filter(function(x){ return x.id === STOCK_NEW.gid; })[0] || null;
-    var l = stock();
-    var gs = buyGroups(l.map(function(x, i){
-      return { gid: x.gid, name: x.name, color: x.color, colorHex: x.colorHex || '',
-               size: x.size, qty: Math.max(0, +x.qty || 0), i: i }; }));
-    var opt = function(v, t, cur){
-      return '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(t) + '</option>'; };
-    return '<div class="dz-buy-stock">' +
-      '<div class="dz-buy-h"><b>Наявність на складі</b><span>' +
-        (l.length ? l.reduce(function(a, x){ return a + (+x.qty || 0); }, 0) + ' шт' : 'порожньо') + '</span></div>' +
-      (gs.length ? gs.map(function(x){
-        return '<div class="dz-buy-sk"><b>' + esc(x.name) + '</b>' + (x.color ? ' · ' + esc(x.color) : '') + ':' +
-          x.list.map(function(sz){
-            var r = sz.rows[0];
-            return '<label>' + esc(sz.size) + ' <input type="number" min="0" data-stockq="' + r.i + '" value="' + sz.qty + '"></label>';
-          }).join('') + '</div>';
-      }).join('') : '') +
-      '<div class="dz-buy-add">' +
-        '<select data-stockf="gid">' + opt('', 'Модель', STOCK_NEW.gid) +
-          cat.map(function(x){ return opt(x.id, x.name || x.id, STOCK_NEW.gid); }).join('') + '</select>' +
-        '<select data-stockf="color"' + (g ? '' : ' disabled') + '>' + opt('', 'Колір', STOCK_NEW.color) +
-          ((g && g.colors) || []).map(function(c){ return opt(c.name || c.id, c.name || c.id, STOCK_NEW.color); }).join('') + '</select>' +
-        '<select data-stockf="size"' + (g ? '' : ' disabled') + '>' + opt('', 'Розмір', STOCK_NEW.size) +
-          ((g && g.sizes) || []).map(function(z){ return opt(z, z, STOCK_NEW.size); }).join('') + '</select>' +
-        '<input type="number" min="1" placeholder="шт" data-stockf="qty" value="' + esc(STOCK_NEW.qty) + '">' +
-        '<button type="button" class="dz-b" data-do="stock-add">Додати</button>' +
-      '</div>' +
+    return gid == null ? cat : (cat.filter(function(x){ return x.id === gid; })[0] || null);
+  }
+  /* Потреба, поділена складом: { take, buy }. */
+  function buySplitNow(){ return D.stockSplit(buyRowsNow(), stock()); }
+  function takeKeyOf(r){ return 't|' + r.key; }
+
+  /* Праворуч: що можна взяти зі складу. */
+  function takeHtml(take){
+    var обр = take.filter(function(r){ return TAKE_SEL[takeKeyOf(r)]; });
+    var шт = обр.reduce(function(a, r){ return a + r.qty; }, 0);
+    var всього = take.reduce(function(a, r){ return a + r.qty; }, 0);
+    var chk = function(rows){
+      var n = rows.filter(function(r){ return TAKE_SEL[takeKeyOf(r)]; }).length;
+      return n === 0 ? '' : n === rows.length ? ' checked' : ' data-mixed="1"';
+    };
+    return '<div class="dz-buy-take">' +
+      '<div class="dz-buy-h"><b>Можна взяти зі складу</b>' +
+        '<span>' + (take.length ? всього + ' шт' : 'нічого') + '</span>' +
+        '<button type="button" class="dz-b pri" data-do="take-make"' + (обр.length ? '' : ' disabled') + '>' +
+          'Взяли зі складу' + (шт ? ' · ' + шт + ' шт' : '') + '</button></div>' +
+      (take.length ? buyGroups(take).map(function(g){
+        return '<div class="dz-buy-g">' +
+          '<label class="dz-buy-gh"><input type="checkbox" data-takeg="' + esc(g.key) + '"' + chk(g.rows) + '>' +
+            '<b>' + esc(g.name) + '</b>' +
+            (g.colorHex ? '<i class="dz-sw" style="background:' + esc(g.colorHex) + '"></i>' : '') +
+            '<span>' + esc(g.color) + '</span><em>' + g.qty + ' шт</em></label>' +
+          g.list.map(function(sz){
+            var k = g.key + '|' + sz.size;
+            return '<div class="dz-buy-s">' +
+              '<label><input type="checkbox" data-takes="' + esc(k) + '"' + chk(sz.rows) + '>' +
+                '<b>' + esc(sz.size) + '</b><span>× ' + sz.qty + '</span></label>' +
+              '<span class="dz-buy-have">на складі ' + stockHave(g.gid, g.color, sz.size) + '</span>' +
+              '<div class="dz-buy-r">' + sz.rows.map(function(r){
+                return '<label><input type="checkbox" data-taker="' + esc(takeKeyOf(r)) + '"' +
+                  (TAKE_SEL[takeKeyOf(r)] ? ' checked' : '') + '>' + esc(r.no) + '<i>' + r.qty + ' шт</i></label>';
+              }).join('') + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }).join('')
+      : '<div class="dz-miss is-calm">Зі складу зараз нічого не підходить. Тут зʼявиться позиція, ' +
+        'коли на складі буде та сама модель, колір і розмір.</div>') +
     '</div>';
   }
-  function buyNeedHtml(){
-    var rows = buyRowsNow();
+  function takeSelect(kind, key, on){
+    buySplitNow().take.forEach(function(r){
+      var g = (r.gid || '') + '|' + (r.color || '').toLowerCase();
+      var hit = kind === 'r' ? takeKeyOf(r) === key : kind === 'g' ? g === key : (g + '|' + r.size) === key;
+      if(!hit) return;
+      if(on) TAKE_SEL[takeKeyOf(r)] = 1; else delete TAKE_SEL[takeKeyOf(r)];
+    });
+  }
+
+  /* Вкладка «Склад». */
+  var STOCK_KIND = { 'in':'Прихід', back:'Повернення', out:'Списано', adj:'Інвентаризація' };
+  function stockScreenHtml(){
+    var st = stockSt(), can = stockCan();
+    var l = st.items.filter(function(x){ return (+x.qty || 0) > 0 || STOCK_EDIT; });
+    var шт = st.items.reduce(function(a, x){ return a + Math.max(0, +x.qty || 0); }, 0);
+    var gs = buyGroups(st.items.map(function(x, i){
+      return { gid: x.gid, name: x.name, color: x.color, colorHex: x.colorHex || '',
+               size: x.size, qty: Math.max(0, +x.qty || 0), cost: +x.cost || 0, i: i }; }));
+    var форма = '';
+    if(can && STOCK_FORM){
+      var g = catOf(STOCK_FORM.gid);
+      var opt = function(v, t, cur){
+        return '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(t) + '</option>'; };
+      var розм = (g && g.sizes) || [];
+      форма = '<div class="dz-stk-form">' +
+        '<div class="dz-stk-fr">' +
+          '<select data-stkf="gid">' + opt('', 'Модель', STOCK_FORM.gid) +
+            catOf().map(function(x){ return opt(x.id, x.name || x.id, STOCK_FORM.gid); }).join('') + '</select>' +
+          '<select data-stkf="color"' + (g ? '' : ' disabled') + '>' + opt('', 'Колір', STOCK_FORM.color) +
+            ((g && g.colors) || []).map(function(c){ return opt(c.name || c.id, c.name || c.id, STOCK_FORM.color); }).join('') + '</select>' +
+          '<input type="number" min="0" step="0.01" data-stkf="cost" placeholder="ціна за 1 шт, ₴" value="' + esc(STOCK_FORM.cost || '') + '">' +
+          '<input type="text" data-stkf="note" maxlength="120" placeholder="звідки (необовʼязково)" value="' + esc(STOCK_FORM.note || '') + '">' +
+        '</div>' +
+        (g ? '<div class="dz-stk-grid">' + розм.map(function(z){
+            return '<label><span>' + esc(z) + '</span><input type="number" min="0" data-sfq="' + esc(z) + '" value="' +
+              esc((STOCK_FORM.q || {})[z] || '') + '" placeholder="0"></label>';
+          }).join('') + '</div>'
+          : '<div class="dz-miss is-calm">Оберіть модель — зʼявиться вся сітка розмірів одразу.</div>') +
+        '<div class="dz-stk-fb">' +
+          '<button type="button" class="dz-b pri" data-do="stock-in">Додати на склад</button>' +
+          '<button type="button" class="dz-b" data-do="stock-form">Скасувати</button>' +
+        '</div></div>';
+    }
+    return '<div class="dz-stk">' +
+      '<div class="dz-buy-need">' +
+        '<div class="dz-buy-h"><b>Склад</b><span>' + шт + ' шт · на ' + грнК(D.stockValue(st.items)) + '</span>' +
+          '<input type="search" class="dz-stk-q" data-stock-q placeholder="Пошук: модель, колір, розмір">' +
+          (can ? '<button type="button" class="dz-b pri" data-do="stock-form">' + (STOCK_FORM ? 'Сховати форму' : '+ Заповнити склад') + '</button>' : '') +
+        '</div>' +
+        (can ? '' : '<div class="dz-miss is-calm">Склад править власник. Тут видно, що лежить і за якою ціною.</div>') +
+        форма +
+        (gs.length ? gs.map(function(x){
+          var ред = can && STOCK_EDIT === x.key;
+          var штГ = x.rows.reduce(function(a, r){ return a + r.qty; }, 0);
+          var сума = x.rows.reduce(function(a, r){ return a + r.qty * r.cost; }, 0);
+          var ціни = x.rows.map(function(r){ return r.cost; }).filter(function(c){ return c > 0; });
+          var ціна = ціни.length ? (Math.min.apply(null, ціни) === Math.max.apply(null, ціни) ? грнК(ціни[0]) : грнК(Math.min.apply(null, ціни)) + '–' + грнК(Math.max.apply(null, ціни)).replace(' ₴', '') + ' ₴') : 'ціну не вказано';
+          return '<div class="dz-buy-g dz-stk-g" data-stk-hay="' + esc((x.name + ' ' + x.color + ' ' + x.list.map(function(z){ return z.size; }).join(' ')).toLowerCase()) + '">' +
+            '<div class="dz-buy-gh"><b>' + esc(x.name) + '</b>' +
+              (x.colorHex ? '<i class="dz-sw" style="background:' + esc(x.colorHex) + '"></i>' : '') +
+              '<span>' + esc(x.color) + '</span>' +
+              '<em>' + штГ + ' шт · ' + esc(ціна) + ' · ' + грнК(сума) + '</em>' +
+              (can && !ред ? '<button type="button" class="dz-buy-more" data-do="stock-edit" data-k="' + esc(x.key) + '">інвентаризація</button>' : '') +
+            '</div>' +
+            (ред
+              ? '<div class="dz-stk-grid">' + x.list.map(function(z){
+                  return '<label><span>' + esc(z.size) + '</span><input type="number" min="0" data-adj="' + esc(z.size) + '" value="' + z.qty + '"></label>';
+                }).join('') + '</div>' +
+                '<div class="dz-stk-fr"><input type="number" min="0" step="0.01" data-adjcost placeholder="ціна за 1 шт, ₴" value="' + esc(ціни.length ? ціни[0] : '') + '">' +
+                '<input type="text" data-adjnote maxlength="120" placeholder="чому (перерахунок, брак…)"></div>' +
+                '<div class="dz-stk-fb"><button type="button" class="dz-b pri" data-do="stock-adj" data-k="' + esc(x.key) + '">Зберегти</button>' +
+                '<button type="button" class="dz-b" data-do="stock-edit" data-k="">Скасувати</button></div>'
+              : '<div class="dz-stk-sz">' + x.list.map(function(z){
+                  return '<span' + (z.qty ? '' : ' class="is-zero"') + '><b>' + esc(z.size) + '</b> ' + z.qty + '</span>';
+                }).join('') + '</div>') +
+          '</div>';
+        }).join('')
+        : '<div class="dz-miss is-calm">Склад порожній.' + (can ? ' Натисніть «+ Заповнити склад» — модель, колір, і одразу вся сітка розмірів.' : '') + '</div>') +
+      '</div>' +
+      stockLogHtml(st.moves) +
+    '</div>';
+  }
+  function stockLogHtml(moves){
+    var l = (moves || []).slice().reverse();
+    var видно = l.slice(0, STOCK_LOG);
+    return '<div class="dz-buy-hist dz-stk-log">' +
+      '<div class="dz-buy-h"><b>Журнал руху</b><span>' + (l.length || 'ще порожньо') + '</span></div>' +
+      видно.map(function(m){
+        var q = +m.qty || 0;
+        return '<div class="dz-stk-m is-' + esc(m.kind) + '">' +
+          '<span class="dz-stk-mt">' + esc(dt(m.at)) + '</span>' +
+          '<b class="dz-stk-mq">' + (q > 0 ? '+' : '') + q + '</b>' +
+          '<span>' + esc([m.name, m.color, m.size].filter(Boolean).join(' · ')) + '</span>' +
+          '<i>' + esc(STOCK_KIND[m.kind] || m.kind) + (m.orderId ? ' · №' + esc(m.orderNo || m.orderId) : '') +
+            (m.note ? ' · ' + esc(m.note) : '') + (m.cost ? ' · ' + грнК(m.cost) + '/шт' : '') +
+            (m.by ? ' · ' + esc(nameOf(m.by)) : '') + '</i>' +
+        '</div>';
+      }).join('') +
+      (l.length > видно.length ? '<button type="button" class="dz-b" data-do="stock-log-more">Показати ще</button>' : '') +
+    '</div>';
+  }
+  function buyNeedHtml(rows){
+    rows = rows || buySplitNow().buy;
     var обрано = rows.filter(function(r){ return BUY_SEL[r.key]; });
     var шт = обрано.reduce(function(a, r){ return a + r.qty; }, 0);
     var всього = rows.reduce(function(a, r){ return a + r.qty; }, 0);
@@ -6939,12 +7180,9 @@
                 '<span>' + esc(g.color) + '</span><em>' + g.qty + ' шт</em></label>' +
               g.list.map(function(sz){
                 var k = gk + '|' + sz.size;
-                var є = stockHave(g.gid, g.color, sz.size);
                 return '<div class="dz-buy-s">' +
                   '<label><input type="checkbox" data-buys="' + esc(k) + '"' + buyChk(sz.rows) + '>' +
                     '<b>' + esc(sz.size) + '</b><span>× ' + sz.qty + '</span></label>' +
-                  (є ? '<span class="dz-buy-have">на складі ' + є + '</span>' +
-                       '<button type="button" class="dz-buy-more" data-do="stock-take" data-k="' + esc(k) + '">Взяти зі складу</button>' : '') +
                   '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc('n:' + k) + '">' +
                     (BUY_OPEN['n:' + k] ? 'сховати' : 'номери') + '</button>' +
                   (BUY_OPEN['n:' + k]
@@ -6959,8 +7197,8 @@
           }).join('') +
         '</div>';
       }).join('')
-      : '<div class="dz-miss is-calm">Усе, що готове до закупівлі, вже оформлене. Сюди ' +
-        'потрапляє позиція, коли ескіз погоджено й одяг підтверджено.</div>') +
+      : '<div class="dz-miss is-calm">Замовляти нічого. Сюди потрапляє позиція, коли ескіз ' +
+        'погоджено й одяг підтверджено, — і її немає на складі.</div>') +
     '</div>';
   }
   function buyDocHtml(b){
@@ -6971,7 +7209,9 @@
       '<div class="dz-buy-oh"><b>' + esc(buyTitle(b)) + '</b>' +
         (b.sup && b.sup.name ? '<span class="dz-buy-sn">' + esc(b.sup.name) + '</span>' : '') +
         '<i>' + esc(dt(b.at)) + (b.by ? ' · ' + esc(nameOf(b.by)) : '') + ' · ' + шт + ' шт</i>' +
-        (b.stock ? '<span class="dz-cloth is-got">Отримано</span>'
+        (b.stock ? (b.returned && !(b.rows || []).length ? '<span class="dz-cloth">Повернуто на склад</span>'
+            : '<span class="dz-cloth is-got">Отримано</span>' +
+              '<button type="button" class="dz-buy-more" data-do="stock-back" data-id="' + esc(b.id) + '">повернути на склад</button>')
           : '<select class="dz-buy-st" data-buyst="' + esc(b.id) + '" aria-label="Стан закупівлі">' +
           D.BUY_ST.map(function(s){
             return '<option value="' + s.key + '"' + (s.key === b.status ? ' selected' : '') + '>' + esc(s.label) + '</option>';
@@ -7008,23 +7248,29 @@
       if(!за[d]){ за[d] = []; днів.push(d); }
       за[d].push(b);
     });
-    return '<div class="dz-buy">' + buyNeedHtml() +
-      '<div class="dz-buy-side">' +
-        '<div class="dz-buy-hist">' +
-          '<div class="dz-buy-h"><b>Замовлення закупівлі</b><span>' + (l.length || 'ще жодного') + '</span></div>' +
-          днів.map(function(d){
-            return '<div class="dz-buy-day">Замовлення за ' + esc(d) + '</div>' + за[d].map(buyDocHtml).join('');
-          }).join('') +
-          (l.length > видно.length
-            ? '<button type="button" class="dz-b" data-do="buy-all">Показати всі (' + l.length + ')</button>' : '') +
-        '</div>' +
-        stockHtml() +
-      '</div>' +
+    var sp = buySplitNow();
+    var скл = stock();
+    var штС = скл.reduce(function(a, x){ return a + Math.max(0, +x.qty || 0); }, 0);
+    var tabs = '<div class="dz-buy-tabs">' +
+      '<button type="button" class="dz-buy-tab' + (BUY_TAB === 'order' ? ' on' : '') + '" data-do="buy-tab" data-k="order">🧾 Замовити одяг' +
+        '<i>' + (sp.buy.length + sp.take.length) + '</i></button>' +
+      '<button type="button" class="dz-buy-tab' + (BUY_TAB === 'stock' ? ' on' : '') + '" data-do="buy-tab" data-k="stock">📦 Склад' +
+        '<i>' + штС + ' шт · ' + грнК(D.stockValue(скл)) + '</i></button>' +
     '</div>';
+    if(BUY_TAB === 'stock') return tabs + stockScreenHtml();
+    return tabs + '<div class="dz-buy">' + buyNeedHtml(sp.buy) + takeHtml(sp.take) + '</div>' +
+      '<div class="dz-buy-hist">' +
+        '<div class="dz-buy-h"><b>Замовлення закупівлі</b><span>' + (l.length || 'ще жодного') + '</span></div>' +
+        днів.map(function(d){
+          return '<div class="dz-buy-day">Замовлення за ' + esc(d) + '</div>' + за[d].map(buyDocHtml).join('');
+        }).join('') +
+        (l.length > видно.length
+          ? '<button type="button" class="dz-b" data-do="buy-all">Показати всі (' + l.length + ')</button>' : '') +
+      '</div>';
   }
   /* Галочка на підряднику, групі чи розмірі ставить або знімає всі її позиції. */
   function buySelect(kind, key, on){
-    buyRowsNow().forEach(function(r){
+    buySplitNow().buy.forEach(function(r){
       var p = (r.sup && r.sup.id) || '';
       var g = p + '|' + (r.gid || '') + '|' + (r.color || '').toLowerCase();
       var hit = kind === 'r' ? r.key === key
@@ -7169,22 +7415,36 @@
         render(root);
       };
     });
-    root.querySelectorAll('[data-stockf]').forEach(function(el){
+    /* Праворуч: «взяти зі складу» — ті самі галочки, що й ліворуч. */
+    root.querySelectorAll('[data-takeg],[data-takes],[data-taker]').forEach(function(el){
+      if(el.dataset.mixed) el.indeterminate = true;
       el.onchange = function(){
-        var f = el.dataset.stockf;
-        STOCK_NEW[f] = String(el.value || '');
-        if(f === 'gid'){ STOCK_NEW.color = ''; STOCK_NEW.size = ''; render(root); }
+        var k = el.dataset.takeg != null ? 'g' : el.dataset.takes != null ? 's' : 'r';
+        takeSelect(k, k === 'g' ? el.dataset.takeg : k === 's' ? el.dataset.takes : el.dataset.taker, el.checked);
+        render(root);
       };
     });
-    root.querySelectorAll('[data-stockq]').forEach(function(el){
+    root.querySelectorAll('[data-stkf]').forEach(function(el){
       el.onchange = function(){
-        var l = stock().map(function(x){ return Object.assign({}, x); });
-        var i = +el.dataset.stockq;
-        if(!l[i]) return;
-        l[i].qty = Math.max(0, Math.round(+el.value || 0));
-        stockSave(l, l[i].qty ? 'Склад оновлено' : 'Прибрано зі складу');
+        if(!STOCK_FORM) return;
+        var f = el.dataset.stkf;
+        STOCK_FORM[f] = String(el.value || '');
+        if(f === 'gid'){ STOCK_FORM.color = ''; STOCK_FORM.q = {}; render(root); }
       };
     });
+    root.querySelectorAll('[data-sfq]').forEach(function(el){
+      el.oninput = function(){ if(STOCK_FORM){ STOCK_FORM.q = STOCK_FORM.q || {}; STOCK_FORM.q[el.dataset.sfq] = el.value; } };
+    });
+    /* Пошук на складі — ховаємо зайве на місці, без перемальовування:
+       курсор лишається в полі. */
+    var stq = root.querySelector('[data-stock-q]');
+    if(stq) stq.oninput = function(){
+      var q = String(stq.value || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
+      root.querySelectorAll('[data-stk-hay]').forEach(function(g){
+        var h = g.dataset.stkHay;
+        g.style.display = q.every(function(t){ return h.indexOf(t) >= 0; }) ? '' : 'none';
+      });
+    };
     var buyFind = function(id){ return buys().filter(function(x){ return x.id === id; })[0]; };
     root.querySelectorAll('[data-buyst]').forEach(function(el){
       el.onchange = function(){
@@ -7625,7 +7885,7 @@
     /* ОФОРМИТИ: позначене розкладається по підрядниках — кожен везе своєю
        посилкою, тож і замовлення, і ТТН у кожного своє. Дата одна. */
     if(what === 'buy-make'){
-      var обр = buyRowsNow().filter(function(r){ return BUY_SEL[r.key]; });
+      var обр = buySplitNow().buy.filter(function(r){ return BUY_SEL[r.key]; });
       if(!обр.length) return say('Позначте галочками, що замовили');
       var шт0 = обр.reduce(function(a, r){ return a + r.qty; }, 0);
       var групи = bySup(обр);
@@ -7643,40 +7903,116 @@
       BUY_SEL = {};
       return buySaveAll(нові, 'Оформлено · ' + нові.map(buyTitle).join(', '));
     }
-    /* ВЗЯТИ ЗІ СКЛАДУ: закриваємо позиції цього розміру тим, що лежить на
-       складі, — цілими позиціями, поки вистачає. Решта лишається купувати. */
-    if(what === 'stock-take'){
-      var tk = String((data && data.k) || '');
-      var rows0 = buyRowsNow().filter(function(r){
-        return ((r.sup && r.sup.id) || '') + '|' + (r.gid || '') + '|' + (r.color || '').toLowerCase() + '|' + r.size === tk; });
-      if(!rows0.length) return;
-      var є0 = stockHave(rows0[0].gid, rows0[0].color, rows0[0].size), бер = [];
-      rows0.forEach(function(r){ if(r.qty <= є0){ бер.push(r); є0 -= r.qty; } });
-      if(!бер.length) return say('На складі менше, ніж треба одній позиції');
-      var скл = stock().map(function(x){ return Object.assign({}, x); });
-      var треба0 = бер.reduce(function(a, r){ return a + r.qty; }, 0);
-      var кл = stockKey(rows0[0].gid, rows0[0].color, rows0[0].size);
-      скл.forEach(function(x){
-        if(!треба0 || stockKey(x.gid, x.color, x.size) !== кл) return;
-        var з = Math.min(треба0, +x.qty || 0); x.qty = (+x.qty || 0) - з; треба0 -= з; });
-      var bs = D.buyNew(buys(), (host().me && host().me()) || '', бер);
+    if(what === 'buy-tab'){ BUY_TAB = (data && data.k) === 'stock' ? 'stock' : 'order'; return render(root); }
+    /* ВЗЯЛИ ЗІ СКЛАДУ: позначене праворуч списується одразу, позиції (чи їх
+       частини) закриваються документом «Зі складу» зі станом «Отримано». */
+    if(what === 'take-make'){
+      var tk = buySplitNow().take.filter(function(r){ return TAKE_SEL[takeKeyOf(r)]; });
+      if(!tk.length) return say('Позначте, що взяли зі складу');
+      var stT = stockSt();
+      var шт1 = tk.reduce(function(a, r){ return a + r.qty; }, 0);
+      var сума1 = tk.reduce(function(a, r){ var x = D.stockFind(stT.items, r.gid, r.color, r.size); return a + r.qty * ((x && +x.cost) || 0); }, 0);
+      var ок1 = true;
+      try{ ок1 = window.confirm('Списати зі складу ' + шт1 + ' шт' + (сума1 ? ' на ' + грнК(сума1) : '') + '?'); }catch(e){}
+      if(!ок1) return;
+      var хто1 = (host().me && host().me()) || '';
+      var bs = D.buyNew(buys(), хто1, tk);
       bs.stock = true; bs.n = 0; bs.sup = { id:'', name:'Склад' };
-      D.buySetStatus(bs, 'got', (host().me && host().me()) || '');
-      await stockSave(скл, '');
-      return buySaveAll([bs], 'Зі складу · ' + бер.length + ' ' + (бер.length === 1 ? 'позиція' : 'позицій'));
+      D.buySetStatus(bs, 'got', хто1);
+      for(var i1 = 0; i1 < tk.length; i1++){
+        var r1 = tk[i1];
+        var res = D.stockApply(stT, { kind:'out', gid:r1.gid, name:r1.name, color:r1.color, size:r1.size, qty:r1.qty,
+          by:хто1, orderId:r1.orderId, buyId:bs.id, note:'під замовлення ' + (r1.no || r1.orderId) });
+        if(!res.ok) return say(res.err + ' (' + [r1.name, r1.color, r1.size].join(' · ') + ')');
+        res.move.orderNo = r1.no || '';
+        stT = res.st;
+        bs.rows[i1].cost = res.move.cost;
+      }
+      TAKE_SEL = {};
+      await stockCommit(stT, '');
+      return buySaveAll([bs], 'Зі складу · ' + шт1 + ' шт' + (сума1 ? ' · ' + грнК(сума1) : ''));
     }
-    if(what === 'stock-add'){
-      var sn = STOCK_NEW, q = Math.round(+sn.qty || 0);
-      if(!sn.gid || !sn.color || !sn.size || !(q > 0)) return say('Оберіть модель, колір, розмір і кількість');
-      var cat0 = []; try{ cat0 = (host().catalog && host().catalog()) || []; }catch(e){}
-      var gg = cat0.filter(function(x){ return x.id === sn.gid; })[0] || {};
-      var cc = (gg.colors || []).filter(function(x){ return String(x.name || x.id) === sn.color; })[0] || {};
-      var скл2 = stock().map(function(x){ return Object.assign({}, x); });
-      var той = скл2.filter(function(x){ return stockKey(x.gid, x.color, x.size) === stockKey(sn.gid, sn.color, sn.size); })[0];
-      if(той) той.qty = (+той.qty || 0) + q;
-      else скл2.push({ gid: sn.gid, name: gg.name || '', color: sn.color, colorHex: cc.hex || '', size: sn.size, qty: q });
-      STOCK_NEW = { gid: sn.gid, color: sn.color, size:'', qty:'' };
-      return stockSave(скл2, 'На складі +' + q + ' шт');
+    /* Повернути на склад те, що взяли помилково: рух «повернення» за тією ж
+       ціною, документ лишається в історії з позначкою. */
+    if(what === 'stock-back'){
+      var bb = buys().filter(function(x){ return x.id === (data && data.id); })[0];
+      if(!bb || !bb.stock || !(bb.rows || []).length) return;
+      var ок2 = true;
+      try{ ок2 = window.confirm('Повернути на склад ' + bb.rows.reduce(function(a, r){ return a + (+r.qty || 0); }, 0) +
+        ' шт? Позиції знову зʼявляться в потребі.'); }catch(e){}
+      if(!ок2) return;
+      var хто2 = (host().me && host().me()) || '';
+      var stB = stockSt();
+      for(var i2 = 0; i2 < bb.rows.length; i2++){
+        var r2 = bb.rows[i2];
+        var res2 = D.stockApply(stB, { kind:'back', gid:r2.gid, name:r2.name, color:r2.color, colorHex:r2.colorHex,
+          size:r2.size, qty:r2.qty, cost:r2.cost, by:хто2, orderId:r2.orderId, buyId:bb.id,
+          note:'повернуто із замовлення ' + (r2.no || r2.orderId) });
+        if(!res2.ok) return say(res2.err);
+        stB = res2.st;
+      }
+      bb.returned = { at: new Date().toISOString(), by: хто2, rows: bb.rows };
+      bb.rows = [];
+      await stockCommit(stB, '');
+      return buySaveAll([bb], 'Повернуто на склад');
+    }
+    if(what === 'stock-form'){
+      if(!stockCan()) return say('Склад править власник');
+      STOCK_FORM = STOCK_FORM ? null : { gid:'', color:'', cost:'', note:'', q:{} };
+      return render(root);
+    }
+    if(what === 'stock-log-more'){ STOCK_LOG += 50; return render(root); }
+    /* ЗАПОВНИТИ СКЛАД: модель, колір, ціна — і вся сітка розмірів одразу. */
+    if(what === 'stock-in'){
+      if(!stockCan()) return say('Склад править власник');
+      var f = STOCK_FORM || {};
+      var g3 = catOf(f.gid);
+      if(!g3 || !f.color) return say('Оберіть модель і колір');
+      var розм = Object.keys(f.q || {}).filter(function(z){ return Math.round(+f.q[z] || 0) > 0; });
+      if(!розм.length) return say('Впишіть кількість хоча б в одному розмірі');
+      var c3 = (g3.colors || []).filter(function(x){ return String(x.name || x.id) === f.color; })[0] || {};
+      var хто3 = (host().me && host().me()) || '';
+      var st3 = stockSt(), шт3 = 0;
+      for(var i3 = 0; i3 < розм.length; i3++){
+        var res3 = D.stockApply(st3, { kind:'in', gid:g3.id, name:g3.name || '', color:f.color, colorHex:c3.hex || '',
+          size:розм[i3], qty:Math.round(+f.q[розм[i3]]), cost: f.cost === '' ? null : +f.cost, by:хто3, note:f.note || '' });
+        if(!res3.ok) return say(res3.err);
+        st3 = res3.st; шт3 += Math.round(+f.q[розм[i3]]);
+      }
+      STOCK_FORM = { gid:'', color:'', cost:'', note:'', q:{} };
+      return stockCommit(st3, 'На склад +' + шт3 + ' шт · ' + (g3.name || '') + ' · ' + f.color);
+    }
+    if(what === 'stock-edit'){
+      if(!stockCan()) return say('Склад править власник');
+      STOCK_EDIT = String((data && data.k) || '');
+      return render(root);
+    }
+    /* ІНВЕНТАРИЗАЦІЯ: вписали, скільки є насправді, — різниця йде рухом. */
+    if(what === 'stock-adj'){
+      if(!stockCan()) return say('Склад править власник');
+      var box = root.querySelector('[data-adjcost]') && root.querySelector('[data-adjcost]').closest('.dz-stk-g');
+      if(!box) return;
+      var key4 = String((data && data.k) || '');
+      var st4 = stockSt(), хто4 = (host().me && host().me()) || '';
+      var ц4 = box.querySelector('[data-adjcost]').value;
+      var нот4 = String(box.querySelector('[data-adjnote]').value || '').trim();
+      var змін = 0;
+      var з4 = st4.items.filter(function(x){ return ((x.gid || '') + '|' + String(x.color || '').toLowerCase()) === key4; });
+      for(var i4 = 0; i4 < з4.length; i4++){
+        var x4 = з4[i4];
+        var inp = box.querySelector('[data-adj="' + String(x4.size).replace(/"/g, '\\"') + '"]');
+        if(!inp) continue;
+        var нова = Math.max(0, Math.round(+inp.value || 0));
+        var ціна4 = ц4 === '' ? null : Math.max(0, +ц4 || 0);
+        if(нова === Math.round(+x4.qty || 0) && (ціна4 == null || ціна4 === +x4.cost)) continue;
+        var res4 = D.stockApply(st4, { kind:'adj', gid:x4.gid, name:x4.name, color:x4.color, size:x4.size,
+          qty:нова, cost:ціна4, by:хто4, note:нот4 || 'інвентаризація' });
+        if(!res4.ok) continue;
+        st4 = res4.st; змін++;
+      }
+      STOCK_EDIT = '';
+      if(!змін){ render(root); return say('Нічого не змінилось'); }
+      return stockCommit(st4, 'Склад перераховано');
     }
     var c = ctx();
     if(!c) return;
