@@ -117,7 +117,7 @@ await p1.waitForTimeout(400);
 const off = await p1.evaluate(() => {
   const d = document.getElementById('orderDrawer');
   return { input: d.querySelectorAll('[data-ttn]').length,
-           make: d.querySelectorAll('[data-np-make]').length,
+           make: d.querySelectorAll('[data-shf-make]').length,
            hint: /адреса воркера/i.test(d.textContent) };
 });
 ok(off.input === 1 && off.make === 0,
@@ -177,7 +177,7 @@ await p2.click('#board .ticket');
 await p2.waitForTimeout(900);
 await p2.evaluate(() => { odFolds.ship = true; renderOrderDrawer(); });
 await p2.waitForTimeout(400);
-await p2.fill('[data-np-city]', 'Льв');
+await p2.fill('[data-shf-city]', 'Льв');
 await p2.waitForTimeout(900);
 const cityList = await p2.evaluate(() =>
   [...document.querySelectorAll('.ship-o')].map(b => b.textContent.trim()));
@@ -186,14 +186,14 @@ ok(cityList.length === 1 && /Львів/.test(cityList[0]),
   'місто підказує Нова пошта, а не пам’ять менеджера',
   'підказки міст немає: ' + JSON.stringify(cityList));
 await p2.click('.ship-o');
-await p2.fill('[data-np-wh]', '12');
+await p2.fill('[data-shf-wh]', '12');
 await p2.waitForTimeout(900);
 await p2.click('.ship-o');
 await p2.waitForTimeout(300);
-const ready = await p2.evaluate(() => !document.querySelector('[data-np-make]').disabled);
+const ready = await p2.evaluate(() => !document.querySelector('[data-shf-make]').disabled);
 ok(ready, 'після вибору відділення кнопка відкрилась', 'кнопка лишилась заблокованою');
 
-await p2.click('[data-np-make]');
+await p2.click('[data-shf-make]');
 await p2.waitForTimeout(1200);
 const made = await p2.evaluate(() => {
   const o = orders.find(x => x.orderId === '1001101');

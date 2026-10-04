@@ -4419,6 +4419,18 @@
     /* Розгорнуто, а не складено. Складений блок ховав рівно те, через що
        посилка й не їде: незаповнену адресу. Підпис зони каже стан, а поля
        стоять відкритими — заповнити їх можна, не відкриваючи нічого. */
+    /* Форма накладної робочого місця (04.10): відправник, отримувач, місто й
+       відділення з довідника НП, вага, формат, контроль оплати, «Створити
+       ТТН». Номер, якщо накладну зробили деінде, — вписати руками нижче. */
+    if(o.dir === 'b2c' && host.shipForm && (host.shipForm(o) || ttn))
+      return (ttn
+          ? '<div class="dz-ship"><div class="dz-ship-l"><b>Накладна ' + esc(ttn) + '</b>' +
+              (o.ttnStatus ? '<span>' + esc(o.ttnStatus) + '</span>' : '') +
+              (o.ttnCity ? '<span>' + esc(o.ttnCity + (o.ttnWh ? ' · ' + o.ttnWh : '')) + '</span>' : '') + '</div>' +
+              '<button class="dz-b" data-ship-track>Оновити статус</button></div>'
+          : host.shipForm(o)) +
+        (ttn ? '' : '<label class="dz-own-f dz-ship-man"><span>Або номер ТТН руками</span>' +
+          '<input data-of="ttn" value="" placeholder="якщо накладну створили в кабінеті НП"></label>');
     if(o.dir === 'b2c')
       return '<div class="dz-ship-f">' +
           поле('name', 'Імʼя та прізвище', 'на кого оформити') +
@@ -4454,6 +4466,11 @@
     var ttn = String((o || {}).ttn || '').trim();
     if(ttn) return 'ТТН ' + ttn;
     var пош = (o || {}).ship || {};
+    /* Нова форма тримає місто й відділення посиланнями з довідника НП;
+       імʼя й телефон вона бере із замовлення сама — тож бракувати може лише
+       куди. */
+    if(host.shipForm || пош.cityRef || пош.whRef)
+      return (пош.cityRef && пош.whRef) ? ('куди: ' + (пош.cityName || '') + ' · накладної ще немає') : 'оберіть місто й відділення';
     var бракує = ['city','office','phone','name'].filter(function(k){ return !пош[k]; }).length;
     return бракує ? ('даних бракує: ' + бракує) : 'дані є, накладної ще немає';
   }
@@ -7216,6 +7233,16 @@
     /* Дані для накладної лежать разом, окремим полем замовлення: їх
        чотири, вони завжди потрібні гуртом, і розкладати їх по картці
        поштучно означало б збирати адресу по крихтах у мить відправки. */
+    /* Форма накладної — робочого місця; зберігаємо тим самим шляхом, що й
+       решту полів замовлення. */
+    (function(){
+      var box = root.querySelector('[data-shipform]');
+      var c = ctx();
+      if(box && c && c.o && host().shipWire)
+        host().shipWire(box, c.o, function(){ return save(c.job, c.o, ''); });
+      var tr = root.querySelector('[data-ship-track]');
+      if(tr && c && c.o && host().shipTrack) tr.onclick = function(){ host().shipTrack(c.o); };
+    })();
     root.querySelectorAll('[data-sf]').forEach(function(el){
       el.onchange = function(){
         var c = ctx(); if(!c || !c.o) return;
