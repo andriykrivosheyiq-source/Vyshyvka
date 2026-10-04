@@ -170,7 +170,16 @@ const ordOf = num => p.evaluate(n => {
   return { id:o.crmChatId || '', who:o.crmChatName || '', name:o.name || '',
            ig:o.ig || '', instagram:o.instagram || '', seek:!!crmSeek[o.id] };
 }, num);
+/* Непривʼязана картка B2B: поле посилання стоїть просто в шапці, на місці
+   колишнього «ніку» (04.10). Привʼязана — через 🔗, у блоці «Розмова в Sitniks». */
 const paste = url => p.evaluate(async u => {
+  const head = document.querySelector('.od-ig-link');
+  if(head){
+    head.value = u;
+    head.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+    await new Promise(r => setTimeout(r, 1400));
+    return {};
+  }
   const inp = document.querySelector('.od-seek-url');
   if(!inp) return { err:'поля для посилання немає' };
   inp.value = u;
@@ -185,35 +194,29 @@ console.log('═══ НА ЕКРАНІ ЛИШЕ ПОЛЕ ДЛЯ ПОСИЛАН
 /* Головне, заради чого все переробляли: купи чужих діалогів більше немає, і
    по список ми навіть не ходимо. */
 hits = [];
-await openBind();
+/* Андрій (04.10): «у B2B не по ніку, а чисто по посиланню до Sitniks». На
+   вкладці Instagram у шапці — одне поле: вставити адресу розмови. Поля
+   «нік в Instagram» і окремої кнопки 🔗 немає. */
 const seen = await p.evaluate(() => {
-  const box = document.querySelector('.od-seek');
-  if(!box) return { err:'блоку привʼязки немає' };
-  return { url: !!box.querySelector('.od-seek-url'),
-           go: !!box.querySelector('[data-seek-bind]'),
-           hint: (box.querySelector('.od-seek-hint') || {}).textContent || '',
-           rows: box.querySelectorAll('.od-seek-r, [data-seek]').length,
-           more: box.querySelectorAll('[data-seek-more], [data-seek-all], [data-seek-raw]').length,
-           filter: box.querySelectorAll('.od-seek-in').length,
-           focus: document.activeElement === box.querySelector('.od-seek-url') };
+  const row = document.querySelector('.od-who-row');
+  if(!row) return { err:'шапки картки немає' };
+  const link = row.querySelector('.od-ig-link');
+  return { link: !!link, ph: link ? link.placeholder : '',
+           nick: !!row.querySelector('.od-chan-h:not(.od-ig-link):not(.od-ig-who)'),
+           find: !!row.querySelector('.od-ig-find'),
+           seek: !!document.querySelector('.od-seek') };
 });
 if(seen.err){ console.log('  ' + seen.err); bad++; }
 else {
-  ok(seen.url && seen.go, 'є поле для посилання й кнопка «Привʼязати»',
-     'поля привʼязки немає');
-  ok(!seen.rows, 'жодного чужого діалогу на екрані',
-     'на екрані знову список чужих розмов: ' + seen.rows);
-  ok(!seen.more && !seen.filter,
-     'ні «Показати ще», ні фільтра, ні сирої відповіді — нічого другорядного',
-     'лишились рештки пошуку по списку');
+  ok(seen.link && /посилання на розмову в Sitniks/.test(seen.ph),
+     'у шапці на вкладці Instagram — поле «Вставте посилання на розмову в Sitniks»',
+     'поля посилання в шапці немає: ' + JSON.stringify(seen));
+  ok(!seen.nick && !seen.find && !seen.seek,
+     'поля «нік в Instagram» немає, і другої кнопки для того самого теж',
+     'лишились нік чи зайва кнопка: ' + JSON.stringify(seen));
   ok(!hits.length,
      'у Sitniks по список діалогів навіть не ходили',
      'усе одно читали список: ' + hits.join(', '));
-  ok(/скопіюйте адресу/i.test(seen.hint) && /Імʼя й нік/i.test(seen.hint),
-     'підказка каже, що робити і що звідти підтягнеться',
-     'підказка не пояснює дію: «' + seen.hint.trim().slice(0, 90) + '»');
-  ok(seen.focus, 'курсор одразу в полі — можна вставляти без зайвого кліку',
-     'у поле треба ще клікнути окремо');
 }
 
 console.log('');
@@ -244,6 +247,12 @@ ok(bound.who === 'Асія Дерещук',
 ok(!bound.seek,
    'блок привʼязки закрився — розмова знайдена, робити тут більше нічого',
    'блок привʼязки лишився відкритим');
+const шапка = await p.evaluate(() => { const r = document.querySelector('.od-who-row');
+  return { who: ((r.querySelector('.od-ig-who') || {}).textContent || '').trim(), go: !!r.querySelector('[data-chan-go]'),
+           link: !!r.querySelector('.od-ig-link'), find: !!r.querySelector('.od-ig-find') }; });
+ok(/@asia_dera · Асія Дерещук/.test(шапка.who) && шапка.go && !шапка.link && шапка.find,
+   'у шапці замість поля — «@asia_dera · Асія Дерещук», 💬 відкриває розмову, 🔗 — замінити чи відвʼязати',
+   'шапка після привʼязки: ' + JSON.stringify(шапка));
 console.log('');
 console.log('═══ ПОМИЛКОВУ АДРЕСУ МОЖНА СКАСУВАТИ ═══');
 /* Адреса береться з сусідньої вкладки, тож вставити не ту — звична помилка.
