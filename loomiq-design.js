@@ -7741,6 +7741,10 @@
        привʼязані. Менеджер бачить суму, дату, рахунок і призначення платежу
        й обирає своє; сума в картці стає наслідком того, що справді прийшло
        на рахунок, а не того, що згадали. */
+    if(what === 'pay-pick' && host().payPick){
+      /* Вікно рядків із пошуком — робочого місця (те саме, що в B2B). */
+      return host().payPick(o, function(){ render(document.getElementById('dzRoot')); });
+    }
     if(what === 'pay-pick'){
       var w = host().payments && host().payments(o);
       var вільні = (w && w.free) || [];
