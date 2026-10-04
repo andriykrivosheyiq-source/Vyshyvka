@@ -4426,6 +4426,32 @@
   .dz-card .dz-c-who{flex:none;width:22px;height:22px;margin:0;border-radius:50%;background:#EEF2FF;color:#3730A3;
     font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   .dz-card-w.is-v2 .dz-card-m{margin-top:8px;}
+  /* ── Форма відправки (B2B і B2C) і налаштування відправників ── */
+  .shf{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:6px;}
+  .shf-wide{grid-column:1 / -1;}
+  .shf-f{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .shf-f > span{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+  .shf-f input,.shf-f select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;background:#fff;min-width:0;}
+  .shf-f input:disabled{background:var(--canvas);color:var(--muted);}
+  .shf-row{display:flex;align-items:center;gap:8px;}
+  .shf-row input[type=number]{flex:1;}
+  .shf-from{grid-column:1 / -1;font-size:12.5px;color:var(--ink-soft);}
+  .shf-note{font-size:12px;color:var(--ink-soft);}
+  .shf-miss{font-size:12.5px;color:#B03A1A;background:#FDECEA;border-radius:8px;padding:7px 10px;}
+  .shf [data-shf-make]{justify-self:start;}
+  .shs-h{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
+  .shs-sub{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px;}
+  .shs-s{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff;}
+  .shs-row{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-bottom:8px;}
+  .shs-row .shf-f{flex:1 1 180px;}
+  .shs-fmt input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:90px;}
+  .shs-fmt input[data-sf2=name]{width:150px;}
+  .shs-def{font-size:12.5px;display:flex;align-items:center;gap:6px;padding-bottom:9px;}
+  .shs-key{font-size:12px;color:var(--ink-soft);margin-top:8px;}
+  .shs-goods{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 12px;margin-bottom:10px;}
+  @media (max-width:640px){ .shf{grid-template-columns:1fr;} }
+
   .dz-card-w.is-v2 .dz-card-m b{display:inline-block;max-width:100%;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
   .dz-write.is-off{background:var(--paper);}
@@ -6740,6 +6766,15 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button class="pc-btn up" id="npapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
         </div>
 
+        <div class="card" style="max-width:980px;">
+          <b style="font-size:14px;">Відправка — відправники, формати посилок, вага товарів</b>
+          <div class="sub" style="margin:6px 0 12px;">Звідси картка замовлення (B2B і B2C) бере, від кого й звідки їде посилка,
+            підбирає формат за вагою і рахує вагу з того, що в замовленні. Місто й відділення відправки обираються з довідника
+            Нової пошти. <b>Ключ API кожного ФОПа сюди НЕ вставляти</b> — лише секретом воркера <code>NP_KEY_&lt;код&gt;</code>.</div>
+          <div id="ship-set"></div>
+          <button class="pc-btn up" id="ship-set-save" style="flex:none;padding:10px 22px;margin-top:12px;">Зберегти відправку</button>
+        </div>
+
         <div class="card" style="max-width:760px;">
           <b style="font-size:14px;">Чекліст контролю якості</b>
           <div class="sub" style="margin:6px 0 12px;">Пункти, які відмічають перед відправкою. Кожен має бути взятий
@@ -7144,24 +7179,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1ac15edbb6"></script>
-<script src="loomiq-fingerprint.js?v=1ac15edbb6"></script>
-<script src="loomiq-pricing.js?v=1ac15edbb6"></script>
+<script src="loomiq-select.js?v=1b2edd65ee"></script>
+<script src="loomiq-fingerprint.js?v=1b2edd65ee"></script>
+<script src="loomiq-pricing.js?v=1b2edd65ee"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1ac15edbb6"></script>
-<script src="loomiq-mock.js?v=1ac15edbb6"></script>
+<script src="loomiq-design.js?v=1b2edd65ee"></script>
+<script src="loomiq-mock.js?v=1b2edd65ee"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1ac15edbb6"></script>
-<script src="loomiq-threads.js?v=1ac15edbb6"></script>
+<script src="imagetracer.js?v=1b2edd65ee"></script>
+<script src="loomiq-threads.js?v=1b2edd65ee"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1ac15edbb6"></script>
+<script src="loomiq-cards.js?v=1b2edd65ee"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7186,7 +7221,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1ac15edbb6';
+var LQ_VER = '1b2edd65ee';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -20880,6 +20915,14 @@ function npUrl(){ return String(((contentData || {}).bgApi || {}).npUrl || '').t
 async function npCall(op, extra){
   const u = npUrl();
   if(!u) throw new Error('Адреса воркера Нової пошти не задана');
+  /* Накладну й реквізити відправника воркер дає лише тому, хто увійшов в
+     адмінку: його адреса лежить у публічних налаштуваннях сайту. */
+  let idToken = '';
+  if(op === 'create' || op === 'sender'){
+    try{ idToken = await fbAuth.currentUser.getIdToken(); }
+    catch(e){ throw new Error('Сесія застаріла — увійдіть ще раз'); }
+  }
+  extra = Object.assign({}, extra || {}, idToken ? { idToken } : {});
   const ctrl = new AbortController();
   const t = setTimeout(()=> ctrl.abort(), 25000);
   try{
@@ -20991,17 +21034,7 @@ function shipFold(o){
         o.ttnStatusAt ? ' · ' + escapeHtml(dtUa(o.ttnStatusAt)) : ''}</span>` : ''}
       ${npUrl() ? '<button class="art-b" data-ttn-track>Оновити статус</button>' : ''}
     </div>` : ''}
-    ${npUrl() && !has ? `
-      <div class="od-hint">Накладну можна створити звідси: місто й відділення
-        підкаже Нова пошта, решту система візьме із замовлення — ${
-        shipUnits(o)} шт, ${escapeHtml(o.name || 'отримувач')}, ${
-        escapeHtml(o.phone || 'телефон не вписаний')}.</div>
-      <div class="ship-row">
-        <input type="text" data-np-city placeholder="Місто отримувача" autocomplete="off">
-        <input type="text" data-np-wh placeholder="Відділення №" autocomplete="off" disabled>
-      </div>
-      <div class="ship-pick" data-np-list hidden></div>
-      <button class="mk-copy" data-np-make disabled>Створити накладну</button>` : ''}
+    ${npUrl() && !has ? shipFormHtml(o) : ''}
     ${!npUrl() ? '<div class="od-hint">Створення накладних вимкнене: у налаштуваннях не задана адреса воркера Нової пошти. Номер можна вписати руками — усе інше працює так само.</div>' : ''}`;
   return odFoldHtml('ship', 'Відправка',
     has ? (o.ttnStatus || o.ttn) : 'накладної ще немає', body);
@@ -21017,60 +21050,344 @@ function wireShip(panel, o){
   const trackB = panel.querySelector('[data-ttn-track]');
   if(trackB) trackB.addEventListener('click', ()=> shipTrack(o));
 
-  const cityI = panel.querySelector('[data-np-city]');
-  const whI   = panel.querySelector('[data-np-wh]');
-  const list  = panel.querySelector('[data-np-list]');
-  const makeB = panel.querySelector('[data-np-make]');
-  if(!cityI || !whI || !list || !makeB) return;
-  let city = null, wh = null, timer = 0;
+  const box = panel.querySelector('[data-shipform]');
+  if(box) wireShipForm(box, o, async ()=>{
+    touchOrder(o);
+    try{ await storeSet('orders', orders); }catch(e){ console.error(e); toast('Не збереглось'); }
+  });
+}
 
+/* ══════════ ВІДПРАВКА: ВІДПРАВНИКИ, ФОРМАТИ, ВАГА (04.10) ══════════
+
+   Андрій: «з картки B2B, B2C — створювати ТТН. Поля мають підтягуватись,
+   відправників і місце відправки налаштовувати в адмінці, вага й габарити —
+   теж, і вага кожного товару, щоб у ТТН ішла вага того, що в замовленні».
+
+   Налаштування — `contentData.ship`:
+     senders: [{ id, name, phone, cityRef, cityName, whRef, whName, def,
+                 formats: [{ name, l, w, h, maxKg }] }]
+     weights: { <id виробу>: грами за штуку }
+     packG:   грами пакування на посилку
+   Ключ API кожного відправника — секретом воркера NP_KEY_<id>, не тут.
+
+   Дані накладної замовлення — `o.ship` (одні й ті самі в B2B і B2C). */
+const SHIP_DEF_G = 300;       // вага виробу, якщо в налаштуваннях не задана
+function shipCfg(){
+  const s = (contentData && contentData.ship) || {};
+  return { senders: Array.isArray(s.senders) ? s.senders : [],
+           weights: (s.weights && typeof s.weights === 'object') ? s.weights : {},
+           packG: Math.max(0, +s.packG || 0) };
+}
+function shipSenderOf(id){
+  const c = shipCfg();
+  return c.senders.filter(x => x.id === id)[0] || c.senders.filter(x => x.def)[0] || c.senders[0] || null;
+}
+/* Що їде: [{gid, name, qty}] — з позицій відділу (B2C), інакше зі складу. */
+function shipLines(o){
+  const job = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+  const us = (job && Array.isArray(job.units)) ? job.units.filter(u => u && (u.gid || u.name) && +u.qty > 0) : [];
+  if(us.length) return us.map(u => ({ gid: u.gid || '', name: u.name || u.gid || '', qty: +u.qty || 0 }));
+  return (o.items || []).filter(it => (it.kind || 'main') !== 'reco' && itemKind(it) === 'main')
+    .map(it => ({ gid: it.garmentId || it.gid || '', name: it.name || '', qty: +it.qty || 0 }))
+    .filter(x => x.qty > 0);
+}
+/* Вага посилки: вага кожного виробу × кількість + пакування. */
+function shipWeight(o){
+  const c = shipCfg();
+  let g = c.packG, unknown = 0, шт = 0;
+  shipLines(o).forEach(l => {
+    const w = +c.weights[l.gid] || 0;
+    if(!w) unknown += l.qty;
+    g += (w || SHIP_DEF_G) * l.qty;
+    шт += l.qty;
+  });
+  return { kg: Math.max(0.1, Math.round(g / 100) / 10), unknown, qty: шт };
+}
+/* Формат: найменший, у який вміщається вага. Важче за всі — найбільший. */
+function shipFormats(sender){ return (sender && Array.isArray(sender.formats)) ? sender.formats.filter(f => f && f.name) : []; }
+function shipPickFormat(sender, kg){
+  const fs = shipFormats(sender).slice().sort((a, b) => (+a.maxKg || 0) - (+b.maxKg || 0));
+  return fs.filter(f => (+f.maxKg || 0) >= kg)[0] || fs[fs.length - 1] || null;
+}
+/* Скільки лишилось заплатити — сума контролю оплати за замовчуванням. */
+function shipLeft(o){
+  let total = 0;
+  try{
+    if(orderDir(o) === 'b2c' && window.LQDesign && window.LQDesign.ui.orderSum)
+      total = window.LQDesign.ui.orderSum(o, (designJobs || {})[o.orderId]) || 0;
+  }catch(e){}
+  if(!total) total = +o.totalPrice || 0;
+  let paid = 0;
+  try{ paid = anPaidOf(o) || 0; }catch(e){}
+  return Math.max(0, Math.round(total - paid));
+}
+/* Поточні значення форми: збережене в o.ship, інакше — із замовлення. */
+function shipVals(o){
+  const sh = (o.ship && typeof o.ship === 'object') ? o.ship : {};
+  const snd = shipSenderOf(sh.sender);
+  const w = shipWeight(o);
+  const kg = (+sh.weightKg > 0) ? +sh.weightKg : w.kg;
+  const fmt = shipFormats(snd).filter(f => f.name === sh.format)[0] || shipPickFormat(snd, kg);
+  const left = shipLeft(o);
+  return {
+    sender: snd, name: sh.name || o.name || o.crmChatName || '',
+    phone: sh.phone || o.phone || '',
+    cityRef: sh.cityRef || '', cityName: sh.cityName || sh.city || '',
+    whRef: sh.whRef || '', whName: sh.whName || sh.office || '', whNumber: sh.whNumber || '',
+    kg, kgAuto: !(+sh.weightKg > 0), weight: w, format: fmt,
+    codOn: sh.codOn !== false, cod: (sh.cod != null && sh.cod !== '') ? Math.max(0, Math.round(+sh.cod || 0)) : left,
+    left, payer: sh.payer === 'sender' ? 'sender' : 'recipient'
+  };
+}
+/* Чого бракує для накладної — словами, а не неактивною кнопкою мовчки. */
+function shipMissing(v){
+  const m = [];
+  /* Відправників ще не заведено — діє старий відправник зі змінних воркера,
+     і вимагати його тут означало б зламати те, що вже працює. */
+  if(v.sender && (!v.sender.cityRef || !v.sender.whRef)) m.push('місце відправки у відправника');
+  if(!String(v.name).trim()) m.push('імʼя отримувача');
+  if(String(v.phone).replace(/\D/g, '').length < 10) m.push('телефон отримувача');
+  if(!v.cityRef) m.push('місто (оберіть зі списку)');
+  if(!v.whRef) m.push('відділення чи поштомат (оберіть зі списку)');
+  return m;
+}
+function shipFormHtml(o){
+  const v = shipVals(o), c = shipCfg(), E = escapeHtml;
+  const gate = shipGate(o);
+  const miss = shipMissing(v);
+  const fmts = shipFormats(v.sender);
+  return `<div class="shf" data-shipform>
+    ${c.senders.length > 1 ? `<label class="shf-f shf-wide"><span>Відправник</span>
+      <select data-shf="sender">${c.senders.map(x => `<option value="${E(x.id)}"${v.sender && v.sender.id === x.id ? ' selected' : ''}>${E(x.name || x.id)}</option>`).join('')}</select></label>`
+      : `<div class="shf-from">Відправник: <b>${E(v.sender ? (v.sender.name || v.sender.id) : 'як задано у воркері')}</b>${
+          v.sender && v.sender.cityName ? ` · з ${E(v.sender.cityName)}${v.sender.whName ? ', ' + E(v.sender.whName) : ''}` : ''}</div>`}
+    <label class="shf-f"><span>Отримувач</span><input data-shf="name" value="${E(v.name)}" placeholder="Прізвище Імʼя"></label>
+    <label class="shf-f"><span>Телефон</span><input data-shf="phone" type="tel" value="${E(v.phone)}" placeholder="+380…"></label>
+    <label class="shf-f"><span>Місто</span><input data-shf-city value="${E(v.cityName)}" placeholder="почніть вводити" autocomplete="off"></label>
+    <label class="shf-f"><span>Відділення або поштомат</span><input data-shf-wh value="${E(v.whName)}" placeholder="№ або вулиця" autocomplete="off"${v.cityRef ? '' : ' disabled'}></label>
+    <div class="ship-pick shf-wide" data-shf-list hidden></div>
+    <label class="shf-f"><span>Вага, кг${v.kgAuto ? ' · порахована' : ''}</span>
+      <input data-shf="weightKg" type="number" min="0.1" step="0.1" value="${E(String(v.kg))}"></label>
+    <label class="shf-f"><span>Формат посилки</span>
+      ${fmts.length ? `<select data-shf="format">${fmts.map(f => `<option value="${E(f.name)}"${v.format && v.format.name === f.name ? ' selected' : ''}>${E(f.name)} · ${+f.l || 0}×${+f.w || 0}×${+f.h || 0} см · до ${+f.maxKg || 0} кг</option>`).join('')}</select>`
+                    : `<input disabled value="форматів не задано">`}</label>
+    <label class="shf-f shf-cod"><span>Контроль оплати</span>
+      <span class="shf-row"><input type="checkbox" data-shf-codon${v.codOn ? ' checked' : ''}>
+      <input data-shf="cod" type="number" min="0" step="1" value="${E(String(v.cod))}"${v.codOn ? '' : ' disabled'}> ₴</span></label>
+    <label class="shf-f"><span>Доставку платить</span>
+      <select data-shf="payer"><option value="recipient"${v.payer === 'recipient' ? ' selected' : ''}>отримувач</option>
+        <option value="sender"${v.payer === 'sender' ? ' selected' : ''}>ми</option></select></label>
+    <div class="shf-note shf-wide">${v.weight.qty} шт · ${
+      v.weight.unknown ? `вага ${v.weight.unknown} шт не задана — порахована як ${SHIP_DEF_G} г` : 'вага з налаштувань товарів'}${
+      v.left ? ` · лишилось заплатити ${fmt(v.left)} ₴` : ' · оплачено повністю'}</div>
+    ${!gate.ok ? `<div class="gate-sum shf-wide">🔒 ${E(gate.why)}</div>` : ''}
+    ${miss.length ? `<div class="shf-miss shf-wide">Бракує: ${E(miss.join(', '))}</div>` : ''}
+    <button class="mk-copy shf-wide" data-shf-make${(miss.length || !gate.ok) ? ' disabled' : ''}>Створити ТТН</button>
+  </div>`;
+}
+/* Пошук міста й відділення в довіднику НП — одне на форму й на налаштування. */
+function npPicker(cityI, whI, list, sender, onCity, onWh){
+  let city = null, timer = 0;
   const show = (items, pick) => {
     list.hidden = !items.length;
-    list.innerHTML = items.map((x, i)=>
-      `<button class="ship-o" data-i="${i}">${escapeHtml(x.name)}</button>`).join('');
-    list.querySelectorAll('.ship-o').forEach(b=>
-      b.addEventListener('click', ()=> pick(items[+b.dataset.i])));
+    list.innerHTML = items.map((x, i) =>
+      `<button type="button" class="ship-o" data-i="${i}">${x.postomat ? '📦 ' : ''}${escapeHtml(x.name)}</button>`).join('');
+    list.querySelectorAll('.ship-o').forEach(b =>
+      b.addEventListener('click', () => pick(items[+b.dataset.i])));
   };
-  const ask = (fn, ms) => { clearTimeout(timer); timer = setTimeout(fn, ms || 350); };
-
-  cityI.addEventListener('input', ()=> ask(async ()=>{
+  const ask = fn => { clearTimeout(timer); timer = setTimeout(fn, 350); };
+  cityI.addEventListener('input', () => ask(async () => {
     const q = cityI.value.trim();
-    city = null; wh = null; whI.disabled = true; whI.value = ''; makeB.disabled = true;
+    city = null; whI.disabled = true; whI.value = '';
+    onCity(null);
     if(q.length < 2){ list.hidden = true; return; }
     try{
-      const d = await npCall('cities', { q });
-      show(d.list || [], x=>{
-        city = x; cityI.value = x.name; list.hidden = true;
-        whI.disabled = false; whI.focus();
-      });
+      const d = await npCall('cities', { q, sender: sender() });
+      show(d.list || [], x => { city = x; cityI.value = x.name; list.hidden = true;
+        whI.disabled = false; whI.focus(); onCity(x); });
     }catch(e){ list.hidden = true; toast(String(e.message || e)); }
   }));
-  whI.addEventListener('input', ()=> ask(async ()=>{
-    if(!city) return;
-    wh = null; makeB.disabled = true;
+  whI.addEventListener('input', () => ask(async () => {
+    const ref = (city && city.ref) || whI.dataset.city || '';
+    if(!ref) return;
+    onWh(null);
     try{
-      const d = await npCall('warehouses', { city:city.ref, q:whI.value.trim() });
-      show(d.list || [], x=>{
-        wh = x; whI.value = x.name; list.hidden = true; makeB.disabled = false;
-      });
+      const d = await npCall('warehouses', { city: ref, q: whI.value.trim(), sender: sender() });
+      show(d.list || [], x => { whI.value = x.name; list.hidden = true; onWh(x); });
     }catch(e){ list.hidden = true; toast(String(e.message || e)); }
   }));
-  makeB.addEventListener('click', async ()=>{
-    if(!city || !wh) return toast('Оберіть місто й відділення зі списку');
-    makeB.disabled = true;
+}
+function wireShipForm(box, o, persist){
+  const sh = () => { if(!o.ship || typeof o.ship !== 'object') o.ship = {}; return o.ship; };
+  const redraw = () => {
+    const nu = document.createElement('div');
+    nu.innerHTML = shipFormHtml(o);
+    const fresh = nu.firstElementChild;
+    box.replaceWith(fresh);
+    wireShipForm(fresh, o, persist);
+  };
+  const keep = async () => { try{ await persist(o); }catch(e){ console.error(e); } };
+  box.querySelectorAll('[data-shf]').forEach(el => {
+    el.addEventListener('change', async () => {
+      const k = el.dataset.shf;
+      let v = el.value;
+      if(k === 'weightKg') v = (+v > 0) ? Math.round(+v * 100) / 100 : '';
+      if(k === 'cod') v = Math.max(0, Math.round(+v || 0));
+      sh()[k] = v;
+      if(k === 'sender'){ delete sh().format; }
+      if(k === 'weightKg'){ delete sh().format; }
+      await keep();
+      if(k === 'sender' || k === 'weightKg' || k === 'format') redraw();
+      else if(k === 'name' || k === 'phone') redraw();
+    });
+  });
+  const codOn = box.querySelector('[data-shf-codon]');
+  if(codOn) codOn.addEventListener('change', async () => { sh().codOn = !!codOn.checked; await keep(); redraw(); });
+  const cityI = box.querySelector('[data-shf-city]'), whI = box.querySelector('[data-shf-wh]');
+  const list = box.querySelector('[data-shf-list]');
+  if(cityI && whI && list){
+    whI.dataset.city = sh().cityRef || '';
+    npPicker(cityI, whI, list, () => (shipVals(o).sender || {}).id || '',
+      async x => {
+        Object.assign(sh(), x ? { cityRef: x.ref, cityName: x.name } : { cityRef: '', cityName: '' },
+                      { whRef: '', whName: '', whNumber: '' });
+        if(x){ await keep(); redraw(); }
+      },
+      async x => {
+        if(!x) return;
+        Object.assign(sh(), { whRef: x.ref, whName: x.name, whNumber: x.number || '', postomat: !!x.postomat });
+        await keep(); redraw();
+      });
+  }
+  const make = box.querySelector('[data-shf-make]');
+  if(make) make.addEventListener('click', async () => {
+    const v = shipVals(o);
+    const miss = shipMissing(v);
+    if(miss.length) return toast('Бракує: ' + miss.join(', '));
+    const gate = shipGate(o);
+    if(!gate.ok) return toast('Накладну ще рано: ' + gate.why);
+    make.disabled = true;
     toast('Створюю накладну…');
     try{
-      const d = await npCall('create', { order:{
-        name:o.name || '', phone:o.phone || '', qty:shipUnits(o),
-        cost:o.totalPrice || 0, cityRef:city.ref, cityName:city.name,
-        warehouseRef:wh.ref, warehouseNumber:wh.number,
-        description:'Одяг з нанесенням, замовлення ' + (o.orderId || ''),
-        payer:'recipient' } });
-      await shipSetTtn(o, d.ttn, { ttnRef:d.ref, ttnEst:d.est || '',
-                                   ttnCity:city.name, ttnWh:wh.name });
+      const d = await npCall('create', { order: {
+        sender: v.sender ? { id: v.sender.id, cityRef: v.sender.cityRef, warehouseRef: v.sender.whRef, phone: v.sender.phone || '' } : null,
+        name: v.name, phone: v.phone, qty: v.weight.qty,
+        weightKg: v.kg, dims: v.format ? { l: +v.format.l || 0, w: +v.format.w || 0, h: +v.format.h || 0 } : null,
+        cost: Math.max(v.left, +o.totalPrice || 0), cod: v.codOn ? v.cod : 0,
+        cityRef: v.cityRef, cityName: v.cityName, warehouseRef: v.whRef, warehouseNumber: v.whNumber,
+        description: 'Одяг з нанесенням, замовлення ' + (o.orderId || ''),
+        payer: v.payer } });
+      await shipSetTtn(o, d.ttn, { ttnRef: d.ref, ttnEst: d.est || '', ttnCity: v.cityName, ttnWh: v.whName,
+                                    ttnSender: v.sender ? v.sender.id : '', ttnCod: v.codOn ? v.cod : 0 });
+      try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' створена');
-    }catch(e){ console.error(e); toast(String(e.message || e)); makeB.disabled = false; }
+    }catch(e){ console.error(e); toast(String(e.message || e)); make.disabled = false; }
   });
+}
+
+/* ── Налаштування → Відправка ─────────────────────────────────────── */
+let shipDraft = null;
+function shipDraftNow(){
+  if(!shipDraft) shipDraft = JSON.parse(JSON.stringify(shipCfg()));
+  return shipDraft;
+}
+function renderShipSettings(){
+  const box = document.getElementById('ship-set');
+  if(!box) return;
+  const d = shipDraftNow(), E = escapeHtml;
+  const goods = (typeof allPhotoCfg === 'function' ? allPhotoCfg() : []).map(g => ({
+    id: g.id, name: (contentData.names && contentData.names[g.id]) || String(g.name || g.id).replace(' · свій', '') }));
+  box.innerHTML = `
+    <div class="shs-h">Відправники</div>
+    ${d.senders.map((x, i) => `<div class="shs-s" data-si="${i}">
+      <div class="shs-row">
+        <label class="shf-f"><span>Назва</span><input data-ss="name" value="${E(x.name || '')}" placeholder="ФОП Юкальчук"></label>
+        <label class="shf-f"><span>Код (для секрета NP_KEY_…)</span><input data-ss="id" value="${E(x.id || '')}" placeholder="yukalchuk"></label>
+        <label class="shf-f"><span>Телефон відправника</span><input data-ss="phone" value="${E(x.phone || '')}" placeholder="380…"></label>
+        <label class="shs-def"><input type="radio" name="shs-def" data-ss-def${x.def ? ' checked' : ''}> за замовчуванням</label>
+        <button class="pc-btn reset" data-ss-del title="Прибрати відправника">×</button>
+      </div>
+      <div class="shs-row">
+        <label class="shf-f"><span>Місто відправки</span><input data-ss-city value="${E(x.cityName || '')}" placeholder="почніть вводити" autocomplete="off"></label>
+        <label class="shf-f"><span>Відділення відправки</span><input data-ss-wh value="${E(x.whName || '')}" placeholder="№ відділення" autocomplete="off"${x.cityRef ? '' : ' disabled'}></label>
+      </div>
+      <div class="ship-pick" data-ss-list hidden></div>
+      <div class="shs-sub">Формати посилок</div>
+      ${(x.formats || []).map((f, k) => `<div class="shs-row shs-fmt" data-fi="${k}">
+        <input data-sf2="name" value="${E(f.name || '')}" placeholder="Пакет S">
+        <input data-sf2="l" type="number" min="1" value="${E(String(f.l || ''))}" placeholder="Д, см">
+        <input data-sf2="w" type="number" min="1" value="${E(String(f.w || ''))}" placeholder="Ш, см">
+        <input data-sf2="h" type="number" min="1" value="${E(String(f.h || ''))}" placeholder="В, см">
+        <input data-sf2="maxKg" type="number" min="0.1" step="0.1" value="${E(String(f.maxKg || ''))}" placeholder="до, кг">
+        <button class="pc-btn reset" data-sf2-del>×</button></div>`).join('')}
+      <button class="pc-btn" data-sf2-add>+ Формат</button>
+      <div class="shs-key">Ключ API Нової пошти цього ФОПа — <b>лише</b> секретом воркера:
+        <code>npx wrangler secret put NP_KEY_${E(x.id || 'код')}</code></div>
+    </div>`).join('')}
+    <button class="pc-btn" id="ship-sender-add">+ Відправник</button>
+    <div class="shs-h">Вага товарів, грамів за штуку</div>
+    <div class="shs-goods">${goods.map(g => `<label class="shf-f"><span>${E(g.name)}</span>
+      <input data-sw="${E(g.id)}" type="number" min="0" step="10" value="${E(String(d.weights[g.id] || ''))}" placeholder="${SHIP_DEF_G}"></label>`).join('')}</div>
+    <label class="shf-f" style="max-width:260px"><span>Пакування на посилку, г</span>
+      <input data-spack type="number" min="0" step="10" value="${E(String(d.packG || ''))}" placeholder="0"></label>`;
+  const S = i => d.senders[i];
+  box.querySelectorAll('.shs-s').forEach(row => {
+    const i = +row.dataset.si;
+    row.querySelectorAll('[data-ss]').forEach(el => el.addEventListener('change', () => {
+      let v = el.value.trim();
+      if(el.dataset.ss === 'id') v = v.replace(/[^A-Za-z0-9_]/g, '');
+      S(i)[el.dataset.ss] = v;
+      if(el.dataset.ss === 'id') renderShipSettings();
+    }));
+    const def = row.querySelector('[data-ss-def]');
+    if(def) def.addEventListener('change', () => { d.senders.forEach((x, k) => { x.def = k === i; }); });
+    row.querySelector('[data-ss-del]').addEventListener('click', () => { d.senders.splice(i, 1); renderShipSettings(); });
+    row.querySelectorAll('.shs-fmt').forEach(fr => {
+      const k = +fr.dataset.fi;
+      fr.querySelectorAll('[data-sf2]').forEach(el => el.addEventListener('change', () => {
+        const f = S(i).formats[k];
+        f[el.dataset.sf2] = el.dataset.sf2 === 'name' ? el.value.trim() : (+el.value || 0);
+      }));
+      fr.querySelector('[data-sf2-del]').addEventListener('click', () => { S(i).formats.splice(k, 1); renderShipSettings(); });
+    });
+    row.querySelector('[data-sf2-add]').addEventListener('click', () => {
+      (S(i).formats = S(i).formats || []).push({ name: '', l: '', w: '', h: '', maxKg: '' }); renderShipSettings(); });
+    const ci = row.querySelector('[data-ss-city]'), wi = row.querySelector('[data-ss-wh]'), li = row.querySelector('[data-ss-list]');
+    wi.dataset.city = S(i).cityRef || '';
+    npPicker(ci, wi, li, () => S(i).id || '',
+      x => { Object.assign(S(i), x ? { cityRef: x.ref, cityName: x.name } : { cityRef: '', cityName: '' }, { whRef: '', whName: '' });
+             if(x) wi.dataset.city = x.ref; },
+      x => { if(x) Object.assign(S(i), { whRef: x.ref, whName: x.name }); });
+  });
+  const add = document.getElementById('ship-sender-add');
+  if(add) add.addEventListener('click', () => {
+    d.senders.push({ id: '', name: '', phone: '', cityRef: '', cityName: '', whRef: '', whName: '',
+                     def: !d.senders.length, formats: [
+                       { name: 'Пакет S', l: 30, w: 20, h: 5, maxKg: 1 },
+                       { name: 'Пакет M', l: 40, w: 30, h: 10, maxKg: 3 },
+                       { name: 'Коробка L', l: 50, w: 40, h: 30, maxKg: 10 } ] });
+    renderShipSettings();
+  });
+  box.querySelectorAll('[data-sw]').forEach(el => el.addEventListener('change', () => {
+    const v = Math.max(0, Math.round(+el.value || 0));
+    if(v) d.weights[el.dataset.sw] = v; else delete d.weights[el.dataset.sw];
+  }));
+  const pk = box.querySelector('[data-spack]');
+  if(pk) pk.addEventListener('change', () => { d.packG = Math.max(0, Math.round(+pk.value || 0)); });
+}
+async function saveShipSettings(){
+  const d = shipDraftNow();
+  const bad = d.senders.filter(x => !x.id || !x.name);
+  if(bad.length) return toast('У кожного відправника мають бути назва й код');
+  const ids = d.senders.map(x => x.id);
+  if(new Set(ids).size !== ids.length) return toast('Коди відправників повторюються');
+  d.senders.forEach(x => { x.formats = (x.formats || []).filter(f => f && f.name); });
+  if(d.senders.length && !d.senders.some(x => x.def)) d.senders[0].def = true;
+  try{
+    await PHOTOS_DOC.set({ ship: JSON.parse(JSON.stringify(d)) }, { merge:true });
+    contentData.ship = JSON.parse(JSON.stringify(d));
+    toast('Відправку збережено');
+  }catch(e){ console.error(e); toast('Не збереглось'); }
 }
 
 /* ── Розділи картки ──────────────────────────────────────────────────────
@@ -28326,6 +28643,8 @@ function renderSiteTab(){
   const tgEl = document.getElementById('tgapi-url'); if(tgEl) tgEl.value = bgApi.tgUrl || '';
   const clEl = document.getElementById('clarity-id'); if(clEl) clEl.value = bgApi.clarityId || '';
   const npEl = document.getElementById('npapi-url'); if(npEl) npEl.value = bgApi.npUrl || '';
+  shipDraft = null;
+  try{ renderShipSettings(); }catch(e){ console.warn('відправка', e); }
   // Чернетку заготовок скидаємо: дані приїхали з бази, і показувати треба їх
   qrDraft = null;
   renderQrList();
@@ -28412,6 +28731,7 @@ document.getElementById('crmapi-save').addEventListener('click', async ()=>{
     }catch(e){ console.error(e); toast('Помилка'); }
   });
 })();
+(function(){ const b = document.getElementById('ship-set-save'); if(b) b.addEventListener('click', saveShipSettings); })();
 document.getElementById('tgapi-save').addEventListener('click', async ()=>{
   const url = document.getElementById('tgapi-url').value.trim();
   if(url && !/^https:\/\/\S+$/i.test(url)){ toast('Адреса має починатись з https://'); return; }
@@ -29099,6 +29419,11 @@ function openDesign(){
     /* Чи є з ким листуватись. Поля розмови в замовленні свої для кожного
        каналу, і відділу знати про них нічого: він питає одне — чи можна
        натиснути й написати. */
+    /* Відправка — та сама форма, що й у картці B2B: одні дані (o.ship),
+       один воркер, одні ворота. Відділ лише показує її у своїй зоні. */
+    shipForm: o => (npUrl() && !(o && o.ttn)) ? shipFormHtml(o) : '',
+    shipWire: (el, o, persist) => wireShipForm(el, o, persist),
+    shipTrack: o => shipTrack(o),
     hasChat: o => !!(o && (chanHasChat(o, 'ig') || chanHasChat(o, 'tg'))),
     /* Скільки клієнт написав і ми не прочитали — те саме число, що на
        картці Канбану. Відділ малює його кружечком на Instagram. */
