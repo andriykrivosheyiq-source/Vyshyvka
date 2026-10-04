@@ -654,7 +654,7 @@ const seen = await p.evaluate(async () => {
     await new Promise(r => setTimeout(r, 250));
     const root = document.getElementById('dzRoot');
     return { перемикач: !!root.querySelector('[data-seat]'),
-             закупівля: !!root.querySelector('.dz-buy-need') && !!root.querySelector('.dz-buy-stock'),
+             закупівля: !!root.querySelector('.dz-buy-need') && !!root.querySelector('.dz-buy-take') && !!root.querySelector('[data-k="stock"]'),
              підпис: (root.querySelector('.dz-as') || {}).textContent || '',
              колонки: [...root.querySelectorAll('.dz-col-h')].map(x =>
                x.textContent.replace(/\s+/g, ' ').trim()) };
