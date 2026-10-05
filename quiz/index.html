@@ -150,12 +150,12 @@
 <input type="file" id="qFile" accept="image/*,.svg,.pdf" hidden>
 
 <script src="/catalog-base.js"></script>
-<script src="/loomiq-pricing.js?v=14984f052d"></script>
-<script src="/loomiq-mock.js?v=14984f052d"></script>
+<script src="/loomiq-pricing.js?v=ae21fbba62"></script>
+<script src="/loomiq-mock.js?v=ae21fbba62"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/an.js"></script>
-<script src="/loomiq-kit.js?v=14984f052d"></script>
+<script src="/loomiq-kit.js?v=ae21fbba62"></script>
 <script>
 (function(){
   'use strict';
@@ -200,7 +200,11 @@
   }
 
   /* ── Кроки ── */
-  var STEPS = ['sphere', 'people', 'garments', 'colors', 'logo', 'contact', 'result'];
+  /* Андрій (06.10): «у квізі обирати одяг не потрібно» — після контакту
+     людина одразу йде у свій каталог (/k/), де весь одяг уже з її лого.
+     Крок «result» лишився запасним: якщо логотип не вдалось покласти в
+     хмару, посилання на каталог не буде — тоді показуємо варіанти тут. */
+  var STEPS = ['sphere', 'people', 'logo', 'contact', 'result'];
   function go(n){
     S.step = Math.max(0, Math.min(STEPS.length - 1, n));
     save(); render(); W.scrollTo(0, 0);
@@ -220,7 +224,7 @@
   }
   function nextState(){
     var st = STEPS[S.step], b = D.getElementById('qNext');
-    b.textContent = st === 'contact' ? 'Показати мої варіанти' : 'Далі';
+    b.textContent = st === 'contact' ? 'Відкрити мій каталог' : 'Далі';
     b.disabled = !ready(st);
   }
   function ready(st){
@@ -237,7 +241,7 @@
   var VIEWS = {
     sphere: function(){
       return '<div class="q-card"><h1 class="q-h">Побачте свій логотип на одязі команди — за хвилину</h1>' +
-        '<p class="q-sub">Кілька питань, логотип — і ви отримаєте варіанти розміщення на вибраному одязі з прорахунком ціни.</p>' +
+        '<p class="q-sub">Три питання й логотип — і ви отримаєте свій каталог: футболки, худі, кепки й шопери вже з вашим логотипом і цінами на вашу команду.</p>' +
         '<label class="q-lbl">Чим займається ваша компанія?</label><div class="q-chips">' +
         SPHERES.map(function(s){ return '<button class="q-chip' + (S.sphere === s.id ? ' on' : '') + '" data-sp="' + s.id + '">' + esc(s.name) + '</button>'; }).join('') +
         '</div><label class="q-lbl" for="qCo">Назва компанії <span style="font-weight:400;color:var(--muted)">(необовʼязково)</span></label>' +
@@ -288,14 +292,14 @@
         '<textarea class="q-in" id="qWish" rows="2" maxlength="500" placeholder="Напис на спині, імена, дедлайн…">' + esc(S.wish) + '</textarea></div>';
     },
     contact: function(){
-      return '<div class="q-card"><h2 class="q-h">Куди надіслати варіанти й прорахунок?</h2>' +
-        '<p class="q-sub">Варіанти зʼявляться на екрані одразу, а менеджер надішле їх вам і відповість на питання.</p>' +
+      return '<div class="q-card"><h2 class="q-h">Куди надіслати ваш каталог?</h2>' +
+        '<p class="q-sub">Каталог відкриється одразу, а менеджер продублює посилання й відповість на питання.</p>' +
         '<label class="q-lbl" for="qName">Ваше імʼя</label><input class="q-in" id="qName" maxlength="60" autocomplete="name" value="' + esc(S.name) + '">' +
         '<label class="q-lbl" for="qPhone">Телефон</label><input class="q-in" id="qPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 __ ___ __ __" value="' + esc(S.phone) + '">' +
         '<label class="q-lbl" for="qTg">Telegram чи Instagram <span style="font-weight:400;color:var(--muted)">(необовʼязково)</span></label>' +
         '<input class="q-in" id="qTg" maxlength="60" placeholder="@нік" value="' + esc(S.tg) + '">' +
         '<div class="q-err" id="qErr"></div>' +
-        (busy ? '<div class="q-busy"><div class="q-spin"></div>Розміщуємо логотип на одязі…</div>' : '') +
+        (busy ? '<div class="q-busy"><div class="q-spin"></div>Готуємо ваш каталог з логотипом…</div>' : '') +
         '<p class="q-note">Натискаючи кнопку, ви погоджуєтесь, що ми звʼяжемося з вами щодо замовлення. Без розсилок.</p></div>';
     },
     result: function(){ return resultHtml(); }
@@ -501,28 +505,35 @@
     if(!phoneNorm(S.phone)){ if(err) err.textContent = 'Перевірте номер телефону: потрібен український, +380…'; return; }
     busy = true; render();
     S.name = String(S.name).trim().slice(0, 60);
+    /* Одяг не обирали — у картку менеджеру кладемо типовий набір сфери. */
+    var sp = SPHERES.filter(function(x){ return x.id === S.sphere; })[0] || { g: [] };
+    S.garments = (sp.g.length ? sp.g : ['tee', 'hoodie', 'cap']).filter(function(g){ return gOf(g); });
+    if(!S.garments.length) S.garments = garments().slice(0, 3).map(function(g){ return g.id; });
+    S.garments.forEach(function(gid){ if(!S.colors[gid]){ var g = gOf(gid); if(g) S.colors[gid] = popular(g); } });
+    save();
     lead(leadText('🧩 Квіз: нова заявка'));
     track('quiz_contact');
     try{ W.lqAn && W.lqAn.step('lead'); }catch(e){}
-    buildMocks().catch(function(){}).then(function(){
-      busy = false; S.sent = true; go(STEPS.indexOf('result'));
-      saveOrder();
+    buildMocks().catch(function(){}).then(saveOrder).catch(function(){}).then(function(){
+      busy = false; S.sent = true; save();
+      if(S.kit){ track('quiz_kit'); location.href = S.kit; return; }
+      go(STEPS.indexOf('result'));
     });
   }
   var ORDER_SAVED = false;
   function saveOrder(){
-    if(ORDER_SAVED) return;
+    if(ORDER_SAVED) return Promise.resolve();
     ORDER_SAVED = true;
     var logoUp = upload(S.logo && S.logo.url);
     var rawUp = RAW && RAW.url && RAW.url !== (S.logo && S.logo.url) ? upload(RAW.url) : Promise.resolve(null);
     var mockUps = [];
+    /* Лише мокап основного варіанту: людина чекає на перехід у каталог,
+       а решту варіантів менеджер побачить там само за посиланням. */
     S.garments.forEach(function(gid){
-      placesFor(gid).forEach(function(pl){
-        var mk = MOCKS[gid] && MOCKS[gid][pl];
-        if(mk && mk.url && !mk.up) mockUps.push(upload(mk.url).then(function(u){ mk.up = u; }));
-      });
+      var mk = MOCKS[gid] && MOCKS[gid][pickOf(gid)];
+      if(mk && mk.url && !mk.up) mockUps.push(upload(mk.url).then(function(u){ mk.up = u; }));
     });
-    Promise.all([logoUp, rawUp].concat(mockUps)).then(function(r){
+    return Promise.all([logoUp, rawUp].concat(mockUps)).then(function(r){
       var logoUrl = r[0], rawUrl = r[1];
       var pt = priceTable() || [];
       var items = S.garments.map(function(gid, i){
@@ -553,7 +564,8 @@
         orderId: 'Q' + Date.now().toString(36).toUpperCase(),
         name: S.name || 'Квіз', phone: phoneNorm(S.phone), site: 'quiz', items: items,
         totalPrice: total, totalCost: 0, page: location.pathname,
-        note: ('Квіз · ' + (S.company ? S.company + ' · ' : '') + sphereName() + ' · людей: ' + S.people +
+        note: ('Квіз (одяг не обирали — набір за сферою; що сподобається, клієнт складе в кошик каталогу) · ' +
+               (S.company ? S.company + ' · ' : '') + sphereName() + ' · людей: ' + S.people +
                (S.tg ? ' · ' + String(S.tg).trim() : '') + (S.wish ? ' · побажання: ' + S.wish : '') +
                (logoUrl ? ' · логотип: ' + logoUrl : '') + (S.kit ? ' · каталог клієнта: ' + S.kit : '')).slice(0, 1800),
         quiz: { company: S.company, sphere: S.sphere, people: S.people, tg: S.tg, wish: S.wish, logo: logoUrl, logoRaw: rawUrl },
