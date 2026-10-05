@@ -4421,10 +4421,14 @@
   .dz-card .dz-c-bot .dz-card-sum{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
   .dz-card .dz-c-bot-r{display:flex;align-items:center;gap:6px;margin:0 0 0 auto;}
   .dz-c-bot .dz-card-due{float:none;margin:0;flex:none;}
-  .dz-c-paid{font-style:normal;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;}
-  .dz-c-paid.full{background:#ECFDF3;color:#067647;}
-  .dz-c-paid.part{background:#FEF8E7;color:#8A6410;}
-  .dz-c-paid.none{background:#FDECEA;color:#B03A1A;}
+  .dz-c-paid{font-style:normal;font-size:11.5px;font-weight:500;color:var(--ink-soft);}
+  .dz-c-chain,.dz-card .dz-c-chain,.dz-panel-h .dz-c-chain{display:flex;flex-wrap:wrap;gap:3px 10px;margin:9px 0 0;font-size:11.5px;line-height:1.35;white-space:normal;min-width:0;}
+  .dz-card .dz-c-chain b,.dz-c-chain b{display:inline;font-size:11.5px;font-weight:600;white-space:nowrap;margin:0;line-height:1.35;}
+  .dz-c-chain b.ok{color:#067647;}
+  .dz-c-chain b.now{color:var(--ink);}
+  .dz-c-chain b.next{color:#98A2B3;font-weight:500;}
+  .dz-c-chain.in-panel,.dz-panel-h .dz-c-chain.in-panel{flex-basis:100%;margin:6px 0 0;}
+  .dz-c-chain.in-panel b{font-size:12px;}
   .dz-card .dz-c-who{flex:none;width:22px;height:22px;margin:0;border-radius:50%;background:#EEF2FF;color:#3730A3;
     font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   .dz-card-w.is-v2 .dz-card-m{margin-top:8px;}
@@ -7283,27 +7287,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7b9e442f8b"></script>
-<script src="loomiq-fingerprint.js?v=7b9e442f8b"></script>
-<script src="loomiq-pricing.js?v=7b9e442f8b"></script>
+<script src="loomiq-select.js?v=820e45eff0"></script>
+<script src="loomiq-fingerprint.js?v=820e45eff0"></script>
+<script src="loomiq-pricing.js?v=820e45eff0"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=7b9e442f8b"></script>
+<script src="loomiq-money-core.js?v=820e45eff0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7b9e442f8b"></script>
-<script src="loomiq-mock.js?v=7b9e442f8b"></script>
+<script src="loomiq-design.js?v=820e45eff0"></script>
+<script src="loomiq-mock.js?v=820e45eff0"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=7b9e442f8b"></script>
-<script src="loomiq-threads.js?v=7b9e442f8b"></script>
+<script src="imagetracer.js?v=820e45eff0"></script>
+<script src="loomiq-threads.js?v=820e45eff0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=7b9e442f8b"></script>
+<script src="loomiq-cards.js?v=820e45eff0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7328,7 +7332,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '7b9e442f8b';
+var LQ_VER = '820e45eff0';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

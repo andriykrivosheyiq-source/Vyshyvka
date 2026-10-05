@@ -2251,28 +2251,41 @@
        └ мітки (правка, чекають) · канал клієнта  ┘
      Червоне — лише там, де треба діяти зараз. Порядок рядків однаковий у
      всіх ролях: людина, що дивиться дві дошки, не перевчається. */
+  /* ЕТАПИ ЗАМОВЛЕННЯ СЛОВАМИ (05.10). Андрій: «рисочки не потрібні —
+     галочками по порядку: графіка ✓, вишивка ✓, одяг ✓, виробництво ✓;
+     не готово — у кого зараз». Готове — «✓ Графіка», у роботі — «Графіка у
+     Олі», ще не дійшли — сірим. */
+  function chainHtml(list, cls){
+    if(!list || !list.length) return '';
+    return '<span class="dz-c-chain' + (cls ? ' ' + cls : '') + '">' + list.map(function(x){
+      return '<b class="' + esc(x.st) + '"' + (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' +
+        (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</b>'; }).join('') + '</span>';
+  }
   function cardV2Html(c, годинник, лишок){
     var pic = c.pic
       ? '<span class="dz-c-pic"><img src="' + esc(c.pic) + '" alt="" loading="lazy"></span>'
       : '<span class="dz-c-pic is-none">' + esc(c.picTxt || '—') + '</span>';
     var кроки = '';
-    if(c.steps && c.steps.n){
+    if(c.chain) кроки = chainHtml(c.chain);
+    else if(c.steps && c.steps.n){
       var dots = [];
       for(var i = 0; i < c.steps.n; i++)
         dots.push('<i class="' + (i < c.steps.at ? 'done' : i === c.steps.at ? 'now' : '') + '"' +
                   (c.steps.labels && c.steps.labels[i] ? ' title="' + esc(c.steps.labels[i]) + '"' : '') + '></i>');
       кроки = '<span class="dz-c-steps" title="' + esc(c.steps.txt || '') + '">' + dots.join('') + '</span>';
     }
-    var готово = (c.ready || []).length
+    var готово = (!c.chain && (c.ready || []).length)
       ? '<span class="dz-c-ready">' + c.ready.map(function(r){
           return '<b class="' + (r.ok ? 'ok' : 'no') + '" title="' + esc(r.title || '') + '">' +
                  (r.ok ? '✓ ' : '· ') + esc(r.label) + '</b>'; }).join('') + '</span>'
       : '';
+    /* Гроші — просто текстом, без червоного (05.10): «не оплачено 1 200 ₴». */
     var гроші = c.sum
       ? '<span class="dz-card-sum' + (c.sum >= 20000 ? ' big' : '') + '">' + esc(c.sumTxt || c.sum) +
-          (c.paidPct != null
-            ? ' <em class="dz-c-paid' + (c.paidPct >= 100 ? ' full' : c.paidPct > 0 ? ' part' : ' none') + '">' +
-              (c.paidPct >= 100 ? 'оплачено' : c.paidPct > 0 ? 'оплачено ' + c.paidPct + ' %' : 'не оплачено') + '</em>'
+          (c.unpaidTxt != null
+            ? ' <em class="dz-c-paid">' + esc(c.unpaidTxt) + '</em>'
+            : c.paidPct != null
+            ? ' <em class="dz-c-paid">' + (c.paidPct >= 100 ? 'оплачено' : 'не оплачено') + '</em>'
             : '') + '</span>'
       : '';
     /* Внизу — обіцянка клієнту, і підписана саме так. Угорі вже стоїть
@@ -2281,17 +2294,17 @@
       ? '<em class="dz-card-due' + (лишок.late ? ' late' : лишок.soon ? ' soon' : '') + '" title="Відправка клієнту до ' +
           esc(dueShort(c.due)) + '">' + esc(String(лишок.txt).replace(/^лишилось\s+/i, 'до відправки ')) + '</em>'
       : '';
-    var хто = c.who
-      ? '<span class="dz-c-who" title="' + esc(c.whoTitle || c.who) + '">' + esc(String(c.who).trim().charAt(0).toUpperCase()) + '</span>'
-      : '';
+    /* Кружечка з людиною більше немає (05.10): у кого етап — написано в
+       ланцюжку словами. */
+    var хто = '';
     return '<div class="dz-card-w is-v2' + (c.fix ? ' is-fix' : '') + (c.unseen ? ' has-n' : '') +
         (c.green ? ' is-go' : '') + '">' +
       '<button class="dz-card' + (c.id === openKey ? ' on' : '') + '" data-open="' + esc(c.id) + '">' +
         '<span class="dz-c-top">' + pic +
           '<span class="dz-c-main">' +
             '<b>' + esc(c.title) + годинник + '</b>' +
-            (c.nick ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
-            (c.what ? '<span class="dz-c-what">' +
+            (c.nick && !c.chain ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
+            (c.what && !c.chain ? '<span class="dz-c-what">' +
                (c.swatch ? '<b class="dz-sw" style="background:' + esc(c.swatch) + '"></b>' : '') +
                esc(c.what) + '</span>' : '') +
             (c.foot ? '<i class="dz-c-state">' + esc(c.foot) + '</i>' : '') +
@@ -4792,7 +4805,7 @@
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
        картку з них, а не малюють кожна свій варіант того самого. */
-    zoneHtml: zoneHtml, foldHtml: foldHtml, FOLD: FOLD,
+    zoneHtml: zoneHtml, foldHtml: foldHtml, FOLD: FOLD, chainHtml: chainHtml,
     unitsSub: unitsSub, shipSub: shipSub,
     moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum, paidOf: paidOf,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
@@ -5152,6 +5165,7 @@
      теж — це був той самий текст на всіх картках колонки, тобто нічого. */
   function chainCards(){
     var m = (host().me && host().me()) || '';
+    var всіЗ = buys();
     return U.pairs().map(function(p){
       var col = D.chainAt(p.job, p.o);
       var open = D.taskOpen(p.job).length;
@@ -5171,7 +5185,9 @@
         /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
         what: whatOf(p.job, p.o),
         paidPct: сума ? Math.min(100, Math.round(оплачено / сума * 100)) : null,
+        unpaidTxt: сума ? (оплачено >= сума ? 'оплачено' : 'не оплачено ' + money(сума - оплачено)) : null,
         steps: { n: 5, at: at, labels: CHAIN_STEP_L, txt: CHAIN_STEP_L[at] },
+        chain: stageMarks(p.job, p.o, всіЗ),
         who: хто ? nameOf(хто) : '', whoTitle: хто ? 'Зараз працює: ' + nameOf(хто) : '',
         fix: правки, fixLabel: правки ? 'правки клієнта' : '',
         title: U.jobNo(p.job),
@@ -5236,9 +5252,11 @@
       });
     });
     if(bestOk || best) return bestOk || best;
-    for(var i = 0; i < us.length; i++){ var ph = U.unitPhoto(us[i]); if(ph) return ph; }
+    /* Дизайну ще немає — перша картинка з ТЗ (05.10), і лише тоді фото виробу. */
     var bp = ((job && job.brief && job.brief.pics) || [])[0];
-    return (bp && bp.url) || '';
+    if(bp && bp.url) return bp.url;
+    for(var i = 0; i < us.length; i++){ var ph = U.unitPhoto(us[i]); if(ph) return ph; }
+    return '';
   }
   /* ЩО В ЗАМОВЛЕННІ — одним рядком: «Худі білий, Футболка чорна · 7 шт». */
   function whatOf(job, o, withSizes){
@@ -5275,6 +5293,41 @@
       });
     });
     return хто;
+  }
+  /* ЕТАПИ ЗАМОВЛЕННЯ ДЛЯ ЛАНЦЮЖКА (05.10): Графіка → Вишивка → Одяг →
+     Виробництво → Відправка. st: ok (готово) · now (зараз тут) · next (ще ні). */
+  function імя(e){ return String(nameOf(e) || '').trim().split(/\s+/)[0]; }
+  function stageMarks(job, o, всі){
+    var us = U.unitsOf(job).filter(function(u){ return u && (u.gid || u.name); });
+    var col = D.chainAt(job, o);
+    var крок = CHAIN_STEP[col] != null ? CHAIN_STEP[col] : 0;
+    var out = [];
+    var gl = [], sl = [];
+    us.forEach(function(u){ gl = gl.concat(D.dzList(u, 'graphic')); sl = sl.concat(D.dzList(u, 'stitch')); });
+    var gDone = !!job.approvedVersion || крок >= 1 || (gl.length > 0 && gl.every(function(d){ return d.ok || d.status === 'approved'; }));
+    var gWho = (gl.filter(function(d){ return !d.ok && d.status !== 'approved' && d.who; })[0] || {}).who;
+    out.push(gDone ? { st:'ok', t:'Графіка' }
+      : { st:'now', t: gWho ? 'Графіка · ' + імя(gWho) : 'Графіка', title: gWho ? 'Працює: ' + nameOf(gWho) : 'Графічному ще не передано' });
+    var sDone = крок >= 2 || (sl.length > 0 && sl.every(function(d){ return !!d.ok; }));
+    var sWho = (sl.filter(function(d){ return !d.ok && d.who; })[0] || {}).who;
+    out.push(sDone ? { st:'ok', t:'Вишивка' }
+      : gDone ? { st:'now', t: sWho ? 'Вишивка · ' + імя(sWho) : 'Вишивка', title: sWho ? 'Працює: ' + nameOf(sWho) : 'У черзі вишивального' }
+      : { st:'next', t:'Вишивка' });
+    if(us.length){
+      var ks = us.map(function(u){ return D.buyStateOf(всі || [], o.orderId, u.id, u.qty).key; });
+      var одяг = ks.every(function(k){ return k === 'got'; }) ? { st:'ok', t:'Одяг' }
+        : !gDone ? { st:'next', t:'Одяг' }
+        : { st: 'now',
+            t: ks.some(function(k){ return k === 'got'; }) ? 'Одяг частково'
+             : ks.some(function(k){ return k === 'way'; }) ? 'Одяг в дорозі'
+             : ks.some(function(k){ return k === 'sent'; }) ? 'Одяг замовлено' : 'Одяг не замовлено' };
+      out.push(одяг);
+    }
+    out.push(крок >= 3 ? { st:'ok', t:'Виробництво' }
+      : крок === 2 ? { st:'now', t:'У виробництві' } : { st:'next', t:'Виробництво' });
+    out.push(col === 'shipped' ? { st:'ok', t:'Відправлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' }
+      : col === 'ready' ? { st:'now', t: o && o.ttn ? 'ТТН ' + o.ttn : 'Чекає ТТН' } : { st:'next', t:'Відправка' });
+    return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
   var CHAIN_STEP = { new:0, design:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, qc:2, ready:3, shipped:4 };
@@ -5449,6 +5502,7 @@
      відділу, нові, в роботі, на перевірці, правки, готово — по позиціях. */
   function graphicCards(kind){
     kind = kind === 'stitch' ? 'stitch' : 'graphic';
+    var всіГ = buys();
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
     var год = kindHours(kind);
@@ -5477,9 +5531,10 @@
       });
       var хто = (mine.filter(function(x){ return x.d.who; })[0] || {}).d;
       return { id: p.o.orderId, step: крок, v2: true,
-        pic: jobPic(p.job, kind === 'stitch' ? ['stitch', 'graphic'] : ['graphic'],
-                    mine.map(function(x){ return x.d; })) ||
-             jobPic(p.job, ['graphic']),
+        /* Картинка — основний мокап від графічного (05.10), і у вишивального теж. */
+        pic: kind === 'stitch' ? jobPic(p.job, ['graphic'])
+           : (jobPic(p.job, ['graphic'], mine.map(function(x){ return x.d; })) || jobPic(p.job, ['graphic'])),
+        chain: stageMarks(p.job, p.o, всіГ),
         /* Виріб і колір тканини — вишивальнику колір важить для ниток. */
         what: [u0.name || '', String(u0.color || '').toLowerCase()].filter(Boolean).join(' · ') +
               (+u0.qty ? ' · ' + u0.qty + ' шт' : ''),
@@ -5637,7 +5692,8 @@
     return '<div class="dz-panel-h">' +
         '<span class="dz-panel-id"><b>' + U.jobNo(p.job) + '</b>' +
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
-          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) + '</span>' +
+          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) +
+          U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</span>' +
         clockHtml(D.stageLeft(job, o, 'acct', termHours('acct'))) +
         U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
@@ -6351,7 +6407,8 @@
     return '<div class="dz-panel-h">' + U.jobNo(job) +
         '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' +
         clockHtml(D.stageLeft(job, o, 'prod', termHours('prod'))) +
-        '<button class="dz-x" data-close>×</button></div>' +
+        '<button class="dz-x" data-close>×</button>' +
+        U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</div>' +
       '<div class="dz-panel-b is-zones">' +
         U.zoneHtml('violet', '👕', 'Що шиємо', '', prodUnitsHtml(p)) +
         U.zoneHtml('blue', '📝', 'ТЗ', '', prodTzHtml(job, o)) +
@@ -6515,7 +6572,8 @@
       }
       var крокП = D.prodAt(p.job, p.o);
       return { id: p.o.orderId, step: крокП, v2: true,
-        pic: jobPic(p.job, ['stitch', 'graphic']),
+        pic: jobPic(p.job, ['graphic']),
+        chain: stageMarks(p.job, p.o, всі),
         what: whatOf(p.job, p.o, true),
         ready: готов,
         green: готов.length && готов.every(function(r){ return r.ok; }) && крокП !== 'shipped',
