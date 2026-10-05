@@ -465,6 +465,28 @@ const цех = await p.evaluate(() => ({
   машина: [...document.querySelectorAll('.dz-panel .dz-tile-f')].map(b => b.dataset.name),
   картка: document.querySelectorAll('.dz-panel [data-do="prod-card"]').length }));
 console.log('  ' + JSON.stringify(цех));
+/* ТЗ і переписка з клієнтом у картці цеху (05.10): «Що шиємо → ТЗ →
+   переписка з менеджером»; ТЗ — кілька рядків і «розгорнути»; лише кнопки
+   переписки з клієнтом, без шапки з контактами. */
+const тз = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, o = __o, j = __j;
+  j.brief = Object.assign({}, j.brief, { text: 'Вишивка товщою ниткою, як на фото клієнта.\nБез бирки на шиї.\nЛого строго по центру.\nПакувати кожну окремо.\nДо пʼятниці.\nКлієнт просив перевірити колір ниток.' });
+  o.crmChatId = 'chat123'; o.tgChatId = 0;
+  U.setTab('prod'); U.open(o.orderId); U.render(document.getElementById('dzRoot'));
+  const зони = [...document.querySelectorAll('.dz-panel .dz-z-h b')].map(x => x.textContent);
+  const t = document.querySelector('.dz-panel .dz-tz-t');
+  const r = { зони, cut: !!(t && t.classList.contains('is-cut')), h: t ? t.getBoundingClientRect().height : 0,
+    кнопки: [...document.querySelectorAll('.dz-panel .dz-tz-chat button')].map(b => b.textContent) };
+  document.querySelector('.dz-panel [data-do="prod-tz"]').click();
+  await new Promise(z => setTimeout(z, 100));
+  const t2 = document.querySelector('.dz-panel .dz-tz-t');
+  r.open = !t2.classList.contains('is-cut'); r.h2 = t2.getBoundingClientRect().height;
+  return r;
+});
+console.log('  ' + JSON.stringify(тз));
+ok(тз.зони.join('|') === 'Що шиємо|ТЗ|Переписка з менеджером', 'у цеху: Що шиємо → ТЗ → Переписка з менеджером', 'зони: ' + тз.зони.join('|'));
+ok(тз.cut && тз.open && тз.h2 > тз.h, 'ТЗ — перші рядки, «розгорнути» показує все', 'ТЗ: ' + JSON.stringify(тз));
+ok(тз.кнопки.join() === 'Instagram', 'під ТЗ — кнопка переписки з клієнтом (Instagram), без шапки з контактами', 'кнопки: ' + тз.кнопки);
 ok(цех.одяг.length === 2 && /В дорозі · №1/.test(цех.одяг[1]) && /ТТН 20450012345678/.test(цех.одяг[1]) && /Отримано/.test(цех.одяг[0]),
   'біля кожного одягу — стан закупівлі, номер і ТТН', 'одяг: ' + JSON.stringify(цех.одяг));
 ok(цех.машина.indexOf(N1 + '-2_v1.dst') >= 0, 'файли для машини — у цеху, з підписом', 'файли: ' + JSON.stringify(цех.машина));

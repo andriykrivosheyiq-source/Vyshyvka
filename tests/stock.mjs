@@ -139,6 +139,8 @@ await p.evaluate(() => document.querySelector('[data-do="stock-form"]').click())
 await p.waitForTimeout(300);
 const gid = await p.evaluate(() => { const s = document.querySelector('[data-stkf="gid"]');
   const g = window.LQDesign.ui.host.catalog().find(x => (x.colors || []).length && (x.sizes || []).length >= 3);
+  /* 05.10: ціна одиниці на складі — собівартість B2C з налаштувань. */
+  contentData.products = Object.assign({}, contentData.products, { retailCost: Object.assign({}, (contentData.products || {}).retailCost, { [g.id]: 200 }) });
   s.value = g.id; s.dispatchEvent(new Event('change')); return g.id; });
 await p.waitForTimeout(300);
 const форма = await p.evaluate(() => {
@@ -146,11 +148,13 @@ const форма = await p.evaluate(() => {
   const sizes = [...document.querySelectorAll('[data-sfq]')].map(x => x.dataset.sfq);
   const set = (z, v) => { const i = document.querySelector('[data-sfq="' + z + '"]'); i.value = v; i.dispatchEvent(new Event('input')); };
   set(sizes[0], 3); set(sizes[1], 5);
-  const cost = document.querySelector('[data-stkf="cost"]'); cost.value = '180.5'; cost.dispatchEvent(new Event('change'));
-  return { sizes, color: c.value };
+  return { sizes, color: c.value, hint: (document.querySelector('.dz-stk-cost') || {}).textContent || '',
+           costField: !!document.querySelector('[data-stkf="cost"]') };
 });
 console.log('   ' + JSON.stringify(форма));
 ok(форма.sizes.length >= 3, 'обрали модель — одразу вся сітка розмірів: ' + форма.sizes.join(' '), 'сітки немає');
+ok(!форма.costField && /Собівартість B2C: 200 ₴\/шт/.test(форма.hint),
+  'ціну руками не вписують — показано собівартість B2C з налаштувань: «' + форма.hint + '»', 'ціна: ' + JSON.stringify(форма));
 await p.evaluate(() => document.querySelector('[data-do="stock-in"]').click());
 await p.waitForTimeout(500);
 const after = await p.evaluate(() => ({ st: window.LQDesign.ui.host.stockState(),
@@ -158,10 +162,15 @@ const after = await p.evaluate(() => ({ st: window.LQDesign.ui.host.stockState()
   tab: (document.querySelectorAll('.dz-buy-tab')[1] || {}).textContent || '',
   log: [...document.querySelectorAll('.dz-stk-m')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) }));
 console.log('   ' + after.head + ' · ' + after.log.join(' / '));
-ok(after.st.items.length === 2 && after.st.items.every(x => x.cost === 180.5) && after.st.moves.length === 2,
-  'на склад лягли два розміри одним натиском, кожен з ціною 180,5 ₴, і два рухи в журналі', 'склад: ' + JSON.stringify(after.st));
-ok(/8 шт · на 1 444 ₴/.test(after.head) && /8 шт/.test(after.tab), 'вартість складу видно: 8 шт на 1 444 ₴ (і на вкладці)', 'шапка: ' + after.head + ' / ' + after.tab);
-ok(after.log.length === 2 && after.log.every(t => /\+\d/.test(t) && /Прихід/.test(t) && /180,50 ₴\/шт/.test(t)), 'журнал: «+3 · Прихід · 180,50 ₴/шт»', 'журнал: ' + JSON.stringify(after.log));
+ok(after.st.items.length === 2 && after.st.moves.length === 2 && after.st.moves.every(m => m.cost === 200),
+  'на склад лягли два розміри одним натиском, рухи в журналі — за собівартістю 200 ₴', 'склад: ' + JSON.stringify(after.st));
+ok(/8 шт · на 1 600 ₴/.test(after.head) && /8 шт · 1 600 ₴/.test(after.tab), 'вартість складу: 8 шт × 200 ₴ = 1 600 ₴ (і на вкладці)', 'шапка: ' + after.head + ' / ' + after.tab);
+ok(after.log.length === 2 && after.log.every(t => /\+\d/.test(t) && /Прихід/.test(t) && /200 ₴\/шт/.test(t)), 'журнал: «+3 · Прихід · 200 ₴/шт»', 'журнал: ' + JSON.stringify(after.log));
+/* По нинішніх цінах: змінили собівартість у налаштуваннях — змінилась і вартість складу. */
+const нова = await p.evaluate((gid) => { contentData.products.retailCost[gid] = 250;
+  window.LQDesign.ui.render(document.getElementById('dzRoot'));
+  return (document.querySelector('.dz-stk .dz-buy-h span') || {}).textContent || ''; }, gid);
+ok(/8 шт · на 2 000 ₴/.test(нова), 'собівартість стала 250 ₴ — склад одразу оцінено на 2 000 ₴ (по нинішніх цінах)', 'після зміни ціни: ' + нова);
 
 console.log('');
 console.log('═══ 3. ІНВЕНТАРИЗАЦІЯ ═══');
@@ -204,8 +213,6 @@ const back = await p.evaluate(async () => {
 console.log('   ' + JSON.stringify(back));
 ok(back.кнопка && back.стало === back.було + 2 && back.m === 'back:2' && back.rows === 0 && back.returned && back.мітка,
   'взяте зі складу повертається одним натиском: +2 на склад, рух «Повернення», документ позначено', 'повернення: ' + JSON.stringify(back));
-ok(back.cost === Math.round((back.було * 180.5 + 2 * 150) / (back.було + 2) * 100) / 100,
-  'повернули за ціною, за якою списали, — середня ціна перерахувалась', 'ціна після повернення: ' + back.cost);
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
