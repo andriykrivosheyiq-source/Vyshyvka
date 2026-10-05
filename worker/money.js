@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-05.2 · NovaPay: вхід і залишок';
+const VERSION = '2026-10-05.3 · NovaPay: підказка при помилці входу';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -801,8 +801,19 @@ async function novapayJwt(env, force) {
   const token = savedOk && saved.refresh_token ? saved.refresh_token : env.NOVAPAY_REFRESH_TOKEN;
   const cert = savedOk && saved.public_certificate ? saved.public_certificate : env.NOVAPAY_CERT;
   const a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
-  if (a.error) throw new Error('NovaPay вхід: ' + a.error +
-    (savedOk ? '' : ' (якщо ключ протермінований — згенеруйте новий у кабінеті й покладіть у NOVAPAY_REFRESH_TOKEN і NOVAPAY_CERT)'));
+  if (a.error) {
+    /* Що саме пішло в NovaPay — без самих значень ключа: логін, довжина
+       токена, чи схожий сертифікат на цілий (BEGIN…END). Щоб розібратись,
+       чого не так, без пересилання секретів. */
+    const t = String(token || ''), c = String(cert || '');
+    const діаг = 'логін «' + env.NOVAPAY_LOGIN + '» (' + String(env.NOVAPAY_LOGIN).length + ' симв.)' +
+      ', токен ' + t.length + ' симв.' + (/^\*+$/.test(t) ? ' — ЦЕ ЗІРОЧКИ, а не токен' : '') +
+      (/\s/.test(t) ? ' — у токені є пробіл чи перенос' : '') +
+      ', сертифікат ' + c.length + ' симв.' + (/BEGIN/.test(c) && /END/.test(c) ? '' : ' — НЕМАЄ рядків BEGIN/END') +
+      (savedOk ? ', ключ зі збереженого' : ', ключ із секрету');
+    throw new Error('NovaPay вхід: ' + a.error + ' · ' + діаг +
+      (savedOk ? '' : ' · якщо ключ протермінований — згенеруйте новий у кабінеті й покладіть у NOVAPAY_REFRESH_TOKEN і NOVAPAY_CERT'));
+  }
   const jwt = xmlUnesc(xmlTag(a.res, 'jwt') || '');
   const next = xmlUnesc(xmlTag(a.res, 'refresh_token') || '');
   const nextCert = xmlUnesc(xmlTag(a.res, 'public_certificate') || '');
