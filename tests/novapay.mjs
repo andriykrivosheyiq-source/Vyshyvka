@@ -120,7 +120,7 @@ console.log('═══ ПРОТЕРМІНОВАНИЙ КЛЮЧ ═══');
 const fresh3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 3))).default;
 const env3 = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'OLD-DEAD' });
 const p5 = await fresh3.fetch(new Request('https://w.test/novapay/poll?s=sek'), env3).then(r => r.json());
-ok(!p5.ok && /Refresh token expired/.test(p5.error) && /згенеруйте новий/.test(p5.error),
+ok(!p5.ok && /Refresh token expired/.test(p5.error) && /згенеруйте новий/.test(p5.error) && /логін «andriy» \(6 симв.\), токен 8 симв./.test(p5.error) && !/OLD-DEAD/.test(p5.error),
   'протермінований ключ — зрозуміло: «' + String(p5.error).slice(0, 90) + '…»', 'помилка: ' + JSON.stringify(p5));
 
 console.log('');
