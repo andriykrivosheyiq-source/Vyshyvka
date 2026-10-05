@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-04.1 · стан посилок для Звірки';
+const VERSION = '2026-10-05.1 · час по Києву';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -243,7 +243,8 @@ async function payment(env, p, batch) {
     src: p.src || '',               // mono | privat | np — видно, звідки взялось
     ttn: p.ttn || undefined,        // номер накладної — за ним адмінка привʼязує рух до замовлення
     /* Залишок після цього руху — коли банк його каже (Монобанк каже). */
-    balAfter: p.balAfter == null ? undefined : kop(p.balAfter)
+    balAfter: p.balAfter == null ? undefined : kop(p.balAfter),
+    tz: 1                           // час уже правильний (по Києву) — див. fixTz
   };
   if (batch) batch.push({ path: 'payments/' + p.id, obj });
   else await fsWrite(env, 'payments/' + p.id, obj);
@@ -476,13 +477,30 @@ async function privatPoll(env, acc) {
   } catch (e) { залишок = 'не прочитано: ' + e.message; }
   return { acc: acc.id, рухів: n, залишок };
 }
+/* КИЇВСЬКИЙ ЧАС → ISO (05.10). Приват і Нова пошта кажуть час так, як він
+   на годиннику в Києві («05.10.2026 14:17»), без поясу. Доти ми читали його
+   як UTC — і в адмінці (вона показує по Києву) рух стояв на 2–3 години
+   пізніше, ніж був. Тепер рахуємо зсув Києва саме на ту дату (літо +3,
+   зима +2). */
+function kyivIso(y, mo, d, h, mi, s) {
+  const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kyiv', hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const off = t => {
+    const p = fmt.formatToParts(new Date(t));
+    const g = k => +(p.find(x => x.type === k) || {}).value;
+    return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - t;
+  };
+  const guess = Date.UTC(y, mo - 1, d, h || 0, mi || 0, s || 0);
+  let t = guess - off(guess);
+  t = guess - off(t);              // другий крок — на випадок переходу на літній/зимовий час
+  return new Date(t).toISOString();
+}
 /* Приват віддає час як «01.02.2026 13:45:00» або окремими полями. Беремо те,
    що є, і завжди повертаємо ISO: адмінка сортує рядком. */
 function privatIso(t) {
   const s = String(t.DATE_TIME_DAT_OD_TIM_P || t.DAT_OD || '').trim();
   const m = /^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(s);
-  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1],
-    +(m[4] || 0), +(m[5] || 0), +(m[6] || 0))).toISOString();
+  if (m) return kyivIso(+m[3], +m[2], +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
   const d = new Date(s);
   return isNaN(d) ? new Date().toISOString() : d.toISOString();
 }
@@ -560,8 +578,7 @@ function npPayout(x) {
 }
 function npIso(s) {
   const m = /^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(String(s || '').trim());
-  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1],
-    +(m[4] || 0), +(m[5] || 0), +(m[6] || 0))).toISOString();
+  if (m) return kyivIso(+m[3], +m[2], +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
   const d = new Date(s);
   return isNaN(d) ? new Date().toISOString() : d.toISOString();
 }
@@ -693,6 +710,42 @@ async function npPoll(env, accId) {
    Приват уміє відповідати технічною помилкою пів години, і зупиняти через
    це Нову пошту означало б втратити виплати за цей час.
    ══════════════════════════════════════════════════════════════════════════ */
+/* ВИПРАВИТИ ЧАС СТАРИХ РУХІВ (05.10). Рухи Привату й НП, записані до
+   kyivIso, лежать на 2–3 години пізніше. Адмінка їх не виправить (правила
+   бази не дають чіпати час банківського руху) — виправляємо тут, службовим
+   акаунтом, один раз: позначка tz:1 є — не чіпаємо, немає — зсуваємо.
+   Позначка самої правки — loomiq/moneyMeta.tzFixed. */
+async function fixTz(env, force) {
+  if (!force) {
+    const meta = await fsGet(env, 'loomiq/moneyMeta').catch(() => null);
+    if (meta && meta.tzFixed) return { skip: 'уже виправлено ' + meta.tzFixed };
+  }
+  const r = await fetch(FS + '/projects/' + env.FIREBASE_PROJECT + '/databases/(default)/documents:runQuery', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + await accessToken(env), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: {
+      from: [{ collectionId: 'payments' }],
+      where: { fieldFilter: { field: { fieldPath: 'src' }, op: 'IN',
+        value: { arrayValue: { values: [{ stringValue: 'privat' }, { stringValue: 'np' }] } } } },
+      select: { fields: [{ fieldPath: 'at' }, { fieldPath: 'tz' }] } } })
+  });
+  if (!r.ok) throw new Error('Firestore runQuery ' + r.status + ': ' + (await r.text()).slice(0, 200));
+  const rows = await r.json();
+  const list = [];
+  for (const x of rows || []) {
+    const d = x && x.document;
+    if (!d || !d.fields) continue;
+    if (d.fields.tz) continue;
+    const at = (d.fields.at || {}).stringValue || '';
+    const t = new Date(at);
+    if (isNaN(t)) continue;
+    list.push({ path: d.name.split('/documents/')[1], obj: { tz: 1, at: kyivIso(t.getUTCFullYear(), t.getUTCMonth() + 1,
+      t.getUTCDate(), t.getUTCHours(), t.getUTCMinutes(), t.getUTCSeconds()) } });
+  }
+  await fsCommit(env, list);
+  await fsWrite(env, 'loomiq/moneyMeta', { tzFixed: new Date().toISOString(), tzFixedN: list.length });
+  return { виправлено: list.length };
+}
 /* За розкладом Нову пошту питаємо раз на пів години, а не кожні 5 хв:
    наложка приходить днями, а частіші запити впираються в ліміт НП. */
 function npDue(t) {
@@ -725,7 +778,7 @@ async function poll(env, opts) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
+export const _pure = { kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -763,6 +816,10 @@ export default {
            секунд і на повільну відповідь шле те саме ще раз. */
         return json({ ok: true, written: await monoHook(env, acc, body) });
       }
+      if (parts[0] === 'fix-tz') {
+        if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
+        return json({ ok: true, ...(await fixTz(env, url.searchParams.get('force') === '1')) });
+      }
       if (parts[0] === 'poll') {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
         return json({ ok: true, ...(await poll(env)) });
@@ -792,7 +849,12 @@ export default {
 
   /* Розклад. Приват і Нова пошта самі нічого не шлють, тож питаємо їх ми. */
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(poll(env, { np: npDue(event && event.scheduledTime) })
-      .then(r => console.log('опитано', JSON.stringify(r))));
+    const зНП = npDue(event && event.scheduledTime);
+    ctx.waitUntil(poll(env, { np: зНП })
+      .then(r => console.log('опитано', JSON.stringify(r)))
+      /* Старі рухи з часом «не по Києву» — виправляємо один раз сам, у
+         прогоні без Нової пошти (щоб не впертись у ліміт звернень). */
+      .then(() => зНП ? null : fixTz(env).then(x => console.log('час', JSON.stringify(x))))
+      .catch(e => console.warn('розклад', e && e.message)));
   }
 };

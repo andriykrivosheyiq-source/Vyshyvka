@@ -49,6 +49,13 @@ globalThis.fetch = async (url, opt) => {
   calls++;
   const res = (body, status) => new Response(JSON.stringify(body), { status: status || 200 });
   if(url.startsWith('https://oauth2.googleapis.com/token')) return res({ access_token:'tok', expires_in:3600 });
+  if(/documents:runQuery$/.test(url)){
+    /* Вибірка рухів Привату й НП (для виправлення часу) — з підставної бази. */
+    const q = JSON.parse(opt.body).structuredQuery;
+    const vals = q.where.fieldFilter.value.arrayValue.values.map(v => v.stringValue);
+    return res(Object.keys(DB).filter(k => k.startsWith('payments/') && vals.includes(((DB[k].src || {}).stringValue)))
+      .map(k => ({ document: { name: 'projects/x/databases/(default)/documents/' + k, fields: DB[k] } })));
+  }
   if(/documents:commit$/.test(url)){
     /* Пакетний запис: те саме, що PATCH з updateMask, але багато документів разом. */
     commits++;
@@ -195,7 +202,7 @@ ok(npo.контроль_оплати && npo.контроль_оплати.отр
   'контроль оплати: отримана посилка — одна, 2 080 ₴; відмова й «у відділенні» не рахуються',
   'контроль оплати: ' + JSON.stringify(npo.контроль_оплати));
 ok(num(ко.amount) === 2080 && (ко.ttn || {}).stringValue === '20450000000110' &&
-   (ко.at || {}).stringValue === '2026-09-28T08:34:37.000Z' &&
+   (ко.at || {}).stringValue === '2026-09-28T05:34:37.000Z' &&
    /NovaPay · Мороз Євгенія/.test((ко.counter || {}).stringValue || '') &&
    /ТТН 20450000000110/.test((ко.desc || {}).stringValue || ''),
   'рух записано: сума клієнта, дата отримання, хто, номер ТТН — за ним привʼяжеться замовлення',
@@ -203,7 +210,7 @@ ok(num(ко.amount) === 2080 && (ко.ttn || {}).stringValue === '20450000000110
 const стан = DB['loomiq/npState'] || {};
 const ст = k => ((стан['t' + k] || {}).mapValue || {}).fields || {};
 console.log('   npState: ' + Object.keys(стан).join(','));
-ok((ст('20450000000110').code || {}).stringValue === '9' && (ст('20450000000110').at || {}).stringValue === '2026-09-28T08:34:37.000Z' &&
+ok((ст('20450000000110').code || {}).stringValue === '9' && (ст('20450000000110').at || {}).stringValue === '2026-09-28T05:34:37.000Z' &&
    (ст('20450000000111').code || {}).stringValue === '102' && (ст('20450000000112').code || {}).stringValue === '7' &&
    !стан['t20450000000105'],
   'стан посилок з контролем оплати — у loomiq/npState (забрали, відмова, у відділенні); інші накладні туди не йдуть',
@@ -243,6 +250,27 @@ ok(raw.ok && raw.сире && raw.розібрано && raw.розібрано.ba
   '/privat/balance показує сирий відгук і розібране число', 'відповідь: ' + JSON.stringify(raw).slice(0, 200));
 const no = await call('/privat/balance/mono3?s=wrong');
 ok(no.ok === false, 'без секрету — немає доступу', 'адреса відкрита без секрету');
+
+console.log('');
+console.log('═══ ЧАС СТАРИХ РУХІВ — ПО КИЄВУ (05.10) ═══');
+/* Записані до виправлення: київські 14:17 лежали як 14:17 UTC (у адмінці —
+   17:17). Новий запис (tz) і Монобанк не чіпаємо. */
+DB['payments/old_pr'] = { at: sv('2026-10-01T14:17:00.000Z'), src: sv('privat'), amount: { doubleValue: 100 } };
+DB['payments/old_np'] = { at: sv('2026-09-28T08:34:37.000Z'), src: sv('np'), amount: { doubleValue: 50 } };
+DB['payments/new_pr'] = { at: sv('2026-10-01T11:17:00.000Z'), src: sv('privat'), tz: { doubleValue: 1 } };
+DB['payments/mono_z'] = { at: sv('2026-10-01T11:17:00.000Z'), src: sv('mono') };
+const fx = await call('/fix-tz?s=sek&force=1');
+console.log('   ' + JSON.stringify(fx));
+const atOf = k => ((DB[k] || {}).at || {}).stringValue;
+ok(fx.ok && atOf('payments/old_pr') === '2026-10-01T11:17:00.000Z' && atOf('payments/old_np') === '2026-09-28T05:34:37.000Z' &&
+   atOf('payments/new_pr') === '2026-10-01T11:17:00.000Z' && atOf('payments/mono_z') === '2026-10-01T11:17:00.000Z' &&
+   !!DB['payments/old_pr'].tz,
+  'старі рухи Привату й НП зсунуто на київський час; нові (tz) і Монобанк — не чіпали',
+  'виправлення: ' + JSON.stringify({ pr: atOf('payments/old_pr'), np: atOf('payments/old_np'), new: atOf('payments/new_pr') }));
+const fx2 = await call('/fix-tz?s=sek&force=1');
+const fx3 = await call('/fix-tz?s=sek');
+ok(fx2.виправлено === 0 && atOf('payments/old_pr') === '2026-10-01T11:17:00.000Z' && /уже виправлено/.test(fx3.skip || ''),
+  'повторний запуск нічого не зсуває вдруге; без force — «уже виправлено»', 'повтор: ' + JSON.stringify([fx2, fx3]));
 
 console.log('');
 console.log(bad ? 'розходжень: ' + bad : 'залишок — від банку, копійки на місці');
