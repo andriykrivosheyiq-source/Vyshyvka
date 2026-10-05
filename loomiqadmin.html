@@ -76,6 +76,13 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased;}
+  /* СВАЙП ДВОМА ПАЛЬЦЯМИ НЕ ВИВОДИТЬ ЗІ СТОРІНКИ (05.10). Андрій гортає
+     канбан тачпадом уліво — а браузер сприймав це як «Назад» і закривав
+     адмінку. На корені й на смугах, що гортаються вбік, жест більше не
+     переходить у навігацію (Chrome, Edge, Firefox). Для Safari — запобіжник
+     історії в скрипті нижче. */
+  html,body{overscroll-behavior-x:none;}
+  .board,.dz-boards,.an-tbl-wrap,.bstrip{overscroll-behavior-x:contain;}
   ::selection{background:var(--accent-soft);}
 
   /* ---------- layout ---------- */
@@ -7294,30 +7301,50 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9420cbe7f3"></script>
-<script src="loomiq-fingerprint.js?v=9420cbe7f3"></script>
-<script src="loomiq-pricing.js?v=9420cbe7f3"></script>
+<script src="loomiq-select.js?v=f5f9ee1859"></script>
+<script src="loomiq-fingerprint.js?v=f5f9ee1859"></script>
+<script src="loomiq-pricing.js?v=f5f9ee1859"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9420cbe7f3"></script>
+<script src="loomiq-money-core.js?v=f5f9ee1859"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9420cbe7f3"></script>
-<script src="loomiq-mock.js?v=9420cbe7f3"></script>
+<script src="loomiq-design.js?v=f5f9ee1859"></script>
+<script src="loomiq-mock.js?v=f5f9ee1859"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9420cbe7f3"></script>
-<script src="loomiq-threads.js?v=9420cbe7f3"></script>
+<script src="imagetracer.js?v=f5f9ee1859"></script>
+<script src="loomiq-threads.js?v=f5f9ee1859"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9420cbe7f3"></script>
+<script src="loomiq-cards.js?v=f5f9ee1859"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ЗАПОБІЖНИК «НАЗАД» (05.10). Якщо жест чи кнопка «Назад» таки спрацює
+   (Safari не завжди слухається overscroll-behavior), лишаємось в адмінці:
+   на місці «попередньої сторінки» стоїть ця сама, і ми одразу повертаємо
+   позначку назад. Позначку ставимо після першого дотику — Chrome пропускає
+   записи історії, зроблені без дії людини. */
+(function(){
+  try{
+    var стоїть = false;
+    var постав = function(){
+      if(стоїть) return; стоїть = true;
+      try{ history.pushState({ lqStay: 1 }, '', location.href); }catch(e){}
+    };
+    ['pointerdown', 'keydown', 'wheel'].forEach(function(t){ window.addEventListener(t, постав, { once: true, passive: true }); });
+    window.addEventListener('popstate', function(){
+      try{ history.pushState({ lqStay: 1 }, '', location.href); }catch(e){}
+    });
+  }catch(e){}
+})();
+</script>
 <script>
 /* ══════════ СТОРІНКА САМА ПОМІЧАЄ, ЩО ВИЙШЛА НОВА ══════════
 
@@ -7339,7 +7366,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9420cbe7f3';
+var LQ_VER = 'f5f9ee1859';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
