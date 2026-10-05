@@ -2709,6 +2709,19 @@
   .pa-stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;background:#fafafb;min-width:0;}
   .pa-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;}
   .pa-prodname{font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin-bottom:16px;}
+  .kb-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .kb-row img{width:96px;height:64px;object-fit:cover;border-radius:8px;background:#f2f2f4;flex:none;}
+  .kb-row .tx{flex:1;min-width:0;font-size:13.5px;}
+  .kb-row .tx small{display:block;color:var(--ink-soft);}
+  .kb-row button{font-family:inherit;font-size:12.5px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;}
+  .kb-ed{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;}
+  .kb-stage{position:relative;line-height:0;background:#fafafb;border-radius:10px;overflow:hidden;}
+  .kb-stage img{width:100%;display:block;user-select:none;-webkit-user-drag:none;}
+  .kb-stage svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+  .kb-ed label{display:block;font-size:12px;color:var(--ink-soft);margin:10px 0 4px;}
+  .kb-ed input[type=text],.kb-ed select{width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;}
+  .kb-ed .pc-btn{box-sizing:border-box;}
+  @media (max-width:900px){ .kb-ed{grid-template-columns:1fr;} }
   .pa-places-box{background:#fff8ef;border:1px solid #f3d9b8;border-radius:10px;padding:12px;margin:0 0 14px;}
   .pa-pl{display:flex;align-items:center;gap:6px;font-size:12.5px;margin-bottom:6px;}
   .pa-pl b{flex:1;}
@@ -6424,6 +6437,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <button data-ct="products" class="active print">Товари</button>
         <button data-ct="landings">Посадкові сторінки</button>
         <button data-ct="reviews">Відгуки</button>
+        <button data-ct="banners">Банери з логотипом</button>
         <button data-ct="site">Головна й контакти</button>
       </div>
 
@@ -6809,6 +6823,20 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
 
       <!-- Відгуки: порядок + карусель -->
+      <!-- БАНЕРИ З ЛОГОТИПОМ КЛІЄНТА (06.10): фото-монтажі для каталогу клієнта (/k/) -->
+      <div id="ctor-banners" style="display:none;">
+        <div class="card">
+          <b style="font-size:14px;">Банери з логотипом клієнта</b>
+          <div class="sub" style="margin:6px 0 12px;">Фото людей чи команди у вашому одязі. Позначте рамками місця, куди лягає логотип —
+            у каталозі кожного клієнта (після квізу) туди підставиться саме його логотип. Логотип вписується в рамку
+            і за шириною, і за висотою; рамку можна повернути, якщо людина стоїть під кутом.</div>
+          <div id="kb-list"></div>
+          <label class="pc-btn up" style="display:inline-block;padding:10px 18px;cursor:pointer;margin-top:10px;">+ Додати банер (фото)
+            <input type="file" id="kb-file" accept="image/*" hidden></label>
+        </div>
+        <div class="card" id="kb-editor" style="display:none;"></div>
+      </div>
+
       <div id="ctor-reviews" style="display:none;">
         <div class="card">
           <b style="font-size:14px;">Порядок відгуків на сайті</b>
@@ -7314,27 +7342,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7c5a2b483d"></script>
-<script src="loomiq-fingerprint.js?v=7c5a2b483d"></script>
-<script src="loomiq-pricing.js?v=7c5a2b483d"></script>
+<script src="loomiq-select.js?v=14984f052d"></script>
+<script src="loomiq-fingerprint.js?v=14984f052d"></script>
+<script src="loomiq-pricing.js?v=14984f052d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=7c5a2b483d"></script>
+<script src="loomiq-money-core.js?v=14984f052d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7c5a2b483d"></script>
-<script src="loomiq-mock.js?v=7c5a2b483d"></script>
+<script src="loomiq-design.js?v=14984f052d"></script>
+<script src="loomiq-mock.js?v=14984f052d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=7c5a2b483d"></script>
-<script src="loomiq-threads.js?v=7c5a2b483d"></script>
+<script src="imagetracer.js?v=14984f052d"></script>
+<script src="loomiq-threads.js?v=14984f052d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=7c5a2b483d"></script>
+<script src="loomiq-cards.js?v=14984f052d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7379,7 +7407,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '7c5a2b483d';
+var LQ_VER = '14984f052d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -32557,7 +32585,7 @@ function renderPhotoManager(){
 
 /* Перемикання підрозділів конструктора */
 function renderCtor(){
-  const panes = {products:'ctor-products', landings:'ctor-landings', reviews:'ctor-reviews', site:'ctor-site'};
+  const panes = {products:'ctor-products', landings:'ctor-landings', reviews:'ctor-reviews', site:'ctor-site', banners:'ctor-banners'};
   Object.entries(panes).forEach(([k,id])=>{
     const el = document.getElementById(id);
     if(el) el.style.display = (k===ctorTab) ? '' : 'none';
@@ -32571,6 +32599,7 @@ function renderCtor(){
   }
   else if(ctorTab==='reviews'){ renderReviewOrder(); renderReviewPhotosAdmin(); }
   else if(ctorTab==='site') renderSiteTab();
+  else if(ctorTab==='banners') renderKitBanners();
 }
 document.querySelectorAll('#ctor-tabs button').forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -32958,6 +32987,129 @@ function updatePaSummary(id){
   } else {
     el.textContent = 'Область нанесення (зона друку/вишивки) ще не задана.';
   }
+}
+
+/* ---------- БАНЕРИ З ЛОГОТИПОМ КЛІЄНТА (06.10) ----------
+   Андрій: «розмістити картинки, позамонтажувати, підписати один, два — і
+   при різних генераціях генеруватиметься». Фото (людина / команда в нашому
+   одязі) + рамки, куди лягає логотип. Каталог клієнта (/k/) малює банер з
+   ЙОГО логотипом. Рамка — у частках фото: центр x,y, розмір w,h, кут rot.
+   Зберігається в loomiq/photos.kitBanners (публічне читання — як і решта
+   вмісту сайту; читає loomiq-kit.js). */
+const KB_TABS = { all:'Усі', tee:'Футболки', hoodie:'Худі', sweat:'Світшоти', acc:'Аксесуари' };
+let kbSel = null;               // індекс банера, відкритого в редакторі
+let kbPlace = 0;                // обрана рамка
+function kbList(){ return Array.isArray(contentData.kitBanners) ? contentData.kitBanners : []; }
+async function kbSave(list, quiet){
+  const clean = list.map(b => ({ id: b.id, url: b.url, title: String(b.title || '').slice(0, 80), sub: String(b.sub || '').slice(0, 120),
+    tab: KB_TABS[b.tab] ? b.tab : 'all', ar: +b.ar || 1,
+    places: (b.places || []).map(q => ({ x: +q.x || 0.5, y: +q.y || 0.5, w: Math.max(0.02, +q.w || 0.15), h: Math.max(0.02, +q.h || 0.1), rot: Math.round(+q.rot || 0) })) }));
+  contentData.kitBanners = clean;
+  try{ await PHOTOS_DOC.set({ kitBanners: clean }, { merge:true }); if(!quiet) toast('Банери збережено'); }
+  catch(e){ console.error(e); toast('Не збереглось: ' + (e && e.message || e)); }
+}
+function renderKitBanners(){
+  const box = document.getElementById('kb-list'); if(!box) return;
+  const list = kbList();
+  box.innerHTML = list.length ? list.map((b, i) => `<div class="kb-row"><img alt="" src="${escA(b.url)}">
+      <div class="tx"><b>${escA(b.title || 'Без підпису')}</b><small>${escA(b.sub || '')}</small>
+        <small>${(b.places || []).length} ${(b.places || []).length === 1 ? 'місце' : 'місця'} для логотипа · показ: ${escA(KB_TABS[b.tab] || 'Усі')}</small></div>
+      <button data-kb-up="${i}" ${i ? '' : 'disabled'} title="Вище">↑</button>
+      <button data-kb-ed="${i}">Редагувати</button>
+      <button data-kb-del="${i}" title="Прибрати">✕</button></div>`).join('')
+    : '<div class="sub">Банерів ще немає. Додайте фото — і позначте, куди лягає логотип.</div>';
+  box.querySelectorAll('[data-kb-ed]').forEach(b => b.onclick = () => { kbSel = +b.dataset.kbEd; kbPlace = 0; renderKbEditor(); });
+  box.querySelectorAll('[data-kb-up]').forEach(b => b.onclick = async () => { const l = kbList().slice(), i = +b.dataset.kbUp;
+    [l[i - 1], l[i]] = [l[i], l[i - 1]]; await kbSave(l, true); kbSel = null; renderKitBanners(); });
+  box.querySelectorAll('[data-kb-del]').forEach(b => b.onclick = async () => { if(!confirm('Прибрати банер?')) return;
+    const l = kbList().slice(); l.splice(+b.dataset.kbDel, 1); await kbSave(l); kbSel = null; renderKitBanners(); });
+  renderKbEditor();
+}
+document.getElementById('kb-file') && document.getElementById('kb-file').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  toast('Завантажуємо фото…');
+  try{
+    const blob = await shrinkImage(f);
+    const url = await uploadCloudinary(blob);
+    const ar = await new Promise(res => { const im = new Image(); im.onload = () => res(im.naturalHeight / im.naturalWidth); im.onerror = () => res(1); im.src = url; });
+    const l = kbList().slice();
+    l.push({ id: 'b' + Date.now().toString(36), url, title: '', sub: '', tab: 'all', ar,
+             places: [{ x: 0.5, y: 0.4, w: 0.18, h: 0.12, rot: 0 }] });
+    await kbSave(l);
+    kbSel = l.length - 1; kbPlace = 0; renderKitBanners();
+  }catch(err){ console.error(err); toast('Фото не завантажилось: ' + (err && err.message || err)); }
+});
+function renderKbEditor(){
+  const ed = document.getElementById('kb-editor'); if(!ed) return;
+  const b = kbList()[kbSel];
+  if(!b){ ed.style.display = 'none'; ed.innerHTML = ''; return; }
+  ed.style.display = '';
+  const q = (b.places || [])[kbPlace];
+  ed.innerHTML = `<div class="kb-ed"><div><div class="kb-stage"><img id="kb-img" alt="" src="${escA(b.url)}"><svg id="kb-svg"></svg></div>
+      <div class="sub" style="margin-top:8px;">Тягніть рамку мишею, куточок — розмір. Пунктир — як ляже логотип (широкий і квадратний).</div></div>
+    <div>
+      <label>Підпис (великий)</label><input type="text" id="kb-title" maxlength="80" value="${escA(b.title || '')}" placeholder="Наприклад, «Літо для команди»">
+      <label>Підпис (дрібний)</label><input type="text" id="kb-sub" maxlength="120" value="${escA(b.sub || '')}" placeholder="«футболки з вашим логотипом»">
+      <label>Де показувати в каталозі</label><select id="kb-tab">${Object.keys(KB_TABS).map(k => `<option value="${k}"${b.tab === k ? ' selected' : ''}>${KB_TABS[k]}</option>`).join('')}</select>
+      <label>Рамки для логотипа</label>
+      <div class="pa-pl-add">${(b.places || []).map((x, i) => `<button type="button" data-kb-p="${i}" style="${i === kbPlace ? 'background:#E07A14;color:#fff;' : ''}">${i + 1}</button>`).join('')}
+        <button type="button" data-kb-add>+ рамка</button></div>
+      ${q ? `<label>Поворот рамки ${i18nDeg(q.rot)}</label><input type="range" id="kb-rot" min="-45" max="45" step="1" value="${+q.rot || 0}" style="width:100%;">
+        <button type="button" class="pc-btn reset" id="kb-del-p" style="width:100%;padding:8px;margin-top:8px;">Прибрати рамку ${kbPlace + 1}</button>` : ''}
+      <button type="button" class="pc-btn up" id="kb-save" style="width:100%;padding:10px;margin-top:14px;">Зберегти банер</button>
+      <button type="button" class="pc-btn reset" id="kb-close" style="width:100%;padding:10px;margin-top:8px;">Закрити</button>
+    </div></div>`;
+  const img = ed.querySelector('#kb-img');
+  img.onload = kbDraw; if(img.complete) kbDraw();
+  ed.querySelector('#kb-title').oninput = e => { b.title = e.target.value; };
+  ed.querySelector('#kb-sub').oninput = e => { b.sub = e.target.value; };
+  ed.querySelector('#kb-tab').onchange = e => { b.tab = e.target.value; };
+  ed.querySelectorAll('[data-kb-p]').forEach(x => x.onclick = () => { kbPlace = +x.dataset.kbP; renderKbEditor(); });
+  ed.querySelector('[data-kb-add]').onclick = () => { b.places = b.places || []; b.places.push({ x: 0.5, y: 0.5, w: 0.18, h: 0.12, rot: 0 }); kbPlace = b.places.length - 1; renderKbEditor(); };
+  const rot = ed.querySelector('#kb-rot');
+  if(rot) rot.oninput = () => { q.rot = +rot.value; const l = rot.previousElementSibling; if(l) l.textContent = 'Поворот рамки ' + i18nDeg(q.rot); kbDraw(); };
+  const dp = ed.querySelector('#kb-del-p');
+  if(dp) dp.onclick = () => { b.places.splice(kbPlace, 1); kbPlace = Math.max(0, kbPlace - 1); renderKbEditor(); };
+  ed.querySelector('#kb-save').onclick = async () => { await kbSave(kbList()); renderKitBanners(); };
+  ed.querySelector('#kb-close').onclick = () => { kbSel = null; renderKitBanners(); };
+}
+function i18nDeg(v){ return (v > 0 ? '+' : '') + (Math.round(+v || 0)) + '°'; }
+function kbDraw(){
+  const b = kbList()[kbSel]; const svg = document.getElementById('kb-svg'), img = document.getElementById('kb-img');
+  if(!b || !svg || !img) return;
+  const W = img.clientWidth || 600, H = img.clientHeight || 400;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  let h = '';
+  (b.places || []).forEach((q, i) => {
+    const cx = q.x * W, cy = q.y * H, w = q.w * W, hh = q.h * H, on = i === kbPlace;
+    /* Підказка, як ляже логотип: широкий (3:1) і квадратний — обидва
+       вписані в рамку, як це зробить каталог. */
+    const fitR = ar => { let lw = w, lh = lw * ar; if(lh > hh){ lh = hh; lw = lh / ar; } return [lw, lh]; };
+    const a = fitR(1 / 3), c = fitR(1);
+    h += '<g transform="rotate(' + (+q.rot || 0) + ' ' + cx + ' ' + cy + ')">' +
+      '<rect x="' + (cx - w / 2) + '" y="' + (cy - hh / 2) + '" width="' + w + '" height="' + hh + '" fill="rgba(224,122,20,' + (on ? .22 : .12) + ')" stroke="#E07A14" stroke-width="' + (on ? 2.5 : 1.5) + '" style="cursor:move" data-kbm="' + i + '"/>' +
+      '<rect x="' + (cx - a[0] / 2) + '" y="' + (cy - a[1] / 2) + '" width="' + a[0] + '" height="' + a[1] + '" fill="none" stroke="#fff" stroke-dasharray="4 3" pointer-events="none"/>' +
+      '<rect x="' + (cx - c[0] / 2) + '" y="' + (cy - c[1] / 2) + '" width="' + c[0] + '" height="' + c[1] + '" fill="none" stroke="#fff" stroke-dasharray="2 3" opacity=".7" pointer-events="none"/>' +
+      '<circle cx="' + (cx - w / 2) + '" cy="' + (cy - hh / 2) + '" r="10" fill="#E07A14" pointer-events="none"/>' +
+      '<text x="' + (cx - w / 2) + '" y="' + (cy - hh / 2 + 4) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" pointer-events="none">' + (i + 1) + '</text>' +
+      '<rect x="' + (cx + w / 2 - 7) + '" y="' + (cy + hh / 2 - 7) + '" width="14" height="14" rx="3" fill="#E07A14" stroke="#fff" stroke-width="2" style="cursor:nwse-resize" data-kbr="' + i + '"/></g>';
+  });
+  svg.innerHTML = h;
+  const drag = (i, ev, resize) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const q = b.places[i]; if(!q) return;
+    if(kbPlace !== i){ kbPlace = i; }
+    const r = svg.getBoundingClientRect(), x0 = ev.clientX, y0 = ev.clientY, o = { x: q.x, y: q.y, w: q.w, h: q.h };
+    const move = e => { const dx = (e.clientX - x0) / r.width, dy = (e.clientY - y0) / r.height;
+      if(resize){ q.w = Math.max(0.02, o.w + dx * 2); q.h = Math.max(0.02, o.h + dy * 2); }
+      else { q.x = Math.max(0, Math.min(1, o.x + dx)); q.y = Math.max(0, Math.min(1, o.y + dy)); }
+      kbDraw(); };
+    const up = () => { document.removeEventListener('pointermove', move); renderKbEditor(); };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up, { once:true });
+  };
+  svg.querySelectorAll('[data-kbm]').forEach(el => el.addEventListener('pointerdown', ev => drag(+el.dataset.kbm, ev, false)));
+  svg.querySelectorAll('[data-kbr]').forEach(el => el.addEventListener('pointerdown', ev => drag(+el.dataset.kbr, ev, true)));
 }
 
 /* ---------- Редактор «Області нанесення» ---------- */

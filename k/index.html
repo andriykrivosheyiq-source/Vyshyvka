@@ -57,6 +57,13 @@
   .k-hero .brand{position:absolute;left:0;right:0;bottom:0;padding:18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;}
   .k-hero .brand b{display:block;font-size:24px;letter-spacing:-.02em;}
   .k-cap{margin:6px 0 22px;}
+  /* Банер-монтаж з логотипом клієнта — як «Спортивні новинки» */
+  .k-ban{display:block;margin:10px 0 22px;cursor:pointer;}
+  .k-ban .im{background:var(--soft);aspect-ratio:var(--ar,0.66);overflow:hidden;position:relative;}
+  .k-ban .im img{width:100%;height:100%;object-fit:cover;display:block;}
+  .k-ban b{display:block;font-size:20px;font-weight:600;margin-top:10px;}
+  .k-ban span{color:var(--muted);font-size:16px;}
+  .k-grid .k-ban{grid-column:1 / -1;margin:6px 16px 22px;}
   .k-cap b{display:block;font-size:20px;font-weight:600;}
   .k-cap span{color:var(--muted);font-size:16px;}
   /* Сітка товарів */
@@ -145,11 +152,11 @@
 </div></div>
 
 <script src="/catalog-base.js"></script>
-<script src="/loomiq-pricing.js?v=7c5a2b483d"></script>
+<script src="/loomiq-pricing.js?v=14984f052d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/an.js"></script>
-<script src="/loomiq-kit.js?v=7c5a2b483d"></script>
+<script src="/loomiq-kit.js?v=14984f052d"></script>
 <script>
 (function(){
   'use strict';
@@ -223,9 +230,16 @@
       .sort(function(a, b){ return (picked.indexOf(a.id) < 0 ? 1 : 0) - (picked.indexOf(b.id) < 0 ? 1 : 0); });
     var hero = (picked.length ? picked : list.map(function(g){ return g.id; })).slice(0, 5);
     while(hero.length < 5 && list.length){ var nx = list.filter(function(g){ return hero.indexOf(g.id) < 0; })[0]; if(!nx) break; hero.push(nx.id); }
+    var bans = K.banners(tab);
+    function banHtml(b, i){
+      return '<div class="k-ban" data-ban="' + i + '" data-open="' + esc(picked[0] || (list[0] || {}).id || '') + '"><div class="im" style="--ar:' + (1 / Math.max(0.3, +b.ar || 1)) + '">' +
+        '<div class="k-load"><div class="k-spin"></div></div></div>' +
+        (b.title ? '<b>' + esc(b.title) + '</b>' : '') + (b.sub ? '<span>' + esc(b.sub) + '</span>' : '') + '</div>';
+    }
     main.innerHTML =
       '<div class="k-seg">' + TABS.filter(function(x){ return x.id === 'all' || list.some(function(g){ return x.m.test(g.id); }); })
         .map(function(x){ return '<button class="' + (x.id === tab ? 'on' : '') + '" data-tab="' + x.id + '">' + esc(x.name) + '</button>'; }).join('') + '</div>' +
+      (bans[0] ? banHtml(bans[0], 0) : '') +
       (tab === 'all' ? '<div class="k-hero" data-open="' + esc(hero[0] || '') + '">' + hero.map(function(gid, i){
           return '<div data-hero="' + esc(gid) + '"><div class="k-load"><div class="k-spin"></div></div>' +
             (i === 0 ? '<div class="brand"><b>' + esc(KIT.company || 'Ваша команда') + '</b>мерч з вашим логотипом</div>' : '') + '</div>';
@@ -233,13 +247,20 @@
         '<div class="k-cap"><b>Ваш комплект</b><span>' + (picked.length ? 'те, що ви обрали в квізі' : 'наші бестселери') +
         ' · ціни на ' + people() + ' шт</span></div>' : '') +
       '<div class="k-h2">' + (tab === 'all' ? 'Усі вироби з вашим логотипом' : esc(t.name)) + '</div>' +
-      '<div class="k-grid">' + shown.map(function(g){
+      '<div class="k-grid">' + shown.map(function(g, gi){
+        /* Решта банерів — між товарами, через кожні чотири, як у магазині. */
+        var bi = Math.floor(gi / 4), pre = (gi && gi % 4 === 0 && bans[bi]) ? banHtml(bans[bi], bi) : '';
+        return pre + cardHtml(g);
+      }).join('') +
+      /* Товарів менше, ніж банерів на них, — решта банерів у кінці. */
+      bans.map(function(b, i){ return (i && i > Math.floor((shown.length - 1) / 4)) ? banHtml(b, i) : ''; }).join('') + '</div>';
+    function cardHtml(g){
         return '<button class="k-card" data-open="' + esc(g.id) + '"><div class="pic" data-card="' + esc(g.id) + '"><div class="k-load"><div class="k-spin"></div></div>' +
           (picked.indexOf(g.id) >= 0 ? '<span class="tag dark">ваш вибір</span>' : '') + '</div>' +
           '<span class="pr" data-pr="' + esc(g.id) + '">&nbsp;</span><span class="nm">' + esc(g.name) + '</span>' +
           '<span class="sub">' + plural(g.colors.length, 'колір', 'кольори', 'кольорів') + ' · ' +
           plural(K.placesFor(g.id).length, 'варіант', 'варіанти', 'варіантів') + ' розміщення</span></button>';
-      }).join('') + '</div>';
+    }
     main.querySelectorAll('[data-tab]').forEach(function(b){ b.onclick = function(){ tab = b.dataset.tab; render(); }; });
     main.querySelectorAll('[data-open]').forEach(function(b){ b.onclick = function(){ if(b.dataset.open) openSheet(b.dataset.open); }; });
     /* Мокапи — по черзі, щоб телефон не малював дев'ять полотен разом. */
@@ -248,6 +269,11 @@
       var gid = el.dataset.hero, key = i === 0 ? keyOf(gid) : K.placesFor(gid).slice(-1)[0];
       jobs.push(function(){ return mock(gid, colorOf(gid).id, i === 0 ? keyOf(gid) : key).then(function(mk){
         if(mk) el.querySelector('.k-load').outerHTML = '<img alt="" src="' + esc(src(mk)) + '">'; }); });
+    });
+    main.querySelectorAll('[data-ban]').forEach(function(el){
+      var b = bans[+el.dataset.ban];
+      jobs.unshift(function(){ return K.renderBanner(b, LOGO, KIT.logo).then(function(u){
+        var ld = el.querySelector('.k-load'); if(ld) ld.outerHTML = u ? '<img alt="" src="' + esc(u) + '">' : ''; }); });
     });
     main.querySelectorAll('[data-card]').forEach(function(el){
       var gid = el.dataset.card;

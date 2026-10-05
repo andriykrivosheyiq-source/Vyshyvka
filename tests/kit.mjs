@@ -70,14 +70,22 @@ const LOGO = 'https://res.cloudinary.com/t/logo.svg';
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120"><rect width="320" height="120" rx="20" fill="#E4572E"/></svg>';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
 const errs = [], leads = [];
+const BAN = 'https://res.cloudinary.com/t/ban1.webp';
+const PH3 = JSON.parse(JSON.stringify(PHOTOS));
+PH3.kitBanners = [
+  { id:'b1', url: BAN, title:'Літо для команди', sub:'футболки з вашим логотипом', tab:'all', ar: 1, places: [{ x:0.5, y:0.4, w:0.3, h:0.2, rot:0 }] },
+  { id:'b2', url: BAN, title:'Худі на осінь', sub:'', tab:'hoodie', ar: 1, places: [{ x:0.5, y:0.45, w:0.25, h:0.25, rot:12 }] } ];
+const BANIMG = await readFile(path.join(ROOT, 'images/tee-white-front.webp'));
 async function page(w, h){
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const p = await ctx.newPage();
+  await p.addInitScript(ph => { window.__PH = ph; }, PH3);
   p.on('pageerror', e => errs.push(String(e)));
   await p.route('**/*', r => {
     const u = r.request().url();
     if(/gstatic\.com\/firebasejs\/.*app-compat/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: STUB });
     if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: '' });
+    if(u === BAN) return r.fulfill({ contentType: 'image/webp', headers: { 'Access-Control-Allow-Origin': '*' }, body: BANIMG });
     if(u === LOGO) return r.fulfill({ contentType: 'image/svg+xml', headers: { 'Access-Control-Allow-Origin': '*' }, body: SVG });
     if(/loomiq-lead/.test(u)){ leads.push(JSON.parse(r.request().postData() || '{}')); return r.fulfill({ contentType: 'application/json', body: '{"ok":true}' }); }
     if(/api\.cloudinary\.com/.test(u)) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ secure_url: 'https://res.cloudinary.com/t/m' + Math.random().toString(36).slice(2, 7) + '.jpg' }) });
@@ -117,6 +125,26 @@ ok(teeCol === 'front', 'колір із квізу (біла футболка) �
 await p.click('.k-seg [data-tab="hoodie"]'); await p.waitForTimeout(200);
 const hood = await p.evaluate(() => [...document.querySelectorAll('.k-card')].map(c => c.dataset.open));
 ok(hood.length && hood.every(g => /^hoodie/.test(g)), 'вкладка «Худі» — лише худі: ' + hood.join(', '), 'фільтр: ' + hood);
+await p.click('.k-seg [data-tab="all"]'); await p.waitForTimeout(300);
+
+console.log('');
+console.log('═══ БАНЕРИ З ЛОГОТИПОМ ═══');
+const bn = await p.evaluate(() => [...document.querySelectorAll('.k-ban')].map(b => ({ t: b.textContent, img: !!b.querySelector('img'), inGrid: !!b.closest('.k-grid') })));
+ok(bn.length === 2 && /Літо для команди/.test(bn[0].t) && bn[0].img && !bn[0].inGrid && /Худі на осінь/.test(bn[1].t) && bn[1].inGrid,
+  'банери з адмінки: перший — угорі, другий — між товарами (після 4-го)', 'банери: ' + JSON.stringify(bn));
+const px = await p.evaluate(async () => {
+  const b = window.LQKit.banners('all')[0], logo = await window.LQKit.loadImg(document.querySelector('#kLogo img').src);
+  const u = await window.LQKit.renderBanner(b, logo, { ar: 120 / 320 });
+  const im = await window.LQKit.loadImg(u), c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  const at = (fx, fy) => [...x.getImageData(Math.round(fx * c.width), Math.round(fy * c.height), 1, 1).data].slice(0, 3);
+  return { mid: at(0.5, 0.4), out: at(0.5, 0.4 + 0.3 * 120 / 320 / 2 + 0.03), edge: at(0.5 - 0.15 + 0.01, 0.4) };
+});
+ok(px.mid[0] > 200 && px.mid[1] < 120 && px.edge[0] > 200 && !(px.out[0] > 200 && px.out[1] < 120),
+  'логотип клієнта вписано в рамку банера: на всю ширину рамки, не вище її', 'пікселі: ' + JSON.stringify(px));
+await p.click('.k-seg [data-tab="hoodie"]'); await p.waitForTimeout(300);
+const hb = await p.evaluate(() => [...document.querySelectorAll('.k-ban b')].map(b => b.textContent));
+ok(hb.join() === 'Літо для команди,Худі на осінь', 'у вкладці «Худі» — банер для худі (і загальні)', 'вкладка: ' + hb);
 await p.click('.k-seg [data-tab="all"]'); await p.waitForTimeout(300);
 
 console.log('');

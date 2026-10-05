@@ -332,6 +332,29 @@
       .catch(function(){ return null; });
   }
 
+  /* БАНЕРИ З ЛОГОТИПОМ (06.10). Менеджер в адмінці (Конструктор →
+     Банери з логотипом) ставить фото й рамки; тут — той самий банер з
+     логотипом клієнта: вписаний у рамку за шириною й висотою, по центру,
+     повернутий на кут рамки. */
+  function banners(tab){
+    var l = Array.isArray(C.kitBanners) ? C.kitBanners : [];
+    return l.filter(function(b){ return b && b.url && (!tab || tab === 'all' || b.tab === tab || b.tab === 'all'); });
+  }
+  function renderBanner(b, logoIm, logo){
+    return loadImg(b.url).then(function(im){
+      if(!im) return null;
+      var k = Math.min(1, 1400 / im.naturalWidth);
+      var c = D.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      var x = c.getContext('2d'); x.drawImage(im, 0, 0, c.width, c.height);
+      (b.places || []).forEach(function(q){
+        var bw = q.w * c.width, bh = q.h * c.height, lw = bw, lh = lw * (logo.ar || 1);
+        if(lh > bh){ lh = bh; lw = lh / (logo.ar || 1); }
+        x.save(); x.translate(q.x * c.width, q.y * c.height); x.rotate((+q.rot || 0) * Math.PI / 180);
+        x.drawImage(logoIm, -lw / 2, -lh / 2, lw, lh); x.restore();
+      });
+      try{ return c.toDataURL('image/jpeg', 0.88); }catch(e){ return null; }
+    });
+  }
   /* Завантаження каталогу з бази (loomiq/photos, публічне читання). */
   function boot(cb){
     var done = false;
@@ -382,6 +405,6 @@
     frameOf: frameOf, placeOn: placeOn, placeBox: placeBox, boxesOf: boxesOf, vinfo: vinfo, placesFor: placesFor,
     renderMock: renderMock, sizeText: sizeText, priced: priced, hasPrice: hasPrice, methodFor: methodFor, desc: desc,
     phoneNorm: phoneNorm, lead: lead, upload: upload, boot: boot, addOrder: addOrder,
-    kitLink: kitLink, kitRead: kitRead
+    kitLink: kitLink, kitRead: kitRead, banners: banners, renderBanner: renderBanner
   };
 })();
