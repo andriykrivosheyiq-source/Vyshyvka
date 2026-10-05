@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-05.3 · NovaPay: підказка при помилці входу';
+const VERSION = '2026-10-05.4 · NovaPay: кроки входу';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -767,6 +767,9 @@ function novapayEnvelope(method, params) {
     '</tem:request></tem:' + method + '></soapenv:Body></soapenv:Envelope>';
 }
 function novapayRef() { return 'LQ-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+/* Кроки останнього звернення — щоб бачити, ЯКИЙ запит упав і що відповів
+   NovaPay (без ключів). Пишемо в loomiq/novapayLog. */
+let NOVAPAY_TRACE = [];
 /* Один виклик: повертає вміст <Method>Result> і помилку, якщо NovaPay її назвав. */
 async function novapaySoap(method, params) {
   const r = await fetch(NOVAPAY_URL, {
@@ -778,7 +781,9 @@ async function novapaySoap(method, params) {
   const res = xmlTag(text, method + 'Result');
   if (res == null) throw new Error('NovaPay ' + method + ': ' + r.status + ' ' + text.replace(/\s+/g, ' ').slice(0, 300));
   const err = xmlTag(res, 'error');
-  const msg = err ? (xmlUnesc(xmlTag(err, 'message') || xmlTag(err, 'Message') || err).replace(/<[^>]+>/g, ' ').trim() || 'помилка') : '';
+  const msg = err ? (xmlUnesc(xmlTag(err, 'message') || xmlTag(err, 'Message') || err).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'помилка') : '';
+  NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: method, ok: !msg, відповідь: msg ||
+    (method === 'UserAuthenticationJWT' ? 'вхід успішний, новий ключ видано' : 'ok') });
   return { res, error: msg, result: xmlUnesc(xmlTag(res, 'result') || '') };
 }
 async function sha(s) {
@@ -799,6 +804,8 @@ async function novapayJwt(env, force) {
     return saved.jwt;
   }
   const token = savedOk && saved.refresh_token ? saved.refresh_token : env.NOVAPAY_REFRESH_TOKEN;
+  NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: savedOk && saved.refresh_token
+    ? 'беру збережений (від ' + (saved.at || '?') + ')' : 'беру з секрету NOVAPAY_REFRESH_TOKEN' });
   const cert = savedOk && saved.public_certificate ? saved.public_certificate : env.NOVAPAY_CERT;
   const a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
   if (a.error) {
@@ -831,7 +838,8 @@ async function novapayCall(env, method, params) {
   let jwt = await novapayJwt(env);
   let r = await novapaySoap(method, Object.assign({ jwt }, params || {}));
   /* jwt раптом прострочений — один повторний вхід. */
-  if (r.error && /jwt|token|auth|сесі|авториз/i.test(r.error)) {
+  /* Лише коли NovaPay прямо каже, що протух jwt: зайвий вхід крутить ключ. */
+  if (r.error && /jwt/i.test(r.error) && /expir|invalid|протерм|недійс/i.test(r.error)) {
     jwt = await novapayJwt(env, true);
     r = await novapaySoap(method, Object.assign({ jwt }, params || {}));
   }
@@ -989,13 +997,20 @@ export default {
            секунд і на повільну відповідь шле те саме ще раз. */
         return json({ ok: true, written: await monoHook(env, acc, body) });
       }
-      if (parts[0] === 'novapay' && parts[1] === 'probe') {
+      if (parts[0] === 'novapay' && (parts[1] === 'probe' || parts[1] === 'poll' || parts[1] === 'log')) {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
-        return json({ ok: true, ...(await novapayProbe(env)) });
-      }
-      if (parts[0] === 'novapay' && parts[1] === 'poll') {
-        if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
-        return json({ ok: true, novapay: await novapayPoll(env) });
+        if (parts[1] === 'log') {
+          const l = await fsGet(env, 'loomiq/novapayLog').catch(() => null);
+          return json({ ok: true, останній_прогін: l ? JSON.parse(l.json || '{}') : null });
+        }
+        NOVAPAY_TRACE = [];
+        let out;
+        try { out = { ok: true, ...(parts[1] === 'probe' ? await novapayProbe(env) : { novapay: await novapayPoll(env) }) }; }
+        catch (e) { out = { ok: false, error: String((e && e.message) || e) }; }
+        out.кроки = NOVAPAY_TRACE;
+        await fsWrite(env, 'loomiq/novapayLog', { json: JSON.stringify({ at: new Date().toISOString(), ok: out.ok,
+          error: out.error || '', кроки: NOVAPAY_TRACE }) }).catch(() => null);
+        return json(out, out.ok ? 200 : 502);
       }
       if (parts[0] === 'fix-tz') {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
@@ -1038,7 +1053,10 @@ export default {
       .then(() => зНП ? null : fixTz(env).then(x => console.log('час', JSON.stringify(x))))
       /* NovaPay — раз на пів години, зі зсувом від Нової пошти (:15 і :45). */
       .then(() => npDue((event && event.scheduledTime || Date.now()) - 15 * 60000)
-        ? novapayPoll(env).then(x => console.log('novapay', JSON.stringify(x))) : null)
+        ? (NOVAPAY_TRACE = [], novapayPoll(env)
+            .then(x => ({ ok: true, x }), e => ({ ok: false, error: String((e && e.message) || e) }))
+            .then(r => fsWrite(env, 'loomiq/novapayLog', { json: JSON.stringify({ at: new Date().toISOString(), за_розкладом: true,
+              ok: r.ok, error: r.error || '', кроки: NOVAPAY_TRACE }) }).catch(() => null))) : null)
       .catch(e => console.warn('розклад', e && e.message)));
   }
 };
