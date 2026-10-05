@@ -180,6 +180,9 @@ const board = seat => p.evaluate(s => { window.LQDesign.ui.setTab(s); openDesign
       state: (w.querySelector('.dz-c-state') || {}).textContent || '',
       sum: (w.querySelector('.dz-card-sum') || {}).textContent || '',
       paid: (w.querySelector('.dz-c-paid') || {}).textContent || '',
+      paidColor: (() => { const e = w.querySelector('.dz-c-paid'); return e ? getComputedStyle(e).color + '|' + getComputedStyle(e).backgroundColor : ''; })(),
+      chain: [...w.querySelectorAll('.dz-c-chain b')].map(b => b.className + ':' + b.textContent.trim()),
+      nick: !!w.querySelector('.dz-card-nick'),
       steps: w.querySelectorAll('.dz-c-steps i').length,
       stepsDone: w.querySelectorAll('.dz-c-steps i.done').length,
       who: (() => { const e = w.querySelector('.dz-c-who'); return e ? Math.round(e.getBoundingClientRect().width) : 0; })(),
@@ -200,12 +203,21 @@ const A = await board('acct');
 const a1 = find(A, '2000001'), a2 = find(A, '2000002'), a3 = find(A, '2000003'), a4 = find(A, '2000004'), a5 = find(A, '2000005');
 console.log('   ' + JSON.stringify(a2));
 ok(A.every(c => c.cards.every(k => k.v2)), 'усі картки менеджера — нового вигляду', 'є старі картки');
-ok(a1 && a1.img && a2 && a2.img && a4.img, 'на картці ескіз (або фото виробу, поки ескізу немає)', 'картинки немає');
-ok(/Футболка базова чорний, Худі базове сірий · 4 шт/.test(a1.what), 'вироби з кольором і штуками: ' + a1.what, 'склад не той: ' + a1.what);
-ok(/12 600/.test(a2.sum) && a2.paid === 'оплачено 50 %' && a3.paid === 'не оплачено' && a4.paid === 'оплачено',
-  'сума з «оплачено %»: 50 % · не оплачено · оплачено', 'оплата не та: ' + [a2.paid, a3.paid, a4.paid].join(' / '));
-ok(a2.steps === 5 && a4.stepsDone === 2, 'смужка з пʼяти етапів; у цеху пройдено два', 'смужка не та: ' + a2.steps + '/' + a4.stepsDone);
-ok(a2.who === 22 && /у роботі · Оля/.test(a2.state), 'видно, хто зараз працює (кружечок «О»)', 'відповідального не видно: ' + a2.who);
+ok(a1 && a1.img && a2 && a2.img && a4.img, 'на картці ескіз (або картинка з ТЗ, поки ескізу немає)', 'картинки немає');
+/* 05.10: без назви товару й ніка — це видно в самій картці. */
+ok(!a1.what && !a1.nick && !a2.what, 'на плитці немає назви товару й ніка', 'товар/нік на плитці: ' + a1.what);
+/* 05.10: гроші — текстом, без червоного. */
+ok(/12 600/.test(a2.sum) && a2.paid === 'не оплачено 6 300 ₴' && a4.paid === 'оплачено' &&
+   !/176, 58, 26|253, 236, 234/.test(a2.paidColor + a3.paidColor),
+  'гроші текстом: «не оплачено 6 300 ₴» / «оплачено» — без червоного', 'оплата: ' + [a2.paid, a3.paid, a4.paid, a2.paidColor].join(' / '));
+/* 05.10: замість рисочок — етапи галочками по порядку. */
+console.log('   ланцюжок 2000002: ' + a2.chain.join(' | '));
+console.log('   ланцюжок 2000004: ' + a4.chain.join(' | '));
+ok(a2.steps === 0 && a2.chain.length === 5 && a2.chain[0] === 'now:Графіка · Оля' && a2.chain.slice(1).every(x => /^next:/.test(x)),
+  'графіка в роботі: «Графіка · Оля», далі сірим — Вишивка, Одяг, Виробництво, Відправка', 'ланцюжок: ' + a2.chain.join(' | '));
+ok(a4.chain.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | now:Одяг не замовлено | now:У виробництві | next:Відправка',
+  'у цеху: ✓ Графіка · ✓ Вишивка · Одяг не замовлено · У виробництві · Відправка', 'ланцюжок: ' + a4.chain.join(' | '));
+ok(a2.who === 0 && a4.who === 0, 'кружечка з людиною немає — у кого етап, написано словами', 'кружечок лишився');
 ok(/^до відправки \d+ (день|дні|днів)$/.test(a2.due), 'унизу — «до відправки N днів»: ' + a2.due, 'строк не той: ' + a2.due);
 ok(a2.ig && a2.igLast, 'канал клієнта (Instagram) — внизу картки', 'кнопки каналу внизу немає');
 ok(a3.fix && a3.chip.indexOf('правки клієнта') >= 0, 'правки клієнта — червоним', 'правки не видно');
@@ -214,11 +226,12 @@ ok(a5 && a5.col === 'prod' && /контролі якості/.test(a5.state), '�
 ok(/^у цеху/.test(a4.state), 'у цеху — «у цеху · …», а не «ще не передано»: ' + a4.state, 'стан у цеху: ' + a4.state);
 
 console.log('');
+if(process.env.LQ_SHOT){ await board('acct'); await p.screenshot({ path: process.env.LQ_SHOT, fullPage: false }); }
 console.log('═══ ДИЗАЙНЕР ═══');
 const G = await board('graphic');
 const g2 = find(G, '2000002'), g3 = find(G, '2000003');
 console.log('   ' + JSON.stringify(g2));
-ok(g2 && g2.img && g2.sw && /Худі базове · білий · 4 шт/.test(g2.what), 'ескіз, виріб із кружечком кольору тканини', 'дизайнер: ' + JSON.stringify(g2));
+ok(g2 && g2.img && !g2.what && g2.chain.length === 5, 'ескіз і етапи галочками; назви товару немає', 'дизайнер: ' + JSON.stringify(g2));
 ok(/груди 10 × 6 см, спина 25 × 30 см/.test(g2.state) && /^v1/.test(g2.state), 'нанесення з розмірами в см і версія: ' + g2.state, 'нанесення: ' + g2.state);
 ok(!g2.sum && !g2.ig && !g2.paid, 'без суми й без клієнта', 'дизайнер бачить гроші чи клієнта');
 ok(g3 && g3.fix && g3.chip.indexOf('правка') >= 0, 'правка дизайнеру — червоним', 'правки не видно');
@@ -227,16 +240,16 @@ console.log('');
 console.log('═══ ВИШИВАЛЬНИК ═══');
 const T = await board('stitch');
 const t4 = find(T, '2000004');
-ok(t4 && t4.img && t4.sw && /груди 10 × 6 см/.test(t4.state), 'ескіз вишивки, колір тканини, нанесення з розміром', 'вишивальник: ' + JSON.stringify(t4));
+ok(t4 && t4.img && /груди 10 × 6 см/.test(t4.state) && t4.chain.length === 5, 'основний мокап, нанесення з розміром, етапи галочками', 'вишивальник: ' + JSON.stringify(t4));
 
 console.log('');
 console.log('═══ ЦЕХ ═══');
 const P = await board('prod');
 const p4 = find(P, '2000004');
 console.log('   ' + JSON.stringify(p4));
-ok(p4 && p4.img && /Худі базове чорний M×2 · 2 шт/.test(p4.what), 'ескіз і вироби з розмірами: ' + (p4 && p4.what), 'цех: ' + JSON.stringify(p4));
-ok(p4.ready.join() === 'no:· одяг,ok:✓ вишивка,ok:✓ файл' && !p4.go,
-  'три значки готовності; одягу немає — без зеленого краю', 'готовність: ' + p4.ready.join());
+ok(p4 && p4.img && !p4.what, 'основний мокап; назви товару на плитці немає', 'цех: ' + JSON.stringify(p4));
+ok(p4.chain.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | now:Одяг не замовлено | now:У виробництві | next:Відправка' && !p4.go,
+  'етапи галочками; одягу немає — без зеленого краю', 'цех: ' + p4.chain.join(' | '));
 ok(/^одяг:/.test(p4.state), 'під виробами — лише де одяг (вишивку видно значком)', 'стан цеху: ' + p4.state);
 
 console.log('');
