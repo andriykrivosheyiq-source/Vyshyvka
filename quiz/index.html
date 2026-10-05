@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loomiq — мерч для вашої команди: підбір за 1 хвилину</title>
+<meta name="description" content="Дайте відповідь на кілька питань, завантажте логотип — і одразу побачите його на одязі вашої команди в кількох варіантах розміщення з прорахунком ціни.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<!--
+  КВІЗ ДЛЯ B2B (05.10)
+
+  Андрій: «окремою сторінкою, щоб гнати трафік чисто на квіз». Людина
+  відповідає на кілька питань (сфера, скільки людей, який одяг і колір),
+  завантажує логотип, лишає контакт — і бачить свій логотип на вибраному
+  одязі в кількох варіантах РОЗМІЩЕННЯ (груди зліва, по центру, спина) з
+  прорахунком, як у КП.
+
+  Нічого свого про ціни чи зони тут немає:
+    • вироби й кольори — catalog-base.js + loomiq/photos (як у каталозі);
+    • зони нанесення — SITE_CONTENT.printAreas (ті, що малює адмінка);
+    • ціна — LQ.priceOrder з loomiq-pricing.js (той самий рушій, що в КП).
+  Заявка — webOrders (Канбан, колонка «Нове») + повідомлення в Telegram.
+-->
+<style>
+  :root{
+    --ink:#0B0B0C; --muted:#6B6F76; --line:#E7E8EC; --paper:#FFFFFF; --bg:#F4F5F8;
+    --blue:#0369A1; --blue-soft:#E6F1F8; --cta:#C64F08; --cta-dark:#A9430A; --ok:#15803D;
+    --radius:20px; --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;
+    min-height:100vh;}
+  button,input,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+  .q-top{display:flex;align-items:center;gap:14px;max-width:1080px;margin:0 auto;padding:18px 16px 10px;}
+  .q-logo{font-weight:800;font-size:22px;letter-spacing:-.02em;text-decoration:none;color:var(--ink);}
+  .q-logo span{color:var(--blue);}
+  .q-bar{flex:1;height:6px;border-radius:6px;background:#E2E4EA;overflow:hidden;}
+  .q-bar i{display:block;height:100%;background:var(--blue);width:0;transition:width .35s ease;}
+  .q-cnt{font-size:13px;color:var(--muted);white-space:nowrap;}
+  .q-wrap{max-width:1080px;margin:0 auto;padding:8px 16px 120px;}
+  .q-card{background:var(--paper);border-radius:var(--radius);padding:28px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .q-h{font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:0 0 8px;font-weight:800;}
+  .q-sub{color:var(--muted);margin:0 0 22px;font-size:16px;line-height:1.45;}
+  .q-lbl{display:block;font-weight:600;font-size:14px;margin:18px 0 8px;}
+  .q-in{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;font-size:16px;background:#fff;outline:none;}
+  .q-in:focus{border-color:var(--blue);}
+  .q-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+  .q-chip{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:14px 16px;text-align:left;cursor:pointer;
+    font-size:15px;font-weight:600;transition:border-color .15s,background .15s;}
+  .q-chip:hover{border-color:#BFC5CF;}
+  .q-chip.on{border-color:var(--blue);background:var(--blue-soft);}
+  .q-chip small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:3px;}
+  .q-gs{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;}
+  .q-g{position:relative;border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:10px;cursor:pointer;text-align:center;}
+  .q-g.on{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+  .q-g img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:10px;background:#F6F6F7;display:block;}
+  .q-g b{display:block;font-size:14px;margin-top:8px;}
+  .q-g .tick{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;
+    display:none;align-items:center;justify-content:center;font-size:15px;font-weight:700;}
+  .q-g.on .tick{display:flex;}
+  .q-g .hint{position:absolute;top:10px;left:10px;background:#FFF4E5;color:#9A4A06;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;}
+  .q-cols{display:flex;flex-direction:column;gap:14px;}
+  .q-colrow{display:flex;gap:16px;align-items:center;border:1.5px solid var(--line);border-radius:16px;padding:12px;}
+  .q-colrow img{width:96px;height:96px;object-fit:contain;border-radius:10px;background:#F6F6F7;flex:none;}
+  .q-colrow b{display:block;margin-bottom:8px;}
+  .q-sw{display:flex;flex-wrap:wrap;gap:8px;}
+  .q-sw button{width:34px;height:34px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0;}
+  .q-sw button.on{box-shadow:0 0 0 2.5px var(--blue);}
+  .q-cn{font-size:13px;color:var(--muted);margin-top:6px;}
+  .q-drop{border:2px dashed #C9CED8;border-radius:18px;padding:34px 18px;text-align:center;cursor:pointer;background:#FAFBFC;}
+  .q-drop:hover{border-color:var(--blue);}
+  .q-drop b{display:block;font-size:17px;margin-bottom:6px;}
+  .q-drop span{color:var(--muted);font-size:14px;}
+  .q-logo-pv{display:flex;gap:18px;align-items:center;}
+  .q-logo-pv .chk{width:160px;height:160px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:repeating-conic-gradient(#ECEDEF 0% 25%, #fff 0% 50%) 50%/18px 18px;}
+  .q-logo-pv img{max-width:86%;max-height:86%;}
+  .q-link{background:none;border:0;color:var(--blue);cursor:pointer;padding:0;font-weight:600;text-decoration:underline;}
+  .q-nav{position:fixed;left:0;right:0;bottom:0;background:rgba(244,245,248,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
+  .q-nav-in{max-width:1080px;margin:0 auto;display:flex;gap:10px;align-items:center;}
+  .q-back{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:14px 18px;cursor:pointer;font-weight:600;}
+  .q-next{flex:1;border:0;background:var(--cta);color:#fff;border-radius:14px;padding:16px 20px;font-weight:700;font-size:16px;cursor:pointer;}
+  .q-next:hover{background:var(--cta-dark);}
+  .q-next:disabled{background:#C9CED8;cursor:not-allowed;}
+  .q-err{color:#B42318;font-size:14px;margin-top:10px;min-height:18px;}
+  .q-note{font-size:13px;color:var(--muted);margin-top:12px;line-height:1.45;}
+  .q-busy{display:flex;align-items:center;gap:12px;color:var(--muted);margin-top:14px;}
+  .q-spin{width:22px;height:22px;border-radius:50%;border:3px solid #DCE0E6;border-top-color:var(--blue);animation:qs 0.8s linear infinite;}
+  @keyframes qs{to{transform:rotate(360deg);}}
+  /* ── Результат ── */
+  .r-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start;}
+  .r-sec{background:var(--paper);border-radius:var(--radius);padding:22px 20px;margin-bottom:16px;}
+  .r-sec h3{margin:0 0 4px;font-size:20px;}
+  .r-sec .meta{color:var(--muted);font-size:14px;margin-bottom:14px;}
+  .r-vars{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+  .r-v{border:1.5px solid var(--line);border-radius:16px;padding:8px;cursor:pointer;background:#fff;text-align:left;}
+  .r-v.on{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+  .r-v .pic{position:relative;border-radius:12px;overflow:hidden;background:#F6F6F7;aspect-ratio:1;}
+  .r-v .pic img{width:100%;height:100%;object-fit:contain;display:block;}
+  .r-v b{display:block;margin:10px 4px 2px;font-size:15px;}
+  .r-v span{display:block;margin:0 4px 4px;color:var(--muted);font-size:13px;}
+  .r-v em{display:block;margin:4px 4px 2px;font-style:normal;font-weight:700;font-size:16px;}
+  .r-qty{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;color:var(--muted);}
+  .r-qty input{width:96px;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:15px;}
+  .r-calc{position:sticky;top:16px;background:var(--paper);border-radius:var(--radius);padding:20px;}
+  .r-calc h3{margin:0 0 12px;font-size:20px;}
+  .r-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .r-row div{min-width:0;}
+  .r-row b{display:block;font-size:14px;}
+  .r-row small{color:var(--muted);}
+  .r-row .s{text-align:right;white-space:nowrap;font-weight:600;}
+  .r-tot{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px;}
+  .r-tot b{font-size:26px;letter-spacing:-.02em;}
+  .r-tiers{background:var(--bg);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13px;color:#3D4249;line-height:1.6;}
+  .r-ok{background:#ECFDF3;color:#05603A;border-radius:12px;padding:12px 14px;font-size:14px;margin-top:12px;line-height:1.45;}
+  .r-cta{width:100%;margin-top:14px;}
+  @media (max-width:860px){
+    .r-grid{grid-template-columns:1fr;}
+    .r-calc{position:static;}
+    .q-h{font-size:24px;}
+    .q-card{padding:22px 16px;}
+  }
+  @media (max-width:520px){
+    .q-chips{grid-template-columns:1fr;}
+    .q-gs{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .r-vars{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .q-colrow img{width:72px;height:72px;}
+    .q-logo-pv .chk{width:120px;height:120px;}
+  }
+</style>
+</head>
+<body>
+<header class="q-top">
+  <a class="q-logo" href="/">loom<span>iq</span></a>
+  <div class="q-bar"><i id="qBar"></i></div>
+  <div class="q-cnt" id="qCnt"></div>
+</header>
+<main class="q-wrap" id="qMain"></main>
+<nav class="q-nav" id="qNav"><div class="q-nav-in">
+  <button class="q-back" id="qBack" type="button">← Назад</button>
+  <button class="q-next" id="qNext" type="button">Далі</button>
+</div></nav>
+<input type="file" id="qFile" accept="image/*,.svg,.pdf" hidden>
+
+<script src="/catalog-base.js"></script>
+<script src="/loomiq-pricing.js?v=16172ffeca"></script>
+<script src="/loomiq-mock.js?v=16172ffeca"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="/an.js"></script>
+<script>
+(function(){
+  'use strict';
+  var W = window, D = document;
+  var LEAD_URL = 'https://loomiq-lead.stvory.workers.dev';
+  var CLOUD = { cloud:'kmdoab3e', preset:'v8gljepg' };
+  var FB = {
+    apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+    authDomain: "loomiq-admin.firebaseapp.com",
+    projectId: "loomiq-admin",
+    storageBucket: "loomiq-admin.firebasestorage.app",
+    messagingSenderId: "828527183830",
+    appId: "1:828527183830:web:69895ce3f3c5505d014677"
+  };
+  var BASE = W.LQ_BASE || { garments: [], colors: {}, angles: {} };
+  var MAP = {};                       // '<виріб>-<колір>-<ракурс>' → адреса знімка (адмінка)
+  W.SITE_CONTENT = W.SITE_CONTENT || {};
+  var C = W.SITE_CONTENT;
+  var db = null;
+
+  var SPHERES = [
+    { id:'cafe',   name:'Кавʼярня, ресторан, бар',  g:['tee','teeover','cap','tote'] },
+    { id:'build',  name:'Будівництво, виробництво', g:['tee','hoodie','sweat','cap'] },
+    { id:'it',     name:'IT та офіс',               g:['hoodie','hoodiezip','teeover','tote'] },
+    { id:'beauty', name:'Салон, студія, клініка',   g:['tee','teeover','tote'] },
+    { id:'sport',  name:'Спорт і команда',          g:['tee','hoodieover','cap'] },
+    { id:'event',  name:'Школа, курси, івент',      g:['tee','hoodie','tote','cap'] },
+    { id:'shop',   name:'Магазин, сервіс, доставка', g:['tee','hoodie','cap'] },
+    { id:'other',  name:'Інше',                     g:[] }
+  ];
+  var PEOPLE = [
+    { n:10,  t:'до 10' }, { n:20, t:'10–30' }, { n:40, t:'30–50' },
+    { n:75,  t:'50–100' }, { n:150, t:'100–200' }, { n:250, t:'200+' }
+  ];
+  /* ВАРІАНТИ РОЗМІЩЕННЯ. Андрій: «різниця буде в розміщенні логотипу».
+     Розміри — як шиє цех: «на серці» ~9 см, по центру грудей до 24 см,
+     спина до 28 см; далі все одно вписуємо в зону нанесення виробу. */
+  var PLACES = {
+    left:   { name:'На серці',          side:'front', d:'класика, акуратно' },
+    center: { name:'По центру грудей',  side:'front', d:'помітно, як бренд' },
+    back:   { name:'Велике на спині',   side:'back',  d:'максимум уваги' },
+    acc:    { name:'По центру',         side:'front', d:'' }
+  };
+  var ACCESSORY = { cap:1, tote:1 };
+  var DEF_HEIGHT = { tee:72, teeover:74, hoodie:70, hoodieover:72, hoodieoverfleece:72, hoodiezip:70,
+                     sweat:68, cap:18, tote:40 };
+
+  /* ── Стан (переживає перезавантаження: людина з реклами часто
+        відволікається, і починати заново — найпевніший спосіб її втратити) ── */
+  var KEY = 'lq_quiz_v1';
+  var S = load();
+  function load(){
+    try{ var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && s.v === 1) return s; }catch(e){}
+    return { v:1, step:0, sphere:'', company:'', people:0, garments:[], colors:{}, logo:null,
+             wish:'', name:'', phone:'', tg:'', sent:false, pick:{}, qty:{} };
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+    catch(e){   // логотип великий — зберігаємо без нього, решта відповідей важливіша
+      try{ var c = JSON.parse(JSON.stringify(S)); c.logo = null; localStorage.setItem(KEY, JSON.stringify(c)); }catch(e2){}
+    }
+  }
+  var RAW = null;          // оригінал логотипа (у памʼяті — для виробництва)
+  var MOCKS = {};          // gid → { place → { url (dataURL), wCm, hCm, mm2 } }
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  function грн(n){ return String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴'; }
+  function см(n){ return (Math.round(n * 10) / 10).toString().replace('.', ','); }
+  function track(name, p){ try{ W.lqAn && W.lqAn.track(name, p || {}); }catch(e){} }
+
+  /* ── Каталог ── */
+  function key(gid, cid, side){ return gid + '-' + cid + '-' + side; }
+  function picOf(gid, cid, side){ var k = key(gid, cid, side); return MAP[k] || ('/images/' + k + '.webp'); }
+  function garments(){
+    var prod = C.products || {}, hidden = prod.hidden || [], pcols = C.productColors || {};
+    var list = [];
+    BASE.garments.forEach(function(g){ if(hidden.indexOf(g.id) < 0) list.push({ id:g.id, name:g.name, colors: BASE.colors[g.id] || [] }); });
+    (prod.custom || []).forEach(function(c){
+      if(c && c.id && hidden.indexOf(c.id) < 0) list.push({ id:c.id, name:c.name || c.id, colors: c.colors || [] });
+    });
+    list.forEach(function(g){
+      if(Array.isArray(pcols[g.id]) && pcols[g.id].length) g.colors = pcols[g.id];
+      g.name = (C.names || {})[g.id] || g.name;
+      g.colors = (g.colors || []).filter(function(c){ return c && c.id; });
+    });
+    var TOP = ['tee','teeover','hoodie','hoodieover','hoodieoverfleece','hoodiezip','sweat','cap','tote'];
+    return list.filter(function(g){ return g.colors.length; })
+      .map(function(g, i){ var t = TOP.indexOf(g.id); return { g:g, r: t < 0 ? 99 + i : t }; })
+      .sort(function(a, b){ return a.r - b.r; }).map(function(x){ return x.g; });
+  }
+  function gOf(gid){ return garments().filter(function(g){ return g.id === gid; })[0] || null; }
+  function colorOf(gid){
+    var g = gOf(gid); if(!g) return null;
+    return g.colors.filter(function(c){ return c.id === S.colors[gid]; })[0] || g.colors[0];
+  }
+
+  /* ── Кроки ── */
+  var STEPS = ['sphere', 'people', 'garments', 'colors', 'logo', 'contact', 'result'];
+  function go(n){
+    S.step = Math.max(0, Math.min(STEPS.length - 1, n));
+    save(); render(); W.scrollTo(0, 0);
+    track('quiz_step', { step: STEPS[S.step] });
+  }
+  function render(){
+    var st = STEPS[S.step];
+    var main = D.getElementById('qMain');
+    var q = STEPS.length - 1;
+    D.getElementById('qBar').style.width = Math.round(Math.min(S.step, q) / q * 100) + '%';
+    D.getElementById('qCnt').textContent = st === 'result' ? 'Готово' : ('Крок ' + (S.step + 1) + ' з ' + q);
+    D.getElementById('qBack').style.visibility = S.step > 0 && st !== 'result' ? 'visible' : 'hidden';
+    D.getElementById('qNav').hidden = st === 'result';
+    main.innerHTML = VIEWS[st]();
+    if(BIND[st]) BIND[st](main);
+    nextState();
+  }
+  function nextState(){
+    var st = STEPS[S.step], b = D.getElementById('qNext');
+    b.textContent = st === 'contact' ? 'Показати мої варіанти' : 'Далі';
+    b.disabled = !ready(st);
+  }
+  function ready(st){
+    if(st === 'sphere') return !!S.sphere;
+    if(st === 'people') return S.people > 0;
+    if(st === 'garments') return S.garments.length > 0;
+    if(st === 'colors') return true;
+    if(st === 'logo') return !!S.logo && !busy;
+    if(st === 'contact') return !!phoneNorm(S.phone) && String(S.name).trim().length > 1 && !busy;
+    return false;
+  }
+  var busy = false;
+
+  var VIEWS = {
+    sphere: function(){
+      return '<div class="q-card"><h1 class="q-h">Побачте свій логотип на одязі команди — за хвилину</h1>' +
+        '<p class="q-sub">Кілька питань, логотип — і ви отримаєте варіанти розміщення на вибраному одязі з прорахунком ціни.</p>' +
+        '<label class="q-lbl">Чим займається ваша компанія?</label><div class="q-chips">' +
+        SPHERES.map(function(s){ return '<button class="q-chip' + (S.sphere === s.id ? ' on' : '') + '" data-sp="' + s.id + '">' + esc(s.name) + '</button>'; }).join('') +
+        '</div><label class="q-lbl" for="qCo">Назва компанії <span style="font-weight:400;color:var(--muted)">(необовʼязково)</span></label>' +
+        '<input class="q-in" id="qCo" maxlength="80" placeholder="Наприклад, «Кава на розі»" value="' + esc(S.company) + '"></div>';
+    },
+    people: function(){
+      var own = S.people && !PEOPLE.some(function(p){ return p.n === S.people; });
+      return '<div class="q-card"><h2 class="q-h">Скільки людей у команді вдягнемо?</h2>' +
+        '<p class="q-sub">Від кількості залежить ціна: що більший тираж, то дешевша кожна річ.</p><div class="q-chips">' +
+        PEOPLE.map(function(p){ return '<button class="q-chip' + (S.people === p.n ? ' on' : '') + '" data-pp="' + p.n + '">' + esc(p.t) + ' <small>людей</small></button>'; }).join('') +
+        '</div><label class="q-lbl" for="qPp">Або точна кількість</label>' +
+        '<input class="q-in" id="qPp" type="number" min="1" max="5000" inputmode="numeric" placeholder="Наприклад, 35" value="' + (own ? S.people : '') + '"></div>';
+    },
+    garments: function(){
+      var sp = SPHERES.filter(function(s){ return s.id === S.sphere; })[0] || { g:[] };
+      return '<div class="q-card"><h2 class="q-h">Який одяг вам потрібен?</h2>' +
+        '<p class="q-sub">Можна обрати кілька — порахуємо разом, і спільний тираж зробить кожну річ дешевшою.</p><div class="q-gs">' +
+        garments().map(function(g){
+          var c = colorOf(g.id) || g.colors[0];
+          return '<button class="q-g' + (S.garments.indexOf(g.id) >= 0 ? ' on' : '') + '" data-g="' + esc(g.id) + '">' +
+            (sp.g.indexOf(g.id) >= 0 ? '<span class="hint">Часто беруть</span>' : '') + '<span class="tick">✓</span>' +
+            '<img loading="lazy" alt="" src="' + esc(picOf(g.id, c.id, 'front')) + '"><b>' + esc(g.name) + '</b></button>';
+        }).join('') + '</div></div>';
+    },
+    colors: function(){
+      return '<div class="q-card"><h2 class="q-h">Оберіть колір</h2>' +
+        '<p class="q-sub">Колір — з нашої палітри для кожного виробу. Потім легко змінити.</p><div class="q-cols">' +
+        S.garments.map(function(gid){
+          var g = gOf(gid); if(!g) return '';
+          var c = colorOf(gid);
+          return '<div class="q-colrow"><img alt="" src="' + esc(picOf(gid, c.id, 'front')) + '" data-pv="' + esc(gid) + '"><div>' +
+            '<b>' + esc(g.name) + '</b><div class="q-sw">' + g.colors.map(function(x){
+              return '<button title="' + esc(x.name) + '" aria-label="' + esc(x.name) + '" class="' + (x.id === c.id ? 'on' : '') +
+                '" style="background:' + esc(x.hex || '#ccc') + '" data-cg="' + esc(gid) + '" data-cc="' + esc(x.id) + '"></button>';
+            }).join('') + '</div><div class="q-cn" data-cn="' + esc(gid) + '">' + esc(c.name) + '</div></div></div>';
+        }).join('') + '</div></div>';
+    },
+    logo: function(){
+      return '<div class="q-card"><h2 class="q-h">Завантажте логотип</h2>' +
+        '<p class="q-sub">Підійде будь-який файл: PNG, JPG, SVG, навіть фото. Фон приберемо самі.</p>' +
+        (S.logo ? '<div class="q-logo-pv"><div class="chk"><img alt="Ваш логотип" src="' + esc(S.logo.url) + '"></div><div>' +
+          '<b>' + esc(S.logo.file || 'Логотип') + '</b><p class="q-note">Так логотип ляже на одяг. Якщо фон прибрався не так — не страшно, дизайнер підготує макет вручну.</p>' +
+          '<button class="q-link" data-up>Завантажити інший</button></div></div>'
+          : '<div class="q-drop" data-up tabindex="0"><b>Обрати файл</b><span>або перетягніть його сюди</span></div>') +
+        (busy ? '<div class="q-busy"><div class="q-spin"></div>Обробляємо логотип…</div>' : '') +
+        '<div class="q-err" id="qErr"></div>' +
+        '<label class="q-lbl" for="qWish">Побажання <span style="font-weight:400;color:var(--muted)">(необовʼязково)</span></label>' +
+        '<textarea class="q-in" id="qWish" rows="2" maxlength="500" placeholder="Напис на спині, імена, дедлайн…">' + esc(S.wish) + '</textarea></div>';
+    },
+    contact: function(){
+      return '<div class="q-card"><h2 class="q-h">Куди надіслати варіанти й прорахунок?</h2>' +
+        '<p class="q-sub">Варіанти зʼявляться на екрані одразу, а менеджер надішле їх вам і відповість на питання.</p>' +
+        '<label class="q-lbl" for="qName">Ваше імʼя</label><input class="q-in" id="qName" maxlength="60" autocomplete="name" value="' + esc(S.name) + '">' +
+        '<label class="q-lbl" for="qPhone">Телефон</label><input class="q-in" id="qPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 __ ___ __ __" value="' + esc(S.phone) + '">' +
+        '<label class="q-lbl" for="qTg">Telegram чи Instagram <span style="font-weight:400;color:var(--muted)">(необовʼязково)</span></label>' +
+        '<input class="q-in" id="qTg" maxlength="60" placeholder="@нік" value="' + esc(S.tg) + '">' +
+        '<div class="q-err" id="qErr"></div>' +
+        (busy ? '<div class="q-busy"><div class="q-spin"></div>Розміщуємо логотип на одязі…</div>' : '') +
+        '<p class="q-note">Натискаючи кнопку, ви погоджуєтесь, що ми звʼяжемося з вами щодо замовлення. Без розсилок.</p></div>';
+    },
+    result: function(){ return resultHtml(); }
+  };
+
+  var BIND = {
+    sphere: function(m){
+      m.querySelectorAll('[data-sp]').forEach(function(b){ b.onclick = function(){
+        S.sphere = b.dataset.sp; save();
+        m.querySelectorAll('[data-sp]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        nextState();
+      }; });
+      var co = m.querySelector('#qCo'); co.oninput = function(){ S.company = co.value.slice(0, 80); save(); };
+    },
+    people: function(m){
+      var inp = m.querySelector('#qPp');
+      m.querySelectorAll('[data-pp]').forEach(function(b){ b.onclick = function(){
+        S.people = +b.dataset.pp; inp.value = ''; save();
+        m.querySelectorAll('[data-pp]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        nextState();
+      }; });
+      inp.oninput = function(){
+        var n = Math.max(0, Math.min(5000, Math.round(+inp.value || 0)));
+        S.people = n; S.qty = {}; save();
+        m.querySelectorAll('[data-pp]').forEach(function(x){ x.classList.toggle('on', +x.dataset.pp === n); });
+        nextState();
+      };
+    },
+    garments: function(m){
+      m.querySelectorAll('[data-g]').forEach(function(b){ b.onclick = function(){
+        var id = b.dataset.g, i = S.garments.indexOf(id);
+        if(i >= 0) S.garments.splice(i, 1); else S.garments.push(id);
+        b.classList.toggle('on', i < 0); save(); nextState();
+      }; });
+    },
+    colors: function(m){
+      m.querySelectorAll('[data-cg]').forEach(function(b){ b.onclick = function(){
+        var gid = b.dataset.cg; S.colors[gid] = b.dataset.cc; save();
+        m.querySelectorAll('[data-cg="' + gid + '"]').forEach(function(x){ x.classList.toggle('on', x === b); });
+        var c = colorOf(gid);
+        m.querySelector('[data-pv="' + gid + '"]').src = picOf(gid, c.id, 'front');
+        m.querySelector('[data-cn="' + gid + '"]').textContent = c.name;
+      }; });
+    },
+    logo: function(m){
+      m.querySelectorAll('[data-up]').forEach(function(b){ b.onclick = function(){ D.getElementById('qFile').click(); }; });
+      var drop = m.querySelector('.q-drop');
+      if(drop){
+        drop.ondragover = function(e){ e.preventDefault(); };
+        drop.ondrop = function(e){ e.preventDefault(); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if(f) takeFile(f); };
+      }
+      var w = m.querySelector('#qWish'); w.oninput = function(){ S.wish = w.value.slice(0, 500); save(); };
+    },
+    contact: function(m){
+      ['Name', 'Phone', 'Tg'].forEach(function(k){
+        var el = m.querySelector('#q' + k);
+        el.oninput = function(){ S[k.toLowerCase()] = el.value; save(); nextState(); };
+      });
+    },
+    result: function(m){ bindResult(m); }
+  };
+
+  D.getElementById('qBack').onclick = function(){ if(!busy) go(S.step - 1); };
+  D.getElementById('qNext').onclick = function(){
+    var st = STEPS[S.step];
+    if(!ready(st)) return;
+    if(st === 'garments'){
+      S.garments.forEach(function(gid){ if(!S.colors[gid]){ var g = gOf(gid); if(g) S.colors[gid] = popular(g); } });
+    }
+    if(st === 'contact') return submit();
+    go(S.step + 1);
+  };
+  D.getElementById('qFile').onchange = function(e){ var f = e.target.files && e.target.files[0]; e.target.value = ''; if(f) takeFile(f); };
+  function popular(g){
+    var pref = ['black', 'white'];
+    for(var i = 0; i < pref.length; i++) if(g.colors.some(function(c){ return c.id === pref[i]; })) return pref[i];
+    return g.colors[0].id;
+  }
+
+  /* ══════════ ЛОГОТИП ══════════
+     Фон знімаємо тим самим шляхом, що й конструктор (Photoroom через наш
+     воркер, інакше — власний алгоритм). Потім обрізаємо прозорі поля: без
+     цього «9 см на серці» означали б 9 см разом з порожнечею навколо. */
+  function readFile(f){
+    return new Promise(function(res, rej){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.onerror = rej; r.readAsDataURL(f); });
+  }
+  function loadImg(src){
+    return new Promise(function(res){
+      if(!src) return res(null);
+      var im = new Image(); im.crossOrigin = 'anonymous';
+      im.onload = function(){ res(im); }; im.onerror = function(){ res(null); };
+      im.src = src;
+    });
+  }
+  function withTimeout(p, ms){
+    return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, ms); })]);
+  }
+  function hasAlpha(im){
+    var c = D.createElement('canvas'), k = Math.min(1, 200 / Math.max(im.naturalWidth, im.naturalHeight));
+    c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+    var x = c.getContext('2d'); x.drawImage(im, 0, 0, c.width, c.height);
+    var a = x.getImageData(0, 0, c.width, c.height).data, n = 0;
+    for(var i = 3; i < a.length; i += 4) if(a[i] < 200) n++;
+    return n > (a.length / 4) * 0.03;
+  }
+  /* Обрізка по непрозорому + частка «чорнила» (для площі вишивки). */
+  function trim(im){
+    var MAX = 900;
+    var k = Math.min(1, MAX / Math.max(im.naturalWidth, im.naturalHeight));
+    var w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+    var c = D.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
+    var a = x.getImageData(0, 0, w, h).data;
+    var x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for(var y = 0; y < h; y++) for(var xx = 0; xx < w; xx++){
+      if(a[(y * w + xx) * 4 + 3] > 24){ if(xx < x0) x0 = xx; if(xx > x1) x1 = xx; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+    }
+    if(x1 < x0){ x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; }
+    var tw = x1 - x0 + 1, th = y1 - y0 + 1, ink = 0;
+    for(var yy = y0; yy <= y1; yy++) for(var x2 = x0; x2 <= x1; x2++) if(a[(yy * w + x2) * 4 + 3] > 24) ink++;
+    var o = D.createElement('canvas'); o.width = tw; o.height = th;
+    o.getContext('2d').drawImage(c, x0, y0, tw, th, 0, 0, tw, th);
+    return { url: o.toDataURL('image/png'), ar: th / tw, ink: Math.max(0.05, ink / (tw * th)) };
+  }
+  function takeFile(f){
+    var err = D.getElementById('qErr');
+    if(f.size > 25 * 1024 * 1024){ if(err) err.textContent = 'Файл більший за 25 МБ — оберіть, будь ласка, менший.'; return; }
+    if(/pdf/i.test(f.type)){ if(err) err.textContent = 'PDF покажемо менеджеру, але для превʼю потрібна картинка (PNG, JPG чи SVG).'; return; }
+    busy = true; render();
+    var name = f.name;
+    readFile(f).then(function(raw){
+      RAW = { url: raw, name: name };
+      return loadImg(raw).then(function(im){
+        if(!im) throw new Error('bad');
+        if(hasAlpha(im) || /svg/i.test(f.type)) return im;
+        var M = W.LQMock;
+        if(!M) return im;
+        M.host = { bgUrl: function(){ return ((C.bgApi || {}).proxyUrl || '').trim(); } };
+        return withTimeout(M.removeBg(raw, 'photoroom'), 15000)
+          .catch(function(){ return withTimeout(M.removeBg(raw, 'local'), 8000); })
+          .then(loadImg).then(function(x){ return x || im; })
+          .catch(function(){ return im; });
+      });
+    }).then(function(im){
+      var t = trim(im);
+      S.logo = { url: t.url, ar: t.ar, ink: t.ink, file: name };
+      MOCKS = {};
+      track('quiz_logo');
+    }).catch(function(){
+      setTimeout(function(){ var e2 = D.getElementById('qErr'); if(e2) e2.textContent = 'Не вдалось відкрити файл. Спробуйте PNG чи JPG.'; }, 0);
+    }).then(function(){ busy = false; save(); render(); });
+  }
+
+  /* ══════════ РОЗМІЩЕННЯ ══════════
+     Та сама геометрія, що й у конструкторі (recPrintBox): зона нанесення —
+     многокутник у частках «каліброваної висоти» виробу (від calibTop до
+     calibBottom), центр — calibCx. Одна така одиниця = висота виробу в см
+     (printAreas[gid].heightCm). Звідси сантиметри — чесні, як для цеху. */
+  function heightCm(gid){
+    var pa = (C.printAreas || {})[gid] || {};
+    if(+pa.heightCm > 0) return +pa.heightCm;
+    var hs = ((C.pricing || {}).heights || {});
+    if(+hs[gid] > 0) return +hs[gid] / 10;
+    return DEF_HEIGHT[gid] || 70;
+  }
+  function polyOf(cfg){
+    var pts = (cfg.pts || []).map(function(p){ return Array.isArray(p) ? [+p[0], +p[1]] : [+(p && p.x) || 0, +(p && p.y) || 0]; });
+    if(cfg.symmetric === false) return pts;
+    return pts.concat(pts.slice(1, -1).reverse().map(function(p){ return [-p[0], p[1]]; }));
+  }
+  function zoneCfg(gid, side, cid){
+    var a = ((C.printAreas || {})[gid] || {})[side];
+    if(!a) return null;
+    var cfg = (a.colors && a.colors[cid]) ? a.colors[cid] : a.base;
+    return (cfg && cfg.pts && cfg.pts.length >= 3) ? cfg : null;
+  }
+  /* Без намальованої зони — рамка виробу на фото (як recGarmentBox) і
+     типові пропорції зони: груди від 18% до 72% висоти, ширина ±30%. */
+  function garmentBox(im){
+    var box = { x0:0.1, y0:0.05, x1:0.9, y1:0.95 };
+    try{
+      var k = Math.min(1, 120 / Math.max(im.naturalWidth, im.naturalHeight));
+      var w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+      var c = D.createElement('canvas'); c.width = w; c.height = h;
+      var x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
+      var a = x.getImageData(0, 0, w, h).data, br = a[0], bg = a[1], bb = a[2];
+      var rows = new Uint16Array(h), cols = new Uint16Array(w);
+      for(var i = 0; i < w * h; i++){
+        var o = i * 4;
+        if(Math.abs(a[o] - br) + Math.abs(a[o+1] - bg) + Math.abs(a[o+2] - bb) <= 26) continue;
+        var px = i % w; rows[(i - px) / w]++; cols[px]++;
+      }
+      var y0 = -1, y1 = -1, x0 = -1, x1 = -1;
+      for(var r = 0; r < h; r++) if(rows[r] > Math.max(2, w * 0.02)){ if(y0 < 0) y0 = r; y1 = r; }
+      for(var q = 0; q < w; q++) if(cols[q] > Math.max(2, h * 0.02)){ if(x0 < 0) x0 = q; x1 = q; }
+      if(y1 > y0 && x1 > x0) box = { x0:x0 / w, y0:y0 / h, x1:(x1 + 1) / w, y1:(y1 + 1) / h };
+    }catch(e){}
+    return box;
+  }
+  function frameOf(gid, side, cid, im){
+    var natW = im.naturalWidth, natH = im.naturalHeight;
+    var cfg = zoneCfg(gid, side, cid);
+    if(!cfg){
+      var b = garmentBox(im), span0 = b.y1 - b.y0, kx0 = span0 * natH / natW;
+      var hw = 0.30 * (b.x1 - b.x0) / kx0;
+      cfg = { calibTop: b.y0, calibBottom: b.y1, calibCx: (b.x0 + b.x1) / 2, symmetric: false,
+              pts: ACCESSORY[gid] ? [[-hw, 0.25], [hw, 0.25], [hw, 0.75], [-hw, 0.75]]
+                                  : [[-hw, side === 'back' ? 0.15 : 0.18], [hw, side === 'back' ? 0.15 : 0.18], [hw, 0.72], [-hw, 0.72]] };
+    }
+    var calT = cfg.calibTop != null ? +cfg.calibTop : 0.06, calB = cfg.calibBottom != null ? +cfg.calibBottom : 0.96;
+    var calX = cfg.calibCx != null ? +cfg.calibCx : 0.5, span = calB - calT;
+    var ux0 = 1e9, ux1 = -1e9, uy0 = 1e9, uy1 = -1e9;
+    polyOf(cfg).forEach(function(p){ ux0 = Math.min(ux0, p[0]); ux1 = Math.max(ux1, p[0]); uy0 = Math.min(uy0, p[1]); uy1 = Math.max(uy1, p[1]); });
+    var H = heightCm(gid);
+    return { H:H, x0: ux0 * H, x1: ux1 * H, top: uy0 * H, bot: uy1 * H,
+             fx: function(cm){ return calX + cm / H * span * natH / natW; },
+             fy: function(cm){ return calT + cm / H * span; },
+             fw: function(cm){ return cm / H * span * natH / natW; } };
+  }
+  function fit(maxW, maxH, ar){
+    var w = maxW, h = w * ar;
+    if(h > maxH){ h = maxH; w = h / ar; }
+    return { w: w, h: h };
+  }
+  /* Де лежить логотип у варіанті — у сантиметрах від центру й від верху
+     виробу, і далі в частках фото. */
+  function placeOn(gid, place, fr, ar){
+    var zw = fr.x1 - fr.x0, zh = fr.bot - fr.top, s, cx, top;
+    if(place === 'acc'){
+      s = fit(zw * 0.78, zh * 0.78, ar); cx = (fr.x0 + fr.x1) / 2; top = fr.top + (zh - s.h) / 2;
+    } else if(place === 'left'){
+      s = fit(Math.min(9, zw * 0.42), Math.min(9, zh * 0.5), ar);
+      /* «На серці» — ліва сторона того, хто вдягнув, тобто ПРАВА на фото. */
+      cx = Math.max(s.w / 2 + 0.5, Math.min(fr.x1 - s.w / 2 - 0.5, fr.x1 * 0.55));
+      top = fr.top + 1.5;
+    } else if(place === 'center'){
+      s = fit(Math.min(24, zw * 0.8), Math.min(24, zh * 0.62), ar); cx = (fr.x0 + fr.x1) / 2; top = fr.top + 2.5;
+    } else {
+      s = fit(Math.min(28, zw * 0.85), Math.min(32, zh * 0.72), ar); cx = (fr.x0 + fr.x1) / 2; top = fr.top + 3;
+    }
+    if(top + s.h > fr.bot) top = Math.max(fr.top, fr.bot - s.h);
+    return { wCm: s.w, hCm: s.h, cx: fr.fx(cx), cy: fr.fy(top + s.h / 2), w: fr.fw(s.w) };
+  }
+  function placesFor(gid){
+    if(ACCESSORY[gid]) return ['acc'];
+    if(gid === 'hoodiezip') return ['left', 'back'];   // по центру — блискавка
+    return ['left', 'center', 'back'];
+  }
+  /* Мокап: фото виробу + логотип. Полотно «зіпсоване» чужим доменом — тоді
+     показуємо накладанням (картинка поверх фото), а в замовлення йде лише
+     геометрія й сам логотип. */
+  function renderMock(gid, cid, place, logoIm){
+    var side = PLACES[place].side;
+    return loadImg(picOf(gid, cid, side)).then(function(im){
+      if(!im) return null;
+      var fr = frameOf(gid, side, cid, im);
+      var p = placeOn(gid, place, fr, S.logo.ar);
+      var k = Math.min(1, 1000 / Math.max(im.naturalWidth, im.naturalHeight));
+      var c = D.createElement('canvas');
+      c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      var x = c.getContext('2d');
+      x.drawImage(im, 0, 0, c.width, c.height);
+      var lw = p.w * c.width, lh = lw * S.logo.ar;
+      x.drawImage(logoIm, p.cx * c.width - lw / 2, p.cy * c.height - lh / 2, lw, lh);
+      var url = null;
+      try{ url = c.toDataURL('image/jpeg', 0.86); }catch(e){}
+      return { url: url, photo: im.src, p: p, side: side,
+               wCm: p.wCm, hCm: p.hCm, mm2: Math.round(p.wCm * p.hCm * 100 * (S.logo.ink || 0.5)) };
+    });
+  }
+  function buildMocks(){
+    return loadImg(S.logo.url).then(function(logoIm){
+      var jobs = [];
+      S.garments.forEach(function(gid){
+        var c = colorOf(gid); if(!c) return;
+        MOCKS[gid] = MOCKS[gid] || {};
+        placesFor(gid).forEach(function(pl){
+          if(MOCKS[gid][pl] && MOCKS[gid][pl].cid === c.id) return;
+          jobs.push(renderMock(gid, c.id, pl, logoIm).then(function(r){ if(r){ r.cid = c.id; MOCKS[gid][pl] = r; } else delete MOCKS[gid][pl]; }));
+        });
+      });
+      return Promise.all(jobs);
+    });
+  }
+
+  /* ══════════ ЦІНА — той самий рушій, що в КП ══════════ */
+  function priced(){ return !!(W.LQ && W.LQ.priceOrder && C.pricing && C.pricing.methods); }
+  function methodFor(gid){
+    var ok = W.LQ && W.LQ.garmentAllows ? W.LQ.garmentAllows(gid, 'embro') : true;
+    return ok ? 'embro' : 'dtf';
+  }
+  function baseFor(gid){ return +((C.pricing || {}).basePrices || {})[gid] || 0; }
+  function dtfCol(m, wCm, hCm){
+    var b = m.bands || [];
+    for(var i = 0; i < b.length; i++){
+      var SW = +b[i].w || 0, SH = +b[i].h || 0;
+      if((wCm <= SW && hCm <= SH) || (wCm <= SH && hCm <= SW)) return i;
+    }
+    return Math.max(0, b.length - 1);
+  }
+  function desc(gid, place, units){
+    var mk = MOCKS[gid] && MOCKS[gid][place];
+    var mkey = methodFor(gid), m = ((C.pricing || {}).methods || {})[mkey] || {};
+    var mm2 = mk ? mk.mm2 : 3000;
+    var grid = m.mode === 'grid';
+    var ps = grid ? { total:0, base:0, minAdd:0 } : W.LQ.placeSell(m, false, mm2, 0);
+    return { method: grid ? 'dtf' : 'embro', units: Math.max(1, units), gid: gid, base: baseFor(gid),
+             coefPart: ps.total, basePart: ps.base, minPart: ps.minAdd, pieceFee: +m.pieceFee || 0,
+             dtfCols: grid ? [dtfCol(m, mk ? mk.wCm : 10, mk ? mk.hCm : 10)] : [],
+             designs: ['quiz-logo'], designUrls: ['quiz-logo'], designKinds: ['img'], designMm2: [mm2], bare: false };
+  }
+  function qtyOf(gid){ return Math.max(1, +S.qty[gid] || S.people || 1); }
+  function pickOf(gid){
+    var pl = placesFor(gid);
+    return pl.indexOf(S.pick[gid]) >= 0 ? S.pick[gid] : (pl.indexOf('center') >= 0 ? 'center' : pl[0]);
+  }
+  /* Ціна за штуку для кожного варіанту — у складі з рештою вибраного:
+     спільний тираж і один макет на все замовлення, як у КП. */
+  function priceTable(scale){
+    if(!priced()) return null;
+    var list = S.garments.map(function(gid){ return desc(gid, pickOf(gid), Math.round(qtyOf(gid) * (scale || 1))); });
+    return W.LQ.priceOrder(list);
+  }
+  function variantPrice(gid, place){
+    if(!priced()) return null;
+    var list = S.garments.map(function(g){ return desc(g, g === gid ? place : pickOf(g), qtyOf(g)); });
+    var r = W.LQ.priceOrder(list);
+    return r[S.garments.indexOf(gid)];
+  }
+
+  /* ══════════ КОНТАКТ → ЗАЯВКА ══════════
+     Порядок навмисний. Спершу — коротке повідомлення в Telegram з
+     контактом: воно доходить за секунду, і навіть якщо людина закриє
+     вкладку, менеджер уже знає, кому дзвонити. Потім показуємо варіанти, а
+     у фоні вантажимо мокапи й логотип у хмару й пишемо замовлення в Канбан. */
+  function phoneNorm(v){
+    var d = String(v || '').replace(/\D/g, '');
+    if(d.length === 10 && d[0] === '0') d = '38' + d;
+    if(d.length === 9) d = '380' + d;
+    return d.length === 12 && d.slice(0, 2) === '38' ? '+' + d : null;
+  }
+  function sphereName(){ return (SPHERES.filter(function(s){ return s.id === S.sphere; })[0] || {}).name || ''; }
+  function summary(){
+    return S.garments.map(function(gid){
+      var g = gOf(gid) || { name: gid }, c = colorOf(gid) || { name:'' };
+      var pl = pickOf(gid), mk = MOCKS[gid] && MOCKS[gid][pl];
+      return '• ' + g.name + ', ' + c.name + ' — ' + qtyOf(gid) + ' шт · ' + PLACES[pl].name.toLowerCase() +
+        (mk ? ' ~' + см(mk.wCm) + '×' + см(mk.hCm) + ' см' : '');
+    }).join('\n');
+  }
+  function leadText(head){
+    var pt = priceTable(), tot = pt ? pt.reduce(function(s, r){ return s + (r.sum || 0); }, 0) : 0;
+    return head + '\n' +
+      (S.company ? 'Компанія: ' + S.company + '\n' : '') +
+      'Сфера: ' + sphereName() + ' · людей: ' + S.people + '\n' +
+      'Імʼя: ' + String(S.name).trim() + (S.tg ? ' · ' + String(S.tg).trim() : '') + '\n' +
+      summary() + (tot ? '\nОрієнтовно: ' + грн(tot) : '') +
+      (S.wish ? '\nПобажання: ' + S.wish : '');
+  }
+  function lead(context, files){
+    return fetch(LEAD_URL, { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ phone: phoneNorm(S.phone) || S.phone, page: location.href, context: context,
+                             files: files || [], ts: new Date().toISOString() }) })
+      .then(function(r){ return r.ok; }).catch(function(){ return false; });
+  }
+  function upload(dataUrl){
+    if(!dataUrl) return Promise.resolve(null);
+    var fd = new FormData();
+    fd.append('file', dataUrl); fd.append('upload_preset', CLOUD.preset);
+    return fetch('https://api.cloudinary.com/v1_1/' + CLOUD.cloud + '/auto/upload', { method:'POST', body: fd })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){ return (j && (j.secure_url || j.url)) || null; })
+      .catch(function(){ return null; });
+  }
+  function submit(){
+    var err = D.getElementById('qErr');
+    if(!phoneNorm(S.phone)){ if(err) err.textContent = 'Перевірте номер телефону: потрібен український, +380…'; return; }
+    busy = true; render();
+    S.name = String(S.name).trim().slice(0, 60);
+    lead(leadText('🧩 Квіз: нова заявка'));
+    track('quiz_contact');
+    try{ W.lqAn && W.lqAn.step('lead'); }catch(e){}
+    buildMocks().catch(function(){}).then(function(){
+      busy = false; S.sent = true; go(STEPS.indexOf('result'));
+      saveOrder();
+    });
+  }
+  var ORDER_SAVED = false;
+  function saveOrder(){
+    if(ORDER_SAVED) return;
+    ORDER_SAVED = true;
+    var logoUp = upload(S.logo && S.logo.url);
+    var rawUp = RAW && RAW.url && RAW.url !== (S.logo && S.logo.url) ? upload(RAW.url) : Promise.resolve(null);
+    var mockUps = [];
+    S.garments.forEach(function(gid){
+      placesFor(gid).forEach(function(pl){
+        var mk = MOCKS[gid] && MOCKS[gid][pl];
+        if(mk && mk.url && !mk.up) mockUps.push(upload(mk.url).then(function(u){ mk.up = u; }));
+      });
+    });
+    Promise.all([logoUp, rawUp].concat(mockUps)).then(function(r){
+      var logoUrl = r[0], rawUrl = r[1];
+      var pt = priceTable() || [];
+      var items = S.garments.map(function(gid, i){
+        var g = gOf(gid) || { name: gid }, c = colorOf(gid) || { id:'', name:'' };
+        var pl = pickOf(gid), mk = (MOCKS[gid] || {})[pl] || {};
+        var others = placesFor(gid).filter(function(x){ return x !== pl; });
+        var row = pt[i] || {};
+        return {
+          kind: 'quiz', name: g.name, color: c.name, print: methodFor(gid) === 'embro' ? 'Вишивка' : 'DTF', sizes: '',
+          qty: qtyOf(gid), unitPrice: Math.round(row.unit || 0), price: Math.round(row.sum || 0), unitCost: 0, cost: 0,
+          mockups: [mk.up].concat(others.map(function(x){ return ((MOCKS[gid] || {})[x] || {}).up; })).filter(Boolean),
+          prints: [{ side: PLACES[pl].side, technique: methodFor(gid) === 'embro' ? 'Вишивка' : 'DTF',
+                     widthMm: Math.round((mk.wCm || 0) * 10), heightMm: Math.round((mk.hCm || 0) * 10),
+                     place: PLACES[pl].name, file: rawUrl || logoUrl || null }],
+          config: { garmentId: gid, colorId: c.id, printId: methodFor(gid), qty: qtyOf(gid), logos: {} }
+        };
+      });
+      var total = items.reduce(function(s, x){ return s + x.price; }, 0);
+      var order = {
+        orderId: 'Q' + Date.now().toString(36).toUpperCase(),
+        name: S.name || 'Квіз', phone: phoneNorm(S.phone), site: 'quiz', items: items,
+        totalPrice: total, totalCost: 0, page: location.pathname,
+        note: ('Квіз · ' + (S.company ? S.company + ' · ' : '') + sphereName() + ' · людей: ' + S.people +
+               (S.tg ? ' · ' + String(S.tg).trim() : '') + (S.wish ? ' · побажання: ' + S.wish : '') +
+               (logoUrl ? ' · логотип: ' + logoUrl : '')).slice(0, 1500),
+        quiz: { company: S.company, sphere: S.sphere, people: S.people, tg: S.tg, wish: S.wish, logo: logoUrl, logoRaw: rawUrl },
+        createdAt: new Date().toISOString(), imported: false,
+        an: (W.lqAn && W.lqAn.attribution && W.lqAn.attribution()) || null
+      };
+      var files = [];
+      if(rawUrl || logoUrl) files.push({ url: rawUrl || logoUrl, kind:'logo', caption:'Логотип клієнта' });
+      items.forEach(function(it){ if(it.mockups[0]) files.push({ url: it.mockups[0], kind:'mockup', caption: it.name + ', ' + it.color }); });
+      var write = db ? db.collection('webOrders').add(JSON.parse(JSON.stringify(order)))
+                     : Promise.reject(new Error('база не підключилась'));
+      return write.then(function(){
+        lead('🧩 Квіз: мокапи й прорахунок для ' + S.name + ' (картка вже в Канбані, «Нове»)\n' + summary(), files);
+      }, function(e){
+        lead('⚠️ Квіз: заявка НЕ потрапила в Канбан (' + ((e && (e.code || e.message)) || 'помилка') + '). Заведіть картку вручну.\n' +
+             leadText(''), files);
+      });
+    });
+  }
+
+  /* ══════════ РЕЗУЛЬТАТ ══════════ */
+  function resultHtml(){
+    if(!S.logo || !S.garments.length) return '<div class="q-card"><h2 class="q-h">Почнімо спочатку</h2><button class="q-next" data-restart>Пройти квіз</button></div>';
+    var secs = S.garments.map(function(gid){
+      var g = gOf(gid) || { name: gid }, c = colorOf(gid) || { name:'' };
+      var cur = pickOf(gid);
+      return '<section class="r-sec"><h3>' + esc(g.name) + '</h3><div class="meta">' + esc(c.name) +
+        ' · ' + (methodFor(gid) === 'embro' ? 'вишивка' : 'DTF-друк') + '</div><div class="r-vars">' +
+        placesFor(gid).map(function(pl){
+          var mk = (MOCKS[gid] || {})[pl];
+          var pr = variantPrice(gid, pl);
+          return '<button class="r-v' + (pl === cur ? ' on' : '') + '" data-vg="' + esc(gid) + '" data-vp="' + pl + '">' +
+            '<div class="pic">' + (mk ? mockImg(mk) : '') + '</div>' +
+            '<b>' + esc(PLACES[pl].name) + '</b><span>' + (mk ? '~' + см(mk.wCm) + ' × ' + см(mk.hCm) + ' см' : '') +
+            (PLACES[pl].d ? ' · ' + esc(PLACES[pl].d) : '') + '</span>' +
+            (pr && pr.unit ? '<em>' + грн(pr.unit) + ' / шт</em>' : '') + '</button>';
+        }).join('') + '</div>' +
+        '<label class="r-qty">Кількість <input type="number" min="1" max="5000" inputmode="numeric" data-qg="' + esc(gid) + '" value="' + qtyOf(gid) + '"> шт</label>' +
+        '</section>';
+    }).join('');
+    return '<div class="q-card" style="margin-bottom:16px"><h1 class="q-h">Ваш логотип на одязі команди</h1>' +
+      '<p class="q-sub">Оберіть розміщення для кожного виробу — прорахунок оновиться сам. ' +
+      'Менеджер уже отримав вашу заявку й напише найближчим часом.</p></div>' +
+      '<div class="r-grid"><div>' + secs + '</div><aside class="r-calc" id="rCalc">' + calcHtml() + '</aside></div>';
+  }
+  function mockImg(mk){
+    if(mk.url) return '<img alt="" src="' + esc(mk.url) + '">';
+    /* Полотно недоступне (фото з чужого домену без CORS) — фото + логотип зверху. */
+    return '<img alt="" src="' + esc(mk.photo) + '"><img alt="" src="' + esc(S.logo.url) + '" style="position:absolute;left:' +
+      ((mk.p.cx - mk.p.w / 2) * 100) + '%;top:' + ((mk.p.cy) * 100) + '%;width:' + (mk.p.w * 100) + '%;height:auto;transform:translateY(-50%)">';
+  }
+  function calcHtml(){
+    var pt = priceTable();
+    if(!pt) return '<h3>Прорахунок</h3><p class="q-note">Ціну за вашим вибором менеджер надішле особисто — ' +
+      'вона залежить від розміру логотипа й тиражу.</p>';
+    var tot = 0, units = 0;
+    var rows = S.garments.map(function(gid, i){
+      var g = gOf(gid) || { name: gid }, c = colorOf(gid) || { name:'' }, r = pt[i] || {};
+      var pl = pickOf(gid), mk = (MOCKS[gid] || {})[pl];
+      tot += r.sum || 0; units += qtyOf(gid);
+      return '<div class="r-row"><div><b>' + esc(g.name) + '</b><small>' + esc(c.name) + ' · ' + esc(PLACES[pl].name.toLowerCase()) +
+        (mk ? ' ~' + см(mk.wCm) + ' см' : '') + '<br>' + qtyOf(gid) + ' шт × ' + грн(r.unit) + '</small></div>' +
+        '<div class="s">' + грн(r.sum) + '</div></div>';
+    }).join('');
+    /* «Що більше — то дешевше»: та сама позиція при більшому тиражі. */
+    var steps = [2, 4].map(function(k){
+      var p2 = priceTable(k); if(!p2) return '';
+      var t2 = p2.reduce(function(s, r){ return s + (r.sum || 0); }, 0), u2 = 0;
+      S.garments.forEach(function(gid){ u2 += Math.round(qtyOf(gid) * k); });
+      var avgNow = tot / Math.max(1, units), avg2 = t2 / Math.max(1, u2);
+      return avg2 < avgNow - 1 ? 'При ' + u2 + ' шт — у середньому <b>' + грн(avg2) + '</b> за річ (зараз ' + грн(avgNow) + ')' : '';
+    }).filter(Boolean);
+    return '<h3>Прорахунок</h3>' + rows +
+      '<div class="r-tot"><span>Разом</span><b>' + грн(tot) + '</b></div>' +
+      '<p class="q-note" style="margin-top:0">' + units + ' шт · підготовка макета вишивки вже в ціні. Ціна орієнтовна — ' +
+      'остаточну менеджер підтвердить після перевірки логотипа.</p>' +
+      (steps.length ? '<div class="r-tiers">' + steps.join('<br>') + '</div>' : '') +
+      (S.chosen ? '<div class="r-ok">Дякуємо! Ваш вибір передали менеджеру — він звʼяжеться з вами найближчим часом.</div>'
+                : '<button class="q-next r-cta" data-choose>Обираю ці варіанти</button>') +
+      '<p class="q-note"><button class="q-link" data-restart>Пройти квіз ще раз</button></p>';
+  }
+  function bindResult(m){
+    m.querySelectorAll('[data-restart]').forEach(function(b){ b.onclick = function(){
+      var keep = { name: S.name, phone: S.phone, tg: S.tg };
+      S = { v:1, step:0, sphere:'', company:'', people:0, garments:[], colors:{}, logo:null, wish:'',
+            name: keep.name, phone: keep.phone, tg: keep.tg, sent:false, pick:{}, qty:{} };
+      MOCKS = {}; ORDER_SAVED = false; go(0);
+    }; });
+    m.querySelectorAll('[data-vg]').forEach(function(b){ b.onclick = function(){
+      S.pick[b.dataset.vg] = b.dataset.vp; S.chosen = false; save();
+      m.querySelectorAll('[data-vg="' + b.dataset.vg + '"]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      refreshCalc(m);
+    }; });
+    m.querySelectorAll('[data-qg]').forEach(function(inp){ inp.oninput = function(){
+      var n = Math.max(0, Math.min(5000, Math.round(+inp.value || 0)));
+      if(n > 0){ S.qty[inp.dataset.qg] = n; S.chosen = false; save(); refreshCalc(m); refreshPrices(m); }
+    }; });
+    bindCalc(m);
+    /* Відкрили результат після перезавантаження — мокапів у памʼяті вже
+       немає. Будуємо заново (заявку повторно не шлемо). */
+    var missing = S.garments.some(function(gid){ return !MOCKS[gid] || placesFor(gid).some(function(pl){ return !MOCKS[gid][pl]; }); });
+    if(missing && S.logo && !m.__rebuilding){ m.__rebuilding = true; buildMocks().then(function(){ render(); }); }
+  }
+  function refreshPrices(m){
+    m.querySelectorAll('[data-vg]').forEach(function(b){
+      var pr = variantPrice(b.dataset.vg, b.dataset.vp), em = b.querySelector('em');
+      if(em && pr) em.textContent = грн(pr.unit) + ' / шт';
+    });
+  }
+  function refreshCalc(m){ var c = m.querySelector('#rCalc'); if(c){ c.innerHTML = calcHtml(); bindCalc(m); } }
+  function bindCalc(m){
+    var ch = m.querySelector('[data-choose]');
+    if(ch) ch.onclick = function(){
+      S.chosen = true; save(); refreshCalc(m);
+      track('quiz_choose');
+      lead(leadText('✅ Квіз: клієнт обрав варіанти'));
+    };
+    m.querySelectorAll('#rCalc [data-restart]').forEach(function(b){ b.onclick = m.querySelector('[data-restart]').onclick; });
+  }
+
+  /* ══════════ СТАРТ ══════════ */
+  var started = false;
+  function start(){ started = true; render(); }
+  try{
+    if(!W.firebase) throw new Error('no firebase');
+    if(!firebase.apps.length) firebase.initializeApp(FB);
+    db = firebase.firestore();
+    db.collection('loomiq').doc('photos').get().then(function(snap){
+      var d = (snap && snap.exists) ? (snap.data() || {}) : {};
+      MAP = d.map || {};
+      Object.keys(d).forEach(function(k){ if(k !== 'map') C[k] = d[k]; });
+      start();
+    }, function(e){ console.warn('квіз: база не відповіла', e); start(); });
+  }catch(e){ console.warn('квіз: firebase не піднявся', e); start(); }
+  setTimeout(function(){ if(!started) start(); }, 5000);
+  /* Результат без контакту не показуємо: людина, що повернулась на крок
+     «результат» з чужого пристрою чи після очищення, починає з контактів. */
+  if(STEPS[S.step] === 'result' && !S.sent) S.step = STEPS.indexOf('contact');
+  W.__quiz = { state: function(){ return S; }, mocks: function(){ return MOCKS; }, priceTable: priceTable, placeOn: placeOn, frameOf: frameOf };
+})();
+</script>
+</body>
+</html>
