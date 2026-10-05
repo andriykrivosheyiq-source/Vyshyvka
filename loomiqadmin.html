@@ -2709,6 +2709,12 @@
   .pa-stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;background:#fafafb;min-width:0;}
   .pa-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;}
   .pa-prodname{font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin-bottom:16px;}
+  .pa-places-box{background:#fff8ef;border:1px solid #f3d9b8;border-radius:10px;padding:12px;margin:0 0 14px;}
+  .pa-pl{display:flex;align-items:center;gap:6px;font-size:12.5px;margin-bottom:6px;}
+  .pa-pl b{flex:1;}
+  .pa-pl select{font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:6px;padding:3px 4px;}
+  .pa-pl button,.pa-pl-add button{font-family:inherit;font-size:12px;border:1px solid #e9c393;background:#fff;border-radius:7px;padding:4px 8px;cursor:pointer;}
+  .pa-pl-add{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
   .pa-slot{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13.5px;margin-bottom:6px;font-family:inherit;}
   .pa-slot.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
   .pa-col{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;margin-bottom:5px;font-family:inherit;}
@@ -6721,6 +6727,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <input id="pa-height" type="number" min="1" step="0.5" style="width:100%;font-family:inherit;font-size:15px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;">
             </div>
             <div class="pa-area" id="pa-area"></div>
+            <div class="pa-places-box">
+              <div class="pa-lbl" style="margin-bottom:6px;">МІСЦЯ ЛОГОТИПА (№)</div>
+              <div class="pa-hint" style="margin:0 0 8px;">Номер — це варіант розміщення для всієї лінійки: усі рамки з <b>№2</b> (спереду, ззаду…) — один варіант.
+                Логотип вписується в рамку і за шириною, і за висотою.</div>
+              <div id="pa-places"></div>
+              <div class="pa-pl-add" id="pa-pl-add"></div>
+            </div>
             <button class="pc-btn up" id="pa-save" style="width:100%;padding:10px;margin-bottom:8px;">Зберегти область</button>
             <button class="pc-btn reset" id="pa-reset" style="width:100%;padding:10px;color:var(--bad,#d64550);">Скасувати всі зміни</button>
             <div class="pa-hint">
@@ -7301,27 +7314,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=16172ffeca"></script>
-<script src="loomiq-fingerprint.js?v=16172ffeca"></script>
-<script src="loomiq-pricing.js?v=16172ffeca"></script>
+<script src="loomiq-select.js?v=6fff85b41f"></script>
+<script src="loomiq-fingerprint.js?v=6fff85b41f"></script>
+<script src="loomiq-pricing.js?v=6fff85b41f"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=16172ffeca"></script>
+<script src="loomiq-money-core.js?v=6fff85b41f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=16172ffeca"></script>
-<script src="loomiq-mock.js?v=16172ffeca"></script>
+<script src="loomiq-design.js?v=6fff85b41f"></script>
+<script src="loomiq-mock.js?v=6fff85b41f"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=16172ffeca"></script>
-<script src="loomiq-threads.js?v=16172ffeca"></script>
+<script src="imagetracer.js?v=6fff85b41f"></script>
+<script src="loomiq-threads.js?v=6fff85b41f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=16172ffeca"></script>
+<script src="loomiq-cards.js?v=6fff85b41f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7366,7 +7379,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '16172ffeca';
+var LQ_VER = '6fff85b41f';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -32939,7 +32952,9 @@ function updatePaSummary(id){
   const pa = (contentData.printAreas||{})[id];
   if(pa && (pa.front || pa.back)){
     const slots = [pa.front?'Груди':null, pa.back?'Спина':null].filter(Boolean).join(', ');
-    el.innerHTML = '✅ Область нанесення задана: <b>'+slots+'</b> (масштаб '+escA(pa.scaleSize||'M')+').';
+    const ns = new Set(); Object.keys(pa).forEach(k=>{ const sd=pa[k]; if(sd && Array.isArray(sd.places)) sd.places.forEach(q=>ns.add(+q.n||1)); });
+    el.innerHTML = '✅ Область нанесення задана: <b>'+slots+'</b> (масштаб '+escA(pa.scaleSize||'M')+').' +
+      (ns.size ? ' Місця логотипа: <b>'+[...ns].sort((a,b)=>a-b).map(n=>'№'+n).join(', ')+'</b>.' : '');
   } else {
     el.textContent = 'Область нанесення (зона друку/вишивки) ще не задана.';
   }
@@ -32970,7 +32985,14 @@ function updatePaSummary(id){
   function firstColorId(){ const c=effectiveColors(paId); return (c[0]||{}).id; }
   function isFirstColor(){ return paColorId===firstColorId(); }
 
-  function newSideCfg(){ return { base:{symmetric:true, pts:DEFAULT_HALF.map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom, calibCx:0.5}, colors:{} }; }
+  function newSideCfg(){ return { base:{symmetric:true, pts:DEFAULT_HALF.map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom, calibCx:0.5}, colors:{}, places:[] }; }
+  /* МІСЦЯ ЛОГОТИПА (06.10). Андрій: «ставимо одиничку — логотип спереду;
+     двійку — спереду й ззаду». Рамка з номером на стороні виробу: центр
+     (x від осі, y від верху виробу) і розмір — у тих самих частках
+     каліброваної висоти, що й зона. Тож рамка йде за калібруванням кожного
+     кольору сама, і 1 одиниця = висота виробу в см. Живуть на рівні
+     сторони (не кольору): місце на виробі одне на всі кольори. */
+  function placesFrom(a){ return (Array.isArray(a)?a:[]).map(p=>({ n:Math.max(1,Math.round(+p.n||1)), x:+p.x||0, y:(p.y!=null?+p.y:0.3), w:Math.max(0.01,+p.w||0.12), h:Math.max(0.01,+p.h||0.12) })); }
   function migrateSide(s){ if(!s) return null; if(s.base) return s; /* стара плоска форма */ return { base:{symmetric:s.symmetric!==false, pts:(s.pts||DEFAULT_HALF), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
   function effCfg(){ const side=data[paSide]; if(!side) return null; return (side.colors&&side.colors[paColorId]) ? side.colors[paColorId] : side.base; }
 
@@ -32981,8 +33003,10 @@ function updatePaSummary(id){
   function cfgFrom(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop!=null?c.calibTop:DEF_CAL.top, calibBottom:c.calibBottom!=null?c.calibBottom:DEF_CAL.bottom, calibCx:c.calibCx!=null?c.calibCx:0.5, calibL:c.calibL!=null?+c.calibL:null, calibR:c.calibR!=null?+c.calibR:null, pts:ptsFrom(c.pts) } : c; }
   function cfgTo(c){ if(!c) return c; const o={ symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, calibCx:c.calibCx!=null?c.calibCx:0.5, pts:ptsTo(c.pts) };
     if(c.calibL!=null && c.calibR!=null){ o.calibL=c.calibL; o.calibR=c.calibR; } return o; }
-  function sideFrom(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgFrom(s.colors[k])); return { base:cfgFrom(s.base), colors }; }
-  function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k])); return { base:cfgTo(s.base), colors }; }
+  function sideFrom(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgFrom(s.colors[k])); return { base:cfgFrom(s.base), colors, places:placesFrom(s.places) }; }
+  function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k]));
+    const o={ base:cfgTo(s.base), colors }; o.places=placesFrom(s.places); return o; }
+  function sidePlaces(){ const sd=data[paSide]; if(!sd) return []; sd.places=sd.places||[]; return sd.places; }
   function toStore(d){ const out={ scaleSize:d.scaleSize, heightCm:d.heightCm }; Object.keys(d).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&d[k]) out[k]=sideTo(d[k]); }); return out; }
 
   function loadData(){
@@ -33013,8 +33037,9 @@ function updatePaSummary(id){
     else { data[paSide].colors=data[paSide].colors||{}; data[paSide].colors[paColorId]=cfg; }
   }
   function colorHasOwn(){ const s=data[paSide]; return !isFirstColor() && s && s.colors && s.colors[paColorId]; }
-  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX,calL,calR,sym})); if(history.length>60) history.shift(); }
-  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; calL=s.calL; calR=s.calR; if(s.sym!=null) sym=s.sym; render(); } }
+  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX,calL,calR,sym,pl:sidePlaces()})); if(history.length>60) history.shift(); }
+  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; calL=s.calL; calR=s.calR; if(s.sym!=null) sym=s.sym;
+    if(s.pl && data[paSide]) data[paSide].places=s.pl; render(); } }
 
   function fullPoly(half){ const mir=half.slice(1,-1).reverse().map(p=>[-p[0],p[1]]); return half.concat(mir); }
   function curFull(){ return sym ? fullPoly(pts) : pts.slice(); }
@@ -33087,7 +33112,18 @@ function updatePaSummary(id){
     const dpath=full.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+' Z';
     h+='<path d="'+dpath+'" fill="rgba(58,80,220,.14)" stroke="#3a50dc" stroke-width="2.5" pointer-events="stroke" style="cursor:copy;" data-contour/>';
     pts.map(toPx).forEach((p,i)=>{ h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="7" fill="'+(i===selIdx?'#d64550':'#3a50dc')+'" stroke="#fff" stroke-width="2.5" style="cursor:grab;" data-h="'+i+'"/>'; });
+    // Місця логотипа: помаранчеві рамки з номером; тягнути — посунути, куточок — розмір
+    sidePlaces().forEach((q,i)=>{
+      const a=toPx([q.x-q.w/2,q.y-q.h/2]), b=toPx([q.x+q.w/2,q.y+q.h/2]);
+      h+='<rect x="'+a[0].toFixed(1)+'" y="'+a[1].toFixed(1)+'" width="'+(b[0]-a[0]).toFixed(1)+'" height="'+(b[1]-a[1]).toFixed(1)+'" fill="rgba(224,122,20,.16)" stroke="#E07A14" stroke-width="2" style="cursor:move;" data-pl="'+i+'"/>';
+      h+='<circle cx="'+a[0].toFixed(1)+'" cy="'+a[1].toFixed(1)+'" r="11" fill="#E07A14" pointer-events="none"/>';
+      h+='<text x="'+a[0].toFixed(1)+'" y="'+(a[1]+4.5).toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" pointer-events="none">'+q.n+'</text>';
+      h+='<rect x="'+(b[0]-7).toFixed(1)+'" y="'+(b[1]-7).toFixed(1)+'" width="14" height="14" rx="3" fill="#E07A14" stroke="#fff" stroke-width="2" style="cursor:nwse-resize;" data-plr="'+i+'"/>';
+    });
     svg.innerHTML=h;
+    svg.querySelectorAll('[data-pl]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragPlace(+c.dataset.pl, ev, false); }));
+    svg.querySelectorAll('[data-plr]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragPlace(+c.dataset.plr, ev, true); }));
+    renderPlaces();
     svg.querySelectorAll('[data-h]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); selIdx=+c.dataset.h; startDragPoint(+c.dataset.h); render(); }));
     svg.querySelectorAll('[data-cal]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragCal(c.dataset.cal); }));
     svg.querySelectorAll('[data-cale]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragEdge(c.dataset.cale); }));
@@ -33097,6 +33133,42 @@ function updatePaSummary(id){
     renderArea();
   }
 
+  function startDragPlace(i, ev0, resize){
+    const q=sidePlaces()[i]; if(!q) return;
+    const f0=toFracEvt(ev0), o={ x:q.x, y:q.y, w:q.w, h:q.h };
+    const move=e=>{ const f=toFracEvt(e), dx=f[0]-f0[0], dy=f[1]-f0[1];
+      if(resize){ q.w=Math.max(0.02,o.w+dx*2); q.h=Math.max(0.02,o.h+dy*2); }   // від центру: рамка лишається на місці
+      else { q.x=o.x+dx; q.y=Math.max(-0.2,Math.min(1.5,o.y+dy)); }
+      render(); };
+    const up=()=>document.removeEventListener('pointermove',move);
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
+  }
+  /* Список місць цієї сторони + «додати №». Розмір — у сантиметрах: саме
+     його менеджер звіряє з цехом («на серці 9 см»). */
+  function renderPlaces(){
+    const box=el('pa-places'), add=el('pa-pl-add'); if(!box||!add) return;
+    const H=data.heightCm>0?data.heightCm:cmForSize(paSize);
+    const list=sidePlaces();
+    box.innerHTML=list.length ? list.map((q,i)=>'<div class="pa-pl"><select data-pln="'+i+'">'+[1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(n===q.n?' selected':'')+'>№'+n+'</option>').join('')+'</select>'+
+      '<b>'+(q.w*H).toFixed(1)+' × '+(q.h*H).toFixed(1)+' см</b><button type="button" data-pld="'+i+'" title="Прибрати місце">✕</button></div>').join('')
+      : '<div class="pa-hint" style="margin:0 0 6px;">На цій стороні місць ще немає.</div>';
+    const used=new Set(); Object.keys(data).forEach(k=>{ const sd=data[k]; if(sd&&Array.isArray(sd.places)) sd.places.forEach(q=>used.add(q.n)); });
+    const nextN=[1,2,3,4,5,6].filter(n=>!list.some(q=>q.n===n));
+    add.innerHTML=nextN.slice(0,4).map(n=>'<button type="button" data-pla="'+n+'">+ №'+n+(used.has(n)?' ✓':'')+'</button>').join('');
+    box.querySelectorAll('[data-pln]').forEach(s2=>s2.onchange=()=>{ snapshot(); list[+s2.dataset.pln].n=+s2.value; render(); });
+    box.querySelectorAll('[data-pld]').forEach(b=>b.onclick=()=>{ snapshot(); list.splice(+b.dataset.pld,1); render(); });
+    add.querySelectorAll('[data-pla]').forEach(b=>b.onclick=()=>{
+      snapshot();
+      // Нова рамка — у верхній частині зони: ~9 см на грудях, ~25 см на спині
+      const c=curFull(); let top=0.2; if(c.length) top=Math.min.apply(null,c.map(p=>p[1]));
+      const s0=(paSide==='back'?25:9)/H;
+      // Не кладемо рамку на рамку: нижче, доки не звільниться місце
+      let y=top+0.02+s0/2;
+      while(list.some(q=>Math.abs(q.x)<(q.w+s0)/2 && Math.abs(q.y-y)<(q.h+s0)/2) && y<1.2) y+=s0*0.6;
+      list.push({ n:+b.dataset.pla, x:0, y, w:s0, h:s0 });
+      render();
+    });
+  }
   function startDragPoint(idx){
     const move=e=>{ const f=toFracEvt(e); let x=f[0], y=f[1]; if(sym){ if(idx===0||idx===pts.length-1) x=0; else x=Math.max(0,x); } pts[idx]=[x,Math.max(-0.2,Math.min(1.5,y))]; render(); };
     const up=()=>document.removeEventListener('pointermove',move);
