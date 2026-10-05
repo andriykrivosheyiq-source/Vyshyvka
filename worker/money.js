@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-05.4 · NovaPay: кроки входу';
+const VERSION = '2026-10-05.5 · NovaPay: один вхід за запуск';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -790,12 +790,26 @@ async function sha(s) {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s || '')));
   return [...new Uint8Array(h)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+/* Строк jwt від NovaPay: «05.10.2026 21:59[:00]» за Києвом (Date.parse
+   читає це як місяць.день — і jwt виходив «протермінованим» одразу), або
+   ISO. Лише дата без часу чи вже минулий строк — вважаємо 20 хв. */
+function novapayUntil(exp, now) {
+  const s = String(exp || '').trim();
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(s);
+  let t = m ? Date.parse(kyivIso(+m[3], +m[2], +m[1], +m[4], +m[5], +(m[6] || 0)))
+    : /^\d{4}-\d{2}-\d{2}T/.test(s) ? Date.parse(s) : NaN;
+  if (isNaN(t) || t - 60000 <= now) t = now + 20 * 60000;
+  return t;
+}
 let NOVAPAY_JWT = null;   // { jwt, until } — у памʼяті живого воркера
 async function novapayJwt(env, force) {
   if (!env.NOVAPAY_LOGIN || !env.NOVAPAY_REFRESH_TOKEN || !env.NOVAPAY_CERT)
     throw new Error('Немає секретів NOVAPAY_LOGIN / NOVAPAY_REFRESH_TOKEN / NOVAPAY_CERT');
   const now = Date.now();
-  if (!force && NOVAPAY_JWT && NOVAPAY_JWT.until - 60000 > now) return NOVAPAY_JWT.jwt;
+  /* Щойно увійшли (до 5 хв) — той самий jwt, навіть якщо строк прочитали
+     криво: кожен зайвий вхід крутить ключ, а NovaPay другого не пускає. */
+  if (!force && NOVAPAY_JWT && (NOVAPAY_JWT.until - 60000 > now || now - (NOVAPAY_JWT.at || 0) < 5 * 60000))
+    return NOVAPAY_JWT.jwt;
   const saved = await fsGet(env, 'secrets/novapay').catch(() => null);
   const seed = await sha(env.NOVAPAY_REFRESH_TOKEN);
   const savedOk = saved && saved.seed === seed;
@@ -826,12 +840,11 @@ async function novapayJwt(env, force) {
   const nextCert = xmlUnesc(xmlTag(a.res, 'public_certificate') || '');
   const exp = xmlUnesc(xmlTag(a.res, 'expiration') || '');
   if (!jwt || !next) throw new Error('NovaPay вхід: у відповіді немає jwt чи нового ключа');
-  let until = Date.parse(exp);
-  if (isNaN(until)) until = now + 20 * 60000;
+  const until = novapayUntil(exp, now);
   /* Новий ключ — у базу першим ділом: старий уже не діє. */
   await fsWrite(env, 'secrets/novapay', { seed, refresh_token: next, public_certificate: nextCert || cert,
     jwt, until: new Date(until).toISOString(), at: new Date().toISOString() });
-  NOVAPAY_JWT = { jwt, until };
+  NOVAPAY_JWT = { jwt, until, at: now };
   return jwt;
 }
 async function novapayCall(env, method, params) {
@@ -959,7 +972,7 @@ async function poll(env, opts) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { novapayEnvelope, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
+export const _pure = { novapayEnvelope, novapayUntil, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
