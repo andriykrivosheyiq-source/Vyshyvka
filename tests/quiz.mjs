@@ -57,7 +57,7 @@ const PHOTOS = {
 const STUB = `(function(){
   window.__ADDED = [];
   function Snap(d){ this._d = d; this.exists = !!d; } Snap.prototype.data = function(){ return this._d; };
-  function Doc(){} Doc.prototype.get = function(){ return Promise.resolve(new Snap(${JSON.stringify(PHOTOS)})); };
+  function Doc(){} Doc.prototype.get = function(){ return Promise.resolve(new Snap(window.__PH || ${JSON.stringify(PHOTOS)})); };
   function Col(n){ this.n = n; } Col.prototype.doc = function(){ return new Doc(); };
   Col.prototype.add = function(d){ window.__ADDED.push({ col: this.n, d: d }); return Promise.resolve({ id: 'x' }); };
   var fs = function(){ return { collection: function(n){ return new Col(n); } }; };
@@ -181,6 +181,55 @@ ok(m.over <= 0 && m.vars === 4, 'на телефоні без горизонта
 ok(m.orders === 0, 'перезавантаження не шле заявку вдруге', 'повторна заявка');
 if(process.env.LQ_SHOT) await p.screenshot({ path: process.env.LQ_SHOT + '/quiz-phone.png', fullPage: true });
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
+
+console.log('');
+console.log('═══ НУМЕРОВАНІ МІСЦЯ З АДМІНКИ (№1 — на серці, №2 — спереду + спина) ═══');
+const PH2 = JSON.parse(JSON.stringify(PHOTOS));
+PH2.printAreas.tee.front.places = [{ n:1, x:0.12, y:0.27, w:0.125, h:0.125 }, { n:2, x:0, y:0.3, w:0.3, h:0.2 }];
+PH2.printAreas.tee.back.places = [{ n:2, x:0, y:0.3, w:0.35, h:0.3 }];
+const ctx2 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const p2 = await ctx2.newPage();
+p2.on('pageerror', e => errs.push(String(e)));
+await p2.addInitScript(ph => { window.__PH = ph; }, PH2);
+await p2.route('**/*', r => {
+  const u = r.request().url();
+  if(/gstatic\.com\/firebasejs\/.*app-compat/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: STUB });
+  if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: '' });
+  if(/loomiq-lead|cloudinary/.test(u)) return r.fulfill({ contentType: 'application/json', body: '{"ok":true}' });
+  if(u.startsWith(HOST)) return r.continue();
+  return r.fulfill({ status: 204, body: '' });
+});
+await p2.goto(HOST + '/quiz/?staff=1'); await p2.waitForTimeout(500);
+const c2 = async sel => { await p2.click(sel); await p2.waitForTimeout(100); };
+await c2('[data-sp="it"]'); await c2('#qNext'); await c2('[data-pp="20"]'); await c2('#qNext');
+await c2('[data-g="tee"]'); await c2('#qNext'); await c2('#qNext');
+await p2.evaluate(async () => {
+  const c = document.createElement('canvas'); c.width = 400; c.height = 200;
+  const x = c.getContext('2d'); x.fillStyle = '#2E86E4'; x.fillRect(40, 40, 320, 120);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const dt = new DataTransfer(); dt.items.add(new File([blob], 'logo.png', { type: 'image/png' }));
+  const inp = document.getElementById('qFile'); inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+});
+await p2.waitForFunction(() => window.__quiz.state().logo, null, { timeout: 8000 });
+await c2('#qNext'); await p2.fill('#qName', 'Ігор'); await p2.fill('#qPhone', '0501112233'); await c2('#qNext');
+await p2.waitForSelector('.r-v', { timeout: 8000 }); await p2.waitForTimeout(600);
+const v2 = await p2.evaluate(() => ({ keys: [...document.querySelectorAll('.r-v')].map(b => b.dataset.vp),
+  names: [...document.querySelectorAll('.r-v b')].map(b => b.textContent), spans: [...document.querySelectorAll('.r-v span')].map(b => b.textContent),
+  m: Object.fromEntries(Object.entries(window.__quiz.mocks().tee).map(([k, v]) => [k, { parts: v.parts, cx: v.p.cx, url: !!v.url }])) }));
+console.log('   ' + JSON.stringify(v2.names) + ' ' + JSON.stringify(v2.spans));
+ok(v2.keys.join() === 'n1,n2' && /Варіант 1/.test(v2.names[0]) && /спереду \+ на спині/.test(v2.spans[1]),
+  'варіанти — з номерів адмінки: «Варіант 1» і «Варіант 2 · спереду + на спині»', 'варіанти: ' + JSON.stringify(v2));
+const n1 = v2.m.n1.parts[0];
+ok(Math.abs(n1.wCm - 9) < 0.05 && Math.abs(n1.hCm - 3.375) < 0.05 && v2.m.n1.cx > 0.55,
+  'рамка 9×9 см: логотип вписано (9 × 3,4 см — не ширше й не вище рамки), стоїть там, де рамка', '№1: ' + JSON.stringify(v2.m.n1));
+const tall = await p2.evaluate(() => { const fr = { H: 72, fx: x => x, fy: y => y, fw: w => w };
+  return window.__quiz.placeBox({ x:0, y:0, w:0.125, h:0.05 }, fr, 1); });
+ok(Math.abs(tall.hCm - 3.6) < 0.01 && Math.abs(tall.wCm - 3.6) < 0.01, 'низька рамка 9×3,6 см — квадратний логотип зменшено по висоті (3,6 × 3,6)', 'по висоті: ' + JSON.stringify(tall));
+ok(v2.m.n2.parts.length === 2 && v2.m.n2.parts.map(q => q.side).join() === 'front,back' && v2.m.n2.url,
+  '№2 — два нанесення (спереду й ззаду) на одній картинці', '№2: ' + JSON.stringify(v2.m.n2));
+const pr2 = await p2.evaluate(() => [...document.querySelectorAll('.r-v em')].map(e => +e.textContent.replace(/[^\d]/g, '')));
+ok(pr2[1] > pr2[0], 'два нанесення дорожчі за одне: ' + pr2.join(' → ') + ' ₴/шт', 'ціни: ' + pr2);
+await ctx2.close();
 
 console.log('');
 console.log(bad ? 'розходжень: ' + bad : 'квіз: від реклами до картки в Канбані з мокапами й прорахунком');

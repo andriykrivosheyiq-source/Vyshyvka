@@ -148,8 +148,8 @@
 <input type="file" id="qFile" accept="image/*,.svg,.pdf" hidden>
 
 <script src="/catalog-base.js"></script>
-<script src="/loomiq-pricing.js?v=16172ffeca"></script>
-<script src="/loomiq-mock.js?v=16172ffeca"></script>
+<script src="/loomiq-pricing.js?v=6fff85b41f"></script>
+<script src="/loomiq-mock.js?v=6fff85b41f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/an.js"></script>
@@ -590,7 +590,38 @@
     if(top + s.h > fr.bot) top = Math.max(fr.top, fr.bot - s.h);
     return { wCm: s.w, hCm: s.h, cx: fr.fx(cx), cy: fr.fy(top + s.h / 2), w: fr.fw(s.w) };
   }
+  /* НУМЕРОВАНІ МІСЦЯ (06.10). Андрій: «ставимо одиничку — логотип
+     спереду; двійку — спереду й ззаду». Менеджер ставить їх в адмінці
+     (Області нанесення → Місця логотипа): рамка з номером на стороні
+     виробу. Варіант №N = усі рамки з цим номером. Немає рамок у товару —
+     лишаються автоматичні варіанти нижче. */
+  var SIDE_W = { front:'спереду', back:'на спині', left:'лівий бік', right:'правий бік' };
+  function boxesOf(gid){
+    var pa = (C.printAreas || {})[gid] || {}, out = [];
+    Object.keys(pa).forEach(function(side){
+      var sd = pa[side];
+      if(sd && typeof sd === 'object' && Array.isArray(sd.places))
+        sd.places.forEach(function(q){ if(q && +q.w > 0 && +q.h > 0) out.push({ n: Math.max(1, Math.round(+q.n || 1)), side: side, x: +q.x || 0, y: +q.y || 0, w: +q.w, h: +q.h }); });
+    });
+    return out;
+  }
+  function vinfo(gid, key){
+    var m = /^n(\d+)$/.exec(key);
+    if(m){
+      var n = +m[1], bx = boxesOf(gid).filter(function(b){ return b.n === n; });
+      var sides = [];
+      bx.forEach(function(b){ if(sides.indexOf(b.side) < 0) sides.push(b.side); });
+      sides.sort(function(a, b){ return (a === 'front' ? 0 : a === 'back' ? 1 : 2) - (b === 'front' ? 0 : b === 'back' ? 1 : 2); });
+      var where = sides.map(function(sd){ return SIDE_W[sd] || sd; }).join(' + ');
+      return { name: 'Варіант ' + n, d: where, sides: sides, boxes: bx };
+    }
+    var P = PLACES[key] || PLACES.center;
+    return { name: P.name, d: P.d, sides: [P.side], place: key };
+  }
   function placesFor(gid){
+    var ns = [];
+    boxesOf(gid).forEach(function(b){ if(ns.indexOf(b.n) < 0) ns.push(b.n); });
+    if(ns.length) return ns.sort(function(a, b){ return a - b; }).map(function(n){ return 'n' + n; });
     if(ACCESSORY[gid]) return ['acc'];
     if(gid === 'hoodiezip') return ['left', 'back'];   // по центру — блискавка
     return ['left', 'center', 'back'];
@@ -598,24 +629,55 @@
   /* Мокап: фото виробу + логотип. Полотно «зіпсоване» чужим доменом — тоді
      показуємо накладанням (картинка поверх фото), а в замовлення йде лише
      геометрія й сам логотип. */
-  function renderMock(gid, cid, place, logoIm){
-    var side = PLACES[place].side;
-    return loadImg(picOf(gid, cid, side)).then(function(im){
-      if(!im) return null;
-      var fr = frameOf(gid, side, cid, im);
-      var p = placeOn(gid, place, fr, S.logo.ar);
-      var k = Math.min(1, 1000 / Math.max(im.naturalWidth, im.naturalHeight));
+  /* Рамка з номером → де лежить логотип. Вписуємо і в ширину, і у висоту
+     (Андрій: «більше не можна»), по центру рамки. */
+  function placeBox(b, fr, ar){
+    var s = fit(b.w * fr.H, b.h * fr.H, ar);
+    return { wCm: s.w, hCm: s.h, cx: fr.fx(b.x * fr.H), cy: fr.fy(b.y * fr.H), w: fr.fw(s.w) };
+  }
+  /* Мокап варіанту: фото кожної сторони варіанту з логотипами; дві
+     сторони (спереду + спина) — поруч на одній картинці. Полотно «зіпсоване»
+     чужим доменом — тоді показуємо накладанням, а в замовлення йде лише
+     геометрія й сам логотип. */
+  function renderMock(gid, cid, key, logoIm){
+    var v = vinfo(gid, key);
+    return Promise.all(v.sides.map(function(side){ return loadImg(picOf(gid, cid, side)); })).then(function(ims){
+      var panels = [];
+      v.sides.forEach(function(side, i){
+        var im = ims[i]; if(!im) return;
+        var fr = frameOf(gid, side, cid, im);
+        var ps = v.boxes ? v.boxes.filter(function(b){ return b.side === side; }).map(function(b){ return placeBox(b, fr, S.logo.ar); })
+                         : [placeOn(gid, v.place, fr, S.logo.ar)];
+        panels.push({ im: im, side: side, ps: ps });
+      });
+      if(!panels.length) return null;
+      var H0 = Math.min(1000, Math.max.apply(null, panels.map(function(p){ return p.im.naturalHeight; })));
+      var widths = panels.map(function(p){ return Math.round(p.im.naturalWidth * H0 / p.im.naturalHeight); });
       var c = D.createElement('canvas');
-      c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
-      var x = c.getContext('2d');
-      x.drawImage(im, 0, 0, c.width, c.height);
-      var lw = p.w * c.width, lh = lw * S.logo.ar;
-      x.drawImage(logoIm, p.cx * c.width - lw / 2, p.cy * c.height - lh / 2, lw, lh);
+      c.width = widths.reduce(function(a, b){ return a + b; }, 0); c.height = H0;
+      var x = c.getContext('2d'), x0 = 0;
+      panels.forEach(function(pn, i){
+        var w = widths[i];
+        x.drawImage(pn.im, x0, 0, w, H0);
+        pn.ps.forEach(function(p){
+          var lw = p.w * w, lh = lw * S.logo.ar;
+          x.drawImage(logoIm, x0 + p.cx * w - lw / 2, p.cy * H0 - lh / 2, lw, lh);
+        });
+        x0 += w;
+      });
       var url = null;
       try{ url = c.toDataURL('image/jpeg', 0.86); }catch(e){}
-      return { url: url, photo: im.src, p: p, side: side,
-               wCm: p.wCm, hCm: p.hCm, mm2: Math.round(p.wCm * p.hCm * 100 * (S.logo.ink || 0.5)) };
+      var parts = [];
+      panels.forEach(function(pn){ pn.ps.forEach(function(p){
+        parts.push({ side: pn.side, wCm: p.wCm, hCm: p.hCm, mm2: Math.round(p.wCm * p.hCm * 100 * (S.logo.ink || 0.5)) });
+      }); });
+      var p0 = panels[0].ps[0];
+      return { url: url, photo: panels[0].im.src, p: p0, side: panels[0].side, parts: parts,
+               wCm: p0.wCm, hCm: p0.hCm, mm2: parts.reduce(function(a, q){ return a + q.mm2; }, 0) };
     });
+  }
+  function sizeText(mk){
+    return (mk.parts || [mk]).map(function(q){ return '~' + см(q.wCm) + ' × ' + см(q.hCm) + ' см'; }).join(' + ');
   }
   function buildMocks(){
     return loadImg(S.logo.url).then(function(logoIm){
@@ -647,16 +709,21 @@
     }
     return Math.max(0, b.length - 1);
   }
+  /* Кожне нанесення варіанту — окремо, як у конструкторі: найбільше бере
+     найдорожчу мінімалку (індекс 0), далі — дешевші. Логотип один — макет
+     теж один (той самий відбиток і адреса). */
   function desc(gid, place, units){
     var mk = MOCKS[gid] && MOCKS[gid][place];
     var mkey = methodFor(gid), m = ((C.pricing || {}).methods || {})[mkey] || {};
-    var mm2 = mk ? mk.mm2 : 3000;
-    var grid = m.mode === 'grid';
-    var ps = grid ? { total:0, base:0, minAdd:0 } : W.LQ.placeSell(m, false, mm2, 0);
+    var parts = (mk && mk.parts) ? mk.parts.slice() : [{ mm2: mk ? mk.mm2 : 3000, wCm: mk ? mk.wCm : 10, hCm: mk ? mk.hCm : 10 }];
+    parts.sort(function(a, b){ return b.mm2 - a.mm2; });
+    var grid = m.mode === 'grid', co = 0, bp = 0, mp = 0;
+    if(!grid) parts.forEach(function(q, i){ var ps = W.LQ.placeSell(m, false, q.mm2, i); co += ps.total; bp += ps.base; mp += ps.minAdd; });
     return { method: grid ? 'dtf' : 'embro', units: Math.max(1, units), gid: gid, base: baseFor(gid),
-             coefPart: ps.total, basePart: ps.base, minPart: ps.minAdd, pieceFee: +m.pieceFee || 0,
-             dtfCols: grid ? [dtfCol(m, mk ? mk.wCm : 10, mk ? mk.hCm : 10)] : [],
-             designs: ['quiz-logo'], designUrls: ['quiz-logo'], designKinds: ['img'], designMm2: [mm2], bare: false };
+             coefPart: co, basePart: bp, minPart: mp, pieceFee: +m.pieceFee || 0,
+             dtfCols: grid ? parts.map(function(q){ return dtfCol(m, q.wCm, q.hCm); }) : [],
+             designs: parts.map(function(){ return 'quiz-logo'; }), designUrls: parts.map(function(){ return 'quiz-logo'; }),
+             designKinds: parts.map(function(){ return 'img'; }), designMm2: parts.map(function(q){ return q.mm2; }), bare: false };
   }
   function qtyOf(gid){ return Math.max(1, +S.qty[gid] || S.people || 1); }
   function pickOf(gid){
@@ -693,8 +760,9 @@
     return S.garments.map(function(gid){
       var g = gOf(gid) || { name: gid }, c = colorOf(gid) || { name:'' };
       var pl = pickOf(gid), mk = MOCKS[gid] && MOCKS[gid][pl];
-      return '• ' + g.name + ', ' + c.name + ' — ' + qtyOf(gid) + ' шт · ' + PLACES[pl].name.toLowerCase() +
-        (mk ? ' ~' + см(mk.wCm) + '×' + см(mk.hCm) + ' см' : '');
+      var v = vinfo(gid, pl);
+      return '• ' + g.name + ', ' + c.name + ' — ' + qtyOf(gid) + ' шт · ' + v.name.toLowerCase() +
+        (v.boxes ? ' (' + v.d + ')' : '') + (mk ? ' ' + sizeText(mk) : '');
     }).join('\n');
   }
   function leadText(head){
@@ -759,9 +827,10 @@
           kind: 'quiz', name: g.name, color: c.name, print: methodFor(gid) === 'embro' ? 'Вишивка' : 'DTF', sizes: '',
           qty: qtyOf(gid), unitPrice: Math.round(row.unit || 0), price: Math.round(row.sum || 0), unitCost: 0, cost: 0,
           mockups: [mk.up].concat(others.map(function(x){ return ((MOCKS[gid] || {})[x] || {}).up; })).filter(Boolean),
-          prints: [{ side: PLACES[pl].side, technique: methodFor(gid) === 'embro' ? 'Вишивка' : 'DTF',
-                     widthMm: Math.round((mk.wCm || 0) * 10), heightMm: Math.round((mk.hCm || 0) * 10),
-                     place: PLACES[pl].name, file: rawUrl || logoUrl || null }],
+          prints: (mk.parts || [{ side: vinfo(gid, pl).sides[0], wCm: mk.wCm, hCm: mk.hCm }]).map(function(q){
+            return { side: q.side, technique: methodFor(gid) === 'embro' ? 'Вишивка' : 'DTF',
+                     widthMm: Math.round((q.wCm || 0) * 10), heightMm: Math.round((q.hCm || 0) * 10),
+                     place: vinfo(gid, pl).name, file: rawUrl || logoUrl || null }; }),
           config: { garmentId: gid, colorId: c.id, printId: methodFor(gid), qty: qtyOf(gid), logos: {} }
         };
       });
@@ -804,8 +873,8 @@
           var pr = variantPrice(gid, pl);
           return '<button class="r-v' + (pl === cur ? ' on' : '') + '" data-vg="' + esc(gid) + '" data-vp="' + pl + '">' +
             '<div class="pic">' + (mk ? mockImg(mk) : '') + '</div>' +
-            '<b>' + esc(PLACES[pl].name) + '</b><span>' + (mk ? '~' + см(mk.wCm) + ' × ' + см(mk.hCm) + ' см' : '') +
-            (PLACES[pl].d ? ' · ' + esc(PLACES[pl].d) : '') + '</span>' +
+            '<b>' + esc(vinfo(gid, pl).name) + '</b><span>' + (vinfo(gid, pl).boxes ? esc(vinfo(gid, pl).d) + (mk ? ' · ' : '') : '') +
+            (mk ? sizeText(mk) : '') + (!vinfo(gid, pl).boxes && vinfo(gid, pl).d ? ' · ' + esc(vinfo(gid, pl).d) : '') + '</span>' +
             (pr && pr.unit ? '<em>' + грн(pr.unit) + ' / шт</em>' : '') + '</button>';
         }).join('') + '</div>' +
         '<label class="r-qty">Кількість <input type="number" min="1" max="5000" inputmode="numeric" data-qg="' + esc(gid) + '" value="' + qtyOf(gid) + '"> шт</label>' +
@@ -831,8 +900,9 @@
       var g = gOf(gid) || { name: gid }, c = colorOf(gid) || { name:'' }, r = pt[i] || {};
       var pl = pickOf(gid), mk = (MOCKS[gid] || {})[pl];
       tot += r.sum || 0; units += qtyOf(gid);
-      return '<div class="r-row"><div><b>' + esc(g.name) + '</b><small>' + esc(c.name) + ' · ' + esc(PLACES[pl].name.toLowerCase()) +
-        (mk ? ' ~' + см(mk.wCm) + ' см' : '') + '<br>' + qtyOf(gid) + ' шт × ' + грн(r.unit) + '</small></div>' +
+      var v = vinfo(gid, pl);
+      return '<div class="r-row"><div><b>' + esc(g.name) + '</b><small>' + esc(c.name) + ' · ' + esc(v.name.toLowerCase()) +
+        (v.boxes ? ' (' + esc(v.d) + ')' : '') + (mk ? ' ' + esc(sizeText(mk)) : '') + '<br>' + qtyOf(gid) + ' шт × ' + грн(r.unit) + '</small></div>' +
         '<div class="s">' + грн(r.sum) + '</div></div>';
     }).join('');
     /* «Що більше — то дешевше»: та сама позиція при більшому тиражі. */
@@ -909,7 +979,7 @@
   /* Результат без контакту не показуємо: людина, що повернулась на крок
      «результат» з чужого пристрою чи після очищення, починає з контактів. */
   if(STEPS[S.step] === 'result' && !S.sent) S.step = STEPS.indexOf('contact');
-  W.__quiz = { state: function(){ return S; }, mocks: function(){ return MOCKS; }, priceTable: priceTable, placeOn: placeOn, frameOf: frameOf };
+  W.__quiz = { state: function(){ return S; }, mocks: function(){ return MOCKS; }, priceTable: priceTable, placeOn: placeOn, placeBox: placeBox, frameOf: frameOf };
 })();
 </script>
 </body>
