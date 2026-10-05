@@ -1577,6 +1577,53 @@
           mask[py * W0 + px] = 1;
         }
       }
+      /* КОНТУР ВИРОБУ (05.10). Білий виріб на світлому папері кольором від
+         фону майже не відрізнити: футболка 247–250, папір 241 — у межах
+         допуску. Маска брала лише тіні й нанесення, межі виходили вужчими
+         за виріб, масштаб ряду — більшим, і плитка підрізала комір і рукави
+         («Варіанти футболок на вибір», білі оверсайз).
+
+         Тому до маски додаємо КОНТУР: точки, де яскравість різко міняється
+         (край, шов, тінь під виробом). Фон плавний — там різких змін немає;
+         поріг беремо за шумом країв кадру. Якщо фон фактурний і контур
+         знаходиться всюди — межі стануть на весь кадр, і виріб вийде трохи
+         меншим, а не підрізаним: це безпечна сторона помилки. */
+      var lum = new Float32Array(W0 * H0);
+      for(var li = 0; li < W0 * H0; li++){
+        var j4 = li * 4;
+        lum[li] = d[j4 + 3] < 24 ? -1 : 0.299 * d[j4] + 0.587 * d[j4 + 1] + 0.114 * d[j4 + 2];
+      }
+      var grad = function(gx, gy){
+        var gi = gy * W0 + gx;
+        var a1 = lum[gi - 1], a2 = lum[gi + 1], b1 = lum[gi - W0], b2v = lum[gi + W0];
+        if(a1 < 0 || a2 < 0 || b1 < 0 || b2v < 0 || lum[gi] < 0) return 0;
+        return Math.max(Math.abs(a2 - a1), Math.abs(b2v - b1));
+      };
+      var gEdge = [];
+      for(var gx0 = 2; gx0 < W0 - 2; gx0 += 2){ gEdge.push(grad(gx0, 1)); gEdge.push(grad(gx0, H0 - 2)); }
+      for(var gy0 = 2; gy0 < H0 - 2; gy0 += 2){ gEdge.push(grad(1, gy0)); gEdge.push(grad(W0 - 2, gy0)); }
+      gEdge.sort(function(p1, p2){ return p1 - p2; });
+      var gNoise = gEdge.length ? gEdge[Math.floor(gEdge.length * 0.9)] : 0;
+      var G = Math.max(4, gNoise + 3);
+      /* Межі рахуємо за «ядром» (колір не фоновий — або перепад на боці
+         виробу: точка помітно, хоч і в межах допуску, відходить від фону),
+         а звʼязність — за товщим контуром: інакше комір білої футболки
+         відривався від решти виробу й випадав із меж. */
+      var core = mask.slice();
+      var link = mask.slice();
+      for(var gy = 1; gy < H0 - 1; gy++){
+        for(var gx = 1; gx < W0 - 1; gx++){
+          if(grad(gx, gy) < G) continue;
+          var gi2 = gy * W0 + gx;
+          link[gi2] = 1; link[gi2 - 1] = 1; link[gi2 + 1] = 1; link[gi2 - W0] = 1; link[gi2 + W0] = 1;
+          var off = 0;
+          if(bg){ var mm = bgAt(gx, gy), k4 = gi2 * 4;
+            off = Math.max(Math.abs(d[k4] - mm[0]), Math.abs(d[k4 + 1] - mm[1]), Math.abs(d[k4 + 2] - mm[2])); }
+          else off = 255 - Math.min(d[gi2 * 4], d[gi2 * 4 + 1], d[gi2 * 4 + 2]);
+          if(off >= 3) core[gi2] = 1;
+        }
+      }
+      mask = link;
       /* ВИРІБ — НАЙБІЛЬША ПЛЯМА, А НЕ ВСЕ НЕФОНОВЕ.
 
          Межі рахуємо за звʼязними плямами маски. Найбільша — це виріб. Інші
@@ -1592,8 +1639,10 @@
         while(stack.length){
           var q2 = stack.pop(), qx = q2 % W0, qy = (q2 - qx) / W0;
           cnt++;
-          if(qx < bx0) bx0 = qx; if(qx > bx1) bx1 = qx;
-          if(qy < by0) by0 = qy; if(qy > by1) by1 = qy;
+          if(core[q2]){
+            if(qx < bx0) bx0 = qx; if(qx > bx1) bx1 = qx;
+            if(qy < by0) by0 = qy; if(qy > by1) by1 = qy;
+          }
           if(qx === 0 || qy === 0 || qx === W0 - 1 || qy === H0 - 1) edgeHit = true;
           var nb = [q2 - 1, q2 + 1, q2 - W0, q2 + W0];
           for(var z = 0; z < 4; z++){
@@ -1622,6 +1671,11 @@
           t = { x: x0 / c.width * img.width, y: y0 / c.height * img.height,
                 w: rw * img.width, h: rh * img.height };
       }
+      /* Колір паперу мокапа — ним картка заливає плитку під кадром (05.10):
+         коли виріб вписано цілим, кадр буває нижчим за плитку, і без
+         заливки видно його край смугою. */
+      if(bg) t.bg = 'rgb(' + [0, 1, 2].map(function(ch){
+        return Math.round((bg.tl[ch] + bg.tr[ch] + bg.bl[ch] + bg.br[ch]) / 4); }).join(',') + ')';
     }catch(e){}
     try{ img.__lqTrim = t; }catch(e){}
     return t;
@@ -1778,6 +1832,7 @@
       if(t2 > Y) y -= t2 - Y;
       else if(t2 + gh < Y + bh) y += (Y + bh) - (t2 + gh);
     }
+    if(tr.bg){ x.fillStyle = tr.bg; x.fillRect(X, Y, bw, bh); }
     x.drawImage(im, X + bw / 2 - cx * k, y, im.width * k, ih);
   }
   function shotsRow(x, srcs, X, Y, w, h, t, st){
