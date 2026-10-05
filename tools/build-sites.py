@@ -24,7 +24,7 @@ CONFIG = os.path.join(ROOT, 'tools', 'sites.json')
 # пропозиції. Ніші відрізняються складом виробів, тож кожна дістає власну копію.
 CTOR = 'loomiq-constructor.js'
 CTOR_PATH = os.path.join(ROOT, CTOR)
-STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html', 'quiz/index.html')
+STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html', 'quiz/index.html', 'k/index.html')
 # Стилі й розмітка конструктора теж мають одне джерело — index.html. Сторінка
 # пропозиції не тримає їхньої копії: збірка щоразу дістає їх звідти.
 # Рушій цін — один файл на сайт, адмінку й сторінку пропозиції
@@ -50,6 +50,8 @@ CTOR_MONEY = 'loomiq-money-core.js'
 # власна річ із власним вікном і власною арифметикою; версію штампуємо
 # разом з рештою: розмітка виробу й підрахунок мусять їхати однією парою.
 CTOR_MOCK = 'loomiq-mock.js'
+# Двигун квізу й міні-сайту клієнта (каталог, розміщення, мокап, ціна)
+CTOR_KIT = 'loomiq-kit.js'
 # Підбір ниток до зображення (і бібліотека трасування під ним) — штампуємо
 # разом з рештою, щоб у кеші не лишився підбір під стару палітру.
 CTOR_THREADS = 'loomiq-threads.js'
@@ -459,6 +461,7 @@ def main():
     design += open(os.path.join(ROOT, CTOR_MONEY), encoding='utf-8').read()
     mockjs = open(os.path.join(ROOT, CTOR_MOCK), encoding='utf-8').read()
     mockjs += open(os.path.join(ROOT, CTOR_THREADS), encoding='utf-8').read()
+    mockjs += open(os.path.join(ROOT, CTOR_KIT), encoding='utf-8').read()
     # НОМЕР ЗБІРКИ РАХУЄМО Й ЗІ СТОРІНОК ТЕЖ.
     #
     # Доти він брався лише з файлів рушіїв — а правка в самій сторінці
@@ -486,7 +489,7 @@ def main():
         txt = open(path, encoding='utf-8').read()
         new = txt
         for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
-                      CTOR_CARDS, CTOR_DESIGN, CTOR_MONEY, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER):
+                      CTOR_CARDS, CTOR_DESIGN, CTOR_MONEY, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER, CTOR_KIT):
             new = stamp(new, asset, ver)
         # Версія САМОЇ сторінки. Позначка в адресі рятує лише скрипти: у HTML
         # адреси немає, браузер тримає його стільки, скільки схоче, — і людина
