@@ -8,104 +8,124 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <!--
-  МІНІ-САЙТ КЛІЄНТА (06.10)
+  КАТАЛОГ КЛІЄНТА (06.10) — loomiq.net/k/#d=…
 
-  Андрій: «після квізу їм відкривається індивідуальний сайт, де ми повністю
-  формуємо під них — заходять, пробують, дивляться різні формати під їхній
-  одяг; можна через кошик».
+  Андрій: «дизайн сторінки повинен бути саме такий» (знімки магазину:
+  пошук угорі, каруселі банерів з крапками й підписом, блок бренду — велике
+  фото + чотири плитки, стрічка карток у дві колонки на всю ширину з ♡ і ✕,
+  закреслена ціна й червона, нижнє меню); «купа різних товарів з лого,
+  банери, каруселі»; «заходиш у картку — і там можна змінити будь-який
+  колір»; закреслена — ціна за 1 шт, червона — на тираж клієнта;
+  перемикачів поки немає.
 
-  Адреса — /k/#d=… : усе, що треба (компанія, логотип у хмарі, вибраний одяг
-  і кольори, тираж), лежить у самому посиланні — у базі нічого не
-  зберігаємо. Каталог, розміщення (нумеровані місця з адмінки), мокапи й
-  ціна — той самий двигун, що в квізі (loomiq-kit.js), ціна — рушій КП.
-  Оформлення з кошика — замовлення в Канбан (webOrders, site: 'kit') +
-  повідомлення в Telegram.
+  Дані — у самому посиланні (компанія, логотип у хмарі, тираж). Каталог,
+  розміщення, мокапи й ціна — loomiq-kit.js (той самий двигун, що в квізі),
+  ціна — рушій КП. Банери-монтажі — з адмінки (Конструктор → Банери з
+  логотипом). Оформлення з кошика — webOrders (site: 'kit') + Telegram.
 -->
 <style>
   :root{
-    --ink:#111214; --muted:#6B6F76; --line:#ECEDF0; --paper:#FFFFFF; --soft:#F3F4F6;
-    --blue:#0369A1; --cta:#C64F08; --cta-dark:#A9430A; --ok:#15803D;
+    --ink:#111214; --muted:#8A8D93; --line:#ECEDF0; --paper:#FFFFFF; --soft:#F2F2F2;
+    --sale:#E8501F; --blue:#0369A1; --cta:#111214;
     --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{font-family:var(--font);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;padding-bottom:96px;}
+  body{font-family:var(--font);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));}
   button,input{font-family:inherit;font-size:inherit;color:inherit;}
-  .k-wrap{max-width:1180px;margin:0 auto;padding:0 16px;}
-  /* Шапка */
-  .k-top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
-  .k-top .k-wrap{display:flex;align-items:center;gap:12px;height:64px;}
-  .k-logo{width:44px;height:44px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;}
-  .k-logo img{max-width:80%;max-height:80%;}
-  .k-ttl{flex:1;min-width:0;}
-  .k-ttl b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .k-ttl span{font-size:12.5px;color:var(--muted);}
-  .k-by{font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;}
-  .k-by span{color:var(--blue);}
-  /* Вкладки — як «Женщинам / Мужчинам» */
-  .k-seg{display:flex;background:var(--soft);border-radius:14px;padding:4px;gap:2px;margin:16px 0 6px;overflow-x:auto;scrollbar-width:none;}
-  .k-seg::-webkit-scrollbar{display:none;}
-  .k-seg button{flex:1 0 auto;border:0;background:none;border-radius:11px;padding:10px 14px;font-size:15px;cursor:pointer;white-space:nowrap;color:#3A3D42;}
-  .k-seg button.on{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);color:var(--ink);font-weight:600;}
-  /* Банер-комплект */
-  .k-hero{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;margin:14px 0 6px;border-radius:4px;overflow:hidden;cursor:pointer;}
-  .k-hero > div{background:var(--soft);position:relative;aspect-ratio:1;overflow:hidden;}
-  .k-hero > div:first-child{grid-row:1 / span 2;aspect-ratio:auto;}
-  .k-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-  .k-hero .brand{position:absolute;left:0;right:0;bottom:0;padding:18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;}
-  .k-hero .brand b{display:block;font-size:24px;letter-spacing:-.02em;}
-  .k-cap{margin:6px 0 22px;}
-  /* Банер-монтаж з логотипом клієнта — як «Спортивні новинки» */
-  .k-ban{display:block;margin:10px 0 22px;cursor:pointer;}
-  .k-ban .im{background:var(--soft);aspect-ratio:var(--ar,0.66);overflow:hidden;position:relative;}
-  .k-ban .im img{width:100%;height:100%;object-fit:cover;display:block;}
-  .k-ban b{display:block;font-size:20px;font-weight:600;margin-top:10px;}
-  .k-ban span{color:var(--muted);font-size:16px;}
-  .k-grid .k-ban{grid-column:1 / -1;margin:6px 16px 22px;}
-  .k-cap b{display:block;font-size:20px;font-weight:600;}
-  .k-cap span{color:var(--muted);font-size:16px;}
-  /* Сітка товарів */
-  .k-h2{font-size:22px;font-weight:600;margin:8px 0 12px;}
-  .k-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 4px;margin:0 -16px;}
-  .k-card{background:none;border:0;padding:0 0 18px;text-align:left;cursor:pointer;}
-  .k-card .pic{position:relative;background:var(--soft);aspect-ratio:3/4;overflow:hidden;}
-  .k-card .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-  .k-card .tag{position:absolute;left:0;bottom:0;background:var(--cta);color:#fff;font-size:12.5px;font-weight:600;padding:4px 9px;}
-  .k-card .tag.dark{background:#111;}
-  .k-card .pr{display:block;font-size:19px;font-weight:600;margin:10px 14px 4px;}
-  .k-card .nm{display:block;font-size:15px;margin:0 14px;color:#2B2D31;}
-  .k-card .sub{display:block;font-size:13px;margin:2px 14px 0;color:var(--muted);}
-  .k-load{display:flex;align-items:center;justify-content:center;position:absolute;inset:0;}
-  .k-spin{width:26px;height:26px;border-radius:50%;border:3px solid #DCE0E6;border-top-color:var(--blue);animation:ks .8s linear infinite;}
+  .k-wrap{max-width:1180px;margin:0 auto;}
+  .k-pad{padding:0 16px;}
+  /* Пошук угорі */
+  .k-top{position:sticky;top:0;z-index:20;background:#fff;padding:10px 16px 10px;}
+  .k-top .k-wrap{display:flex;align-items:center;gap:10px;}
+  .k-search{flex:1;display:flex;align-items:center;gap:10px;background:#F2F2F3;border-radius:14px;padding:0 14px;height:46px;}
+  .k-search svg{flex:none;color:#8A8D93;}
+  .k-search input{flex:1;border:0;background:none;outline:none;font-size:17px;min-width:0;}
+  .k-me{width:46px;height:46px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;}
+  .k-me img{max-width:72%;max-height:72%;}
+  /* Каруселі */
+  .k-car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:0;}
+  .k-car::-webkit-scrollbar{display:none;}
+  .k-slide{flex:0 0 100%;scroll-snap-align:start;cursor:pointer;}
+  .k-slide .im{position:relative;background:var(--soft);aspect-ratio:var(--ar,1.6);overflow:hidden;}
+  .k-slide .im img{width:100%;height:100%;object-fit:cover;display:block;}
+  .k-slide .duo{display:grid;grid-template-columns:1fr 1fr;height:100%;}
+  .k-slide .duo img{width:100%;height:100%;object-fit:cover;}
+  .k-dots{position:absolute;left:16px;bottom:14px;display:flex;gap:7px;z-index:2;}
+  .k-dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.55);}
+  .k-dots i.on{background:#fff;}
+  .k-capt{padding:12px 16px 26px;}
+  .k-capt b{display:block;font-size:21px;font-weight:500;}
+  .k-capt span{display:block;font-size:18px;color:var(--muted);margin-top:2px;}
+  /* Бренд клієнта: чіпи + мозаїка */
+  .k-h{font-size:28px;font-weight:500;letter-spacing:-.01em;margin:14px 16px 14px;}
+  .k-chips{display:flex;gap:10px;overflow-x:auto;padding:0 16px 16px;scrollbar-width:none;}
+  .k-chips::-webkit-scrollbar{display:none;}
+  .k-chips button{flex:none;border:1.5px solid var(--line);background:#fff;border-radius:6px;padding:12px 18px;font-size:16px;cursor:pointer;}
+  .k-chips button:first-child{background:var(--soft);border-color:var(--soft);}
+  .k-mosaic{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:0 16px;margin-bottom:34px;cursor:pointer;}
+  .k-mosaic > div{position:relative;background:var(--soft);overflow:hidden;aspect-ratio:7/10;}
+  .k-mosaic > div:first-child{grid-row:1 / span 2;aspect-ratio:auto;}
+  .k-mosaic img{width:100%;height:100%;object-fit:cover;display:block;}
+  .k-mosaic .brand{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:14px;}
+  .k-mosaic .brand img{width:auto;height:auto;max-width:72%;max-height:28%;object-fit:contain;filter:drop-shadow(0 2px 10px rgba(0,0,0,.25));}
+  /* Стрічка товарів */
+  .k-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 4px;}
+  .k-card{position:relative;text-align:left;cursor:pointer;padding-bottom:22px;min-width:0;}
+  .k-card .pic{position:relative;background:var(--soft);aspect-ratio:7/10;overflow:hidden;}
+  .k-card .pic > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .k-ic{position:absolute;top:10px;z-index:2;width:38px;height:38px;border:0;background:none;padding:0;cursor:pointer;color:#B9BBBF;display:flex;align-items:center;justify-content:center;}
+  .k-ic.x{left:6px;} .k-ic.f{right:6px;}
+  .k-ic.f.on{color:var(--sale);}
+  .k-ic.f.on svg path{fill:var(--sale);}
+  .k-tags{position:absolute;left:0;bottom:0;display:flex;z-index:2;}
+  .k-tags span{background:#111;color:#fff;font-size:14px;padding:3px 9px;}
+  .k-tags span.s{background:var(--sale);transform:skewX(-12deg);margin-left:-4px;padding:3px 11px;}
+  .k-pr{display:flex;flex-wrap:wrap;gap:0 10px;align-items:baseline;padding:12px 14px 6px;font-size:21px;}
+  .k-pr s{color:var(--ink);text-decoration-thickness:1.5px;}
+  .k-pr .now{color:var(--sale);}
+  .k-pr .one{color:var(--ink);}
+  .k-nm{padding:0 14px;font-size:17px;line-height:1.35;}
+  .k-nm small{display:block;font-size:17px;}
+  .k-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .k-spin{width:24px;height:24px;border-radius:50%;border:3px solid #DCDDE0;border-top-color:#888;animation:ks .8s linear infinite;}
   @keyframes ks{to{transform:rotate(360deg);}}
-  /* Нижня панель */
-  .k-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);
-    padding:10px 16px calc(10px + env(safe-area-inset-bottom));}
-  .k-bar .k-wrap{display:flex;gap:10px;align-items:center;padding:0;}
-  .k-bar .info{flex:1;font-size:14px;color:var(--muted);}
-  .k-bar .info b{display:block;color:var(--ink);font-size:17px;}
-  .k-btn{border:0;background:var(--cta);color:#fff;border-radius:14px;padding:14px 20px;font-weight:700;font-size:16px;cursor:pointer;}
-  .k-btn:hover{background:var(--cta-dark);}
-  .k-btn:disabled{background:#C9CED8;cursor:not-allowed;}
-  .k-btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
-  /* Вікно товару й кошик */
+  .k-full{grid-column:1 / -1;}
+  .k-row{grid-column:1 / -1;margin:6px 0 30px;}
+  .k-row h4{font-size:24px;font-weight:500;margin:0 16px 12px;}
+  .k-row .k-car{gap:4px;padding:0 0 0 0;scroll-snap-type:x proximity;}
+  .k-row .k-card{flex:0 0 42%;scroll-snap-align:start;}
+  .k-hint{grid-column:1 / -1;}
+  /* Нижнє меню */
+  .k-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);padding:6px 0 calc(6px + env(safe-area-inset-bottom));}
+  .k-nav .k-wrap{display:grid;grid-template-columns:repeat(5,1fr);}
+  .k-nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;color:#8A8D93;cursor:pointer;position:relative;padding:4px 0;}
+  .k-nav button.on{color:var(--ink);}
+  .k-nav button .lg{font-weight:700;font-size:22px;line-height:24px;color:var(--ink);letter-spacing:-.04em;}
+  .k-nav button i{position:absolute;top:-2px;left:calc(50% + 8px);background:#F04438;color:#fff;font-style:normal;font-size:12px;font-weight:600;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
+  .k-nav button i[hidden]{display:none;}
+  .k-toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#111;color:#fff;border-radius:12px;padding:10px 16px;font-size:14px;z-index:60;}
+  /* Вікна */
   .k-ov{position:fixed;inset:0;z-index:50;background:rgba(17,18,20,.45);display:flex;align-items:flex-end;justify-content:center;}
-  .k-sheet{background:#fff;width:100%;max-width:980px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));}
+  .k-sheet{background:#fff;width:100%;max-width:980px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));position:relative;}
   @media (min-width:860px){ .k-ov{align-items:center;} .k-sheet{border-radius:22px;} }
   .k-x{float:right;border:0;background:var(--soft);width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;}
-  .k-pv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;}
+  .k-fav{float:right;border:0;background:var(--soft);width:38px;height:38px;border-radius:50%;cursor:pointer;margin-right:8px;color:#9A9CA1;display:flex;align-items:center;justify-content:center;}
+  .k-fav.on{color:var(--sale);} .k-fav.on svg path{fill:var(--sale);}
+  .k-pv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;clear:both;}
   .k-big{background:var(--soft);aspect-ratio:1;border-radius:14px;overflow:hidden;position:relative;}
   .k-big img{width:100%;height:100%;object-fit:contain;display:block;}
   .k-sheet h3{margin:4px 0 4px;font-size:22px;}
   .k-lbl{font-size:13px;font-weight:600;color:var(--muted);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.04em;}
   .k-sw{display:flex;flex-wrap:wrap;gap:8px;}
   .k-sw button{width:34px;height:34px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0;}
-  .k-sw button.on{box-shadow:0 0 0 2.5px var(--blue);}
+  .k-sw button.on{box-shadow:0 0 0 2.5px var(--ink);}
   .k-vs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
   .k-v{border:1.5px solid var(--line);border-radius:12px;padding:5px;background:#fff;cursor:pointer;text-align:left;}
-  .k-v.on{border-color:var(--blue);box-shadow:0 0 0 3px #E6F1F8;}
+  .k-v.on{border-color:var(--ink);}
   .k-v .t{background:var(--soft);border-radius:8px;aspect-ratio:1;overflow:hidden;position:relative;}
   .k-v .t img{width:100%;height:100%;object-fit:contain;display:block;}
   .k-v b{display:block;font-size:12.5px;margin:6px 3px 0;}
@@ -116,6 +136,8 @@
   .k-sum{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 12px;}
   .k-sum b{font-size:26px;letter-spacing:-.02em;}
   .k-note{font-size:13px;color:var(--muted);line-height:1.45;}
+  .k-btn{border:0;background:var(--cta);color:#fff;border-radius:14px;padding:15px 20px;font-weight:600;font-size:16px;cursor:pointer;}
+  .k-btn:disabled{background:#C9CED8;cursor:not-allowed;}
   .k-line{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);}
   .k-line .th{width:70px;height:70px;border-radius:10px;background:var(--soft);overflow:hidden;flex:none;}
   .k-line .th img{width:100%;height:100%;object-fit:contain;}
@@ -124,39 +146,45 @@
   .k-line .s{text-align:right;font-weight:600;white-space:nowrap;}
   .k-line .rm{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 0;}
   .k-in{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;margin-bottom:8px;outline:none;}
-  .k-in:focus{border-color:var(--blue);}
+  .k-in:focus{border-color:var(--ink);}
   .k-err{color:#B42318;font-size:14px;min-height:18px;}
   .k-ok{background:#ECFDF3;color:#05603A;border-radius:14px;padding:16px;font-size:15px;line-height:1.5;}
   .k-empty{max-width:520px;margin:80px auto;text-align:center;padding:0 16px;}
   .k-empty a{color:#fff;text-decoration:none;display:inline-block;margin-top:14px;}
-  @media (max-width:980px){ .k-grid{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  .k-favs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:12px;}
+  @media (max-width:980px){ .k-grid{grid-template-columns:repeat(3,minmax(0,1fr));} .k-row .k-card{flex-basis:30%;} }
   @media (max-width:700px){
     .k-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
-    .k-hero{grid-template-columns:1.25fr 1fr;}
-    .k-hero > div:nth-child(n+4){display:none;}
+    .k-row .k-card{flex-basis:46%;}
     .k-pv{grid-template-columns:1fr;}
-    .k-card .pr{font-size:17px;margin:8px 10px 3px;} .k-card .nm{font-size:14px;margin:0 10px;} .k-card .sub{margin:2px 10px 0;}
+    .k-pr{font-size:19px;padding:10px 12px 4px;} .k-nm{padding:0 12px;font-size:15.5px;} .k-nm small{font-size:15.5px;}
+    .k-h{font-size:26px;}
+    .k-favs{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
+  @media (min-width:701px){ .k-slide{flex-basis:100%;} }
 </style>
 </head>
 <body>
 <header class="k-top"><div class="k-wrap">
-  <div class="k-logo" id="kLogo"></div>
-  <div class="k-ttl"><b id="kTtl">Ваш мерч</b><span>каталог з вашим логотипом</span></div>
-  <a class="k-by" href="/" title="Loomiq">loom<span>iq</span></a>
+  <label class="k-search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="7"/><path d="M20 20l-4.3-4.3"/></svg>
+    <input id="kQ" type="search" placeholder="Товар чи тип одягу" autocomplete="off"></label>
+  <div class="k-me" id="kLogo" title="Ваш логотип"></div>
 </div></header>
-<main class="k-wrap" id="kMain"></main>
-<div class="k-bar" id="kBar" hidden><div class="k-wrap">
-  <div class="info" id="kBarInfo"></div>
-  <button class="k-btn" id="kCartBtn" type="button">Кошик</button>
-</div></div>
+<main id="kMain"></main>
+<nav class="k-nav" id="kNav" hidden><div class="k-wrap">
+  <button class="on" data-nav="home"><span class="lg">lq</span>Головна</button>
+  <button data-nav="cat"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h11M3 11h7M3 16h6"/><circle cx="16" cy="14" r="4.5"/><path d="M19.5 17.5L22 20"/></svg>Каталог</button>
+  <button data-nav="cart"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7h14l-1 14H6L5 7z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>Кошик<i id="kCartN" hidden></i></button>
+  <button data-nav="fav"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20s-7-4.4-9-8.6C1.5 8 3.6 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.5 3.5 4 6.9C19 15.6 12 20 12 20z"/></svg>Обране<i id="kFavN" hidden></i></button>
+  <button data-nav="mgr"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5h16v11H8l-4 4V5z"/><path d="M8 9h8M8 12h5"/></svg>Менеджер</button>
+</div></nav>
 
 <script src="/catalog-base.js"></script>
-<script src="/loomiq-pricing.js?v=14984f052d"></script>
+<script src="/loomiq-pricing.js?v=ae21fbba62"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/an.js"></script>
-<script src="/loomiq-kit.js?v=14984f052d"></script>
+<script src="/loomiq-kit.js?v=ae21fbba62"></script>
 <script>
 (function(){
   'use strict';
@@ -167,31 +195,33 @@
   var MK = {};                         // 'gid|cid|key' → Promise(мокап)
   var SEL = {};                        // gid → { cid, key, qty } — що обрано у вікні товару
   var CART = [];                       // [{ gid, cid, key, qty }]
-  var CKEY = '';
+  var FAV = [], HIDE = [];             // 'gid|key' — обране й приховане
+  var CKEY = '', Q = '';
+  var HEART = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20s-7-4.4-9-8.6C1.5 8 3.6 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.5 3.5 4 6.9C19 15.6 12 20 12 20z"/></svg>';
+  var CROSS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5l14 14M19 5L5 19"/></svg>';
   function track(n, p){ try{ W.lqAn && W.lqAn.track(n, p || {}); }catch(e){} }
-
-  var TABS = [
-    { id:'all',   name:'Усі' },
-    { id:'tee',   name:'Футболки', m:/^tee/ },
-    { id:'hoodie',name:'Худі',     m:/^hoodie/ },
-    { id:'sweat', name:'Світшоти', m:/^sweat/ },
-    { id:'acc',   name:'Аксесуари', m:/^(cap|tote)/ }
-  ];
-  var tab = 'all';
-
+  function toast(t){ var el = D.createElement('div'); el.className = 'k-toast'; el.textContent = t; D.body.appendChild(el); setTimeout(function(){ el.remove(); }, 1800); }
   function plural(n, one, few, many){
     var m10 = n % 10, m100 = n % 100;
     return n + ' ' + (m10 === 1 && m100 !== 11 ? one : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? few : many);
   }
   function people(){ return Math.max(1, KIT.people || 10); }
+  function ls(k, v){ try{ if(v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); }catch(e){ return null; } }
+  function isFav(k){ return FAV.indexOf(k) >= 0; }
+  function toggleFav(k){ var i = FAV.indexOf(k); if(i >= 0) FAV.splice(i, 1); else FAV.push(k); ls(CKEY + ':fav', FAV); badges(); return i < 0; }
+  /* Ходові кольори — з них картки стрічки беруть «свій» колір, щоб стрічка
+     була різною; будь-який інший — у вікні товару. */
+  var POP = ['black', 'white', 'lgray', 'gray', 'navy', 'green', 'sand', 'bordo'];
+  function colorsPop(g){
+    var out = [];
+    POP.forEach(function(id){ var c = g.colors.filter(function(x){ return x.id === id; })[0]; if(c) out.push(c); });
+    g.colors.forEach(function(c){ if(out.indexOf(c) < 0) out.push(c); });
+    return out;
+  }
   function colorOf(gid){
     var g = K.gOf(gid); if(!g) return null;
     var want = (SEL[gid] && SEL[gid].cid) || KIT.colors[gid];
-    var c = g.colors.filter(function(x){ return x.id === want; })[0];
-    if(c) return c;
-    var pref = ['black', 'white'];
-    for(var i = 0; i < pref.length; i++){ var p = g.colors.filter(function(x){ return x.id === pref[i]; })[0]; if(p) return p; }
-    return g.colors[0];
+    return g.colors.filter(function(x){ return x.id === want; })[0] || colorsPop(g)[0];
   }
   function keyOf(gid){
     var pl = K.placesFor(gid), s = SEL[gid] && SEL[gid].key;
@@ -204,8 +234,7 @@
   }
   function src(mk){ return mk ? (mk.url || mk.photo) : ''; }
 
-  /* ── Ціна: рушій КП. Картка — «якщо взяти тільки це на всю команду»;
-        кошик — увесь склад разом (спільний тираж, один макет). ── */
+  /* ── Ціна: рушій КП. Закреслена — за 1 шт, червона — на тираж клієнта. ── */
   function unitSolo(gid, mk, qty){
     if(!K.hasPrice(gid) || !mk) return 0;
     var r = W.LQ.priceOrder([K.desc(gid, mk, qty)]);
@@ -220,77 +249,251 @@
     });
   }
 
-  /* ══════════ СТОРІНКА ══════════ */
+  /* ══════════ СТРІЧКА ══════════
+     Товари — «виріб × варіант розміщення», кожен у своєму ходовому кольорі:
+     так стрічка виходить довгою й різною, а будь-який колір — у вікні. */
+  var CATS = [
+    { id:'tee', name:'Футболки', m:/^tee/ }, { id:'hoodie', name:'Худі', m:/^hoodie/ },
+    { id:'sweat', name:'Світшоти', m:/^sweat/ }, { id:'cap', name:'Кепки', m:/^cap/ }, { id:'tote', name:'Шопери', m:/^tote/ } ];
+  function items(){
+    var out = [];
+    K.garments().forEach(function(g){
+      var cols = colorsPop(g), keys = K.placesFor(g.id);
+      keys.forEach(function(k, i){
+        var c = (i === 0 && KIT.colors[g.id] && g.colors.filter(function(x){ return x.id === KIT.colors[g.id]; })[0]) || cols[i % Math.min(4, cols.length)];
+        out.push({ g: g, key: k, c: c, id: g.id + '|' + k });
+      });
+    });
+    /* Перемішуємо по виробах: футболка, худі, кепка… — а не три футболки поспіль. */
+    var by = {}, order = [];
+    out.forEach(function(it){ if(!by[it.g.id]){ by[it.g.id] = []; order.push(it.g.id); } by[it.g.id].push(it); });
+    var mixed = [], more = true;
+    for(var r = 0; more; r++){ more = false; order.forEach(function(id){ if(by[id][r]){ mixed.push(by[id][r]); more = true; } }); }
+    var picked = KIT.garments || [];
+    mixed.sort(function(a, b){ return (picked.indexOf(a.g.id) < 0 ? 1 : 0) - (picked.indexOf(b.g.id) < 0 ? 1 : 0); });
+    return mixed.filter(function(it){ return HIDE.indexOf(it.id) < 0; })
+      .filter(function(it){ if(!Q) return true; var q = Q.toLowerCase();
+        return (it.g.name + ' ' + K.vinfo(it.g.id, it.key).name + ' ' + it.c.name).toLowerCase().indexOf(q) >= 0; });
+  }
+  function cardHtml(it){
+    var v = K.vinfo(it.g.id, it.key);
+    return '<div class="k-card" data-item="' + esc(it.id) + '" data-cid="' + esc(it.c.id) + '">' +
+      '<div class="pic" data-pic><div class="k-load"><div class="k-spin"></div></div>' +
+      '<button class="k-ic x" data-hide aria-label="Не цікаво">' + CROSS + '</button>' +
+      '<button class="k-ic f' + (isFav(it.id) ? ' on' : '') + '" data-fv aria-label="В обране">' + HEART + '</button>' +
+      '<div class="k-tags"><span>ваше лого</span></div></div>' +
+      '<div class="k-pr" data-pr>&nbsp;</div>' +
+      '<div class="k-nm">' + esc(it.g.name) + '<small>' + esc(v.name) + (v.boxes ? ' · ' + esc(v.d) : '') + '</small></div></div>';
+  }
+  function slideHtml(sl, i, n){
+    return '<div class="k-slide" data-sl="' + i + '"><div class="im" style="--ar:' + sl.ar + '">' + sl.html +
+      (n > 1 ? '<div class="k-dots">' + Array.apply(null, Array(n)).map(function(_, j){ return '<i class="' + (j === i ? 'on' : '') + '"></i>'; }).join('') + '</div>' : '') +
+      '</div><div class="k-capt">' + (sl.title ? '<b>' + esc(sl.title) + '</b>' : '') + (sl.sub ? '<span>' + esc(sl.sub) + '</span>' : '') + '</div></div>';
+  }
+  /* Банери: з адмінки (монтажі з логотипом) — або, поки їх немає, зібрані
+     з мокапів пари «два вироби поруч», як «Спортивні новинки». */
+  function slides(){
+    var bs = K.banners('all').map(function(b, i){ return { kind:'ban', b: b, ar: (1 / Math.max(0.3, +b.ar || 1)).toFixed(3), title: b.title, sub: b.sub,
+      html: '<div class="k-load" data-ban="' + i + '"><div class="k-spin"></div></div>' }; });
+    if(bs.length) return bs;
+    var g = K.garments(), pick = function(re){ return g.filter(function(x){ return re.test(x.id); }).slice(0, 2); };
+    return [
+      { set: pick(/^hoodie/), title: 'Худі з вашим логотипом', sub: KIT.company ? 'для команди ' + KIT.company : 'для всієї команди' },
+      { set: pick(/^tee/), title: 'Футболки на кожен день', sub: 'вишивка, яка не злізе після прання' },
+      { set: g.filter(function(x){ return /^(cap|tote)/.test(x.id); }).slice(0, 2), title: 'Кепки й шопери', sub: 'аксесуари в тон' }
+    ].filter(function(s){ return s.set.length; }).map(function(s){
+      return { kind:'duo', set: s.set, ar: '1.6', title: s.title, sub: s.sub,
+        html: '<div class="duo">' + s.set.map(function(x){ return '<div data-duo="' + esc(x.id) + '"></div>'; }).join('') + '</div>' };
+    });
+  }
+  var IO = null, QUEUE = [], BUSY = false;
+  function pump(){
+    if(BUSY) return; var job = QUEUE.shift(); if(!job) return;
+    BUSY = true; job().then(function(){ BUSY = false; pump(); }, function(){ BUSY = false; pump(); });
+  }
+  function want(el, job){
+    if(!('IntersectionObserver' in W)){ QUEUE.push(job); pump(); return; }
+    el.__job = job; IO.observe(el);
+  }
+  function fillCard(el){
+    var id = el.dataset.item.split('|'), gid = id[0], key = id[1], cid = el.dataset.cid;
+    want(el, function(){ return mock(gid, cid, key).then(function(mk){
+      var pic = el.querySelector('[data-pic]'), ld = pic.querySelector('.k-load');
+      if(ld) ld.outerHTML = mk ? '<img alt="" src="' + esc(src(mk)) + '">' : '';
+      var now = unitSolo(gid, mk, people()), one = unitSolo(gid, mk, 1), pr = el.querySelector('[data-pr]');
+      if(!pr) return;
+      if(!now){ pr.innerHTML = '<span class="one" style="font-size:16px">ціну скаже менеджер</span>'; return; }
+      var off = one > now ? Math.round((1 - now / one) * 100) : 0;
+      pr.innerHTML = off >= 3 ? '<s>' + esc(грн(one).replace(' ₴', '')) + '</s><span class="now">' + esc(грн(now)) + '</span>'
+                              : '<span class="one">' + esc(грн(now)) + '</span>';
+      if(off >= 3){ var t = el.querySelector('.k-tags'); if(t && !t.querySelector('.s')) t.insertAdjacentHTML('beforeend', '<span class="s">−' + off + '%</span>'); }
+    }); });
+  }
   function render(){
     var main = D.getElementById('kMain');
-    var list = K.garments();
-    var picked = KIT.garments.filter(function(gid){ return list.some(function(g){ return g.id === gid; }); });
-    var t = TABS.filter(function(x){ return x.id === tab; })[0];
-    var shown = list.filter(function(g){ return !t.m || t.m.test(g.id); })
-      .sort(function(a, b){ return (picked.indexOf(a.id) < 0 ? 1 : 0) - (picked.indexOf(b.id) < 0 ? 1 : 0); });
-    var hero = (picked.length ? picked : list.map(function(g){ return g.id; })).slice(0, 5);
-    while(hero.length < 5 && list.length){ var nx = list.filter(function(g){ return hero.indexOf(g.id) < 0; })[0]; if(!nx) break; hero.push(nx.id); }
-    var bans = K.banners(tab);
-    function banHtml(b, i){
-      return '<div class="k-ban" data-ban="' + i + '" data-open="' + esc(picked[0] || (list[0] || {}).id || '') + '"><div class="im" style="--ar:' + (1 / Math.max(0.3, +b.ar || 1)) + '">' +
-        '<div class="k-load"><div class="k-spin"></div></div></div>' +
-        (b.title ? '<b>' + esc(b.title) + '</b>' : '') + (b.sub ? '<span>' + esc(b.sub) + '</span>' : '') + '</div>';
-    }
-    main.innerHTML =
-      '<div class="k-seg">' + TABS.filter(function(x){ return x.id === 'all' || list.some(function(g){ return x.m.test(g.id); }); })
-        .map(function(x){ return '<button class="' + (x.id === tab ? 'on' : '') + '" data-tab="' + x.id + '">' + esc(x.name) + '</button>'; }).join('') + '</div>' +
-      (bans[0] ? banHtml(bans[0], 0) : '') +
-      (tab === 'all' ? '<div class="k-hero" data-open="' + esc(hero[0] || '') + '">' + hero.map(function(gid, i){
-          return '<div data-hero="' + esc(gid) + '"><div class="k-load"><div class="k-spin"></div></div>' +
-            (i === 0 ? '<div class="brand"><b>' + esc(KIT.company || 'Ваша команда') + '</b>мерч з вашим логотипом</div>' : '') + '</div>';
-        }).join('') + '</div>' +
-        '<div class="k-cap"><b>Ваш комплект</b><span>' + (picked.length ? 'те, що ви обрали в квізі' : 'наші бестселери') +
-        ' · ціни на ' + people() + ' шт</span></div>' : '') +
-      '<div class="k-h2">' + (tab === 'all' ? 'Усі вироби з вашим логотипом' : esc(t.name)) + '</div>' +
-      '<div class="k-grid">' + shown.map(function(g, gi){
-        /* Решта банерів — між товарами, через кожні чотири, як у магазині. */
-        var bi = Math.floor(gi / 4), pre = (gi && gi % 4 === 0 && bans[bi]) ? banHtml(bans[bi], bi) : '';
-        return pre + cardHtml(g);
-      }).join('') +
-      /* Товарів менше, ніж банерів на них, — решта банерів у кінці. */
-      bans.map(function(b, i){ return (i && i > Math.floor((shown.length - 1) / 4)) ? banHtml(b, i) : ''; }).join('') + '</div>';
-    function cardHtml(g){
-        return '<button class="k-card" data-open="' + esc(g.id) + '"><div class="pic" data-card="' + esc(g.id) + '"><div class="k-load"><div class="k-spin"></div></div>' +
-          (picked.indexOf(g.id) >= 0 ? '<span class="tag dark">ваш вибір</span>' : '') + '</div>' +
-          '<span class="pr" data-pr="' + esc(g.id) + '">&nbsp;</span><span class="nm">' + esc(g.name) + '</span>' +
-          '<span class="sub">' + plural(g.colors.length, 'колір', 'кольори', 'кольорів') + ' · ' +
-          plural(K.placesFor(g.id).length, 'варіант', 'варіанти', 'варіантів') + ' розміщення</span></button>';
-    }
-    main.querySelectorAll('[data-tab]').forEach(function(b){ b.onclick = function(){ tab = b.dataset.tab; render(); }; });
-    main.querySelectorAll('[data-open]').forEach(function(b){ b.onclick = function(){ if(b.dataset.open) openSheet(b.dataset.open); }; });
-    /* Мокапи — по черзі, щоб телефон не малював дев'ять полотен разом. */
-    var jobs = [];
-    main.querySelectorAll('[data-hero]').forEach(function(el, i){
-      var gid = el.dataset.hero, key = i === 0 ? keyOf(gid) : K.placesFor(gid).slice(-1)[0];
-      jobs.push(function(){ return mock(gid, colorOf(gid).id, i === 0 ? keyOf(gid) : key).then(function(mk){
-        if(mk) el.querySelector('.k-load').outerHTML = '<img alt="" src="' + esc(src(mk)) + '">'; }); });
+    var all = items(), sl = slides();
+    var g = K.garments();
+    var feed = '', banI = 1, rowI = 0, flip = true;
+    var cats = CATS.filter(function(c){ return g.some(function(x){ return c.m.test(x.id); }); });
+    all.forEach(function(it, i){
+      feed += cardHtml(it);
+      /* Кожні 6 карток — по черзі банер і карусель категорії; кожен раз
+         наступний, без повторів. */
+      if((i + 1) % 6 === 0 && !Q && i < all.length - 1){
+        var useBan = flip ? sl[banI] : null, row = '';
+        if(!useBan) while(!row && rowI < cats.length) row = rowHtml(cats[rowI++]);
+        if(!useBan && !row && sl[banI]) useBan = sl[banI];
+        if(useBan){ feed += '<div class="k-full">' + slideHtml(useBan, banI, 1) + '</div>'; banI++; }
+        else if(row) feed += row;
+        flip = !flip;
+      }
     });
+    main.innerHTML = (Q ? '' :
+      '<div class="k-car" id="kBan">' + sl.map(function(s, i){ return slideHtml(s, i, sl.length); }).join('') + '</div>' +
+      '<div class="k-h">' + esc(KIT.company ? KIT.company : 'Ваш бренд') + '</div>' +
+      '<div class="k-chips">' + CATS.filter(function(c){ return g.some(function(x){ return c.m.test(x.id); }); })
+        .map(function(c){ return '<button data-chip="' + c.id + '">' + esc(c.name) + '</button>'; }).join('') + '</div>' +
+      '<div class="k-mosaic" id="kMosaic"><div data-mz="0"><div class="k-load"><div class="k-spin"></div></div></div>' +
+        '<div data-mz="1"></div><div data-mz="2"></div><div data-mz="3"></div><div data-mz="4"></div></div>' +
+      '<div class="k-h" id="kFeedH">Усе з вашим логотипом</div>') +
+      (Q ? '<div class="k-h">Знайдено: ' + all.length + '</div>' : '') +
+      '<div class="k-grid" id="kFeed">' + feed + '</div>' +
+      (!all.length ? '<p class="k-pad k-note">Нічого не знайшли. Спробуйте «худі», «кепка» чи «футболка».</p>' : '');
+    IO = ('IntersectionObserver' in W) ? new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting && e.target.__job){ QUEUE.push(e.target.__job); e.target.__job = null; IO.unobserve(e.target); pump(); } });
+    }, { rootMargin: '400px 0px' }) : null;
+    main.querySelectorAll('.k-card').forEach(fillCard);
+    /* Банери з адмінки — з логотипом клієнта; «пари» — з мокапів. */
     main.querySelectorAll('[data-ban]').forEach(function(el){
-      var b = bans[+el.dataset.ban];
-      jobs.unshift(function(){ return K.renderBanner(b, LOGO, KIT.logo).then(function(u){
-        var ld = el.querySelector('.k-load'); if(ld) ld.outerHTML = u ? '<img alt="" src="' + esc(u) + '">' : ''; }); });
+      var b = K.banners('all')[+el.dataset.ban];
+      QUEUE.unshift(function(){ return K.renderBanner(b, LOGO, KIT.logo).then(function(u){ el.outerHTML = u ? '<img alt="" src="' + esc(u) + '">' : ''; }); });
     });
-    main.querySelectorAll('[data-card]').forEach(function(el){
-      var gid = el.dataset.card;
-      jobs.push(function(){ return mock(gid, colorOf(gid).id, keyOf(gid)).then(function(mk){
-        var ld = el.querySelector('.k-load'); if(ld && mk) ld.outerHTML = '<img alt="" src="' + esc(src(mk)) + '">';
-        var u = unitSolo(gid, mk, people()), pr = main.querySelector('[data-pr="' + gid + '"]');
-        if(pr) pr.textContent = u ? грн(u) + ' / шт' : 'ціну скаже менеджер';
-      }); });
+    main.querySelectorAll('[data-duo]').forEach(function(el){
+      var gid = el.dataset.duo, gg = K.gOf(gid);
+      QUEUE.push(function(){ return mock(gid, colorsPop(gg)[0].id, K.placesFor(gid).slice(-1)[0]).then(function(mk){ if(mk) el.innerHTML = '<img alt="" src="' + esc(src(mk)) + '">'; }); });
     });
-    (function run(){ var j = jobs.shift(); if(j) j().then(run, run); })();
-    bar();
+    /* Мозаїка бренду: велике — худі зі спини з логотипом, поверх — логотип
+       клієнта, як «MANGO»; малі — різні вироби. */
+    var mz = main.querySelector('#kMosaic');
+    if(mz){
+      var tiles = [];
+      var hood = g.filter(function(x){ return /^hoodie/.test(x.id); })[0] || g[0];
+      if(hood) tiles.push({ gid: hood.id, cid: colorsPop(hood)[0].id, key: K.placesFor(hood.id).slice(-1)[0], big: true });
+      g.filter(function(x){ return !hood || x.id !== hood.id; }).slice(0, 4).forEach(function(x, i){ var cs = colorsPop(x);
+        tiles.push({ gid: x.id, cid: cs[(i + 1) % Math.min(3, cs.length)].id, key: keyOf(x.id) }); });
+      tiles.forEach(function(t, i){
+        var el = mz.querySelector('[data-mz="' + i + '"]'); if(!el) return;
+        QUEUE.push(function(){ return mock(t.gid, t.cid, t.key).then(function(mk){
+          if(!mk) return;
+          el.innerHTML = '<img alt="" src="' + esc(src(mk)) + '">' + (t.big ? '<div class="brand"><img alt="' + esc(KIT.company) + '" src="' + esc(KIT.logo.url) + '"></div>' : '');
+        }); });
+      });
+      mz.onclick = function(e){ var el = e.target.closest('[data-mz]'); var t = el && tiles[+el.dataset.mz]; if(t) openSheet(t.gid, { cid: t.cid, key: t.key }); };
+    }
+    pump();
+    bind(main);
+    /* Крапки карусели — за прокруткою. */
+    var ban = main.querySelector('#kBan');
+    if(ban) ban.onscroll = function(){ var i = Math.round(ban.scrollLeft / Math.max(1, ban.clientWidth));
+      ban.querySelectorAll('.k-dots').forEach(function(d){ d.querySelectorAll('i').forEach(function(x, j){ x.classList.toggle('on', j === i); }); }); };
+    badges();
   }
+  function rowHtml(cat){
+    var list = items().filter(function(it){ return cat.m.test(it.g.id); });
+    if(!list.length) return '';
+    /* Карусель — усі кольори кожного варіанту категорії. */
+    var extra = [];
+    list.forEach(function(it){ colorsPop(it.g).slice(0, 4).forEach(function(c){ if(c.id !== it.c.id) extra.push({ g: it.g, key: it.key, c: c, id: it.id }); }); });
+    return '<div class="k-row" data-row="' + cat.id + '"><h4>' + esc(cat.name) + ' з вашим лого</h4><div class="k-car">' +
+      list.concat(extra).slice(0, 10).map(cardHtml).join('') + '</div></div>';
+  }
+  function bind(main){
+    main.querySelectorAll('.k-card').forEach(function(el){
+      el.onclick = function(e){
+        var id = el.dataset.item, p = id.split('|');
+        if(e.target.closest('[data-hide]')){ e.stopPropagation();
+          HIDE.push(id); ls(CKEY + ':hide', HIDE); el.style.display = 'none'; toast('Сховали — таких більше не покажемо'); return; }
+        if(e.target.closest('[data-fv]')){ e.stopPropagation(); var on = toggleFav(id);
+          main.querySelectorAll('.k-card[data-item="' + id + '"] [data-fv]').forEach(function(b){ b.classList.toggle('on', on); });
+          toast(on ? 'В обраному' : 'Прибрали з обраного'); return; }
+        openSheet(p[0], { cid: el.dataset.cid, key: p[1] });
+      };
+    });
+    main.querySelectorAll('[data-chip]').forEach(function(b){ b.onclick = function(){
+      var row = main.querySelector('[data-row="' + b.dataset.chip + '"]') ||
+                [].filter.call(main.querySelectorAll('#kFeed > .k-card'), function(c){ return c.dataset.item.indexOf(b.dataset.chip) === 0; })[0];
+      if(row) row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }; });
+    main.querySelectorAll('.k-slide').forEach(function(s){ s.onclick = function(){
+      var x = slides()[+s.dataset.sl]; var gid = x && x.set ? x.set[0].id : (KIT.garments[0] || (K.garments()[0] || {}).id);
+      if(gid) openSheet(gid);
+    }; });
+  }
+  function badges(){
+    var n = D.getElementById('kCartN'), f = D.getElementById('kFavN');
+    n.hidden = !CART.length; n.textContent = CART.length;
+    f.hidden = !FAV.length; f.textContent = FAV.length;
+  }
+  function bar(){ badges(); }
 
-  /* ══════════ ВІКНО ТОВАРУ ══════════ */
-  function openSheet(gid){
+  /* ══════════ НИЖНЄ МЕНЮ ══════════ */
+  D.querySelectorAll('[data-nav]').forEach(function(b){ b.onclick = function(){
+    var k = b.dataset.nav;
+    if(k === 'home'){ W.scrollTo({ top: 0, behavior: 'smooth' }); }
+    else if(k === 'cat'){ var h = D.getElementById('kFeedH') || D.getElementById('kFeed'); if(h) h.scrollIntoView({ behavior: 'smooth' }); }
+    else if(k === 'cart') openCart();
+    else if(k === 'fav') openFavs();
+    else if(k === 'mgr') openManager();
+  }; });
+  function openFavs(){
+    var ov = D.createElement('div'); ov.className = 'k-ov';
+    ov.innerHTML = '<div class="k-sheet" role="dialog" aria-label="Обране"><button class="k-x" data-x>✕</button><h3>Обране</h3>' +
+      (FAV.length ? '<div class="k-favs">' + FAV.map(function(id){ var p = id.split('|'), g = K.gOf(p[0]); if(!g) return '';
+          return cardHtml({ g: g, key: p[1], c: colorsPop(g)[0], id: id }); }).join('') + '</div>'
+        : '<p class="k-note">Тут буде те, що ви позначите ♡.</p>') + '</div>';
+    D.body.appendChild(ov);
+    ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+    ov.querySelector('[data-x]').onclick = function(){ ov.remove(); };
+    ov.querySelectorAll('.k-card').forEach(function(el){
+      fillCard(el);
+      el.onclick = function(e){ var p = el.dataset.item.split('|');
+        if(e.target.closest('[data-fv]')){ toggleFav(el.dataset.item); el.remove(); D.querySelectorAll('.k-card[data-item="' + el.dataset.item + '"] [data-fv]').forEach(function(b){ b.classList.remove('on'); }); return; }
+        if(e.target.closest('[data-hide]')) return;
+        ov.remove(); openSheet(p[0], { cid: el.dataset.cid, key: p[1] }); };
+    });
+    if(!IO) pump();
+  }
+  /* «Менеджер»: Telegram з контактів сайту (Конструктор → Головна й
+     контакти); немає — коротка форма, і менеджер передзвонить. */
+  function openManager(){
+    var ct = C.contacts || {};
+    if(/^https:\/\/t\.me\//.test(ct.telegram || '')){ W.open(ct.telegram, '_blank'); track('kit_mgr_tg'); return; }
+    var ov = D.createElement('div'); ov.className = 'k-ov';
+    var Q0 = ls('lq_quiz_v1') || {};
+    ov.innerHTML = '<div class="k-sheet" role="dialog" aria-label="Менеджер" style="max-width:520px"><button class="k-x" data-x>✕</button><h3>Питання менеджеру</h3>' +
+      '<p class="k-note">Залиште телефон — менеджер передзвонить або напише.</p>' +
+      '<input class="k-in" id="kmName" placeholder="Ваше імʼя" maxlength="60" value="' + esc(Q0.name || '') + '">' +
+      '<input class="k-in" id="kmPhone" type="tel" inputmode="tel" placeholder="+380 __ ___ __ __" value="' + esc(Q0.phone || '') + '">' +
+      (ct.phone ? '<p class="k-note">Або телефонуйте: <a href="tel:' + esc(String(ct.phone).replace(/[^\d+]/g, '')) + '">' + esc(ct.phone) + '</a></p>' : '') +
+      '<div class="k-err" id="kmErr"></div><button class="k-btn" style="width:100%" data-go>Чекаю дзвінка</button></div>';
+    D.body.appendChild(ov);
+    ov.onclick = function(e){ if(e.target === ov) ov.remove(); };
+    ov.querySelector('[data-x]').onclick = function(){ ov.remove(); };
+    ov.querySelector('[data-go]').onclick = function(){
+      var ph = K.phoneNorm(ov.querySelector('#kmPhone').value);
+      if(!ph){ ov.querySelector('#kmErr').textContent = 'Перевірте номер: потрібен український, +380…'; return; }
+      K.lead(ph, '💬 Каталог клієнта: просить звʼязатись' + (KIT.company ? ' · ' + KIT.company : '') + '\nІмʼя: ' + ov.querySelector('#kmName').value.trim() + '\nКаталог: ' + location.href);
+      ov.querySelector('.k-sheet').innerHTML = '<button class="k-x" data-x>✕</button><h3>Дякуємо!</h3><div class="k-ok">Менеджер звʼяжеться з вами найближчим часом.</div>';
+      ov.querySelector('[data-x]').onclick = function(){ ov.remove(); };
+      track('kit_mgr_lead');
+    };
+  }
+  /* Вікно товару. pre — з якої картки прийшли (колір і варіант картки);
+     edit — індекс рядка кошика, який міняємо. */
+  function openSheet(gid, pre, edit){
     var g = K.gOf(gid); if(!g) return;
-    SEL[gid] = SEL[gid] || { cid: colorOf(gid).id, key: keyOf(gid), qty: (CART.filter(function(l){ return l.gid === gid; })[0] || {}).qty || people() };
+    SEL[gid] = Object.assign({ cid: colorOf(gid).id, key: keyOf(gid), qty: people() }, SEL[gid] || {}, pre || {});
+    if(edit != null && CART[edit]) SEL[gid] = { cid: CART[edit].cid, key: CART[edit].key, qty: CART[edit].qty };
     var ov = D.createElement('div'); ov.className = 'k-ov';
     ov.innerHTML = '<div class="k-sheet" role="dialog" aria-label="' + esc(g.name) + '"></div>';
     D.body.appendChild(ov);
@@ -299,10 +502,12 @@
     track('kit_open', { gid: gid });
     function draw(){
       var s = SEL[gid], c = colorOf(gid), keys = K.placesFor(gid);
-      var inCart = CART.some(function(l){ return l.gid === gid; });
+      var inCart = edit != null && !!CART[edit];
+      var fav = isFav(gid + '|' + s.key);
       var sh = ov.querySelector('.k-sheet');
       sh.innerHTML = '<button class="k-x" data-x aria-label="Закрити">✕</button>' +
         '<div class="k-pv"><div class="k-big" id="kBig"><div class="k-load"><div class="k-spin"></div></div></div><div>' +
+        '<button class="k-fav' + (fav ? ' on' : '') + '" data-fav aria-label="В обране">' + HEART + '</button>' +
         '<h3>' + esc(g.name) + '</h3><div class="k-note">' + esc(c.name) + ' · ' + (K.methodFor(gid) === 'embro' ? 'вишивка' : 'DTF-друк') + '</div>' +
         '<div class="k-lbl">Колір</div><div class="k-sw">' + g.colors.map(function(x){
           return '<button title="' + esc(x.name) + '" aria-label="' + esc(x.name) + '" class="' + (x.id === c.id ? 'on' : '') + '" style="background:' + esc(x.hex || '#ccc') + '" data-c="' + esc(x.id) + '"></button>'; }).join('') + '</div>' +
@@ -316,16 +521,18 @@
         '<button class="k-btn" style="width:100%" data-add>' + (inCart ? 'Оновити в кошику' : 'Додати в кошик') + '</button>' +
         '<p class="k-note">Ціна — з урахуванням того, що вже в кошику: спільний тираж робить кожну річ дешевшою.</p></div></div>';
       sh.querySelector('[data-x]').onclick = close;
+      sh.querySelector('[data-fav]').onclick = function(){ toggleFav(gid + '|' + s.key); draw(); };
       sh.querySelectorAll('[data-c]').forEach(function(b){ b.onclick = function(){ s.cid = b.dataset.c; draw(); }; });
       sh.querySelectorAll('[data-k]').forEach(function(b){ b.onclick = function(){ s.key = b.dataset.k; draw(); }; });
       var q = sh.querySelector('#kQty');
       sh.querySelectorAll('[data-q]').forEach(function(b){ b.onclick = function(){ s.qty = Math.max(1, (+q.value || 1) + (+b.dataset.q)); q.value = s.qty; price(); }; });
       q.oninput = function(){ s.qty = Math.max(1, Math.min(5000, Math.round(+q.value || 1))); price(); };
       sh.querySelector('[data-add]').onclick = function(){
-        var i = -1; CART.forEach(function(l, n){ if(l.gid === gid) i = n; });
+        var i = (edit != null && CART[edit]) ? edit : -1;
+        if(i < 0) CART.forEach(function(l, n){ if(l.gid === gid && l.cid === s.cid && l.key === s.key) i = n; });
         var line = { gid: gid, cid: s.cid, key: s.key, qty: s.qty };
         if(i >= 0) CART[i] = line; else CART.push(line);
-        saveCart(); close(); bar(); track('kit_add', { gid: gid });
+        saveCart(); close(); bar(); toast('Додано в кошик'); track('kit_add', { gid: gid });
       };
       mock(gid, s.cid, s.key).then(function(mk){ var b = sh.querySelector('#kBig'); if(b && mk) b.innerHTML = '<img alt="" src="' + esc(src(mk)) + '">'; });
       keys.forEach(function(k){ mock(gid, s.cid, k).then(function(mk){
@@ -336,7 +543,7 @@
     }
     function price(){
       var s = SEL[gid];
-      var others = CART.filter(function(l){ return l.gid !== gid; });
+      var others = CART.filter(function(l, n){ return n !== edit && !(l.gid === gid && l.cid === s.cid && l.key === s.key); });
       var save0 = CART; CART = others;
       cartPrices({ gid: gid, cid: s.cid, key: s.key, qty: s.qty }).then(function(p){
         var u = ov.querySelector('#kUnit'), t = ov.querySelector('#kTot');
@@ -354,19 +561,6 @@
   /* ══════════ КОШИК ══════════ */
   function saveCart(){ try{ localStorage.setItem(CKEY, JSON.stringify(CART)); }catch(e){} }
   function loadCart(){ try{ var c = JSON.parse(localStorage.getItem(CKEY) || '[]'); if(Array.isArray(c)) CART = c.filter(function(l){ return l && K.gOf(l.gid); }); }catch(e){} }
-  function bar(){
-    var b = D.getElementById('kBar'), info = D.getElementById('kBarInfo');
-    b.hidden = false;
-    if(!CART.length){ info.innerHTML = '<b>Оберіть вироби</b>натисніть на будь-який товар'; D.getElementById('kCartBtn').textContent = 'Кошик'; return; }
-    var n = CART.reduce(function(a, l){ return a + l.qty; }, 0);
-    info.innerHTML = '<b>…</b>' + CART.length + ' поз. · ' + n + ' шт';
-    D.getElementById('kCartBtn').textContent = 'Кошик · ' + CART.length;
-    cartPrices().then(function(p){
-      var tot = p.r ? p.r.reduce(function(a, x){ return a + (x.sum || 0); }, 0) : 0;
-      info.querySelector('b').textContent = tot ? грн(tot) : 'Ціну порахує менеджер';
-    });
-  }
-  D.getElementById('kCartBtn').onclick = function(){ openCart(); };
   function openCart(done){
     var ov = D.createElement('div'); ov.className = 'k-ov';
     ov.innerHTML = '<div class="k-sheet" role="dialog" aria-label="Кошик" style="max-width:640px"></div>';
@@ -412,8 +606,8 @@
         var tot = p.r ? p.r.reduce(function(a, x){ return a + (x.sum || 0); }, 0) : 0;
         sh.querySelector('#kCartTot').textContent = tot ? грн(tot) : 'порахує менеджер';
         box.querySelectorAll('[data-rm]').forEach(function(b){ b.onclick = function(){ CART.splice(+b.dataset.rm, 1); saveCart(); bar(); draw(); }; });
-        box.querySelectorAll('[data-ed]').forEach(function(b){ b.onclick = function(){ var l = CART[+b.dataset.ed]; ov.remove();
-          SEL[l.gid] = { cid: l.cid, key: l.key, qty: l.qty }; openSheet(l.gid); }; });
+        box.querySelectorAll('[data-ed]').forEach(function(b){ b.onclick = function(){ var n = +b.dataset.ed, l = CART[n]; ov.remove();
+          openSheet(l.gid, null, n); }; });
       });
       sh.querySelector('[data-go]').onclick = function(){ checkout(F, draw, sh.querySelector('[data-go]')); };
     }
@@ -467,6 +661,7 @@
     }).then(function(){ CART = []; saveCart(); bar(); draw('ok'); }, function(){ CART = []; saveCart(); bar(); draw('ok'); });
   }
 
+
   /* ══════════ СТАРТ ══════════ */
   function empty(){
     D.getElementById('kMain').innerHTML = '<div class="k-empty"><h2>Посилання неповне</h2><p class="k-note">Схоже, адресу скопіювали не до кінця. ' +
@@ -477,17 +672,19 @@
   W.addEventListener('hashchange', function(){ location.reload(); });
   if(!KIT){ empty(); return; }
   CKEY = 'lq_kit_cart_' + KIT.logo.url.slice(-40);
-  D.getElementById('kTtl').textContent = KIT.company ? 'Мерч для ' + KIT.company : 'Ваш мерч';
   D.title = (KIT.company ? KIT.company + ' — ' : '') + 'мерч з вашим логотипом · Loomiq';
   D.getElementById('kLogo').innerHTML = '<img alt="" src="' + esc(KIT.logo.url) + '">';
+  var qi = D.getElementById('kQ'), qt = null;
+  qi.oninput = function(){ clearTimeout(qt); qt = setTimeout(function(){ Q = qi.value.trim(); render(); }, 250); };
   K.boot(function(){
     K.loadImg(KIT.logo.url).then(function(im){
       if(!im){ empty(); return; }
       LOGO = im;
-      loadCart(); render();
+      FAV = ls(CKEY + ':fav') || []; HIDE = ls(CKEY + ':hide') || [];
+      loadCart(); D.getElementById('kNav').hidden = false; render();
     });
   });
-  W.__kit = { state: function(){ return { KIT: KIT, CART: CART, SEL: SEL }; }, mock: mock };
+  W.__kit = { state: function(){ return { KIT: KIT, CART: CART, SEL: SEL, FAV: FAV }; }, mock: mock };
 })();
 </script>
 </body>
