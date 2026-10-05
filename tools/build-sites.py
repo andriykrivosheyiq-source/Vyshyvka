@@ -24,7 +24,7 @@ CONFIG = os.path.join(ROOT, 'tools', 'sites.json')
 # пропозиції. Ніші відрізняються складом виробів, тож кожна дістає власну копію.
 CTOR = 'loomiq-constructor.js'
 CTOR_PATH = os.path.join(ROOT, CTOR)
-STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html')
+STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html', 'quiz/index.html')
 # Стилі й розмітка конструктора теж мають одне джерело — index.html. Сторінка
 # пропозиції не тримає їхньої копії: збірка щоразу дістає їх звідти.
 # Рушій цін — один файл на сайт, адмінку й сторінку пропозиції
