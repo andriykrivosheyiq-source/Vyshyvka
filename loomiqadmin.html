@@ -7301,27 +7301,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f5f9ee1859"></script>
-<script src="loomiq-fingerprint.js?v=f5f9ee1859"></script>
-<script src="loomiq-pricing.js?v=f5f9ee1859"></script>
+<script src="loomiq-select.js?v=848fd12a2e"></script>
+<script src="loomiq-fingerprint.js?v=848fd12a2e"></script>
+<script src="loomiq-pricing.js?v=848fd12a2e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f5f9ee1859"></script>
+<script src="loomiq-money-core.js?v=848fd12a2e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f5f9ee1859"></script>
-<script src="loomiq-mock.js?v=f5f9ee1859"></script>
+<script src="loomiq-design.js?v=848fd12a2e"></script>
+<script src="loomiq-mock.js?v=848fd12a2e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f5f9ee1859"></script>
-<script src="loomiq-threads.js?v=f5f9ee1859"></script>
+<script src="imagetracer.js?v=848fd12a2e"></script>
+<script src="loomiq-threads.js?v=848fd12a2e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f5f9ee1859"></script>
+<script src="loomiq-cards.js?v=848fd12a2e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7366,7 +7366,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f5f9ee1859';
+var LQ_VER = '848fd12a2e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9642,7 +9642,7 @@ function watchPayments(){
    їх з отримувача й переказує пачкою. Щоб вони лягли в підсумок, а не
    губились, у них має бути свій рахунок. */
 const FIN_BANKS = { mono:'Монобанк', privat:'ПриватБанк',
-                    np:'Нова пошта · накладений платіж', other:'Інший' };
+                    np:'Нова пошта · накладений платіж', novapay:'NovaPay · бізнес-рахунок', other:'Інший' };
 const FIN_DEFAULT_ACCS = [
   { id:'mono1', name:'Моно ФОП 1', bank:'mono' },
   { id:'mono2', name:'Моно ФОП 2', bank:'mono' },
@@ -10228,6 +10228,9 @@ function finOwnCalc(){
   const all = (payments || []).filter(p => p && p.id && !p.orderId && Math.round(+p.amount || 0) !== 0);
   const own = {}, pair = {};
   all.forEach(p => { if(p.tag === 'own') own[p.id] = 1; });
+  /* NovaPay сам каже, що це: пул наложок (вже пораховані поштучно) чи
+     переказ собі ж. Не дохід і не витрата — хіба людина сказала «ні». */
+  all.forEach(p => { if(p.flow && p.tag !== 'notown') own[p.id] = 1; });
   const вільні = all.filter(p => !own[p.id] && p.tag !== 'notown' && p.acc);
   const ins = вільні.filter(p => +p.amount > 0);
   const банк = {};
@@ -10431,7 +10434,9 @@ function renderFin(){
             escapeHtml('#' + p.orderId +
               (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) +
             (o ? '' : ' <i>картки немає</i>') + '</button>'
-          : свої[p.id] ? '<button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '">між своїми</button>'
+          : свої[p.id] ? '<button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '"' +
+              (p.flow === 'pool' ? ' title="Гроші за посилки з контролем оплати вже пораховані поштучно, за ТТН — удруге не рахуємо">пул наложок</button>'
+                                 : '>між своїми</button>')
           : !дохід ? '<button class="fin-chip is-cat' + (кат ? ' on' : '') + '" data-fin-open="' + escapeHtml(p.id) + '"' +
               (кат && кат.how === 'rule' ? ' title="Підписано правилом: «' + escapeHtml(кат.q) + '»"' : '') + '>' +
               escapeHtml(кат ? finCatName(кат) : 'категорія?') + (кат && кат.how === 'rule' ? ' <i>⚙</i>' : '') + '</button>'
@@ -10699,6 +10704,13 @@ function finAccEdit(id){
            <code>npx wrangler secret put NP_API_KEY</code>.<br><br>
            Рахунок може бути тільки один: виплати приходять спільним
            потоком, і ділити його між ФОПами нема за чим.`
+        : a.bank === 'novapay'
+        ? `Бізнес-рахунок NovaPay. Воркер знаходить його за <b>IBAN</b> вище й
+           кожні пів години бере залишок і рухи. Пул наложок від «НоваПей» не
+           рахується доходом — ці гроші вже пораховані поштучно, за ТТН;
+           переказ собі ж (той самий ІПН) — між своїми.<br><br>
+           Ключ — секретами Cloudflare Worker (NOVAPAY_LOGIN,
+           NOVAPAY_REFRESH_TOKEN, NOVAPAY_CERT), не сюди.`
         : 'Рухи по цьому рахунку записуються руками.'}</div>
       <label class="fin-chk"><input type="checkbox" id="fa-linked"${a.linked ? ' checked' : ''}>
         <span>Банк підключено — Worker уже шле рухи</span></label>

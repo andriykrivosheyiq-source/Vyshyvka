@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-05.5 · NovaPay: один вхід за запуск';
+const VERSION = '2026-10-05.6 · NovaPay: рухи у Фінанси';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -244,6 +244,10 @@ async function payment(env, p, batch) {
     ttn: p.ttn || undefined,        // номер накладної — за ним адмінка привʼязує рух до замовлення
     /* Залишок після цього руху — коли банк його каже (Монобанк каже). */
     balAfter: p.balAfter == null ? undefined : kop(p.balAfter),
+    /* Що це за рух за словами самого банку (NovaPay): pool — пул наложок
+       (гроші вже пораховані поштучно за ТТН), self — переказ собі ж, на
+       рахунок з тим самим ІПН. Адмінка не рахує їх доходом чи витратою. */
+    flow: p.flow || undefined,
     tz: 1                           // час уже правильний (по Києву) — див. fixTz
   };
   if (batch) batch.push({ path: 'payments/' + p.id, obj });
@@ -883,10 +887,57 @@ async function novapayPoll(env) {
     const rest = await novapayCall(env, 'GetAccountRest', { account_id: a.id });
     const bal = parseFloat(String(xmlUnesc(xmlTag(rest, 'available_balance') || xmlTag(rest, 'confirmed_balance') || '')).replace(',', '.'));
     if (наш && isFinite(bal)) await bankBalance(env, наш.id, bal, new Date().toISOString(), 'novapay');
+    /* Рухи — лише в рахунок Фінансів з тим самим IBAN: без нього нема куди. */
+    let рухів = 0;
+    if (наш) {
+      const до = new Date(), від = new Date(Date.now() - 3 * 864e5);
+      const ex = await novapayCall(env, 'GetAccountExtract', { account_id: a.id, date_from: npDate(від), date_to: npDate(до) });
+      const пакет = [];
+      for (const d of xmlTags(xmlUnesc(xmlTag(ex, 'extract') || ''), 'Docs').map(xmlFlat)) {
+        const r = novapayRow(d, iban, наш.id);
+        if (r && await payment(env, r, пакет)) рухів++;
+      }
+      await fsCommit(env, пакет);
+    }
     out.push({ рахунок: a.name || a.client, iban: iban.slice(0, 6) + '…' + iban.slice(-4), фінанси: наш ? наш.id : 'не знайдено за IBAN',
-               залишок: isFinite(bal) ? bal : null });
+               залишок: isFinite(bal) ? bal : null, рухів });
   }
   return out;
+}
+/* Рух виписки NovaPay → платіж Фінансів. Напрям — за нашим IBAN: ми в
+   Credit — прийшло, у Debit — пішло. Часу виписка не дає, лише дату, тож
+   ставимо полудень за Києвом (стійко: повтор не зсуне рух).
+   ПУЛ НАЛОЖОК (05.10): «НоваПей» (ЄДРПОУ 38324133) переказує гроші «згідно
+   реєстру №…» — це сума посилок з контролем оплати, які вже записані
+   поштучно (npc_<ТТН>) і привʼязані до замовлень. Доходом удруге не є.
+   СОБІ (05.10): той самий ІПН з обох боків — «перерахування чистого
+   підприємницького доходу» на свій особистий рахунок: між своїми. */
+function novapayRow(d, iban, accId) {
+  const сума = Math.abs(parseFloat(String(d.Amount || '').replace(',', '.'))) || 0;
+  const id = String(d.ID || '').trim();
+  if (!сума || !id) return null;
+  const я = String(iban || '').replace(/\s+/g, '');
+  const cr = String(d.CreditCodeIBAN || '').replace(/\s+/g, ''), db = String(d.DebitCodeIBAN || '').replace(/\s+/g, '');
+  const прийшло = cr === я;
+  if (!прийшло && db !== я) return null;
+  const інший = прийшло ? 'Debit' : 'Credit';
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(String(d.OrgDate || d.DayDate || ''));
+  if (!m) return null;
+  const purpose = String(d.Purpose || '').replace(/\s+/g, ' ').trim();
+  const хто = String(d[інший + 'Name'] || '').trim();
+  const пул = прийшло && (String(d.DebitStateCode || '') === '38324133' || /нова\s*пей|новапей|novapay/i.test(хто)) &&
+    /реєстр/i.test(purpose);
+  const собі = !пул && d.DebitStateCode && String(d.DebitStateCode) === String(d.CreditStateCode || '');
+  return {
+    id: 'novapay_' + id,
+    at: kyivIso(+m[3], +m[2], +m[1], 12, 0, 0),
+    amount: прийшло ? сума : -сума,
+    acc: accId,
+    counter: пул ? 'NovaPay · пул наложок' : хто,
+    desc: purpose,
+    src: 'novapay',
+    flow: пул ? 'pool' : собі ? 'self' : undefined
+  };
 }
 /* Сирий погляд: рахунки, залишок і виписка за 3 дні — щоб побачити поля. */
 async function novapayProbe(env) {
@@ -972,7 +1023,7 @@ async function poll(env, opts) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { novapayEnvelope, novapayUntil, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
+export const _pure = { novapayEnvelope, novapayUntil, novapayRow, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */

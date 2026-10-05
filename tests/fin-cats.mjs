@@ -165,6 +165,20 @@ const нові = await p.evaluate(() => (finCats().find(c => c.name === 'Зак�
 ok(кільк >= 8 && нові.includes('Сировина') && нові.includes('Підрядник одягу'), 'категорії правляться: додали підкатегорію «Сировина» до «Закупівля»', 'підкатегорії: ' + нові);
 
 console.log('');
+console.log('═══ NOVAPAY: ПУЛ НАЛОЖОК І ПЕРЕКАЗ СОБІ ═══');
+const доПулу = await p.evaluate(() => (document.getElementById('fin-sum') || {}).textContent.replace(/\s+/g, ' '));
+await p.evaluate(at => { payments.push(
+  { id:'novapay_1', at, amount: 50000, acc:'mono3', counter:'NovaPay · пул наложок', desc:'згідно реєстру № 18321608', src:'novapay', flow:'pool' },
+  { id:'novapay_2', at, amount: -1000, acc:'mono3', counter:'Кривошей Андрій Ігорович', desc:'Перерахування чистого підприємницького доходу', src:'novapay', flow:'self' });
+  finView.cat = ''; renderFin(); }, iso(400));
+await p.waitForTimeout(200);
+const пул = await chip('novapay_1'), собі = await chip('novapay_2');
+const зПулом = await p.evaluate(() => (document.getElementById('fin-sum') || {}).textContent.replace(/\s+/g, ' '));
+const над = t => (/Надійшло: ([^₴]+)₴/.exec(t) || [])[1], вит = t => (/Витрачено: ([^₴]+)₴/.exec(t) || [])[1];
+ok(/пул наложок/.test(пул) && /між своїми/.test(собі) && над(доПулу) === над(зПулом) && вит(доПулу) === вит(зПулом),
+  'пул NovaPay — «пул наложок», переказ собі — «між своїми»; ні доходом, ні витратою не порахувались', 'пул: ' + пул + ' / ' + собі + ' · ' + доПулу + ' → ' + зПулом);
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'витрати підписані категоріями, перекази між своїми — одним рядком');
 await browser.close(); srv.close();
