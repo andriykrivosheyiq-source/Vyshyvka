@@ -166,6 +166,8 @@ const second = leads.find(l => /мокапи й прорахунок/.test(l.con
 ok(second && second.files.some(f => f.kind === 'logo') && second.files.filter(f => f.kind === 'mockup').length === 2,
   'у Telegram — логотип і мокапи вибраних варіантів', 'другий лід: ' + JSON.stringify(second || null).slice(0, 200));
 
+const kitA = await p.evaluate(() => (document.querySelector('a.r-kit') || {}).href || '');
+ok(/\/k\/#d=/.test(kitA) && /каталог клієнта: http/.test(o.note), 'після заявки — кнопка «Відкрити мій каталог» (міні-сайт), посилання й у картці', 'каталог: ' + kitA);
 await click('[data-choose]');
 await p.waitForTimeout(200);
 ok(leads.some(l => /клієнт обрав/.test(l.context) && /велике на спині/.test(l.context)) && await p.$('.r-ok'),
