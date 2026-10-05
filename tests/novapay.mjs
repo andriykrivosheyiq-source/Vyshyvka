@@ -30,7 +30,7 @@ DB['loomiq/photos'] = { fin: { mapValue: { fields: { accounts: { arrayValue: { v
 
 const soap = (method, inner) => '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><' + method +
   'Response xmlns="http://tempuri.org/"><' + method + 'Result>' + inner + '</' + method + 'Result></' + method + 'Response></s:Body></s:Envelope>';
-let valid = 'RT-0', n = 0;
+let valid = 'RT-0', n = 0, expFmt = 'iso';
 const calls = [];
 globalThis.fetch = async (url, opt) => {
   url = String(url); opt = opt || {};
@@ -46,7 +46,9 @@ globalThis.fetch = async (url, opt) => {
         return res(soap(action, '<request_ref>x</request_ref><error><code>logic_error</code><message>Refresh token expired</message></error>'));
       n++; valid = 'RT-' + n;
       return res(soap(action, '<request_ref>x</request_ref><response_ref>y</response_ref><jwt>JWT-' + n + '</jwt><expiration>' +
-        new Date(Date.now() + 30 * 60000).toISOString() + '</expiration><refresh_token>' + valid + '</refresh_token><public_certificate>CERT-' + n + '</public_certificate>'));
+        (expFmt === 'dmy' ? new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(Date.now() + 30 * 60000)).replace(',', '')
+          : new Date(Date.now() + 30 * 60000).toISOString()) + '</expiration><refresh_token>' + valid + '</refresh_token><public_certificate>CERT-' + n + '</public_certificate>'));
     }
     if(!/^JWT-/.test(get('jwt'))) return res(soap(action, '<error><message>jwt invalid</message></error>'));
     if(action === 'GetClientsList') return res(soap(action, '<result>ok</result><clients><Clients><id>8</id><name>ФОП Кривошей</name></Clients></clients>'));
@@ -122,6 +124,24 @@ const env3 = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'OLD-DEAD' });
 const p5 = await fresh3.fetch(new Request('https://w.test/novapay/poll?s=sek'), env3).then(r => r.json());
 ok(!p5.ok && /Refresh token expired/.test(p5.error) && /згенеруйте новий/.test(p5.error) && /логін «andriy» \(6 симв.\), токен 8 симв./.test(p5.error) && !/OLD-DEAD/.test(p5.error),
   'протермінований ключ — зрозуміло: «' + String(p5.error).slice(0, 90) + '…»', 'помилка: ' + JSON.stringify(p5));
+
+console.log('');
+console.log('═══ СТРОК «05.10.2026 21:59» — ОДИН ВХІД ЗА ЗАПУСК ═══');
+const U = _pure.novapayUntil, T0 = Date.parse('2026-10-05T18:00:00Z');
+ok(U('05.10.2026 21:59', T0) === Date.parse('2026-10-05T18:59:00Z'), 'строк dd.mm.yyyy hh:mm читається за Києвом', 'строк: ' + new Date(U('05.10.2026 21:59', T0)).toISOString());
+ok(U('01.01.2027', T0) === T0 + 20 * 60000 && U('03.10.2026 10:00', T0) === T0 + 20 * 60000 && U('', T0) === T0 + 20 * 60000,
+  'лише дата, минулий чи порожній строк — 20 хв, а не «вже протух»', 'запасний строк');
+const fresh4 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 4))).default;
+expFmt = 'dmy'; valid = 'NEW-KEY-2';
+const env4 = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'NEW-KEY-2', NOVAPAY_CERT: 'NEW-CERT' });
+calls.length = 0;
+const p6 = await fresh4.fetch(new Request('https://w.test/novapay/probe?s=sek'), env4).then(r => r.json());
+const a6 = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
+calls.length = 0;
+await fresh4.fetch(new Request('https://w.test/novapay/poll?s=sek'), env4).then(r => r.json());
+const a7 = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
+ok(p6.ok && a6 === 1 && a7 === 0, 'NovaPay дає строк як «dd.mm.yyyy hh:mm» — вхід один, ключ не крутиться вдруге', 'входів: ' + a6 + ' + ' + a7 + ' · ' + JSON.stringify(p6).slice(0, 200));
+expFmt = 'iso';
 
 console.log('');
 console.log('═══ /novapay/probe ═══');
