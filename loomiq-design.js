@@ -1054,7 +1054,7 @@
       x.qty = було + q; зміна = q; поЦіні = c;
     } else if(mv.kind === 'out'){
       if(q > було) return { ok:false, err:'На складі лише ' + було + ' шт' };
-      x.qty = було - q; зміна = -q; поЦіні = +x.cost || 0;
+      x.qty = було - q; зміна = -q; поЦіні = ціна != null ? ціна : (+x.cost || 0);
     } else if(mv.kind === 'adj'){
       if(!x){ x = { gid: mv.gid, name: mv.name || '', color: String(mv.color || ''), colorHex: mv.colorHex || '',
                     size: String(mv.size), qty: 0, cost: ціна || 0 }; items.push(x); }
@@ -6354,8 +6354,41 @@
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b is-zones">' +
         U.zoneHtml('violet', '👕', 'Що шиємо', '', prodUnitsHtml(p)) +
+        U.zoneHtml('blue', '📝', 'ТЗ', '', prodTzHtml(job, o)) +
         U.zoneHtml('green', '💬', 'Переписка з менеджером', '', prodChatHtml(job, 'prod')) +
       '</div>';
+  }
+  /* ТЗ ДЛЯ ЦЕХУ (05.10). Андрій: «щоб вони побачили — можливо, там якась
+     уточнина від клієнта, — і могли звірити». Перші кілька рядків і
+     «розгорнути»: ТЗ буває довгим, а цеху зазвичай досить початку. Під ним —
+     кнопки переписки з клієнтом (Instagram / Telegram), щоб перевірити, що
+     саме домовлено, без зайвої шапки з контактами. */
+  var PROD_TZ_OPEN = {};
+  function prodTzHtml(job, o){
+    var br = (job && job.brief) || {};
+    var t = String(br.text || '').trim();
+    var pics = br.pics || [];
+    var key = String((o && o.orderId) || '');
+    var довге = t.length > 220 || t.split('\n').length > 4;
+    var відкр = !!PROD_TZ_OPEN[key];
+    var ig = false, tg = false;
+    try{ ig = !!(host().canChat ? host().canChat() : true) && !!(host().hasIg ? host().hasIg(o) : (host().hasChat && host().hasChat(o))); }catch(e){}
+    try{ tg = !!(host().canChat ? host().canChat() : true) && !!(host().hasTg && host().hasTg(o)); }catch(e){}
+    var кнопки = (ig || tg)
+      ? '<div class="dz-tz-chat"><span>Переписка з клієнтом:</span>' +
+          (ig ? '<button type="button" class="dz-ig" data-do="chat" data-id="' + esc(key) + '">Instagram</button>' : '') +
+          (tg ? '<button type="button" class="dz-ig is-tg" data-do="chat-tg" data-id="' + esc(key) + '">Telegram</button>' : '') +
+        '</div>'
+      : '';
+    if(!t && !pics.length && !кнопки) return '';
+    return (t ? '<div class="dz-tz-t' + (довге && !відкр ? ' is-cut' : '') + '">' + esc(t).replace(/\n/g, '<br>') + '</div>' +
+                (довге ? '<button type="button" class="dz-buy-more" data-do="prod-tz" data-id="' + esc(key) + '">' +
+                  (відкр ? 'згорнути' : 'розгорнути') + '</button>' : '')
+              : (pics.length ? '' : '<div class="dz-miss is-calm">ТЗ текстом не заповнено.</div>')) +
+      (pics.length ? '<div class="dz-pics">' + pics.map(function(pp){
+          return '<a class="dz-thumb" href="' + esc(pp.url) + '" target="_blank" rel="noopener"><img src="' + esc(pp.url) + '" alt=""></a>';
+        }).join('') + '</div>' : '') +
+      кнопки;
   }
   function packPanel(p){
     var job = p.job, o = p.o;
@@ -6986,6 +7019,19 @@
     catch(e){ return []; }
   }
   function stockHave(gid, color, size){ return D.stockQty(stock(), gid, color, size); }
+  /* ЦІНА ОДИНИЦІ НА СКЛАДІ — СОБІВАРТІСТЬ B2C З НАЛАШТУВАНЬ (05.10).
+     Андрій: «брати собівартість B2C, ту, яку ми рахуємо… щоб розуміти, яка
+     сума в нас стоїть по нинішніх цінах продукції на складі». Тож склад
+     оцінюємо за ПОТОЧНОЮ собівартістю моделі: змінили її в налаштуваннях —
+     змінилась і вартість складу. Ціни немає — беремо збережену з руху. */
+  function unitCost(gid, fallback){
+    var c = 0;
+    try{ c = +(host().cost && host().cost(gid)) || 0; }catch(e){}
+    return c > 0 ? c : Math.max(0, +fallback || 0);
+  }
+  function stockWorth(items){
+    return (items || []).reduce(function(a, x){ return a + Math.max(0, +x.qty || 0) * unitCost(x.gid, x.cost); }, 0);
+  }
   function stockCan(){
     var r = '';
     try{ r = (U.host.role && U.host.role()) || ''; }catch(e){}
@@ -7068,7 +7114,7 @@
     var шт = st.items.reduce(function(a, x){ return a + Math.max(0, +x.qty || 0); }, 0);
     var gs = buyGroups(st.items.map(function(x, i){
       return { gid: x.gid, name: x.name, color: x.color, colorHex: x.colorHex || '',
-               size: x.size, qty: Math.max(0, +x.qty || 0), cost: +x.cost || 0, i: i }; }));
+               size: x.size, qty: Math.max(0, +x.qty || 0), cost: unitCost(x.gid, x.cost), i: i }; }));
     var форма = '';
     if(can && STOCK_FORM){
       var g = catOf(STOCK_FORM.gid);
@@ -7081,7 +7127,8 @@
             catOf().map(function(x){ return opt(x.id, x.name || x.id, STOCK_FORM.gid); }).join('') + '</select>' +
           '<select data-stkf="color"' + (g ? '' : ' disabled') + '>' + opt('', 'Колір', STOCK_FORM.color) +
             ((g && g.colors) || []).map(function(c){ return opt(c.name || c.id, c.name || c.id, STOCK_FORM.color); }).join('') + '</select>' +
-          '<input type="number" min="0" step="0.01" data-stkf="cost" placeholder="ціна за 1 шт, ₴" value="' + esc(STOCK_FORM.cost || '') + '">' +
+          (g ? '<span class="dz-stk-cost">' + (unitCost(g.id) ? 'Собівартість B2C: ' + грнК(unitCost(g.id)) + '/шт'
+              : 'Собівартість моделі не задана в Налаштуваннях B2C') + '</span>' : '') +
           '<input type="text" data-stkf="note" maxlength="120" placeholder="звідки (необовʼязково)" value="' + esc(STOCK_FORM.note || '') + '">' +
         '</div>' +
         (g ? '<div class="dz-stk-grid">' + розм.map(function(z){
@@ -7096,7 +7143,7 @@
     }
     return '<div class="dz-stk">' +
       '<div class="dz-buy-need">' +
-        '<div class="dz-buy-h"><b>Склад</b><span>' + шт + ' шт · на ' + грнК(D.stockValue(st.items)) + '</span>' +
+        '<div class="dz-buy-h"><b>Склад</b><span>' + шт + ' шт · на ' + грнК(stockWorth(st.items)) + ' за собівартістю B2C</span>' +
           '<input type="search" class="dz-stk-q" data-stock-q placeholder="Пошук: модель, колір, розмір">' +
           (can ? '<button type="button" class="dz-b pri" data-do="stock-form">' + (STOCK_FORM ? 'Сховати форму' : '+ Заповнити склад') + '</button>' : '') +
         '</div>' +
@@ -7107,7 +7154,7 @@
           var штГ = x.rows.reduce(function(a, r){ return a + r.qty; }, 0);
           var сума = x.rows.reduce(function(a, r){ return a + r.qty * r.cost; }, 0);
           var ціни = x.rows.map(function(r){ return r.cost; }).filter(function(c){ return c > 0; });
-          var ціна = ціни.length ? (Math.min.apply(null, ціни) === Math.max.apply(null, ціни) ? грнК(ціни[0]) : грнК(Math.min.apply(null, ціни)) + '–' + грнК(Math.max.apply(null, ціни)).replace(' ₴', '') + ' ₴') : 'ціну не вказано';
+          var ціна = ціни.length ? (Math.min.apply(null, ціни) === Math.max.apply(null, ціни) ? грнК(ціни[0]) : грнК(Math.min.apply(null, ціни)) + '–' + грнК(Math.max.apply(null, ціни)).replace(' ₴', '') + ' ₴') : 'собівартість не задана';
           return '<div class="dz-buy-g dz-stk-g" data-stk-hay="' + esc((x.name + ' ' + x.color + ' ' + x.list.map(function(z){ return z.size; }).join(' ')).toLowerCase()) + '">' +
             '<div class="dz-buy-gh"><b>' + esc(x.name) + '</b>' +
               (x.colorHex ? '<i class="dz-sw" style="background:' + esc(x.colorHex) + '"></i>' : '') +
@@ -7119,8 +7166,7 @@
               ? '<div class="dz-stk-grid">' + x.list.map(function(z){
                   return '<label><span>' + esc(z.size) + '</span><input type="number" min="0" data-adj="' + esc(z.size) + '" value="' + z.qty + '"></label>';
                 }).join('') + '</div>' +
-                '<div class="dz-stk-fr"><input type="number" min="0" step="0.01" data-adjcost placeholder="ціна за 1 шт, ₴" value="' + esc(ціни.length ? ціни[0] : '') + '">' +
-                '<input type="text" data-adjnote maxlength="120" placeholder="чому (перерахунок, брак…)"></div>' +
+                '<div class="dz-stk-fr"><input type="text" data-adjnote maxlength="120" placeholder="чому (перерахунок, брак…)"></div>' +
                 '<div class="dz-stk-fb"><button type="button" class="dz-b pri" data-do="stock-adj" data-k="' + esc(x.key) + '">Зберегти</button>' +
                 '<button type="button" class="dz-b" data-do="stock-edit" data-k="">Скасувати</button></div>'
               : '<div class="dz-stk-sz">' + x.list.map(function(z){
@@ -7255,7 +7301,7 @@
       '<button type="button" class="dz-buy-tab' + (BUY_TAB === 'order' ? ' on' : '') + '" data-do="buy-tab" data-k="order">🧾 Замовити одяг' +
         '<i>' + (sp.buy.length + sp.take.length) + '</i></button>' +
       '<button type="button" class="dz-buy-tab' + (BUY_TAB === 'stock' ? ' on' : '') + '" data-do="buy-tab" data-k="stock">📦 Склад' +
-        '<i>' + штС + ' шт · ' + грнК(D.stockValue(скл)) + '</i></button>' +
+        '<i>' + штС + ' шт · ' + грнК(stockWorth(скл)) + '</i></button>' +
     '</div>';
     if(BUY_TAB === 'stock') return tabs + stockScreenHtml();
     return tabs + '<div class="dz-buy">' + buyNeedHtml(sp.buy) + takeHtml(sp.take) + '</div>' +
@@ -7870,6 +7916,15 @@
     }
     /* Розмова відкривається й з дошки, де картка ще не відкрита, — тож
        вона йде ДО перевірки контексту, як і створення замовлення. */
+    if(what === 'prod-tz' && data && data.id){
+      if(PROD_TZ_OPEN[data.id]) delete PROD_TZ_OPEN[data.id]; else PROD_TZ_OPEN[data.id] = 1;
+      return render(root);
+    }
+    if(what === 'chat-tg' && data && data.id){
+      var tp0 = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
+      if(tp0 && host().chatTg) return host().chatTg(tp0.o);
+      return say('Переписка недоступна');
+    }
     if(what === 'chat' && data && data.id){
       var cp0 = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
       if(cp0 && host().chat) return host().chat(cp0.o);
@@ -7911,7 +7966,7 @@
       if(!tk.length) return say('Позначте, що взяли зі складу');
       var stT = stockSt();
       var шт1 = tk.reduce(function(a, r){ return a + r.qty; }, 0);
-      var сума1 = tk.reduce(function(a, r){ var x = D.stockFind(stT.items, r.gid, r.color, r.size); return a + r.qty * ((x && +x.cost) || 0); }, 0);
+      var сума1 = tk.reduce(function(a, r){ var x = D.stockFind(stT.items, r.gid, r.color, r.size); return a + r.qty * unitCost(r.gid, x && x.cost); }, 0);
       var ок1 = true;
       try{ ок1 = window.confirm('Списати зі складу ' + шт1 + ' шт' + (сума1 ? ' на ' + грнК(сума1) : '') + '?'); }catch(e){}
       if(!ок1) return;
@@ -7921,7 +7976,7 @@
       D.buySetStatus(bs, 'got', хто1);
       for(var i1 = 0; i1 < tk.length; i1++){
         var r1 = tk[i1];
-        var res = D.stockApply(stT, { kind:'out', gid:r1.gid, name:r1.name, color:r1.color, size:r1.size, qty:r1.qty,
+        var res = D.stockApply(stT, { kind:'out', gid:r1.gid, name:r1.name, color:r1.color, size:r1.size, qty:r1.qty, cost: unitCost(r1.gid) || null,
           by:хто1, orderId:r1.orderId, buyId:bs.id, note:'під замовлення ' + (r1.no || r1.orderId) });
         if(!res.ok) return say(res.err + ' (' + [r1.name, r1.color, r1.size].join(' · ') + ')');
         res.move.orderNo = r1.no || '';
@@ -7975,7 +8030,7 @@
       var st3 = stockSt(), шт3 = 0;
       for(var i3 = 0; i3 < розм.length; i3++){
         var res3 = D.stockApply(st3, { kind:'in', gid:g3.id, name:g3.name || '', color:f.color, colorHex:c3.hex || '',
-          size:розм[i3], qty:Math.round(+f.q[розм[i3]]), cost: f.cost === '' ? null : +f.cost, by:хто3, note:f.note || '' });
+          size:розм[i3], qty:Math.round(+f.q[розм[i3]]), cost: unitCost(g3.id) || null, by:хто3, note:f.note || '' });
         if(!res3.ok) return say(res3.err);
         st3 = res3.st; шт3 += Math.round(+f.q[розм[i3]]);
       }
@@ -7990,11 +8045,10 @@
     /* ІНВЕНТАРИЗАЦІЯ: вписали, скільки є насправді, — різниця йде рухом. */
     if(what === 'stock-adj'){
       if(!stockCan()) return say('Склад править власник');
-      var box = root.querySelector('[data-adjcost]') && root.querySelector('[data-adjcost]').closest('.dz-stk-g');
+      var box = root.querySelector('[data-adjnote]') && root.querySelector('[data-adjnote]').closest('.dz-stk-g');
       if(!box) return;
       var key4 = String((data && data.k) || '');
       var st4 = stockSt(), хто4 = (host().me && host().me()) || '';
-      var ц4 = box.querySelector('[data-adjcost]').value;
       var нот4 = String(box.querySelector('[data-adjnote]').value || '').trim();
       var змін = 0;
       var з4 = st4.items.filter(function(x){ return ((x.gid || '') + '|' + String(x.color || '').toLowerCase()) === key4; });
@@ -8003,10 +8057,9 @@
         var inp = box.querySelector('[data-adj="' + String(x4.size).replace(/"/g, '\\"') + '"]');
         if(!inp) continue;
         var нова = Math.max(0, Math.round(+inp.value || 0));
-        var ціна4 = ц4 === '' ? null : Math.max(0, +ц4 || 0);
-        if(нова === Math.round(+x4.qty || 0) && (ціна4 == null || ціна4 === +x4.cost)) continue;
+        if(нова === Math.round(+x4.qty || 0)) continue;
         var res4 = D.stockApply(st4, { kind:'adj', gid:x4.gid, name:x4.name, color:x4.color, size:x4.size,
-          qty:нова, cost:ціна4, by:хто4, note:нот4 || 'інвентаризація' });
+          qty:нова, cost: unitCost(x4.gid) || null, by:хто4, note:нот4 || 'інвентаризація' });
         if(!res4.ok) continue;
         st4 = res4.st; змін++;
       }
