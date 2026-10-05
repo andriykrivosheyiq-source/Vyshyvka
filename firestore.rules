@@ -346,10 +346,10 @@ service cloud.firestore {
     // Записи руками (src manual, зарплата) — як і доти: їх можна прибрати.
     // Перевіряє tests/money-rules.mjs на емуляторі Firestore.
     function bankSrc(d) {
-      return d.get('src', '') in ['mono', 'privat', 'np'];
+      return d.get('src', '') in ['mono', 'privat', 'np', 'novapay'];
     }
     function payFixed() {
-      return ['amount', 'at', 'acc', 'ccy', 'src', 'ttn', 'counter', 'desc', 'balAfter'];
+      return ['amount', 'at', 'acc', 'ccy', 'src', 'ttn', 'counter', 'desc', 'balAfter', 'flow'];
     }
     function noSteal() {
       return resource.data.get('orderId', null) == null

@@ -32,6 +32,21 @@ const soap = (method, inner) => '<s:Envelope xmlns:s="http://schemas.xmlsoap.org
   'Response xmlns="http://tempuri.org/"><' + method + 'Result>' + inner + '</' + method + 'Result></' + method + 'Response></s:Body></s:Envelope>';
 let valid = 'RT-0', n = 0, expFmt = 'iso';
 const calls = [];
+/* Виписка — як справжня (05.10, з /novapay/probe): пул від «НоваПей»,
+   переказ собі на особистий рахунок, звичайна витрата. */
+const МІЙ = 'UA293587100000673200000000190';
+const doc = (amt, id, d, cr, crName, crCode, db, dbName, dbCode, purpose) => '<Docs Amount="' + amt + '" CurrencyTag="UAH">' +
+  '<ID>' + id + '</ID><OrgDate>' + d + '</OrgDate><DayDate>' + d + '</DayDate><CreditCodeIBAN>' + cr + '</CreditCodeIBAN><CreditName>' + crName +
+  '</CreditName><CreditStateCode>' + crCode + '</CreditStateCode><DebitCodeIBAN>' + db + '</DebitCodeIBAN><DebitName>' + dbName +
+  '</DebitName><DebitStateCode>' + dbCode + '</DebitStateCode><Purpose>' + purpose + '</Purpose></Docs>';
+const EXTRACT = '<Extract><ExtractHead><GetExtractForXML><Date>04.10.2026</Date><IBAN>' + МІЙ + '</IBAN>' +
+  doc('50000.00', '58236056', '04.10.2026', МІЙ, 'ФОП Кривошей', '3755906355', 'UA669358710000068603000000022', 'НоваПей', '38324133',
+    'Переказ коштів по платежам, прийнятим від населення за товари/послуги згідно реєстру № 18321608 від 04.10.2026') +
+  doc('1000.00', '58194299', '04.10.2026', 'UA789358710000067406000279221', 'Кривошей Андрій Ігорович', '3755906355', МІЙ, 'ФОП Кривошей', '3755906355',
+    'Перерахування чистого підприємницького доходу. Податки сплачено') +
+  doc('320.50', '58190001', '03.10.2026', 'UA111111111111111111111111111', 'ФОП Постачальник', '1111111111', МІЙ, 'ФОП Кривошей', '3755906355',
+    'Оплата за нитки') +
+  '</GetExtractForXML></ExtractHead></Extract>';
 globalThis.fetch = async (url, opt) => {
   url = String(url); opt = opt || {};
   const res = (body, status) => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status: status || 200 });
@@ -54,8 +69,16 @@ globalThis.fetch = async (url, opt) => {
     if(action === 'GetClientsList') return res(soap(action, '<result>ok</result><clients><Clients><id>8</id><name>ФОП Кривошей</name></Clients></clients>'));
     if(action === 'GetAccountsList') return res(soap(action, '<result>ok</result><accounts><Accounts><id>49</id><IBAN>UA293587100000673200000000190</IBAN><name>ФОП Кривошей</name><currency>UAH</currency><statuscode>Active</statuscode></Accounts></accounts>'));
     if(action === 'GetAccountRest') return res(soap(action, '<result>ok</result><confirmed_balance>6593.5800</confirmed_balance><available_balance>6582.3100</available_balance>'));
-    if(action === 'GetAccountExtract') return res(soap(action, '<result>ok</result><extract>&lt;Extract&gt;&lt;Docs Amount="50000.00" CurrencyTag="UAH"&gt;&lt;OrgDate&gt;05.10.2026&lt;/OrgDate&gt;&lt;CreditName&gt;ФОП Кривошей&lt;/CreditName&gt;&lt;Purpose&gt;Виплата післяплати&lt;/Purpose&gt;&lt;/Docs&gt;&lt;/Extract&gt;</extract>'));
+    if(action === 'GetAccountExtract') return res(soap(action, '<result>ok</result><extract>' + EXTRACT.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</extract>'));
     return res(soap(action, '<error><message>?</message></error>'));
+  }
+  if(url.endsWith('documents:commit')){
+    for(const w of JSON.parse(opt.body).writes){
+      const p = w.update.name.split('/documents/')[1];
+      DB[p] = DB[p] || {}; w.updateMask.fieldPaths.forEach(k => { DB[p][k] = w.update.fields[k]; });
+      calls.push({ action: 'FS ' + p });
+    }
+    return res({});
   }
   const m = /documents\/([^?]+)/.exec(url);
   if(m){
@@ -89,6 +112,17 @@ ok(p1.ok && saved.refresh_token && saved.refresh_token.stringValue === 'RT-1' &&
 ok(order.indexOf('FS secrets/novapay') === order.indexOf('UserAuthenticationJWT') + 1,
   'ключ зберігається одразу після входу — до будь-якого іншого запиту', 'порядок: ' + order.join(' → '));
 const bal = ((DB['loomiq/bankBal'] || {}).np1 || {}).mapValue;
+const P = id => (DB['payments/' + id] || {});
+const pool = P('novapay_58236056'), self = P('novapay_58194299'), out = P('novapay_58190001');
+ok(pool.amount && +pool.amount.doubleValue === 50000 && pool.flow.stringValue === 'pool' && pool.src.stringValue === 'novapay' &&
+   pool.acc.stringValue === 'np1' && pool.at.stringValue === '2026-10-04T09:00:00.000Z',
+  'пул від «НоваПей» за реєстром — +50 000 ₴ у рахунок NovaPay, позначено pool (доходом удруге не буде)', 'пул: ' + JSON.stringify(pool));
+ok(self.amount && +self.amount.doubleValue === -1000 && self.flow.stringValue === 'self',
+  'переказ собі (той самий ІПН) — −1 000 ₴, позначено self (між своїми)', 'собі: ' + JSON.stringify(self));
+ok(out.amount && +out.amount.doubleValue === -320.5 && !out.flow && out.counter.stringValue === 'ФОП Постачальник' && /нитки/.test(out.desc.stringValue),
+  'звичайна витрата — −320,50 ₴, отримувач і призначення як у банку', 'витрата: ' + JSON.stringify(out));
+ok(_pure.novapayRow({ Amount: '5.00', ID: '1', OrgDate: '04.10.2026', CreditCodeIBAN: 'UA1', DebitCodeIBAN: 'UA2' }, МІЙ, 'np1') === null,
+  'рух чужого рахунку (нашого IBAN ні там, ні там) — не пишемо', 'чужий рух записано');
 ok(bal && +bal.fields.bal.doubleValue === 6582.31 && bal.fields.src.stringValue === 'novapay' && /np1/.test(JSON.stringify(p1.novapay)),
   'залишок NovaPay 6 582,31 ₴ — у рахунку Фінансів з тим самим IBAN (пробіли в IBAN не заважають)', 'залишок: ' + JSON.stringify(bal));
 
@@ -146,7 +180,7 @@ expFmt = 'iso';
 console.log('');
 console.log('═══ /novapay/probe ═══');
 const pr = await call('/novapay/probe?s=sek');
-ok(pr.ok && pr.рахунки[0].id === '49' && pr.виписка_рухи[0].Amount === '50000.00' && pr.виписка_рухи[0].Purpose === 'Виплата післяплати',
+ok(pr.ok && pr.рахунки[0].id === '49' && pr.виписка_рухи[0].Amount === '50000.00' && /реєстру/.test(pr.виписка_рухи[0].Purpose),
   'probe показує рахунки й розібрані рухи виписки (сума, призначення)', 'probe: ' + JSON.stringify(pr).slice(0, 300));
 const no = await call('/novapay/probe?s=wrong');
 ok(no.ok === false, 'без секрету — немає доступу', 'probe відкритий');

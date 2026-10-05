@@ -54,6 +54,8 @@ console.log('═══ 3. ПЛАТІЖ НЕ ПЕРЕКИДАЄТЬСЯ МОВЧ�
   ok(M.linkCheck(p, '8', { move: true }) === '' && M.linkCheck(p, '') === '' && M.linkCheck(p, '7') === '',
     'свідоме перенесення, відвʼязка й повтор — дозволені', 'зайва заборона');
   ok(/між своїми/.test(M.linkCheck({ id: 'q', amount: 5, tag: 'own' }, '7')), 'переказ між своїми до замовлення не привʼязати', 'own привʼязано');
+  ok(/пул наложок/.test(M.linkCheck({ id: 'q', amount: 50000, src: 'novapay', flow: 'pool' }, '7')) && M.isBank({ src: 'novapay' }),
+    'пул наложок NovaPay до замовлення не привʼязати (гроші вже поштучно); NovaPay — банківський рух', 'пул привʼязано');
 }
 console.log('');
 console.log('═══ 4. КОНТРОЛЬ ОПЛАТИ = ЗАЛИШОК ═══');
@@ -89,6 +91,7 @@ const kinds = a => a.map(x => x.kind).sort().join(',');
     { id: 'mF', amount: 1000, orderId: 'F', src: 'mono', acc: 'mono1', at: D + '6T09:00:00Z' },
     { id: 'lost', amount: 450, orderId: 'ZZZ', src: 'mono', acc: 'mono1', at: D + '6T00:00:00Z' },
     { id: 'np_in', amount: 50000, src: 'mono', acc: 'mono1', counter: 'ТОВ «НоваПей»', at: D + '7T00:00:00Z' },
+    { id: 'np_pool', amount: 50000, src: 'novapay', acc: 'npay1', counter: 'NovaPay · пул наложок', flow: 'pool', at: D + '7T00:00:00Z' },
     { id: 'np_own', amount: 30000, src: 'mono', acc: 'mono1', counter: 'NovaPay', tag: 'own', at: D + '7T00:00:00Z' },
     { id: 'orph', amount: 1200, ttn: '999', src: 'np', acc: 'np1', at: D + '5T00:00:00Z' },
     { id: 'npc_666', amount: 800, ttn: '666', src: 'np', acc: 'np1', orderId: 'G', tag: 'cod', at: D + '5T00:00:00Z' } ];
@@ -108,7 +111,7 @@ const kinds = a => a.map(x => x.kind).sort().join(',');
   ok(of('cod_over', 'E') && of('cod_over', 'E').sum === 1500, 'контроль оплати більший за залишок на 1 500 ₴ — червоний', 'E: ' + JSON.stringify(of('cod_over', 'E')));
   ok(of('overpay', 'F') && of('dup', 'F'), 'переплата і можливий дубль (руками + з банку)', 'F: ' + kinds(a.filter(x => x.orderId === 'F')));
   ok(of('lost_order', 'lost') && of('lost_order', 'lost').fix === 'unlink', 'платіж привʼязаний до неіснуючого замовлення', 'lost немає');
-  ok(of('np_in', 'np_in') && !of('np_in', 'np_own'), 'переказ з NovaPay на банк — «позначте між своїми»; позначений — ні', 'np_in');
+  ok(of('np_in', 'np_in') && !of('np_in', 'np_own') && !a.some(x => x.payId === 'np_pool'), 'переказ з NovaPay на банк — «позначте між своїми»; позначений — ні', 'np_in');
   const sir = a.filter(x => x.kind === 'cod_orphan')[0];
   ok(sir && sir.list.join() === 'orph', 'гроші за ТТН, якої немає в CRM, — одним пунктом зі списком', 'сироти: ' + JSON.stringify(sir));
   ok(!a.some(x => x.orderId === 'G') && !a.some(x => x.orderId === 'H'),
@@ -125,7 +128,7 @@ console.log('');
 console.log('═══ 6. ТТН ═══');
 ok(M.ttnsOf({ ttn: '20 4500 0000 0001', ttnHist: [{ ttn: '20450000000002' }, { ttn: '20450000000001' }] }).join() === '20450000000001,20450000000002',
   'ТТН замовлення — поточна й замінені, без пробілів і повторів', 'ttnsOf');
-ok(M.BANK_SRC.join() === 'mono,privat,np' && M.COD_DAYS === 2, 'банківські джерела й 2 дні — як домовлено', 'константи змінено');
+ok(M.BANK_SRC.join() === 'mono,privat,np,novapay' && M.COD_DAYS === 2, 'банківські джерела й 2 дні — як домовлено', 'константи змінено');
 
 console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');

@@ -54,6 +54,7 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(db, 'loomiq/photos'), { acl: { test_loomiq: { pay: true }, art_loomiq: { edit: true } } });
   await setDoc(doc(db, 'payments/mono_1'), { at: '2026-10-01T10:00:00Z', amount: 1500, acc: 'mono1', src: 'mono', counter: 'Асія', desc: 'за футболки' });
   await setDoc(doc(db, 'payments/npc_2045'), { at: '2026-10-02T10:00:00Z', amount: 2080, acc: 'np1', src: 'np', ttn: '2045', orderId: '2000777', tag: 'cod' });
+  await setDoc(doc(db, 'payments/novapay_1'), { at: '2026-10-04T09:00:00Z', amount: 50000, acc: 'npay1', src: 'novapay', flow: 'pool' });
   await setDoc(doc(db, 'payments/man_1'), { at: '2026-10-02T10:00:00Z', amount: -9000, acc: 'mono1', src: 'salary' });
 });
 const fin = env.authenticatedContext('u1', { email: 'test@loomiq' }).firestore();
@@ -70,6 +71,9 @@ ok(!(await can(setDoc(doc(fin, 'payments/mono_1'), { src: 'manual' }, { merge: t
   'і «перетворити» його на ручний запис, щоб потім видалити, — не можна', 'src змінено!');
 ok(!(await can(setDoc(doc(fin, 'payments/fake'), { at: '2026-10-03T00:00:00Z', amount: 50000, acc: 'mono1', src: 'mono' }))),
   'рух «від банку» з адмінки не створити', 'підроблене надходження створено!');
+ok(!(await can(deleteDoc(doc(fin, 'payments/novapay_1')))) && !(await can(setDoc(doc(fin, 'payments/novapay_1'), { flow: null }, { merge: true }))) &&
+   !(await can(setDoc(doc(fin, 'payments/np_fake'), { at: '2026-10-03T00:00:00Z', amount: 9000, acc: 'npay1', src: 'novapay' }))),
+  'рух NovaPay — так само: не видалити, «пул» не зняти, не підробити', 'рух NovaPay змінено!');
 
 console.log('');
 console.log('═══ ПРИВʼЯЗКА ═══');
