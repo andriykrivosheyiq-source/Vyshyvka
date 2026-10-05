@@ -126,6 +126,13 @@ ok(r0.join() === 'p2,p1,p6', 'лише непідписані надходжен
 const look = await p.evaluate(() => { const r = document.querySelector('.pp-row'); const b = r.getBoundingClientRect();
   return { h: Math.round(b.height), txt: r.textContent.replace(/\s+/g, ' ').trim(), n: document.querySelector('.pp-n').textContent }; });
 console.log('   ' + JSON.stringify(look));
+/* 05.10: вікно широке, платника видно цілим без наведення. */
+const широке = await p.evaluate(() => { const w = document.querySelector('.pp-w').getBoundingClientRect();
+  const who = [...document.querySelectorAll('.pp-who')];
+  return { w: Math.round(w.width), cut: who.filter(e => e.scrollWidth > e.clientWidth + 1).length,
+           head: [...document.querySelectorAll('.pp-head span')].map(x => x.textContent).filter(Boolean).join('|') }; });
+ok(широке.w >= 1100 && !широке.cut && широке.head === 'Дата|Сума|Від кого|Призначення|Рахунок',
+  'вікно на всю ширину (' + широке.w + ' px), «Від кого» видно цілим, з заголовками колонок', 'ширина: ' + JSON.stringify(широке));
 ok(look.h <= 44 && /Оксана Петренко/.test(look.txt) && /2 400/.test(look.txt) && /худі ромашка/.test(look.txt),
   'рядок низенький (' + look.h + ' px): дата, сума, хто, призначення, рахунок', 'рядок: ' + JSON.stringify(look));
 ok((await search('1 500')).join() === 'p1' && (await search('1500')).join() === 'p1', 'пошук сумою «1 500» і «1500»', 'сума: ' + await rows());
@@ -140,6 +147,13 @@ const none = await p.evaluate(async () => { document.querySelector('.pp-q').valu
 ok(/нічого немає/.test(none), 'нічого не знайшлось — так і каже', 'порожньо: ' + none);
 await search('оксана');
 await p.click('.pp-row[data-pp="p2"]');
+await p.waitForTimeout(400);
+/* 05.10: клік по рядку лише ставить галочку — привʼязує кнопка. */
+const щеНі = await p.evaluate(() => ({ doc: window.__PAYS.filter(x => x.id === 'p2')[0].orderId, open: !!document.querySelector('.pp-w'),
+  btn: (document.querySelector('[data-pp-go]') || {}).textContent || '', dis: (document.querySelector('[data-pp-go]') || {}).disabled }));
+ok(!щеНі.doc && щеНі.open && !щеНі.dis && /Привʼязати 2 400/.test(щеНі.btn),
+  'клік по рядку — лише галочка; на кнопці «' + щеНі.btn + '», нічого ще не привʼязано', 'без підтвердження: ' + JSON.stringify(щеНі));
+await p.click('[data-pp-go]');
 await p.waitForTimeout(700);
 const l1 = await p.evaluate(() => { const o = orders.filter(x => x.orderId === '1000501')[0];
   const pay = window.__PAYS.filter(x => x.id === 'p2')[0];
@@ -147,7 +161,7 @@ const l1 = await p.evaluate(() => { const o = orders.filter(x => x.orderId === '
            due: dueSum(o), lbl: (document.querySelector('.pay-row:last-of-type .pay-k, .od-money .pay-k') ? [...document.querySelectorAll('.od-money .pay-k')].map(x => x.textContent).join('|') : '') }; });
 console.log('   ' + JSON.stringify(l1));
 ok(!l1.open && l1.pays.indexOf('2400:p2') >= 0 && l1.doc === '1000501' && l1.tag === 'prepay',
-  'клік по рядку — оплата в картці з посиланням на платіж, у Фінансах платіж привʼязано', 'привʼязка: ' + JSON.stringify(l1));
+  'галочка + «Привʼязати» — оплата в картці з посиланням на платіж, у Фінансах платіж привʼязано', 'привʼязка: ' + JSON.stringify(l1));
 ok(l1.due === 700 && /з банку/.test(l1.lbl), 'залишок 6 000 − 2 900 − 2 400 = 700 ₴; запис позначено «з банку»', 'залишок: ' + l1.due);
 await p.click('[data-pay-pick]'); await p.waitForTimeout(300);
 ok((await rows()).join() === 'p1,p6', 'привʼязаний платіж зі списку зник', 'після: ' + await rows());
@@ -181,6 +195,7 @@ await p.waitForTimeout(300);
 ok((await rows()).join() === 'p2,p1,p6', 'B2C відкриває те саме вікно рядками', 'B2C рядки: ' + await rows());
 ok((await search('іван')).join() === 'p6', 'і пошук той самий', 'B2C пошук');
 await p.click('.pp-row[data-pp="p6"]');
+await p.click('[data-pp-go]');
 await p.waitForTimeout(600);
 const c2 = await p.evaluate(() => ({ open: !!document.querySelector('.pp-w'), doc: window.__PAYS.filter(x => x.id === 'p6')[0].orderId,
   html: (document.getElementById('dzRoot') || document.body).textContent }));

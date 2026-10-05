@@ -4434,27 +4434,34 @@
   .dz-card-w.is-v2 .dz-card-m{margin-top:8px;}
   /* ── Форма відправки (B2B і B2C) і налаштування відправників ── */
   /* ── Вибір платежу рядками (04.10) ── */
-  .pp-w{width:min(860px,calc(100vw - 24px));}
+  .fin-w.pp-w{width:min(1180px,calc(100vw - 24px));max-height:min(88vh,860px);}
   .pp-q{width:100%;box-sizing:border-box;font:inherit;font-size:14px;border:1px solid var(--line);
-    border-radius:9px;padding:10px 12px;outline:none;}
+    border-radius:10px;padding:10px 12px;outline:none;}
   .pp-q:focus{border-color:var(--accent);}
   .pp-n{font-size:12px;color:var(--muted);margin:8px 2px 6px;}
-  .pp-list{display:flex;flex-direction:column;max-height:min(60vh,560px);overflow:auto;
+  .pp-head,.pp-row{display:grid;grid-template-columns:22px 104px 112px minmax(140px,1.2fr) minmax(160px,1.6fr) 150px;
+    gap:10px;align-items:center;padding:8px 12px;}
+  .pp-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding-bottom:4px;}
+  .pp-list{display:flex;flex-direction:column;max-height:min(56vh,600px);overflow:auto;
     border:1px solid var(--line-soft);border-radius:10px;}
-  .pp-row{all:unset;cursor:pointer;display:grid;grid-template-columns:96px 104px minmax(90px,1fr) minmax(90px,1.4fr) 120px;
-    gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line-soft);font-size:13px;}
+  .pp-row{cursor:pointer;border-bottom:1px solid var(--line-soft);font-size:13px;}
   .pp-row:last-child{border-bottom:0;}
-  .pp-row:hover,.pp-row:focus-visible{background:#F2F7FF;}
-  .pp-row:disabled{opacity:.5;cursor:wait;}
-  .pp-row > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pp-at{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;}
-  .pp-sum{color:#1B6B3A;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
-  .pp-who{font-weight:600;color:var(--ink);}
-  .pp-desc{color:var(--ink-soft);font-size:12.5px;}
+  .pp-row:hover{background:#F7FAFF;}
+  .pp-row.on{background:#EEF6FF;}
+  .pp-row > *{min-width:0;}
+  .pp-ck{width:16px;height:16px;margin:0;cursor:pointer;}
+  .pp-at{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pp-sum{color:#1B6B3A;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pp-who{font-weight:600;color:var(--ink);overflow-wrap:anywhere;}
+  .pp-desc{color:var(--ink-soft);font-size:12.5px;overflow-wrap:anywhere;}
   .pp-acc{color:var(--muted);font-size:12px;text-align:right;}
-  @media (max-width:700px){
-    .pp-row{grid-template-columns:auto 1fr auto;grid-template-areas:'at who sum' 'desc desc acc';gap:2px 10px;}
-    .pp-at{grid-area:at;} .pp-who{grid-area:who;} .pp-sum{grid-area:sum;}
+  .pp-f{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:10px;}
+  .pp-sel{font-size:12.5px;color:var(--ink-soft);min-width:0;}
+  .pp-f .dz-b[disabled]{opacity:.45;cursor:default;}
+  @media (max-width:760px){
+    .pp-head{display:none;}
+    .pp-row{grid-template-columns:22px auto 1fr auto;grid-template-areas:'ck at who sum' 'ck desc desc acc';gap:2px 10px;}
+    .pp-ck{grid-area:ck;} .pp-at{grid-area:at;} .pp-who{grid-area:who;} .pp-sum{grid-area:sum;}
     .pp-desc{grid-area:desc;} .pp-acc{grid-area:acc;}
   }
   .pay-pick{all:unset;cursor:pointer;display:block;margin:8px 0;font-size:13px;font-weight:600;color:var(--accent);}
@@ -7287,27 +7294,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=820e45eff0"></script>
-<script src="loomiq-fingerprint.js?v=820e45eff0"></script>
-<script src="loomiq-pricing.js?v=820e45eff0"></script>
+<script src="loomiq-select.js?v=9420cbe7f3"></script>
+<script src="loomiq-fingerprint.js?v=9420cbe7f3"></script>
+<script src="loomiq-pricing.js?v=9420cbe7f3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=820e45eff0"></script>
+<script src="loomiq-money-core.js?v=9420cbe7f3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=820e45eff0"></script>
-<script src="loomiq-mock.js?v=820e45eff0"></script>
+<script src="loomiq-design.js?v=9420cbe7f3"></script>
+<script src="loomiq-mock.js?v=9420cbe7f3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=820e45eff0"></script>
-<script src="loomiq-threads.js?v=820e45eff0"></script>
+<script src="imagetracer.js?v=9420cbe7f3"></script>
+<script src="loomiq-threads.js?v=9420cbe7f3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=820e45eff0"></script>
+<script src="loomiq-cards.js?v=9420cbe7f3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7332,7 +7339,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '820e45eff0';
+var LQ_VER = '9420cbe7f3';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -19793,6 +19800,10 @@ function payPickOpen(o, onPick){
   const E = escapeHtml;
   const d = document.createElement('div');
   d.className = 'fin-modal';
+  /* 05.10: вікно на всю ширину — платника й призначення видно одразу, а не
+     лише при наведенні. Привʼязка — галочкою й кнопкою «Привʼязати», щоб
+     випадковий клік нічого не привʼязував. Можна обрати кілька (клієнт
+     платив частинами). */
   d.innerHTML = `<div class="fin-w pp-w">
     <div class="fin-h"><b>Привʼязати платіж</b>
       <span>${E(orderName ? (orderName(o) || '') : '')} · #${E(o.orderId || '')}</span>
@@ -19800,14 +19811,27 @@ function payPickOpen(o, onPick){
     <div class="fin-b">
       <input type="search" class="pp-q" placeholder="Пошук: сума, дата, час, хто, призначення, рахунок" autocomplete="off">
       <div class="pp-n"></div>
+      <div class="pp-head"><span></span><span>Дата</span><span>Сума</span><span>Від кого</span><span>Призначення</span><span>Рахунок</span></div>
       <div class="pp-list"></div>
+      <div class="pp-f"><span class="pp-sel">Позначте платіж галочкою</span>
+        <button type="button" class="dz-b pri" data-pp-go disabled>Привʼязати</button></div>
     </div></div>`;
   document.body.appendChild(d);
   const q = d.querySelector('.pp-q'), list = d.querySelector('.pp-list'), n = d.querySelector('.pp-n');
+  const go = d.querySelector('[data-pp-go]'), sel = d.querySelector('.pp-sel');
+  const обрані = {};
   const close = () => { d.remove(); document.removeEventListener('keydown', esc, true); };
   const esc = e => { if(e.key === 'Escape'){ e.stopPropagation(); close(); } };
   document.addEventListener('keydown', esc, true);
   d.addEventListener('click', e => { if(e.target === d || e.target.closest('[data-pp-x]')) close(); });
+  const підсумок = () => {
+    const l = (payments || []).filter(p => обрані[p.id]);
+    const сума = l.reduce((a, p) => a + (+p.amount || 0), 0);
+    go.disabled = !l.length;
+    go.textContent = l.length ? 'Привʼязати ' + (l.length > 1 ? l.length + ' платежі · ' : '') + payMoneyK(сума).replace('+', '') : 'Привʼязати';
+    sel.textContent = l.length ? 'Обрано: ' + l.map(p => (p.counter || '—') + ' ' + payMoneyK(p.amount).replace('+', '')).join(', ')
+                               : 'Позначте платіж галочкою';
+  };
   const draw = () => {
     const всі = payFreeList();
     const rows = всі.filter(p => payMatch(p, q.value));
@@ -19815,24 +19839,36 @@ function payPickOpen(o, onPick){
       ? (q.value.trim() ? 'Знайдено ' + rows.length + ' з ' + всі.length : 'Непідписаних надходжень: ' + всі.length) + ' · нові зверху'
       : '';
     list.innerHTML = rows.length ? rows.slice(0, 300).map(p => `
-      <button type="button" class="pp-row" data-pp="${E(p.id)}" title="${E([payDate(p.at), payMoneyK(p.amount), p.counter, p.desc, finAccName(p.acc)].filter(Boolean).join(' · '))}">
+      <label class="pp-row${обрані[p.id] ? ' on' : ''}" data-pp="${E(p.id)}">
+        <input type="checkbox" class="pp-ck" data-ppck="${E(p.id)}"${обрані[p.id] ? ' checked' : ''}>
         <span class="pp-at">${E(payDate(p.at))}</span>
         <b class="pp-sum">${E(payMoneyK(p.amount))}</b>
         <span class="pp-who">${E(p.counter || '—')}</span>
         <span class="pp-desc">${E(p.desc || '')}</span>
         <span class="pp-acc">${E(finAccName(p.acc))}</span>
-      </button>`).join('')
+      </label>`).join('')
       : `<div class="fin-none">${всі.length ? 'За цим пошуком нічого немає.'
           : 'Непідписаних надходжень немає. Платіж зʼявиться тут сам, коли прийде на підключений рахунок, — або його можна записати руками у Фінансах.'}</div>`;
+    підсумок();
   };
   q.addEventListener('input', draw);
-  list.addEventListener('click', async e => {
-    const b = e.target.closest('[data-pp]'); if(!b) return;
-    const p = (payments || []).filter(x => x.id === b.dataset.pp)[0];
-    if(!p) return;
-    b.disabled = true;
-    try{ await onPick(p); close(); }
-    catch(err){ console.error(err); b.disabled = false; toast('Привʼязати не вдалось'); }
+  list.addEventListener('change', e => {
+    const c = e.target.closest('[data-ppck]'); if(!c) return;
+    if(c.checked) обрані[c.dataset.ppck] = 1; else delete обрані[c.dataset.ppck];
+    const r = c.closest('.pp-row'); if(r) r.classList.toggle('on', c.checked);
+    підсумок();
+  });
+  go.addEventListener('click', async () => {
+    const l = (payments || []).filter(p => обрані[p.id]);
+    if(!l.length) return;
+    go.disabled = true;
+    let ok = 0;
+    for(const p of l){
+      try{ await onPick(p); ok++; delete обрані[p.id]; }
+      catch(err){ console.error(err); if(String(err && err.message) !== 'скасовано') toast('Привʼязати не вдалось: ' + ((err && err.message) || err)); }
+    }
+    if(ok === l.length) return close();
+    draw();
   });
   draw();
   setTimeout(() => q.focus(), 30);
