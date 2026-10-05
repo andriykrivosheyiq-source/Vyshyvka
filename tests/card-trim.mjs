@@ -76,15 +76,38 @@ const res = await p.evaluate(async fn => {
   return out;
 }, fn);
 
-// Межі шукаються на копії ~160 px: одна клітинка тут — 6 px, плюс клітинка запасу.
-const near = (v, want, tol) => Math.abs(v - want) <= (tol || 16);
+/* Межі шукаються на копії ~160 px: одна клітинка — 6 px. Головне правило
+   (05.10): межі НІКОЛИ не вужчі за виріб — інакше плитка його підріже; ширші
+   на кілька клітинок — можна (виріб вийде трохи меншим). */
 const real = { x0: 250, y0: 200, x1: 650, y1: 820, cx: 450 };
 for(const [name, r] of Object.entries(res)){
   const want = name === 'шнурок' ? Object.assign({}, real, { y1: 900 }) : real;
   console.log('   ' + name + ': ' + JSON.stringify(r));
-  ok(near(r.x0, want.x0) && near(r.x1, want.x1) && near(r.y0, want.y0) && near(r.y1, want.y1) && near(r.cx, want.cx, 8),
-    name + ': межі виробу знайдено точно, центр на місці',
-    name + ': межі не ті — виріб на картці зʼїде (центр ' + r.cx + ' замість ' + want.cx + ')');
+  const цілий = r.x0 <= want.x0 + 4 && r.y0 <= want.y0 + 4 && r.x1 >= want.x1 - 4 && r.y1 >= want.y1 - 4;
+  const щільно = want.x0 - r.x0 <= 26 && want.y0 - r.y0 <= 26 && r.x1 - want.x1 <= 26 && r.y1 - want.y1 <= 26;
+  ok(цілий && щільно && Math.abs(r.cx - want.cx) <= 8,
+    name + ': виріб у межах цілий, запас невеликий, центр на місці',
+    name + ': межі не ті (' + (цілий ? 'зайвий запас' : 'виріб підріжеться') + ', центр ' + r.cx + ' замість ' + want.cx + ')');
+}
+
+/* Справжні мокапи (05.10): білі футболки оверсайз на світлому папері —
+   на картці «Варіанти футболок на вибір» плитка різала комір і рукави. */
+const справжні = await p.evaluate(async ([fn, files]) => {
+  const out = {};
+  for(const f of Object.keys(files)){
+    const im = new Image(); im.src = files[f]; await im.decode();
+    const t = trimOf(im);
+    out[f] = { x0: Math.round(t.x), y0: Math.round(t.y), x1: Math.round(t.x + t.w), y1: Math.round(t.y + t.h), W: im.width, H: im.height };
+  }
+  return out;
+}, [fn, Object.fromEntries(['teeover-white-front.webp', 'teeover-white-back.webp', 'tee-white-back.webp'].map(f =>
+  [f, 'data:image/webp;base64,' + fs.readFileSync(path.join(ROOT, 'images', f)).toString('base64')]))]);
+for(const [f, r] of Object.entries(справжні)){
+  console.log('   ' + f + ': ' + JSON.stringify(r));
+  /* Виріб на цих кадрах — приблизно x 100…805, від коміра y ≈ 35 до низу. */
+  ok(r.x0 <= 100 && r.x1 >= 805 && r.y0 <= 40 && r.y1 >= r.H - 30,
+    f + ': білий виріб знайдено цілим — з коміром і рукавами',
+    f + ': межі вужчі за виріб — плитка його підріже');
 }
 console.log('');
 console.log(bad ? 'розходжень: ' + bad : 'виріб на картці стоїть по центру плитки, хоч би яким був фон мокапа');
