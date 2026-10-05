@@ -65,6 +65,7 @@ await p.route('**://**', r => {
   const u = r.request().url();
   if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body:fbstub });
   if(u.startsWith(HOST)) return r.continue();
+  if(/api\.cloudinary\.com/.test(u)) return r.fulfill({ contentType:'application/json', body: JSON.stringify({ secure_url: HOST + '/images/tee-white-front.webp' }) });
   return r.abort();
 });
 await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
@@ -120,6 +121,40 @@ ok(tee && tee.front.base.pts.length === 4 && tee.front.base.calibTop === 0.05 &&
 await p.click('#pa-slots [data-side="front"]'); await p.waitForTimeout(200);
 await p.click('#pa-places [data-pld="1"]'); await p.waitForTimeout(80);
 ok((await st()).rects === 1, 'рамку прибирає ✕', 'не прибралась');
+
+console.log('');
+console.log('═══ БАНЕРИ З ЛОГОТИПОМ ═══');
+await p.evaluate(() => { document.getElementById('pa-modal').classList.remove('open'); });
+/* Розділ «Конструктор сайту» — показуємо напряму (у перевірці меню закрите правами). */
+await p.evaluate(() => { document.querySelectorAll('main > section, section[id^="view-"]').forEach(x => { x.style.display = 'none'; });
+  document.getElementById('view-photos').style.display = ''; });
+await p.waitForTimeout(300);
+await p.evaluate(() => document.querySelector('#ctor-tabs [data-ct="banners"]').click());
+await p.waitForTimeout(200);
+const tabOk = await p.evaluate(() => getComputedStyle(document.getElementById('ctor-banners')).display !== 'none' && /Банерів ще немає/.test(document.getElementById('kb-list').textContent));
+ok(tabOk, 'вкладка «Банери з логотипом» у конструкторі, поки порожня', 'вкладки немає');
+await p.evaluate(async () => {
+  const c = document.createElement('canvas'); c.width = 600; c.height = 400; c.getContext('2d').fillRect(0, 0, 600, 400);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg'));
+  const dt = new DataTransfer(); dt.items.add(new File([blob], 'team.jpg', { type: 'image/jpeg' }));
+  const inp = document.getElementById('kb-file'); inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+});
+await p.waitForFunction(() => document.getElementById('kb-editor').style.display !== 'none' && document.querySelector('#kb-svg [data-kbm]'), null, { timeout: 8000 });
+ok(await p.evaluate(() => document.querySelectorAll('#kb-svg [data-kbm]').length === 1), 'фото завантажилось — відкрився редактор з першою рамкою', 'редактора немає');
+await p.fill('#kb-title', 'Літо для команди'); await p.fill('#kb-sub', 'футболки з вашим логотипом');
+await p.selectOption('#kb-tab', 'tee');
+await p.click('[data-kb-add]'); await p.waitForTimeout(150);
+const r1 = await p.evaluate(() => { const r = document.querySelector('#kb-svg [data-kbm="1"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+await p.mouse.move(r1.x, r1.y); await p.mouse.down(); await p.mouse.move(r1.x + 60, r1.y + 20, { steps: 4 }); await p.mouse.up(); await p.waitForTimeout(150);
+await p.evaluate(() => { const r = document.getElementById('kb-rot'); r.value = '15'; r.dispatchEvent(new Event('input')); });
+if(process.env.LQ_SHOT) await p.screenshot({ path: process.env.LQ_SHOT + '/kb-editor.png' });
+await p.click('#kb-save'); await p.waitForTimeout(300);
+const kb = await p.evaluate(() => (window.__SETS || []).filter(x => x.col === 'loomiq' && x.id === 'photos' && x.v.kitBanners).pop());
+const b0 = kb && kb.v.kitBanners[0];
+console.log('   ' + JSON.stringify(b0));
+ok(b0 && b0.title === 'Літо для команди' && b0.tab === 'tee' && b0.places.length === 2 && b0.places[1].x > 0.52 && b0.places[1].rot === 15 && /tee-white/.test(b0.url),
+  'збережено в loomiq/photos.kitBanners: фото, підписи, вкладка, дві рамки (друга зсунута й повернута на 15°)', 'банер: ' + JSON.stringify(b0));
+ok(/Літо для команди/.test(await p.evaluate(() => document.getElementById('kb-list').textContent)), 'банер у списку', 'списку немає');
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
