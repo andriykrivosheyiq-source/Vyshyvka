@@ -4972,6 +4972,26 @@
     font-weight:600;}
   .fin-chip i{font-style:normal;color:#B03A1A;}
   .fin-none{padding:22px 0;color:var(--ink-soft);font-size:13px;}
+  .fin-catsum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px;}
+  .fin-cs{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;cursor:pointer;}
+  .fin-cs b{font-variant-numeric:tabular-nums;}
+  .fin-cs.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .fin-chip.is-cat{color:var(--ink-soft);border-style:dashed;}
+  .fin-chip.is-cat.on{border-style:solid;color:var(--ink);}
+  .fin-chip.is-cat i{font-style:normal;opacity:.6;}
+  .fin-row.is-pair .fin-amt{color:var(--ink-soft);}
+  .fin-subs:empty{display:none;}
+  .fin-rule{display:flex;gap:6px;align-items:center;font-size:12.5px;margin:6px 0;}
+  .fin-rule-n{font-size:12px;color:var(--muted);}
+  .fc-w{max-width:640px;}
+  .fc-c{border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px;}
+  .fc-ch{display:flex;gap:6px;align-items:center;}
+  .fc-ch input{flex:1;font:inherit;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:5px 8px;}
+  .fc-subs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .fc-s{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:1px 4px 1px 8px;}
+  .fc-s input{border:0;font:inherit;font-size:12.5px;width:130px;background:none;}
+  .fc-s button{border:0;background:none;cursor:pointer;color:var(--muted);}
+  .fc-r{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line);}
   .fin-audit{padding:12px 16px;}
   .fa-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;}
   .fa-h b{font-weight:800;}
@@ -6046,9 +6066,12 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             <option value="no">не привʼязані</option>
             <option value="yes">привʼязані</option>
           </select>
+          <select id="fin-cat"></select>
+          <button class="pc-btn" id="fin-cats" title="Категорії витрат і правила автопідпису">Категорії</button>
           <button class="pc-btn up" id="fin-add" title="Записати платіж руками">+ Платіж</button>
         </div>
         <div id="fin-sum" class="fin-sum"></div>
+        <div id="fin-catsum" class="fin-catsum"></div>
         <div id="fin-list"></div>
       </div>
       </div>
@@ -7260,27 +7283,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e4f4b2b934"></script>
-<script src="loomiq-fingerprint.js?v=e4f4b2b934"></script>
-<script src="loomiq-pricing.js?v=e4f4b2b934"></script>
+<script src="loomiq-select.js?v=7b9e442f8b"></script>
+<script src="loomiq-fingerprint.js?v=7b9e442f8b"></script>
+<script src="loomiq-pricing.js?v=7b9e442f8b"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=e4f4b2b934"></script>
+<script src="loomiq-money-core.js?v=7b9e442f8b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e4f4b2b934"></script>
-<script src="loomiq-mock.js?v=e4f4b2b934"></script>
+<script src="loomiq-design.js?v=7b9e442f8b"></script>
+<script src="loomiq-mock.js?v=7b9e442f8b"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e4f4b2b934"></script>
-<script src="loomiq-threads.js?v=e4f4b2b934"></script>
+<script src="imagetracer.js?v=7b9e442f8b"></script>
+<script src="loomiq-threads.js?v=7b9e442f8b"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e4f4b2b934"></script>
+<script src="loomiq-cards.js?v=7b9e442f8b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7305,7 +7328,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e4f4b2b934';
+var LQ_VER = '7b9e442f8b';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9417,7 +9440,7 @@ let bankBal = {};          // { acc: { bal, at, src, got } } — залишок 
 let payErr = '';           // чому рухи не читаються — показуємо словами
 /* Розгорнута виписка рахунку (див. renderFinHist). */
 const finHist = { acc: '', days: 30, shown: 100, all: {}, loading: '' };
-let finView = { acc:'', kind:'', link:'', q:'' };
+let finView = { acc:'', kind:'', link:'', q:'', cat:'' };
 let finAn = { tab:'acc', dir:'b2c', per:'' };
 /* ── АНАЛІТИКА ФІНАНСІВ ──────────────────────────────────────────────────
 
@@ -9557,6 +9580,11 @@ function watchPayments(){
   }, e => console.warn('залишки банку', e));
   /* Посилки з контролем оплати: забрали / відмова / повернення. Без цього
      Звірка не знала б, що посилку отримали, а гроші не прийшли. */
+  fbDb.collection('loomiq').doc('finCats').onSnapshot(sn => {
+    const v = sn.exists ? (sn.data() || {}) : {};
+    finCatCfg = { cats: Array.isArray(v.cats) ? v.cats : null, rules: Array.isArray(v.rules) ? v.rules : [] };
+    if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
+  }, e => console.warn('категорії витрат', e));
   fbDb.collection('loomiq').doc('npState').onSnapshot(sn => {
     const v = sn.exists ? (sn.data() || {}) : {};
     npState = {};
@@ -9755,6 +9783,53 @@ function finAccName(id){
    навмисно — вона приходить від пошти, а не від клієнта, і питання «чи
    дійшли гроші за посилку» зовсім інше за «чи доплатив клієнт». */
 const PAY_TAGS = { prepay:'Передоплата', pay:'Оплата', final:'Доплата', cod:'Наложка' };
+/* ══════════ КАТЕГОРІЇ ВИТРАТ (05.10) ══════════
+   Андрій: «витрати постійно повторюються на конкретний канал трафіку чи
+   конкретні реквізити — щоб ми їх підписували, куди саме кошти йдуть:
+   Facebook — це реклама, конкретний ФОП — підрядник одягу». Категорії з
+   підкатегоріями й ПРАВИЛА: «у платнику/призначенні є X → категорія».
+   Правило не пишеться в платіж — воно застосовується при показі, тож
+   підписує і старі витрати, і нові. Ручний вибір (p.cat/p.sub) — сильніший.
+   Зберігається в loomiq/finCats (не в публічному loomiq/photos). */
+const FIN_CATS_DEFAULT = [
+  { id:'ads',    name:'Реклама', subs:[{ id:'meta', name:'Facebook / Instagram' }, { id:'google', name:'Google' },
+                                       { id:'bloggers', name:'Блогери' }, { id:'other', name:'Інше' }] },
+  { id:'goods',  name:'Закупівля', subs:[{ id:'cloth', name:'Підрядник одягу' }, { id:'threads', name:'Нитки й фурнітура' },
+                                         { id:'pack', name:'Пакування' }] },
+  { id:'prod',   name:'Виробництво', subs:[{ id:'emb', name:'Вишивка (підряд)' }, { id:'print', name:'Друк' }] },
+  { id:'ship',   name:'Доставка', subs:[{ id:'np', name:'Нова пошта' }, { id:'ukr', name:'Укрпошта' }] },
+  { id:'team',   name:'Команда', subs:[{ id:'salary', name:'Зарплата' }, { id:'bonus', name:'Бонуси' }] },
+  { id:'tax',    name:'Податки й банк', subs:[{ id:'tax', name:'Податки' }, { id:'fee', name:'Комісії банку' }] },
+  { id:'office', name:'Офіс і сервіси', subs:[{ id:'rent', name:'Оренда' }, { id:'soft', name:'Сервіси й підписки' },
+                                              { id:'phone', name:'Звʼязок' }] },
+  { id:'other',  name:'Інше', subs:[] }
+];
+let finCatCfg = { cats: null, rules: [] };
+function finCats(){ return (Array.isArray(finCatCfg.cats) && finCatCfg.cats.length) ? finCatCfg.cats : FIN_CATS_DEFAULT; }
+function finRules(){ return Array.isArray(finCatCfg.rules) ? finCatCfg.rules : []; }
+function finHay(p){ return (String((p && p.counter) || '') + ' ' + String((p && p.desc) || '')).toLowerCase(); }
+/* Категорія витрати: ручна → зарплата (сама) → правило → немає. */
+function finCatOf(p){
+  if(!p || (+p.amount || 0) >= 0) return null;
+  if(p.cat) return { cat: p.cat, sub: p.sub || '', how: 'hand' };
+  if(p.src === 'salary' || p.salary) return { cat: 'team', sub: 'salary', how: 'auto' };
+  const h = finHay(p);
+  const r = finRules().filter(x => x && x.q && h.indexOf(String(x.q).toLowerCase()) >= 0)[0];
+  return r ? { cat: r.cat, sub: r.sub || '', how: 'rule', q: r.q } : null;
+}
+function finCatName(c){
+  if(!c) return '';
+  const k = finCats().filter(x => x.id === c.cat)[0];
+  if(!k) return 'Категорію видалено';
+  const s0 = (k.subs || []).filter(x => x.id === c.sub)[0];
+  return k.name + (s0 ? ' · ' + s0.name : '');
+}
+async function finCatsSave(cfg){
+  const next = { cats: (cfg && cfg.cats) || finCats(), rules: (cfg && cfg.rules) || finRules(),
+                 at: new Date().toISOString(), by: myEmail() || '' };
+  await fbDb.collection('loomiq').doc('finCats').set(JSON.parse(JSON.stringify(next)));
+  finCatCfg = next;
+}
 function payMoney(n){
   const v = Math.round(+n || 0);
   return (v > 0 ? '+' : v < 0 ? '−' : '') +
@@ -9882,6 +9957,7 @@ function payPaid(orderId){
 }
 function finRows(){
   const q = String(finView.q || '').trim().toLowerCase();
+  const свої = finView.cat ? finOwnSet() : {};
   return (payments || []).filter(p => {
     if(finView.acc && p.acc !== finView.acc) return false;
     const дохід = (+p.amount || 0) > 0;
@@ -9889,6 +9965,11 @@ function finRows(){
     if(finView.kind === 'out' && дохід) return false;
     if(finView.link === 'no' && p.orderId) return false;
     if(finView.link === 'yes' && !p.orderId) return false;
+    if(finView.cat){
+      if(дохід || свої[p.id]) return false;
+      const к = finCatOf(p);
+      if(finView.cat === '__none' ? !!к || !!p.orderId : !(к && к.cat === finView.cat)) return false;
+    }
     if(!q) return true;
     return [p.desc, p.counter, p.orderId, String(Math.abs(Math.round(+p.amount || 0)))]
       .some(v => String(v || '').toLowerCase().indexOf(q) >= 0);
@@ -10101,22 +10182,41 @@ function renderAnAll(days, month, spend){
    надходження «не привʼязано». Впізнаємо пару самі: та сама сума з мінусом
    на одному нашому рахунку й з плюсом на іншому, з різницею до 30 хвилин.
    Помилку виправляють руками у вікні платежу («між своїми» / «не між своїми»). */
-function finOwnSet(){
+/* ПЕРЕКАЗИ МІЖ СВОЇМИ: пара «−X з одного нашого рахунку / +X на інший».
+   Між рахунками одного банку гроші приходять за хвилини — вікно 30 хв;
+   між різними банками (Моно → Приват) зарахування буває за години — вікно
+   доба (05.10). Повертає { own: {id:1}, pair: {id: id пари} }. */
+function finOwnCalc(){
   const all = (payments || []).filter(p => p && p.id && !p.orderId && Math.round(+p.amount || 0) !== 0);
-  const own = {};
+  const own = {}, pair = {};
   all.forEach(p => { if(p.tag === 'own') own[p.id] = 1; });
   const вільні = all.filter(p => !own[p.id] && p.tag !== 'notown' && p.acc);
   const ins = вільні.filter(p => +p.amount > 0);
+  const банк = {};
+  finAccounts().forEach(a => { банк[a.id] = a.bank || ''; });
   const used = {};
-  вільні.filter(p => +p.amount < 0).forEach(a => {
-    const ta = Date.parse(a.at);
-    const b = ins.filter(x => !used[x.id] && x.acc !== a.acc &&
-      Math.round(+x.amount) === -Math.round(+a.amount) &&
-      Math.abs(Date.parse(x.at) - ta) <= 30 * 60000)[0];
-    if(b){ used[b.id] = 1; own[a.id] = 1; own[b.id] = 1; }
+  вільні.filter(p => +p.amount < 0)
+    .sort((x, y) => String(x.at || '').localeCompare(String(y.at || '')))
+    .forEach(a => {
+      const ta = Date.parse(a.at);
+      const b = ins.filter(x => {
+        if(used[x.id] || x.acc === a.acc || Math.round(+x.amount) !== -Math.round(+a.amount)) return false;
+        const вікно = (банк[x.acc] && банк[x.acc] === банк[a.acc]) ? 30 * 60000 : 24 * 3600000;
+        const dt = Date.parse(x.at) - ta;
+        return dt >= -10 * 60000 && dt <= вікно;
+      }).sort((x, y) => Math.abs(Date.parse(x.at) - ta) - Math.abs(Date.parse(y.at) - ta))[0];
+      if(b){ used[b.id] = 1; own[a.id] = 1; own[b.id] = 1; pair[a.id] = b.id; pair[b.id] = a.id; }
+    });
+  /* Позначені руками «між своїми» теж шукають собі пару — для одного рядка. */
+  const ручні = all.filter(p => p.tag === 'own' && !pair[p.id]);
+  ручні.filter(p => +p.amount < 0).forEach(a => {
+    const b = ручні.filter(x => +x.amount > 0 && !pair[x.id] && x.acc !== a.acc &&
+      Math.round(+x.amount) === -Math.round(+a.amount) && Math.abs(Date.parse(x.at) - Date.parse(a.at)) <= 3 * 24 * 3600000)[0];
+    if(b){ pair[a.id] = b.id; pair[b.id] = a.id; }
   });
-  return own;
+  return { own, pair };
 }
+function finOwnSet(){ return finOwnCalc().own; }
 /* ══════════ ЗВІРКА ГРОШЕЙ (04.10) ══════════
    Андрій: «щоб ми на рівному місці не втрачали кошти». Список рахує ядро
    (LQMoney.audit); тут — лише показ і кнопки. Бачить усякий, кому видно
@@ -10218,7 +10318,8 @@ function renderFin(){
       (finView.acc === a.id ? ' on' : '') + '" data-fin-acc="' + escapeHtml(a.id) + '">' +
       escapeHtml(a.name) + '</button>')).join('');
   const rows = finRows();
-  const свої = finOwnSet();
+  const пари = finOwnCalc();
+  const свої = пари.own;
   const дохід = rows.reduce((s, p) => s + (свої[p.id] ? 0 : Math.max(0, Math.round(+p.amount || 0))), 0);
   const витрата = rows.reduce((s, p) => s + (свої[p.id] ? 0 : Math.max(0, -Math.round(+p.amount || 0))), 0);
   const переказів = rows.filter(p => свої[p.id] && +p.amount > 0).reduce((s, p) => s + Math.round(+p.amount || 0), 0);
@@ -10229,6 +10330,27 @@ function renderFin(){
       '<span class="is-out">Витрачено: <b>' + payMoney(-витрата) + '</b></span>' +
       (переказів ? '<span>Між своїми рахунками: <b>' + escapeHtml(payMoney(переказів).replace('+', '')) + '</b> — не враховано</span>' : '')
     : '';
+  /* Фільтр і підсумок за категоріями витрат (05.10). */
+  const кс = document.getElementById('fin-cat');
+  if(кс) кс.innerHTML = '<option value="">усі категорії</option>' +
+    finCats().map(c => '<option value="' + escapeHtml(c.id) + '"' + (finView.cat === c.id ? ' selected' : '') + '>' +
+      escapeHtml(c.name) + '</option>').join('') +
+    '<option value="__none"' + (finView.cat === '__none' ? ' selected' : '') + '>без категорії</option>';
+  const ксум = document.getElementById('fin-catsum');
+  if(ксум){
+    const по = {}, назви = {};
+    rows.forEach(p => {
+      if((+p.amount || 0) >= 0 || свої[p.id] || p.orderId) return;
+      const к = finCatOf(p);
+      const id = к ? к.cat : '__none';
+      по[id] = (по[id] || 0) - Math.round(+p.amount || 0);
+      назви[id] = к ? (finCats().filter(c => c.id === к.cat)[0] || {}).name || 'Видалена' : 'без категорії';
+    });
+    const ключі = Object.keys(по).sort((a, b) => по[b] - по[a]);
+    ксум.innerHTML = ключі.length ? '<span>Витрати за категоріями:</span>' + ключі.map(k =>
+      '<button class="fin-cs' + (finView.cat === k ? ' on' : '') + '" data-fin-catf="' + escapeHtml(k) + '">' +
+        escapeHtml(назви[k]) + ' <b>' + escapeHtml(payMoney(-по[k]).replace('−', '')) + '</b></button>').join('') : '';
+  }
   const box = document.getElementById('fin-list');
   if(!box) return;
   if(!rows.length){
@@ -10238,8 +10360,26 @@ function renderFin(){
       '</div>';
     return;
   }
+  const вСписку = {};
+  rows.forEach(p => { вСписку[p.id] = 1; });
   box.innerHTML = rows.map(p => {
     const дохід = (+p.amount || 0) > 0;
+    /* ПЕРЕКАЗ МІЖ СВОЇМИ — ОДНИМ РЯДКОМ (05.10): «Моно → Картка · 7 500 ₴».
+       Друга половина пари в списку не показується. */
+    const друга = пари.pair[p.id];
+    if(друга && вСписку[друга]){
+      if(дохід) return '';
+      const q = (payments || []).filter(x => x.id === друга)[0] || {};
+      return '<div class="fin-row is-own is-pair" data-fin-id="' + escapeHtml(p.id) + '">' +
+        '<span class="fin-at">' + escapeHtml(payDate(p.at)) + '</span>' +
+        '<span class="fin-who"><b>Переказ між своїми рахунками</b><i>' +
+          escapeHtml(finAccName(p.acc) + ' → ' + finAccName(q.acc)) + '</i></span>' +
+        '<span class="fin-acc">↔</span>' +
+        '<span class="fin-amt is-own">' + escapeHtml(payMoney(-p.amount).replace('+', '')) + '</span>' +
+        '<span class="fin-link"><button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '">між своїми</button></span>' +
+      '</div>';
+    }
+    const кат = (!дохід && !свої[p.id] && !p.orderId) ? finCatOf(p) : null;
     const o = p.orderId ? (orders || []).filter(x => x.orderId === p.orderId)[0] : null;
     return '<div class="fin-row' + (дохід ? '' : ' is-out') + (свої[p.id] ? ' is-own' : '') + '" data-fin-id="' + escapeHtml(p.id) + '">' +
       '<span class="fin-at">' + escapeHtml(payDate(p.at)) + '</span>' +
@@ -10254,6 +10394,9 @@ function renderFin(){
               (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) +
             (o ? '' : ' <i>картки немає</i>') + '</button>'
           : свої[p.id] ? '<button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '">між своїми</button>'
+          : !дохід ? '<button class="fin-chip is-cat' + (кат ? ' on' : '') + '" data-fin-open="' + escapeHtml(p.id) + '"' +
+              (кат && кат.how === 'rule' ? ' title="Підписано правилом: «' + escapeHtml(кат.q) + '»"' : '') + '>' +
+              escapeHtml(кат ? finCatName(кат) : 'категорія?') + (кат && кат.how === 'rule' ? ' <i>⚙</i>' : '') + '</button>'
           : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
       '</span>' +
     '</div>';
@@ -10297,14 +10440,35 @@ function finOpen(id){
       <div class="fin-l">Знайти за номером або імʼям</div>
       <input type="search" class="fin-find" placeholder="номер замовлення, імʼя, нік">
       <div class="fin-found"></div>
-      <div class="fin-l">Чим є цей платіж</div>
+      ${(+p.amount || 0) < 0 && !finOwnSet()[p.id] ? `<div class="fin-l">Категорія витрати</div>
+        <div class="fin-tags" data-fc-box></div>
+        <div class="fin-tags fin-subs" data-fs-box></div>
+        <label class="fin-rule"><input type="checkbox" data-fc-rule> Завжди так для «${escapeHtml(String(p.counter || p.desc || '').slice(0, 60))}»</label>
+        <div class="fin-rule-n" data-fc-note></div>
+        <button class="dz-b pri" data-fc-save>Зберегти категорію</button>` : ''}
+      ${(+p.amount || 0) > 0 ? `<div class="fin-l">Чим є цей платіж</div>
       <div class="fin-tags">${Object.keys(PAY_TAGS).map(k =>
         `<button class="fin-tag${p.tag === k ? ' on' : ''}" data-fin-tag="${k}">${
           PAY_TAGS[k]}</button>`).join('')}<button class="fin-tag${
         p.tag ? '' : ' on'}" data-fin-tag="">Без підпису</button>
-      </div>
+      </div>` : ''}
     </div>
   </div>`;
+  /* Категорія витрати: спершу категорія, тоді підкатегорія; «завжди так» —
+     правило за платником (чи призначенням, якщо платника немає). */
+  const кат0 = finCatOf(p) || {};
+  let вибКат = кат0.cat || '', вибПід = кат0.sub || '';
+  const малюйКат = () => {
+    const cb = d.querySelector('[data-fc-box]'), sb = d.querySelector('[data-fs-box]');
+    if(!cb) return;
+    cb.innerHTML = finCats().map(c => `<button class="fin-tag${c.id === вибКат ? ' on' : ''}" data-fc="${escapeHtml(c.id)}">${escapeHtml(c.name)}</button>`).join('');
+    const к = finCats().filter(c => c.id === вибКат)[0];
+    sb.innerHTML = к && (к.subs || []).length ? (к.subs || []).map(x =>
+      `<button class="fin-tag${x.id === вибПід ? ' on' : ''}" data-fs="${escapeHtml(x.id)}">${escapeHtml(x.name)}</button>`).join('') : '';
+    const n = d.querySelector('[data-fc-note]');
+    if(n) n.textContent = кат0.how === 'rule' ? 'Зараз підписано правилом «' + кат0.q + '».' : '';
+  };
+  малюйКат();
   let обране = p.orderId || '';
   let тег = p.tag || '';
   const закрити = () => { d.remove(); document.removeEventListener('keydown', esc, true); };
@@ -10322,6 +10486,30 @@ function finOpen(id){
   };
   d.addEventListener('click', async e => {
     if(e.target === d || e.target.hasAttribute('data-fin-x')) return закрити();
+    const fc = e.target.closest && e.target.closest('[data-fc]');
+    if(fc){ вибКат = fc.dataset.fc; вибПід = ''; return малюйКат(); }
+    const fs = e.target.closest && e.target.closest('[data-fs]');
+    if(fs){ вибПід = вибПід === fs.dataset.fs ? '' : fs.dataset.fs; return малюйКат(); }
+    if(e.target.closest && e.target.closest('[data-fc-save]')){
+      if(!вибКат) return toast('Оберіть категорію');
+      try{
+        await PAY_COL.doc(p.id).set({ cat: вибКат, sub: вибПід || null, catBy: myEmail() || '',
+                                     catAt: new Date().toISOString() }, { merge:true });
+        p.cat = вибКат; p.sub = вибПід || null;
+        const правило = d.querySelector('[data-fc-rule]');
+        if(правило && правило.checked){
+          const q = String(p.counter || p.desc || '').toLowerCase().trim().slice(0, 80);
+          if(q){
+            const rules = finRules().filter(r => String(r.q).toLowerCase() !== q)
+              .concat([{ id: 'r' + Date.now().toString(36), q, cat: вибКат, sub: вибПід || '',
+                         by: myEmail() || '', at: new Date().toISOString() }]);
+            await finCatsSave({ rules });
+          }
+        }
+        toast('Категорія: ' + finCatName({ cat: вибКат, sub: вибПід }));
+        закрити(); return renderFin();
+      }catch(err){ console.error(err); return toast('Не збереглось'); }
+    }
     const pick = e.target.closest && e.target.closest('[data-fin-pick]');
     if(pick){ обране = pick.dataset.finPick; await зберегти(); return закрити(); }
     if(e.target.hasAttribute('data-fin-unlink')){ обране = ''; тег = '';
@@ -10355,6 +10543,61 @@ function finOpen(id){
   });
   document.body.appendChild(d);
   find.focus();
+}
+/* КАТЕГОРІЇ ВИТРАТ І ПРАВИЛА — налаштування (05.10). */
+function finCatsOpen(){
+  let cats = JSON.parse(JSON.stringify(finCats()));
+  let rules = JSON.parse(JSON.stringify(finRules()));
+  const d = document.createElement('div');
+  d.className = 'fin-modal';
+  const slug = t => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const draw = () => {
+    d.innerHTML = `<div class="fin-w fc-w">
+      <div class="fin-h"><b>Категорії витрат</b><span>і правила автопідпису</span><button class="dz-x" data-fin-x>×</button></div>
+      <div class="fin-b">
+        ${cats.map((c, i) => `<div class="fc-c">
+          <div class="fc-ch"><input data-fcn="${i}" value="${escapeHtml(c.name)}">
+            <button class="fin-chip" data-fc-del="${i}" title="Прибрати категорію">✕</button></div>
+          <div class="fc-subs">${(c.subs || []).map((x, j) => `<span class="fc-s"><input data-fsn="${i}:${j}" value="${escapeHtml(x.name)}">
+            <button data-fs-del="${i}:${j}" title="Прибрати">✕</button></span>`).join('')}
+            <button class="fin-chip" data-fs-add="${i}">+ підкатегорія</button></div>
+        </div>`).join('')}
+        <button class="dz-b" data-fc-add>+ Категорія</button>
+        <div class="fin-l">Правила автопідпису</div>
+        ${rules.length ? rules.map((r, i) => `<div class="fc-r"><span>«${escapeHtml(r.q)}» →
+          <b>${escapeHtml(finCatNameIn(cats, r))}</b></span><button class="fin-chip" data-fr-del="${i}">✕</button></div>`).join('')
+          : '<div class="fin-note">Правил ще немає. Відкрийте витрату, оберіть категорію й поставте «Завжди так для …».</div>'}
+        <button class="dz-b pri" data-fc-save-all>Зберегти</button>
+      </div></div>`;
+  };
+  const sync = () => {
+    d.querySelectorAll('[data-fcn]').forEach(el => { cats[+el.dataset.fcn].name = el.value.trim() || cats[+el.dataset.fcn].name; });
+    d.querySelectorAll('[data-fsn]').forEach(el => { const [i, j] = el.dataset.fsn.split(':').map(Number);
+      cats[i].subs[j].name = el.value.trim() || cats[i].subs[j].name; });
+  };
+  d.addEventListener('click', async e => {
+    if(e.target === d || e.target.hasAttribute('data-fin-x')) return d.remove();
+    const t = e.target;
+    if(t.hasAttribute('data-fc-add')){ sync(); cats.push({ id: slug(), name: 'Нова категорія', subs: [] }); return draw(); }
+    if(t.dataset.fsAdd != null){ sync(); const c = cats[+t.dataset.fsAdd]; c.subs = c.subs || []; c.subs.push({ id: slug(), name: 'Нова' }); return draw(); }
+    if(t.dataset.fcDel != null){ sync(); if(!confirm('Прибрати категорію «' + cats[+t.dataset.fcDel].name + '»? Підписані нею витрати стануть «без категорії».')) return;
+      cats.splice(+t.dataset.fcDel, 1); return draw(); }
+    if(t.dataset.fsDel != null){ sync(); const [i, j] = t.dataset.fsDel.split(':').map(Number); cats[i].subs.splice(j, 1); return draw(); }
+    if(t.dataset.frDel != null){ sync(); rules.splice(+t.dataset.frDel, 1); return draw(); }
+    if(t.hasAttribute('data-fc-save-all')){
+      sync();
+      try{ await finCatsSave({ cats, rules }); toast('Категорії збережено'); d.remove(); renderFin(); }
+      catch(err){ console.error(err); toast('Не збереглось'); }
+    }
+  });
+  draw();
+  document.body.appendChild(d);
+}
+function finCatNameIn(cats, c){
+  const k = (cats || []).filter(x => x.id === c.cat)[0];
+  if(!k) return 'категорію видалено';
+  const s0 = (k.subs || []).filter(x => x.id === c.sub)[0];
+  return k.name + (s0 ? ' · ' + s0.name : '');
 }
 /* Налаштування одного рахунку. Тут же й підключення банку — але ключ
    вводиться НЕ ТУТ: він живе секретом у Cloudflare Worker, бо адмінка
@@ -10510,6 +10753,15 @@ async function finAddManual(){
   });
   const q = document.getElementById('fin-q');
   if(q) q.addEventListener('input', ()=>{ finView.q = q.value; renderFin(); });
+  const кс = document.getElementById('fin-cat');
+  if(кс) кс.addEventListener('change', ()=>{ finView.cat = кс.value; renderFin(); });
+  const кн = document.getElementById('fin-cats');
+  if(кн) кн.addEventListener('click', ()=> finCatsOpen());
+  const ксум = document.getElementById('fin-catsum');
+  if(ксум) ксум.addEventListener('click', e => {
+    const b = e.target.closest('[data-fin-catf]'); if(!b) return;
+    finView.cat = finView.cat === b.dataset.finCatf ? '' : b.dataset.finCatf; renderFin();
+  });
   /* Вкладки, період і напрям. Три перемикачі, і всі троє ведуть в одне
      перемальовування: два різні шляхи до того самого екрана колись
      розійшлися б у тому, що вважати поточним вибором. */

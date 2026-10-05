@@ -165,8 +165,8 @@ ok(!вручну.length, 'позначка «ні, не між своїми» з
 await p.click('[data-view="fin"]'); await p.waitForTimeout(300);
 const список = await p.evaluate(() => ({ sum: (document.getElementById('fin-sum') || {}).textContent || '',
   чипи: [...document.querySelectorAll('#fin-list .fin-chip.is-own')].length }));
-ok(/Надійшло: \+?2\s?500/.test(список.sum.replace(/\u00a0/g, ' ')) && /Між своїми рахунками: 3\s?000/.test(список.sum.replace(/\u00a0/g, ' ')) && список.чипи === 2,
-  'у Фінансах (лише рухи по рахунках): надійшло 2 500 без переказу, окремо «між своїми рахунками 3 000», два рухи з позначкою', 'Фінанси: ' + JSON.stringify(список));
+ok(/Надійшло: \+?2\s?500/.test(список.sum.replace(/\u00a0/g, ' ')) && /Між своїми рахунками: 3\s?000/.test(список.sum.replace(/\u00a0/g, ' ')) && список.чипи === 1,
+  'у Фінансах (лише рухи по рахунках): надійшло 2 500 без переказу, окремо «між своїми рахунками 3 000», переказ — одним рядком (05.10)', 'Фінанси: ' + JSON.stringify(список));
 await p.click('[data-view="analytics"]'); await p.waitForTimeout(500);
 ok(/За період · /.test(зага.період) && !зага.активна, 'обраний місяць — заголовок періоду, кнопки днів зняті', 'період: ' + JSON.stringify(зага));
 
