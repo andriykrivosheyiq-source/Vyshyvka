@@ -259,7 +259,7 @@
     function pickMain(fi, ft, paidAlready){
       if(fi) fi.firstIdx = -1;
       if(ft) ft.firstIdx = -1;
-      if(paidAlready) return;
+      if(paidAlready || perOrder) return;     // нова модель: «першого включеного» немає
       var f = [fi, ft];
       for(var n = 0; n < 2; n++){
         var b = f[n];
@@ -279,6 +279,35 @@
       }
     }
     function feeKey(it, mk, kind){ return mk + ':' + kind + (it.upsell ? ':u' : ''); }
+    /* ══ РАЗОВА ОПЛАТА ЗА ЗАМОВЛЕННЯ — ОКРЕМО ВІД ДИЗАЙНУ (06.10.2026) ══
+
+       Андрій: «разова плата за замовлення (пакування, обробка) і окремо
+       дизайн». Задано `pricing.orderFeeAll` — працює нова модель:
+         • разова оплата одна на все замовлення і ділиться на ВСІ вироби
+           погодженої частини — і з нанесенням, і без нього;
+         • кожен ескіз коштує свою ставку за видом (картинка — `sketchFee`,
+           напис — `text.sketchFee`), «перший включено» немає: лого на грудях
+           і напис на спині — це картинка + напис, те саме лого на кількох
+           виробах — один ескіз;
+         • допродаж разову не платить, якщо є погоджена частина: замовлення
+           одне, і пакування в нього одне.
+       Не задано (null) — усе як було: повна підготовка на першому макеті. */
+    var perOrder = (p.orderFeeAll != null && p.orderFeeAll !== '' && isFinite(+p.orderFeeAll));
+    var oFee = perOrder ? Math.max(0, +p.orderFeeAll || 0) : 0;
+    var oCost = perOrder ? Math.max(0, +p.orderCostAll || 0) : 0;
+    var oUnits = 0, oAnyBase = false;
+    if(perOrder){
+      list.forEach(function(it){ if(!it.upsell) oAnyBase = true; });
+      list.forEach(function(it){
+        if(oAnyBase && it.upsell) return;
+        oUnits += Math.max(0, +it.units || 0);
+      });
+    }
+    function orderPart(it){
+      if(!perOrder || !oUnits || (oAnyBase && it.upsell) || !(+it.units > 0)) return null;
+      return { kind: 'order', fee: oFee, cost: oCost, units: oUnits,
+               share: oFee / oUnits, costShare: oCost / oUnits };
+    }
     var fees = {};
     ['dtf','embro'].forEach(function(mk){
       var mine = list.filter(function(it){ return !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk; });
@@ -309,14 +338,19 @@
         var gcSet = gcoefOf(it);
         var gc = (gcSet != null) ? gcSet
                : tierCoefFor(null, opts.noVolume ? 1 : (volFor(it, 'bare') || 1));
-        var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
-        return { unit: ub, sum: ub * u, feeShare: 0, parts: {
+        var op = orderPart(it);
+        var bShare = op ? Math.round(op.share) : 0;
+        var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0) + bShare;
+        return { unit: ub, sum: ub * u, feeShare: bShare, parts: {
           bare: true, coef: gc, gcoef: gc, garmentQty: garmentQty(it),
           groupQty: volFor(it, 'bare'), upsell: !!it.upsell,
           garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gc),
           unitBase: Math.round((+it.base || 0) * gc),
           appBase: 0, app: 0, pieceFee: +it.pieceFee || 0,
-          feeShare: 0, feeTotal: 0, feeUnits: 0, sketches: []
+          feeShare: bShare, costShare: op ? Math.round(op.costShare) : 0,
+          feeTotal: op ? op.fee : 0, feeUnits: op ? op.units : 0,
+          feeLines: op ? [{ kind:'order', fee: op.fee, cost: op.cost, units: op.units }] : [],
+          sketches: []
         } };
       }
       var mk = it.method === 'embro' ? 'embro' : 'dtf';
@@ -339,6 +373,12 @@
          з чим збігається. Без них «чому тут ескіз, а тут ні» доводилось
          брати на віру: на екрані видно картинки, а рахунок іде за групами. */
       var paid = {}, freeDesigns = 0, offDesigns = 0, designNos = [];
+      var op2 = orderPart(it);
+      if(op2){
+        feeShare += op2.share; costShare += op2.costShare;
+        feeTotal += op2.fee; feeUnits = op2.units;
+        feeLines.push({ kind:'order', fee: op2.fee, cost: op2.cost, units: op2.units });
+      }
       (it.designs || []).forEach(function(fp, i){
     /* Дизайн без відбитка — усе одно дизайн. Раніше такий рядок мовчки
        пропускався, і замовлення втрачало гроші: напис, відбиток якого ще

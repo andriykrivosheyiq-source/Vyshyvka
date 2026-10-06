@@ -5702,7 +5702,7 @@
             <button type="button" class="sp-kb" data-kb="dtf:txt">Текст</button>
           </div>
           <div class="sp-kind" data-kind="dtf:img">
-          <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
+          <div class="tl-divider">Оплата за замовлення (стара модель — діє, лише коли «Разова оплата за замовлення» внизу порожня) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">За замовлення — ціна, грн
               <input type="number" step="1" min="0" id="sp-dtf-orderfee" placeholder="250">
@@ -5711,19 +5711,19 @@
               <input type="number" step="1" min="0" id="sp-dtf-ordercost" placeholder="120">
             </label>
           </div>
-          <div class="tl-divider">Додатковий ескіз (за кожне ДОДАТКОВЕ лого, разово) — ціна / собівартість</div>
+          <div class="tl-divider">Розробка ескізу (кожен макет-картинка, разово) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
-            <label class="field">Додатковий ескіз — ціна, грн
+            <label class="field">Ескіз — ціна, грн
               <input type="number" step="1" min="0" id="sp-dtf-sketchfee" placeholder="0">
             </label>
-            <label class="field">Додатковий ескіз — собівартість, грн
+            <label class="field">Ескіз — собівартість, грн
               <input type="number" step="1" min="0" id="sp-dtf-sketchcost" placeholder="0">
             </label>
           </div>
           </div>
           <div class="sp-kind" data-kind="dtf:txt" hidden>
             <div class="sub" style="margin-bottom:10px;">Порожнє поле = «як у картинки». Заповнюйте лише те, що для написів справді інше.</div>
-            <div class="tl-divider">Оплата за замовлення (разова) — ціна / собівартість</div>
+            <div class="tl-divider">Оплата за замовлення (стара модель — діє, лише коли «Разова оплата за замовлення» порожня) — ціна / собівартість</div>
             <div class="grid2" style="margin-bottom:10px;">
               <label class="field">За замовлення — ціна, грн
                 <input type="number" step="1" min="0" id="sp-dtftxt-orderfee" placeholder="як у картинки">
@@ -5732,12 +5732,12 @@
                 <input type="number" step="1" min="0" id="sp-dtftxt-ordercost" placeholder="як у картинки">
               </label>
             </div>
-            <div class="tl-divider">Додатковий ескіз (за кожен ДОДАТКОВИЙ напис) — ціна / собівартість</div>
+            <div class="tl-divider">Розробка ескізу (кожен макет-напис, разово) — ціна / собівартість</div>
             <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Додатковий ескіз — ціна, грн
+              <label class="field">Ескіз — ціна, грн
                 <input type="number" step="1" min="0" id="sp-dtftxt-sketchfee" placeholder="як у картинки">
               </label>
-              <label class="field">Додатковий ескіз — собівартість, грн
+              <label class="field">Ескіз — собівартість, грн
                 <input type="number" step="1" min="0" id="sp-dtftxt-sketchcost" placeholder="як у картинки">
               </label>
             </div>
@@ -5802,7 +5802,7 @@
             Собівартість можна лишити порожньою: тоді на цьому порозі вона не змінюється.</div>
           <div id="sp-emb-atiers" style="margin-bottom:6px;"></div>
           <div class="add-row-btn" id="sp-emb-atiers-add" style="margin-bottom:12px;">+ Додати поріг площі</div>
-          <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
+          <div class="tl-divider">Оплата за замовлення (стара модель — діє, лише коли «Разова оплата за замовлення» внизу порожня) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">За замовлення — ціна, грн
               <input type="number" step="1" min="0" id="sp-emb-orderfee" placeholder="250">
@@ -5821,12 +5821,12 @@
             а не той макет, який менеджер клікнув першим. Якщо нанесень більше за список — діє останнє значення.</div>
           <div id="sp-emb-mins" style="margin-bottom:6px;"></div>
           <div class="add-row-btn" id="sp-emb-mins-add" style="margin-bottom:12px;">+ додати дизайн</div>
-          <div class="tl-divider">Додатковий ескіз (за кожне ДОДАТКОВЕ лого, разово) — ціна / собівартість</div>
+          <div class="tl-divider">Розробка ескізу (кожен макет-картинка, разово) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
-            <label class="field">Додатковий ескіз — ціна, грн
+            <label class="field">Ескіз — ціна, грн
               <input type="number" step="1" min="0" id="sp-emb-sketchfee" placeholder="0">
             </label>
-            <label class="field">Додатковий ескіз — собівартість, грн
+            <label class="field">Ескіз — собівартість, грн
               <input type="number" step="1" min="0" id="sp-emb-sketchcost" placeholder="0">
             </label>
           </div>
@@ -5845,7 +5845,7 @@
             <div class="sub" style="margin-bottom:8px;">Порожній список = градація як у картинки. Щойно додали хоч один поріг — для написів діє тільки цей список.</div>
             <div id="sp-embtxt-atiers" style="margin-bottom:6px;"></div>
             <div class="add-row-btn" id="sp-embtxt-atiers-add" style="margin-bottom:12px;">+ Додати поріг площі</div>
-            <div class="tl-divider">Оплата за замовлення (разова) — ціна / собівартість</div>
+            <div class="tl-divider">Оплата за замовлення (стара модель — діє, лише коли «Разова оплата за замовлення» порожня) — ціна / собівартість</div>
             <div class="grid2" style="margin-bottom:10px;">
               <label class="field">За замовлення — ціна, грн
                 <input type="number" step="1" min="0" id="sp-embtxt-orderfee" placeholder="як у картинки">
@@ -5860,12 +5860,12 @@
             <div class="tl-divider">Мін. ціна нанесення — за кожним написом (1-й, 2-й…)</div>
             <div id="sp-embtxt-mins" style="margin-bottom:6px;"></div>
             <div class="add-row-btn" id="sp-embtxt-mins-add" style="margin-bottom:12px;">+ додати напис</div>
-            <div class="tl-divider">Додатковий ескіз (за кожен ДОДАТКОВИЙ напис) — ціна / собівартість</div>
+            <div class="tl-divider">Розробка ескізу (кожен макет-напис, разово) — ціна / собівартість</div>
             <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Додатковий ескіз — ціна, грн
+              <label class="field">Ескіз — ціна, грн
                 <input type="number" step="1" min="0" id="sp-embtxt-sketchfee" placeholder="як у картинки">
               </label>
-              <label class="field">Додатковий ескіз — собівартість, грн
+              <label class="field">Ескіз — собівартість, грн
                 <input type="number" step="1" min="0" id="sp-embtxt-sketchcost" placeholder="як у картинки">
               </label>
             </div>
@@ -5917,6 +5917,22 @@
         </div>
 
         <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
+
+        <div class="tl-divider" style="margin-top:18px;">Разова оплата за замовлення (B2B)</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Одна на все замовлення — пакування, обробка — і ділиться на всі його вироби (і з нанесенням, і без).
+          Дизайн рахується окремо: кожен ескіз за своєю ціною у способі нанесення («Розробка ескізу», картинка й текст окремо),
+          «перший включено» немає. Те саме лого на кількох виробах — один ескіз.
+          Порожньо — діє стара модель: «Оплата за замовлення» способу на першому макеті, далі додаткові ескізи.
+        </div>
+        <div class="grid2" style="margin-bottom:10px;max-width:520px;">
+          <label class="field">За замовлення — ціна, грн
+            <input type="number" step="1" min="0" id="sp-orderfee-all" placeholder="450">
+          </label>
+          <label class="field">За замовлення — собівартість, грн
+            <input type="number" step="1" min="0" id="sp-ordercost-all" placeholder="0">
+          </label>
+        </div>
 
         <div class="tl-divider" style="margin-top:18px;">Запобіжник маржі</div>
         <div class="sub" style="margin-bottom:8px;">
@@ -7375,27 +7391,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=796561fc3b"></script>
-<script src="loomiq-fingerprint.js?v=796561fc3b"></script>
-<script src="loomiq-pricing.js?v=796561fc3b"></script>
+<script src="loomiq-select.js?v=a08003809e"></script>
+<script src="loomiq-fingerprint.js?v=a08003809e"></script>
+<script src="loomiq-pricing.js?v=a08003809e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=796561fc3b"></script>
+<script src="loomiq-money-core.js?v=a08003809e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=796561fc3b"></script>
-<script src="loomiq-mock.js?v=796561fc3b"></script>
+<script src="loomiq-design.js?v=a08003809e"></script>
+<script src="loomiq-mock.js?v=a08003809e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=796561fc3b"></script>
-<script src="loomiq-threads.js?v=796561fc3b"></script>
+<script src="imagetracer.js?v=a08003809e"></script>
+<script src="loomiq-threads.js?v=a08003809e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=796561fc3b"></script>
+<script src="loomiq-cards.js?v=a08003809e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7440,7 +7456,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '796561fc3b';
+var LQ_VER = 'a08003809e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9315,6 +9331,11 @@ function paintSitePricing(){
     ? (contentData.pricing || {}).minMarginPct : '';
   const um = document.getElementById('sp-upsell');
   if(um) um.value = upsellMode();
+  ['orderFeeAll','orderCostAll'].forEach(k=>{
+    const el = document.getElementById(k === 'orderFeeAll' ? 'sp-orderfee-all' : 'sp-ordercost-all');
+    const v = (contentData.pricing || {})[k];
+    if(el) el.value = (v == null ? '' : v);
+  });
   if(!document.getElementById('sp-dtf-grid')) return;
   const p = curSitePricing();
   const meth = p.methods || {};
@@ -12257,6 +12278,8 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
      право, а не наслідок того, що людина бачить розділ. */
   if(!canPricing()) return toast('Міняти формування цін — не ваша зона');
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
+  const optV = id=>{ const el=document.getElementById(id); const v = el ? String(el.value).trim() : '';
+                     return (v === '' || !isFinite(+v)) ? null : Math.max(0, +v); };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
     tiers: readSpTiers('dtf'),     // знижки за кількість саме для друку
     minPrices: [], minCosts: [], minPrice: 0,   // у сітці мінімалки немає — лише у вишивці
@@ -12294,6 +12317,10 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     garmentTiers: readSpTiers('gar'),
     // Поріг маржі: нижче нього адмінка не дає додати позицію в пропозицію
     minMarginPct: numV('sp-minmargin'),
+    /* Разова оплата за замовлення (B2B): порожньо — null, і рушій лишається
+       на старій моделі (повна підготовка на першому макеті). */
+    orderFeeAll: optV('sp-orderfee-all'),
+    orderCostAll: optV('sp-ordercost-all'),
     /* Що робити з цінами при допродажу: 'all' — перерахувати весь склад
        (як було завжди), 'keep' — погоджене не рухати, виграш віддати новому. */
     upsellMode: (document.getElementById('sp-upsell') || {}).value || 'all'
@@ -14837,11 +14864,12 @@ function priceCalcHtml(o){
           /* Повна підготовка тепер одна на спосіб і стоїть на логотипі.
              Напис її несе лише тоді, коли логотипів немає, — це й кажемо. */
           const kind = (fl.length > 1 || x.f.kind === 'txt') ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
-          lines.push(['Підготовка макета' + kind + ' · ' + x.f.fee + ' ₴ на ' + x.f.units + ' шт',
-                      v + ' ₴']);
+          lines.push([(x.f.kind === 'order' ? 'Разова оплата за замовлення' : 'Підготовка макета' + kind) +
+                      ' · ' + x.f.fee + ' ₴ на ' + x.f.units + ' шт', v + ' ₴']);
         });
       }
-      sk.forEach(x=> lines.push([(x.s.kind === 'txt' ? 'Ескіз напису · ' : 'Додатковий ескіз · ') +
+      const newModel = fl.some(x => x.f.kind === 'order');
+      sk.forEach(x=> lines.push([(x.s.kind === 'txt' ? 'Ескіз напису · ' : (newModel ? 'Ескіз картинки · ' : 'Додатковий ескіз · ')) +
         x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
     }
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
@@ -15766,15 +15794,19 @@ function offerCalcRows(it, o){
          нерозрізненні. Тепер кожна своїм рядком і зі своїм перемикачем.
          Останній рядок бере залишок, щоб сума не поїхала на гривню. */
       const lines = (b.feeLines || []).filter(l => l && l.fee > 0);
+      const lblOf = (l) => l.kind === 'order'
+        ? 'Разова оплата за замовлення — ' + l.fee + ' грн, ділиться на ' + (l.units || 1) + ' шт усього замовлення'
+        : 'Підготовка макета' + (l.kind === 'txt' ? ' (напис)' : ' (картинка)') +
+          ' — ' + l.fee + ' грн разово, ділиться на ' + (l.units || 1) + ' шт цього способу';
       if(lines.length > 1){
         let left = base;
         lines.forEach((l, n) => {
           const share = (n === lines.length - 1) ? left : Math.round(l.fee / (l.units || 1));
           left -= share;
-          rows.push(['Підготовка макета' + (l.kind === 'txt' ? ' (напис)' : ' (картинка)') +
-                     ' — ' + l.fee + ' грн разово, ділиться на ' + (l.units || 1) +
-                     ' шт цього способу', share + ' грн', '', kindAct(l.di)]);
+          rows.push([lblOf(l), share + ' грн', '', l.kind === 'order' ? '' : kindAct(l.di)]);
         });
+      } else if(lines.length && lines[0].kind === 'order'){
+        rows.push([lblOf(lines[0]), base + ' грн', '', '']);
       } else {
         rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
                    b.feeUnits + ' шт цього способу', base + ' грн', '',
@@ -15785,10 +15817,11 @@ function offerCalcRows(it, o){
          тому, що поруч у тиражі стоїть позиція, якої там не чекали —
          забутий основний товар замість варіанта, наприклад. Поки список
          доводилось відновлювати в голові, помилку не було видно. */
-      const who = feeSharers(o, it);
+      const who = lines.some(l => l.kind !== 'order') ? feeSharers(o, it) : '';
       if(who) rows.push(['↳ у цьому тиражі: ' + who, '', 'sub']);
     }
-    sk.forEach(x => rows.push(['Додатковий ескіз' +
+    const перЗам = (b.feeLines || []).some(l => l && l.kind === 'order');
+    sk.forEach(x => rows.push([(перЗам ? (x.s.kind === 'txt' ? 'Ескіз' : 'Ескіз картинки') : 'Додатковий ескіз') +
                                (x.s.no ? ' до дизайну №' + x.s.no : '') +
                                (x.s.kind === 'txt' ? ' (напис)' : '') +
                                ' — ' + x.s.fee + ' грн разово, ділиться на ' +

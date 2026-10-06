@@ -333,6 +333,53 @@ ok(порядок.адмінка === порядок.конструктор,
   'ліва панель і картка кажуть різне: ' + порядок.адмінка + ' проти ' + порядок.конструктор);
 
 console.log('');
+console.log('═══ РАЗОВА ОПЛАТА ЗА ЗАМОВЛЕННЯ (B2B, 06.10) ═══');
+const разова = await p.evaluate(async (худі) => {
+  paintSitePricing();
+  const fee = document.getElementById('sp-orderfee-all'), cost = document.getElementById('sp-ordercost-all');
+  const було = fee ? fee.value : null;
+  fee.value = '450'; cost.value = '90';
+  let записано = null;
+  const set0 = PHOTOS_DOC.set;
+  PHOTOS_DOC.set = (patch) => { записано = JSON.parse(JSON.stringify(patch)); return Promise.resolve(); };
+  document.getElementById('sp-save').click();
+  await new Promise(r => setTimeout(r, 50));
+  PHOTOS_DOC.set = set0;
+  // як прийде назад документом
+  contentData.pricing.orderFeeAll = 450; contentData.pricing.orderCostAll = 90;
+  syncSiteContent();
+  const o = orders[0];
+  o.items = [ худі ];
+  repriceOrder(o);
+  const d = document.createElement('div'); d.innerHTML = priceCalcHtml(o) || '';
+  const рядки = [...d.querySelectorAll('.t-calc-row')].map(r => (r.querySelector('span') || {}).textContent || '');
+  const offer = offerCalcRows(o.items[0], o).map(r => r[0]);
+  fee.value = ''; cost.value = '';
+  PHOTOS_DOC.set = (patch) => { записано2 = JSON.parse(JSON.stringify(patch)); return Promise.resolve(); };
+  let записано2 = null;
+  document.getElementById('sp-save').click();
+  await new Promise(r => setTimeout(r, 50));
+  PHOTOS_DOC.set = set0;
+  return { було, записано: записано && записано.pricing, порожнє: записано2 && записано2.pricing,
+           рядки, offer, частка: o.items[0].parts.feeShare };
+}, item('Худі', 'hoodie', 10, ['img','txt'], [FP(1), FP(2)]));
+ok(разова.було === '' , 'поле порожнє, поки разову не задали', 'у полі: ' + разова.було);
+ok(разова.записано && разова.записано.orderFeeAll === 450 && разова.записано.orderCostAll === 90,
+  'зберігається в pricing.orderFeeAll / orderCostAll', 'записано: ' + JSON.stringify(разова.записано && разова.записано.orderFeeAll));
+ok(разова.порожнє && разова.порожнє.orderFeeAll === null,
+  'порожнє поле пишеться як null — стара модель', 'порожнє: ' + JSON.stringify(разова.порожнє && разова.порожнє.orderFeeAll));
+console.log('  ' + разова.рядки.filter(t => /Разова|Ескіз|Підготовка/.test(t)).join(' · '));
+ok(разова.рядки.some(t => /Разова оплата за замовлення · 450 ₴ на 10 шт/.test(t)) &&
+   разова.рядки.some(t => /Ескіз картинки · 350 ₴ на 10 шт/.test(t)) &&
+   разова.рядки.some(t => /Ескіз напису · 250 ₴ на 10 шт/.test(t)) &&
+   !разова.рядки.some(t => /Підготовка макета/.test(t)),
+  'розклад: разова 450 + ескіз картинки + ескіз напису, «Підготовки макета» немає',
+  'розклад: ' + JSON.stringify(разова.рядки));
+ok(разова.частка === 45 + 35 + 25, 'частка разових 105 ₴/шт', 'частка ' + разова.частка);
+ok(разова.offer.some(t => /Разова оплата за замовлення — 450 грн/.test(t)),
+  'і в прорахунку пропозиції той самий рядок', 'пропозиція: ' + JSON.stringify(разова.offer));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'адмінка рахує тим самим рушієм, що й сайт');
