@@ -7391,27 +7391,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4054ebb7de"></script>
-<script src="loomiq-fingerprint.js?v=4054ebb7de"></script>
-<script src="loomiq-pricing.js?v=4054ebb7de"></script>
+<script src="loomiq-select.js?v=78d2545115"></script>
+<script src="loomiq-fingerprint.js?v=78d2545115"></script>
+<script src="loomiq-pricing.js?v=78d2545115"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=4054ebb7de"></script>
+<script src="loomiq-money-core.js?v=78d2545115"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4054ebb7de"></script>
-<script src="loomiq-mock.js?v=4054ebb7de"></script>
+<script src="loomiq-design.js?v=78d2545115"></script>
+<script src="loomiq-mock.js?v=78d2545115"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=4054ebb7de"></script>
-<script src="loomiq-threads.js?v=4054ebb7de"></script>
+<script src="imagetracer.js?v=78d2545115"></script>
+<script src="loomiq-threads.js?v=78d2545115"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4054ebb7de"></script>
+<script src="loomiq-cards.js?v=78d2545115"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7456,7 +7456,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '4054ebb7de';
+var LQ_VER = '78d2545115';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24210,9 +24210,17 @@ function crmFilesHtml(files){
    віддає ту саму першу сторінку, тож «спрацювало» = прийшли повідомлення,
    яких у нас ще не було. */
 const CRM_PAGE_MAX = 40;               // запас: 40 сторінок — тисячі повідомлень
-const CRM_SIZE_KEYS = ['limit', 'perPage', 'pageSize', 'per_page', 'take', 'size', 'count'];
+/* Розмір сторінки: невідомий параметр Sitniks ігнорує, а завеликий може
+   відхилити (400) — тому кілька значень. */
+const CRM_SIZE_TRY = ['limit=50', 'limit=100', 'limit=20', 'perPage=50', 'pageSize=50',
+                      'per_page=50', 'take=50', 'size=50', 'count=50'];
+/* Як попросити наступну сторінку. id:/at: — «старші за найстаріше, яке
+   вже маємо» (за номером повідомлення або за датою). */
+const CRM_NEXT_TRY = ['offset', 'skip', 'page', 'page0', 'pageNumber',
+                      'id:before', 'id:beforeId', 'id:lastId', 'id:lastMessageId', 'id:fromId', 'id:cursor',
+                      'at:before', 'at:beforeDate', 'at:dateTo', 'at:to', 'at:until', 'at:olderThan', 'cursor'];
 let crmPageWay = null;
-try{ crmPageWay = JSON.parse(localStorage.getItem('crmPageWay') || 'null'); }catch(e){}
+try{ crmPageWay = JSON.parse(localStorage.getItem('crmPageWay2') || 'null'); }catch(e){}
 function crmMsgArr(d){
   return Array.isArray(d) ? d
     : (Array.isArray(d && d.items) ? d.items
@@ -24232,14 +24240,19 @@ function crmCursorOf(d){
   const meta = d.meta || d.pagination || d.paging || d;
   return String(meta.nextCursor || meta.next_cursor || meta.cursor || meta.next || '');
 }
-function crmWayQuery(way, n, got, oldest, cursor){
+/* Запит n-ї сторінки (n ≥ 2). got — скільки вже маємо, old — найстаріше. */
+function crmWayQuery(way, n, got, old, cursor){
   const q = [];
-  if(way.size) q.push(way.size + '=100');
-  if(way.next === 'page') q.push('page=' + n);
-  else if(way.next === 'page0') q.push('page=' + (n - 1));
-  else if(way.next === 'offset' || way.next === 'skip') q.push(way.next + '=' + got);
-  else if(way.next && way.next.indexOf('id:') === 0){ if(!oldest) return null; q.push(way.next.slice(3) + '=' + encodeURIComponent(oldest)); }
-  else if(way.next === 'cursor'){ if(!cursor) return null; q.push('cursor=' + encodeURIComponent(cursor)); }
+  if(way.size) q.push(way.size);
+  const per = way.per || 10;
+  const nx = way.next || '';
+  if(nx === 'offset' || nx === 'skip'){ q.push(nx + '=' + got); if(!way.size) q.push('limit=' + per); }
+  else if(nx === 'page') q.push('page=' + n);
+  else if(nx === 'page0') q.push('page=' + (n - 1));
+  else if(nx === 'pageNumber') q.push('pageNumber=' + n);
+  else if(nx.indexOf('id:') === 0){ if(!old.id) return null; q.push(nx.slice(3) + '=' + encodeURIComponent(old.id)); }
+  else if(nx.indexOf('at:') === 0){ if(!old.at) return null; q.push(nx.slice(3) + '=' + encodeURIComponent(old.at)); }
+  else if(nx === 'cursor'){ if(!cursor) return null; q.push('cursor=' + encodeURIComponent(cursor)); }
   return q.join('&');
 }
 async function crmFetchMsgs(chatId){
@@ -24254,62 +24267,72 @@ async function crmFetchMsgs(chatId){
     (list || []).forEach(m => { const k = crmRawId(m); if(seen[k]) return; seen[k] = 1; all.push(m); n++; });
     return n;
   };
-  const oldestId = () => {
+  const oldest = () => {
     let best = null, bt = Infinity;
     all.forEach(m => { const t = crmRawAt(m); if(m && typeof m === 'object' && t && t < bt){ bt = t; best = m; } });
     const m = best || all[all.length - 1];
-    return m && typeof m === 'object' ? String(m.id || m._id || m.messageId || '') : '';
+    if(!m || typeof m !== 'object') return {};
+    return { id: String(m.id || m._id || m.messageId || ''), at: String(crmPick(m, CRM_AT_KEYS) || '') };
+  };
+  /* Журнал спроб — що відповів Sitniks на кожен параметр. Видно в «{ }»:
+     коли гортання не знайдеться, саме тут стоятиме причина (напр. «400:
+     limit must be ≤ 30»), і вгадувати вдруге не доведеться. */
+  const log = [];
+  const ask = async (q, label) => {
+    try{
+      const d = await crmFetch(base + (q ? '?' + q : ''));
+      const list = crmMsgArr(d);
+      const n = add(list);
+      log.push((label || q) + ' → ' + (list ? list.length : 'не список') + ', нових ' + n);
+      return { d, n };
+    }catch(e){
+      log.push((label || q) + ' → ' + String(e.message || e).slice(0, 90));
+      return { d: null, n: 0, err: e };
+    }
   };
   let info = 'сторінка 1: ' + arr0.length;
   if(!arr0.length) return { first, arr: all, info };
   let way = crmPageWay, cursor = crmCursorOf(first), n = 0;
   if(way){
-    /* Спосіб відомий. Більшу сторінку просимо одразу — перша, яку ми вже
-       маємо, була звичайною, на десять. */
-    if(way.size){
-      try{
-        const d = await crmFetch(base + '?' + way.size + '=100' + (way.next === 'page0' ? '&page=0' : ''));
-        add(crmMsgArr(d)); cursor = crmCursorOf(d) || cursor;
-      }catch(e){}
-    }
+    if(way.size){ const r = await ask(way.size + (way.next === 'page0' ? '&page=0' : '')); if(r.d) cursor = crmCursorOf(r.d) || cursor; }
     n = way.next ? 2 : 0;
   } else {
-    /* Спосіб ще не відомий — шукаємо. Неповна перша сторінка (менше десяти)
-       означає, що вся розмова вже тут. */
+    // Неповна перша сторінка — уся розмова вже тут
     if(arr0.length < 10 && !cursor) return { first, arr: all, info };
-    let size = '';
-    for(const k of CRM_SIZE_KEYS){
-      try{
-        const d = await crmFetch(base + '?' + k + '=100');
-        if(add(crmMsgArr(d))){ size = k; cursor = crmCursorOf(d) || cursor; break; }
-      }catch(e){}
+    let size = '', per = arr0.length;
+    for(const sz of CRM_SIZE_TRY){
+      const r = await ask(sz);
+      if(r.n){ size = sz; per = (crmMsgArr(r.d) || []).length || per; cursor = crmCursorOf(r.d) || cursor; break; }
     }
-    const tries = ['page', 'offset', 'skip', 'id:before', 'id:beforeId', 'id:lastId', 'id:fromId', 'cursor', 'page0'];
-    for(const next of tries){
-      const w = { size, next };
-      const q = crmWayQuery(w, 2, all.length, oldestId(), cursor);
-      if(q == null) continue;
-      try{
-        const d = await crmFetch(base + '?' + q);
-        if(add(crmMsgArr(d))){ way = w; cursor = crmCursorOf(d) || cursor; break; }
-      }catch(e){}
+    for(const sz of (size ? [size] : ['', 'limit=' + per])){
+      for(const next of CRM_NEXT_TRY){
+        const w = { size: sz, next, per };
+        const q = crmWayQuery(w, 2, all.length, oldest(), cursor);
+        if(q == null) continue;
+        const r = await ask(q);
+        if(r.n){ way = w; if(r.d) cursor = crmCursorOf(r.d) || cursor; break; }
+      }
+      if(way) break;
     }
-    if(!way && size) way = { size, next: '' };
-    if(!way){ info += ' · гортання Sitniks не знайдено'; return { first, arr: all, info }; }
+    if(!way && size) way = { size, next: '', per };
+    if(!way){
+      info += ' · гортання Sitniks не знайдено\n' + log.join('\n');
+      console.warn('Sitniks: гортання не знайдено', log);
+      return { first, arr: all, info };
+    }
     crmPageWay = way;
-    try{ localStorage.setItem('crmPageWay', JSON.stringify(way)); }catch(e){}
+    try{ localStorage.setItem('crmPageWay2', JSON.stringify(way)); }catch(e){}
     n = way.next ? 3 : 0;
   }
-  info += ' · спосіб: ' + [way.size ? way.size + '=100' : '', way.next].filter(Boolean).join(' + ');
-  /* Гортаємо, доки приходить нове: порожня сторінка або сторінка без
-     жодного нового повідомлення — кінець розмови. */
+  info += ' · спосіб: ' + [way.size, way.next].filter(Boolean).join(' + ');
+  // Гортаємо, доки приходить нове
   if(n) for(; n <= CRM_PAGE_MAX; n++){
-    const q = crmWayQuery(way, n, all.length, oldestId(), cursor);
+    const q = crmWayQuery(way, n, all.length, oldest(), cursor);
     if(q == null) break;
-    let d;
-    try{ d = await crmFetch(base + '?' + q); }catch(e){ break; }
-    cursor = crmCursorOf(d);
-    if(!add(crmMsgArr(d))) break;
+    const r = await ask(q);
+    if(!r.d) break;
+    cursor = crmCursorOf(r.d);
+    if(!r.n) break;
   }
   /* Найновіше першим — так, як Sitniks віддає одну сторінку. Стрічку далі
      розвертає crmNormMsgs за першим і останнім, тож порядок мусить бути
