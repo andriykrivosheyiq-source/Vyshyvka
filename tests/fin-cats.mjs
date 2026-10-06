@@ -179,14 +179,16 @@ ok(/пул наложок/.test(пул) && /між своїми/.test(собі) 
   'пул NovaPay — «пул наложок», переказ собі — «між своїми»; ні доходом, ні витратою не порахувались', 'пул: ' + пул + ' / ' + собі + ' · ' + доПулу + ' → ' + зПулом);
 
 const iso2 = await p.evaluate(() => new Date(Date.parse(payments[0].at) + 3600e3).toISOString());
+const before9 = await p.evaluate(() => (document.getElementById('fin-sum') || {}).textContent.replace(/\s+/g, ' '));
 await p.evaluate(at => { payments.push(
-  { id:'privat_R9', at, amount:-10050, acc:'mono3', counter:'ЗЕЛЕНА ІРИНА ОЛЕГІВНА', desc:'Переказ власних коштів', src:'privat', flow:'self' },
-  { id:'p24_card_1', at: new Date(Date.parse(at) + 60000).toISOString(), amount:10050, acc:'mono1', counter:'ФОП Зелена Ірина', desc:'Зарахування', src:'privat' });
+  { id:'privat_R9', at, amount:-10050, acc:'mono3', counter:'ЗЕЛЕНА ІРИНА ОЛЕГІВНА', desc:'Переказ власних коштів', src:'privat', flow:'self' });
   renderFin(); }, iso2);
 await p.waitForTimeout(200);
-const pr9 = await p.evaluate(() => { const r = document.querySelector('.fin-row[data-fin-id="privat_R9"]');
-  return { pair: !!(r && r.classList.contains('is-pair')), card: !!document.querySelector('.fin-row[data-fin-id="p24_card_1"]') }; });
-ok(pr9.pair && !pr9.card, '«Переказ власних коштів» ФОП → картка — одним рядком «між своїми», надходження на картці не висить окремо', 'пара: ' + JSON.stringify(pr9));
+const r9 = await p.evaluate(() => ({ chip: ((document.querySelector('.fin-row[data-fin-id="privat_R9"] .fin-chip') || {}).textContent || '').trim(),
+  sum: (document.getElementById('fin-sum') || {}).textContent.replace(/\s+/g, ' ') }));
+const vit = t => +((/Витрачено: −?([\d ]+) ₴/.exec(t) || [])[1] || '0').replace(/\s/g, '');
+ok(/Команда · Виплати з картки/.test(r9.chip) && vit(r9.sum) - vit(before9) === 10050,
+  '«Переказ власних коштів» з Приват ФОП на картку — витрата «Команда · Виплати з картки» (−10 050 у витратах)', 'вивід: ' + JSON.stringify(r9));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
