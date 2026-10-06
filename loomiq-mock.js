@@ -1140,28 +1140,39 @@
     var innerW = DOC_W - 128;
     var n = Math.max(1, рамки.length), cw = (innerW - gap * (n - 1)) / n;
     var cellH = Math.round(Math.min(560, cw * 1.12));
-    var лівоW = Math.round(innerW * 0.62), правоW = innerW - лівоW - 40;
-    /* Низ: ліворуч модель великим, під нею в ряд підписи капітеллю зі
-       значеннями (розмір · кількість · нанесення); праворуч — примітка
-       сірим, вирівняна по верху з описом. Над усім — тонка лінія. */
-    var rows = (data.nums || []).filter(function(r){ return r && r[1] != null && r[1] !== '' && r[1] !== '—'; });
-    var модель = rows.filter(function(r){ return !r[0]; }).map(function(r){ return String(r[1]); })[0] || '';
-    var поля = rows.filter(function(r){ return r[0]; });
-    var FM = '600 20px Inter, system-ui, sans-serif', FL = '600 11px Inter, system-ui, sans-serif',
-        FV = '600 16px Inter, system-ui, sans-serif', FN = '400 14px Inter, system-ui, sans-serif';
-    var мРядки = модель ? wrap(проба, модель, лівоW, FM) : [];
-    /* Поля йдуть рядом колонок; нанесення буває довгим — воно останнє і
-       бере всю решту ширини, переносячись у ній. */
-    var колW = поля.length ? Math.min(150, лівоW / поля.length) : 0;
-    var полеРядки = поля.map(function(r, k){
-      var w = (k === поля.length - 1) ? лівоW - колW * k : колW - 16;
-      return wrap(проба, String(r[1]), w, FV);
-    });
-    var поляH = поля.length ? 18 + Math.max.apply(null, полеРядки.map(function(l){ return l.length; })) * 22 : 0;
-    var лівоH = мРядки.length * 27 + (поля.length ? 14 + поляH : 0);
-    var нота = data.note ? wrap(проба, String(data.note), правоW, FN) : [];
-    var низH = Math.max(лівоH, нота.length * 21);
-    var H = top + головаH + 20 + cellH + 28 + 1 + 26 + низH + 48;
+    /* Низ (Андрій, 06.10): модель; під нею сірим колір · матеріал;
+       «Розмір: L   Кількість: 2 шт» в один рядок; «Нанесення:» і під ним
+       кожне місце окремим рядком. Примітка — компактним сірим блоком на
+       всю ширину в самому низу. */
+    var d = data.desc;
+    if(!d){
+      // Старий формат даних: рядки [підпис, значення]
+      var rows = (data.nums || []).filter(function(r){ return r && r[1] != null && r[1] !== '' && r[1] !== '—'; });
+      d = { model: (rows.filter(function(r){ return !r[0]; })[0] || [])[1] || '', sub: '',
+            row: rows.filter(function(r){ return r[0] && !/нанесення/i.test(r[0]); }),
+            apps: rows.filter(function(r){ return /нанесення/i.test(r[0] || ''); }).map(function(r){ return String(r[1]); }) };
+    }
+    var FM = '700 22px Inter, system-ui, sans-serif', FS = '400 16px Inter, system-ui, sans-serif',
+        FL = '400 16px Inter, system-ui, sans-serif', FV = '600 16px Inter, system-ui, sans-serif',
+        FN = '400 13px Inter, system-ui, sans-serif';
+    var опис = [];               // [{ t, font, color, h, parts? }]
+    if(d.model) опис.push({ h: 30, draw: function(y0){ x.fillStyle = '#0F2034'; x.font = FM; x.fillText(String(d.model), 64, y0 + 22); } });
+    if(d.sub) опис.push({ h: 26, draw: function(y0){ x.fillStyle = '#6B7280'; x.font = FS; x.fillText(String(d.sub), 64, y0 + 17); } });
+    if((d.row || []).length) опис.push({ h: 40, draw: function(y0){
+      var px = 64;
+      d.row.forEach(function(r){
+        x.font = FL; x.fillStyle = '#6B7280'; var l = r[0] + ': '; x.fillText(l, px, y0 + 31); px += x.measureText(l).width;
+        x.font = FV; x.fillStyle = '#0F2034'; x.fillText(String(r[1]), px, y0 + 31); px += x.measureText(String(r[1])).width + 36;
+      });
+    } });
+    if((d.apps || []).length){
+      опис.push({ h: 38, draw: function(y0){ x.fillStyle = '#6B7280'; x.font = FL; x.fillText('Нанесення:', 64, y0 + 30); } });
+      d.apps.forEach(function(t){ опис.push({ h: 24, draw: function(y0){ x.fillStyle = '#0F2034'; x.font = FV; x.fillText(String(t), 64, y0 + 18); } }); });
+    }
+    var описH = опис.reduce(function(a, r){ return a + r.h; }, 0);
+    var нота = data.note ? wrap(проба, String(data.note), innerW - 36, FN) : [];
+    var нотаH = нота.length ? 20 + нота.length * 19 : 0;
+    var H = top + головаH + 20 + cellH + 28 + 1 + 24 + описH + (нотаH ? 26 + нотаH : 0) + 44;
     var cv = document.createElement('canvas');
     cv.width = DOC_W; cv.height = H;
     var x = cv.getContext('2d');
@@ -1185,28 +1196,18 @@
     });
     y += cellH + 28;
     x.fillStyle = '#E6E9EE'; x.fillRect(64, y, innerW, 1);
-    y += 1 + 26;
-    // Ліворуч — модель і поля
-    var ly = y;
-    x.fillStyle = '#0F2034'; x.font = FM;
-    мРядки.forEach(function(l){ x.fillText(l, 64, ly + 18); ly += 27; });
-    if(поля.length){
-      ly += 14;
-      поля.forEach(function(r, k){
-        var px = 64 + k * колW;
-        x.fillStyle = '#9AA5B5'; x.font = FL;
-        x.fillText(String(r[0]).toUpperCase(), px, ly + 10);
-        x.fillStyle = '#0F2034'; x.font = FV;
-        полеРядки[k].forEach(function(l, i){ x.fillText(l, px, ly + 18 + 16 + i * 22); });
-      });
+    y += 1 + 24;
+    опис.forEach(function(r){ r.draw(y); y += r.h; });
+    if(нотаH){
+      y += 26;
+      x.fillStyle = '#F4F5F7'; round(x, 64, y, innerW, нотаH, 10); x.fill();
+      x.fillStyle = '#6B7280'; x.font = FN;
+      нота.forEach(function(t, k){ x.fillText(t, 64 + 18, y + 10 + 14 + k * 19); });
     }
-    // Праворуч — примітка, просто сірим текстом
-    x.fillStyle = '#7A8494'; x.font = FN;
-    нота.forEach(function(t, k){ x.fillText(t, 64 + лівоW + 40, y + 15 + k * 21); });
     return cv.toDataURL('image/png');
   }
   /* Версія вигляду картки: аркуші, зібрані раніше, перезбираються. */
-  var CARD_V = 2;
+  var CARD_V = 3;
   /* ══════════ ВИРОБНИЧА КАРТА ВИШИВКИ ══════════
 
      Андрій: «зліва оператор бачить ДЕ і ЯК розмістити вишивку, справа
