@@ -4519,6 +4519,33 @@
 
   .dz-card-w.is-v2 .dz-card-m b{display:inline-block;max-width:100%;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
+  /* ── Картка B2C (06.10): номер → стікер строку → гроші; етапи одним
+     рядком зі стрілками; Instagram — маленька кнопка в куті. ── */
+  .dz-card .dz-c-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:1px 0 0;}
+  .dz-card .dz-c-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 0 0;}
+  .dz-card-w.is-v2 .dz-c-foot .dz-card-m{margin:0;min-width:0;}
+  .dz-card .dz-c-foot .dz-card-m{margin-left:auto;text-align:right;}
+  /* Кнопка каналу — як на картці B2B (.tc-ch-b.ch-ig): та сама форма й колір. */
+  .dz-card .dz-card-ig.is-in{display:inline-flex;align-items:center;flex:none;margin:0;padding:7px 14px;border-radius:9px;
+    font-size:12px;font-weight:700;gap:0;color:#fff;min-height:32px;box-sizing:border-box;white-space:nowrap;
+    background:linear-gradient(45deg,#F09433,#DC2743 45%,#BC1888);}
+  .dz-card .dz-card-ig.is-in::before{content:none;}
+  .dz-card .dz-card-ig.is-in .dz-ig-n{display:block;position:absolute;top:-8px;right:-8px;min-width:18px;height:18px;line-height:18px;font-size:10.5px;margin:0;color:#fff;}
+  .dz-card-w.is-v2 .dz-card-n{top:4px;left:4px;right:auto;}
+  .dz-card .dz-c-main{gap:3px;}
+  .dz-card .dz-c-stk{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;
+    border-radius:6px;background:#F2F4F7;color:#475467;margin:1px 0 0;}
+  .dz-card .dz-c-stk.soon{background:#FEF8E7;color:#8A6410;}
+  .dz-card .dz-c-stk.late{background:#FDECEA;color:#B03A1A;}
+  .dz-card .dz-c-money{margin:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;}
+  .dz-card .dz-c-chr{display:flex;align-items:center;gap:4px;margin:9px 0 0;min-width:0;}
+  .dz-card .dz-c-chr .dz-c-chain.one{flex:1;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0;
+    scroll-behavior:smooth;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 12px),transparent);}
+  .dz-card .dz-c-chr .dz-c-chain.one::-webkit-scrollbar{display:none;}
+  .dz-card .dz-c-arr{flex:none;width:18px;height:18px;margin:0;border-radius:50%;background:#F2F4F7;color:#475467;
+    display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;cursor:pointer;}
+  .dz-card .dz-c-arr:hover{background:#E4E7EC;}
+
   .dz-write.is-off{background:var(--paper);}
   .dz-write-off{display:block;text-align:center;font-size:12.5px;color:var(--muted);}
   /* ── Версія в розмові: три плитки з оком і скачуванням на самих картинках ── */
@@ -7342,27 +7369,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ae21fbba62"></script>
-<script src="loomiq-fingerprint.js?v=ae21fbba62"></script>
-<script src="loomiq-pricing.js?v=ae21fbba62"></script>
+<script src="loomiq-select.js?v=eaa9265ea3"></script>
+<script src="loomiq-fingerprint.js?v=eaa9265ea3"></script>
+<script src="loomiq-pricing.js?v=eaa9265ea3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=ae21fbba62"></script>
+<script src="loomiq-money-core.js?v=eaa9265ea3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ae21fbba62"></script>
-<script src="loomiq-mock.js?v=ae21fbba62"></script>
+<script src="loomiq-design.js?v=eaa9265ea3"></script>
+<script src="loomiq-mock.js?v=eaa9265ea3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=ae21fbba62"></script>
-<script src="loomiq-threads.js?v=ae21fbba62"></script>
+<script src="imagetracer.js?v=eaa9265ea3"></script>
+<script src="loomiq-threads.js?v=eaa9265ea3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ae21fbba62"></script>
+<script src="loomiq-cards.js?v=eaa9265ea3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7407,7 +7434,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ae21fbba62';
+var LQ_VER = 'eaa9265ea3';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
