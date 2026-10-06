@@ -7391,27 +7391,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a08003809e"></script>
-<script src="loomiq-fingerprint.js?v=a08003809e"></script>
-<script src="loomiq-pricing.js?v=a08003809e"></script>
+<script src="loomiq-select.js?v=4054ebb7de"></script>
+<script src="loomiq-fingerprint.js?v=4054ebb7de"></script>
+<script src="loomiq-pricing.js?v=4054ebb7de"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=a08003809e"></script>
+<script src="loomiq-money-core.js?v=4054ebb7de"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a08003809e"></script>
-<script src="loomiq-mock.js?v=a08003809e"></script>
+<script src="loomiq-design.js?v=4054ebb7de"></script>
+<script src="loomiq-mock.js?v=4054ebb7de"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=a08003809e"></script>
-<script src="loomiq-threads.js?v=a08003809e"></script>
+<script src="imagetracer.js?v=4054ebb7de"></script>
+<script src="loomiq-threads.js?v=4054ebb7de"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a08003809e"></script>
+<script src="loomiq-cards.js?v=4054ebb7de"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7456,7 +7456,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a08003809e';
+var LQ_VER = '4054ebb7de';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24105,9 +24105,9 @@ async function crmLoadChat(o){
   renderOrderDrawer();
   const st = { chatId, clientName: o.crmChatName || '' };
   try{
-    const data = await crmFetch('/chats/' + encodeURIComponent(chatId) + '/messages');
-    st.rawMsgs = data;
-    const msgs = crmNormMsgs(data, o);
+    const r = await crmFetchMsgs(chatId);
+    st.rawMsgs = r.first; st.rawAll = r.arr; st.pageInfo = r.info;
+    const msgs = crmNormMsgs(r.arr || r.first, o);
     if(msgs) st.msgs = msgs;
     else st.noHistory = 'відповідь без списку повідомлень';
   }catch(e){
@@ -24196,6 +24196,129 @@ function crmFilesHtml(files){
 }
 
 /* «Сьогодні» й «вчора» читаються швидше за дату — саме їх менеджер шукає очима. */
+/* ══ ВСЯ ПЕРЕПИСКА, А НЕ ОСТАННІ ДЕСЯТЬ (06.10) ══
+
+   Андрій: «частину даних Sitniks не перегрузили». `/chats/{id}/messages`
+   віддає лише ОСТАННЮ сторінку — десять повідомлень, — і все, що раніше
+   (перше звернення, фото клієнта), до CRM не доходило зовсім. Тому й
+   видалене не було з чим показати: його ми ніколи не бачили.
+
+   Документація Sitniks закрита, тож параметр гортання шукаємо один раз
+   перебором: спершу — чи можна попросити більшу сторінку, далі — як
+   попросити наступну. Знайдений спосіб памʼятаємо (у вкладці й у браузері)
+   і далі гортаємо ним одразу. Невідомий параметр Sitniks просто ігнорує й
+   віддає ту саму першу сторінку, тож «спрацювало» = прийшли повідомлення,
+   яких у нас ще не було. */
+const CRM_PAGE_MAX = 40;               // запас: 40 сторінок — тисячі повідомлень
+const CRM_SIZE_KEYS = ['limit', 'perPage', 'pageSize', 'per_page', 'take', 'size', 'count'];
+let crmPageWay = null;
+try{ crmPageWay = JSON.parse(localStorage.getItem('crmPageWay') || 'null'); }catch(e){}
+function crmMsgArr(d){
+  return Array.isArray(d) ? d
+    : (Array.isArray(d && d.items) ? d.items
+    : (Array.isArray(d && d.data) ? d.data
+    : (Array.isArray(d && d.messages) ? d.messages
+    : (Array.isArray(d && d.results) ? d.results : null))));
+}
+function crmRawId(m){
+  if(!m || typeof m !== 'object') return String(m || '');
+  const id = m.id || m._id || m.messageId || m.message_id || m.mid || m.externalId;
+  return id ? 'i:' + id : 'k:' + String(crmPick(m, CRM_AT_KEYS) || '') + '|' +
+    String(crmPick(m, CRM_TXT_KEYS) || m.attachmentUrl || '').slice(0, 120);
+}
+function crmRawAt(m){ return (m && typeof m === 'object') ? crmTime(crmPick(m, CRM_AT_KEYS)) : 0; }
+function crmCursorOf(d){
+  if(!d || typeof d !== 'object' || Array.isArray(d)) return '';
+  const meta = d.meta || d.pagination || d.paging || d;
+  return String(meta.nextCursor || meta.next_cursor || meta.cursor || meta.next || '');
+}
+function crmWayQuery(way, n, got, oldest, cursor){
+  const q = [];
+  if(way.size) q.push(way.size + '=100');
+  if(way.next === 'page') q.push('page=' + n);
+  else if(way.next === 'page0') q.push('page=' + (n - 1));
+  else if(way.next === 'offset' || way.next === 'skip') q.push(way.next + '=' + got);
+  else if(way.next && way.next.indexOf('id:') === 0){ if(!oldest) return null; q.push(way.next.slice(3) + '=' + encodeURIComponent(oldest)); }
+  else if(way.next === 'cursor'){ if(!cursor) return null; q.push('cursor=' + encodeURIComponent(cursor)); }
+  return q.join('&');
+}
+async function crmFetchMsgs(chatId){
+  const base = '/chats/' + encodeURIComponent(chatId) + '/messages';
+  const first = await crmFetch(base);
+  const arr0 = crmMsgArr(first);
+  if(!arr0) return { first, arr: null, info: '' };
+  const all = arr0.slice(), seen = {};
+  all.forEach(m => { seen[crmRawId(m)] = 1; });
+  const add = list => {
+    let n = 0;
+    (list || []).forEach(m => { const k = crmRawId(m); if(seen[k]) return; seen[k] = 1; all.push(m); n++; });
+    return n;
+  };
+  const oldestId = () => {
+    let best = null, bt = Infinity;
+    all.forEach(m => { const t = crmRawAt(m); if(m && typeof m === 'object' && t && t < bt){ bt = t; best = m; } });
+    const m = best || all[all.length - 1];
+    return m && typeof m === 'object' ? String(m.id || m._id || m.messageId || '') : '';
+  };
+  let info = 'сторінка 1: ' + arr0.length;
+  if(!arr0.length) return { first, arr: all, info };
+  let way = crmPageWay, cursor = crmCursorOf(first), n = 0;
+  if(way){
+    /* Спосіб відомий. Більшу сторінку просимо одразу — перша, яку ми вже
+       маємо, була звичайною, на десять. */
+    if(way.size){
+      try{
+        const d = await crmFetch(base + '?' + way.size + '=100' + (way.next === 'page0' ? '&page=0' : ''));
+        add(crmMsgArr(d)); cursor = crmCursorOf(d) || cursor;
+      }catch(e){}
+    }
+    n = way.next ? 2 : 0;
+  } else {
+    /* Спосіб ще не відомий — шукаємо. Неповна перша сторінка (менше десяти)
+       означає, що вся розмова вже тут. */
+    if(arr0.length < 10 && !cursor) return { first, arr: all, info };
+    let size = '';
+    for(const k of CRM_SIZE_KEYS){
+      try{
+        const d = await crmFetch(base + '?' + k + '=100');
+        if(add(crmMsgArr(d))){ size = k; cursor = crmCursorOf(d) || cursor; break; }
+      }catch(e){}
+    }
+    const tries = ['page', 'offset', 'skip', 'id:before', 'id:beforeId', 'id:lastId', 'id:fromId', 'cursor', 'page0'];
+    for(const next of tries){
+      const w = { size, next };
+      const q = crmWayQuery(w, 2, all.length, oldestId(), cursor);
+      if(q == null) continue;
+      try{
+        const d = await crmFetch(base + '?' + q);
+        if(add(crmMsgArr(d))){ way = w; cursor = crmCursorOf(d) || cursor; break; }
+      }catch(e){}
+    }
+    if(!way && size) way = { size, next: '' };
+    if(!way){ info += ' · гортання Sitniks не знайдено'; return { first, arr: all, info }; }
+    crmPageWay = way;
+    try{ localStorage.setItem('crmPageWay', JSON.stringify(way)); }catch(e){}
+    n = way.next ? 3 : 0;
+  }
+  info += ' · спосіб: ' + [way.size ? way.size + '=100' : '', way.next].filter(Boolean).join(' + ');
+  /* Гортаємо, доки приходить нове: порожня сторінка або сторінка без
+     жодного нового повідомлення — кінець розмови. */
+  if(n) for(; n <= CRM_PAGE_MAX; n++){
+    const q = crmWayQuery(way, n, all.length, oldestId(), cursor);
+    if(q == null) break;
+    let d;
+    try{ d = await crmFetch(base + '?' + q); }catch(e){ break; }
+    cursor = crmCursorOf(d);
+    if(!add(crmMsgArr(d))) break;
+  }
+  /* Найновіше першим — так, як Sitniks віддає одну сторінку. Стрічку далі
+     розвертає crmNormMsgs за першим і останнім, тож порядок мусить бути
+     суцільним по всіх сторінках. */
+  if(all.every(m => crmRawAt(m))) all.sort((a, b) => crmRawAt(b) - crmRawAt(a));
+  info += ' · усього: ' + all.length;
+  return { first, arr: all, info };
+}
+
 function crmDayLabel(day){
   const d = new Date(day + 'T00:00:00');
   if(isNaN(d)) return day;
@@ -24208,9 +24331,24 @@ function crmDayLabel(day){
 /* Повна позначка часу — для підказки на наведення. «Сьогодні» й «вчора»
    зручні, поки розмова свіжа; коли до неї повертаються через місяць, потрібні
    рівно дата, година, хвилина й секунда. */
+/* ЧАС ПЕРЕПИСКИ — ЗА КИЄВОМ (06.10).
+
+   І Sitniks, і наш Telegram-воркер дають час у UTC. Стрічка ж показувала
+   його як є: «Яка у вас якість?» стояло о 08:13 там, де клієнтка писала о
+   11:13 за Києвом. Усередині час лишається UTC (на ньому рахується вікно
+   відповіді й межа прочитаного), а на екран іде київський. */
+function crmKyiv(at){
+  const t = crmTime(at);
+  if(!t) return '';
+  const p = {};
+  new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Kyiv', year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(new Date(t))
+    .forEach(x => { p[x.type] = x.value; });
+  return p.year + '-' + p.month + '-' + p.day + ' ' + p.hour + ':' + p.minute;
+}
 function crmFullStamp(at){
   if(!at) return '';
-  const d = new Date(at);
+  const d = new Date(crmTime(at) || at);
   if(isNaN(d)) return String(at);
   return d.toLocaleString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit', year:'numeric',
     hour:'2-digit', minute:'2-digit', second:'2-digit' });
@@ -24275,7 +24413,8 @@ function crmRawSample(o){
   const list = Array.isArray(arr) ? arr : [arr];
   if(!list.length) return 'Sitniks не прислав жодного повідомлення.';
   const pick = list.length > 1 ? [list[0], list[list.length - 1]] : list;
-  return pick.map(x => JSON.stringify(x, null, 1)).join('\n— — —\n').slice(0, 4000);
+  const pi = (crmChat[o.id] || {}).pageInfo;
+  return (pi ? 'Гортання: ' + pi + '\n— — —\n' : '') + pick.map(x => JSON.stringify(x, null, 1)).join('\n— — —\n').slice(0, 4000);
 }
 /* Підписи співрозмовника — усе, чим цю людину може бути названо в Sitniks.
    Саме за ними ми й відрізняємо її повідомлення від наших. */
@@ -24741,8 +24880,10 @@ async function crmLoad(o, numFromInput){
       crmChat[o.id] = st; renderOrderDrawer(); return;
     }
     try{
-      const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
-      console.log('Sitniks: замовлення', ord, '· повідомлення', data);
+      const r = await crmFetchMsgs(st.chatId);
+      const data = r.first;
+      st.rawAll = r.arr; st.pageInfo = r.info;
+      console.log('Sitniks: замовлення', ord, '· повідомлення', data, '·', r.info);
       // Окремим рядком і без розгортання: назви полів потрібні, щоб точно
       // визначати автора повідомлення, а не вгадувати його за ознаками.
       try{
@@ -24753,7 +24894,7 @@ async function crmLoad(o, numFromInput){
         console.log('Sitniks: поля замовлення →', Object.keys(ord || {}).join(', '));
       }catch(e){}
       st.rawMsgs = data;
-      const msgs = crmNormMsgs(data, o);
+      const msgs = crmNormMsgs(r.arr || data, o);
       if(msgs) st.msgs = msgs;
       else st.noHistory = 'відповідь без списку повідомлень';
     }catch(e){
@@ -25110,7 +25251,22 @@ async function crmPollOnce(o){
   if(!st || !st.chatId || st.loading) return;
   try{
     const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
-    const msgs = crmNormMsgs(data, o);
+    /* Опитування бере лише свіжу сторінку — гортати всю розмову щохвилини
+       ні до чого. Старішу частину доклеюємо з уже завантаженої: інакше
+       кожне опитування обрізало б стрічку до останніх десяти. Видалене в
+       свіжій сторінці так само видно: старше за неї не доклеюється. */
+    const fresh = crmMsgArr(data);
+    let src = data;
+    if(fresh && Array.isArray(st.rawAll) && st.rawAll.length > fresh.length){
+      const ts = fresh.map(crmRawAt).filter(Boolean);
+      const межа = ts.length ? Math.min.apply(null, ts) : 0;
+      const є = {}; fresh.forEach(m => { є[crmRawId(m)] = 1; });
+      const старі = межа ? st.rawAll.filter(m => !є[crmRawId(m)] && crmRawAt(m) && crmRawAt(m) < межа) : [];
+      src = fresh.concat(старі);
+      if(src.every(m => crmRawAt(m))) src.sort((a, b) => crmRawAt(b) - crmRawAt(a));
+      st.rawAll = src;
+    }
+    const msgs = crmNormMsgs(src, o);
     if(!msgs) return;
     /* Прикмета стрічки — не лише тексти. Бік, підпис, вкладення й слід
        видаленого теж міняють те, що людина бачить; порівнюючи самі тексти,
@@ -25399,10 +25555,10 @@ function chatsHtml(dir){
 function crmDayShort(at){
   const s = String(at || '');
   if(!s) return '';
-  const d = new Date(s);
+  const d = new Date(crmTime(s) || s);
   if(isNaN(+d)) return '';
-  const today = new Date().toISOString().slice(0, 10);
-  return s.slice(0, 10) === today
+  const today = crmKyiv(new Date().toISOString()).slice(0, 10);
+  return crmKyiv(s).slice(0, 10) === today
     ? d.toLocaleTimeString('uk-UA', { timeZone:'Europe/Kyiv', hour:'2-digit', minute:'2-digit' })
     : d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
 }
@@ -27571,7 +27727,8 @@ function chatRowsHtml(msgs){
   }
   const новихN = (межа >= 0) ? list.slice(межа).filter(m => m && !m.gone).length : 0;
   return list.map((m, i) => {
-    const day = (m.at || '').slice(0, 10);
+    const loc = crmKyiv(m.at);
+    const day = loc.slice(0, 10);
     let sep = '';
     if(day && day !== lastDay){
       lastDay = day;
@@ -27582,7 +27739,7 @@ function chatRowsHtml(msgs){
     if(i === межа)
       sep += `<div class="od-crm-new" data-crm-new>` +
         `${новихN === 1 ? 'нове повідомлення' : 'нових повідомлень · ' + новихN}</div>`;
-    const time = (m.at || '').slice(11, 16);
+    const time = loc.slice(11, 16);
     // Помітка лише тоді, коли самого файлу немає. Фото, яке воркер переклав
     // у Cloudinary, показуємо картинкою — «відкрийте в Telegram» тут було б
     // неправдою.
@@ -27594,7 +27751,7 @@ function chatRowsHtml(msgs){
        підпис лишався тільки від останнього: виходило, що написав не той. */
     const grouped = nxt && !!nxt.mine === !!m.mine &&
                     String(nxt.by || '') === String(m.by || '') &&
-                    (nxt.at || '').slice(0, 10) === day;
+                    crmKyiv(nxt.at).slice(0, 10) === day;
     // Наведення показує повну дату з секундами: у спорі «коли саме він це
     // написав» хвилин буває замало
     const full = crmFullStamp(m.at);
