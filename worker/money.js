@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-05.6 · NovaPay: рухи у Фінанси';
+const VERSION = '2026-10-06.1 · картка Приват24 фізособи';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -507,6 +507,111 @@ function privatIso(t) {
   if (m) return kyivIso(+m[3], +m[2], +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
   const d = new Date(s);
   return isNaN(d) ? new Date().toISOString() : d.toISOString();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   КАРТКА ПРИВАТ24 ФІЗОСОБИ (06.10)
+
+   Андрій: «привʼяжемо ще звичайну картку Зеленої Ірини, окрім Приват ФОП:
+   ми туди виводимо кошти з ФОП, щоб, наприклад, заплатити співробітникам».
+   «Автоклієнт» бачить лише рахунки ФОП, тож тут — API «Мерчант Приват24
+   для фізосіб»: Приват24 → Усі послуги → Бізнес → Мерчант → Зареєструвати
+   (на цю картку) → ID мерчанта й пароль. Секрети на рахунок <код>:
+     PRIVAT24_ID_<код>, PRIVAT24_PASS_<код>, PRIVAT24_CARD_<код> (номер картки).
+   Запит — XML; підпис = sha1(md5(вміст <data> + пароль)). MD5 у Workers
+   немає (crypto.subtle його не знає) — тому свій, нижче.
+   Рухи пишемо як src: 'privat' (банківські — незмінні правилами бази),
+   id: p24_<…> — стійкий з дати, часу, коду авторизації й суми.
+   ══════════════════════════════════════════════════════════════════════════ */
+function md5hex(str){
+  const b = new TextEncoder().encode(str);
+  const n = (((b.length + 8) >>> 6) + 1) * 16, w = new Array(n).fill(0);
+  for (let i = 0; i < b.length; i++) w[i >> 2] |= b[i] << ((i % 4) * 8);
+  w[b.length >> 2] |= 0x80 << ((b.length % 4) * 8);
+  w[n - 2] = (b.length * 8) >>> 0; w[n - 1] = Math.floor(b.length / 0x20000000);
+  const K = [], S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+    4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) | 0;
+  let a0 = 0x67452301, b0 = 0xefcdab89 | 0, c0 = 0x98badcfe | 0, d0 = 0x10325476;
+  const rol = (x, c) => (x << c) | (x >>> (32 - c));
+  for (let o = 0; o < n; o += 16) {
+    let A = a0, B = b0, C = c0, Dd = d0;
+    for (let i = 0; i < 64; i++) {
+      let F, g;
+      if (i < 16) { F = (B & C) | (~B & Dd); g = i; }
+      else if (i < 32) { F = (Dd & B) | (~Dd & C); g = (5 * i + 1) % 16; }
+      else if (i < 48) { F = B ^ C ^ Dd; g = (3 * i + 5) % 16; }
+      else { F = C ^ (B | ~Dd); g = (7 * i) % 16; }
+      const t = Dd; Dd = C; C = B;
+      B = (B + rol((A + F + K[i] + w[o + g]) | 0, S[i])) | 0; A = t;
+    }
+    a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + Dd) | 0;
+  }
+  return [a0, b0, c0, d0].map(x => { let h = ''; for (let i = 0; i < 4; i++) h += ((x >>> (i * 8)) & 255).toString(16).padStart(2, '0'); return h; }).join('');
+}
+async function sha1hex(str){
+  const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+  return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+async function p24Request(env, acc, url, props){
+  const id = String(env['PRIVAT24_ID_' + acc.id] || '').trim(), pass = String(env['PRIVAT24_PASS_' + acc.id] || '').trim();
+  const data = '<oper>cmt</oper><wait>0</wait><test>0</test><payment id="">' +
+    props.map(p => '<prop name="' + p[0] + '" value="' + xmlEsc(p[1]) + '" />').join('') + '</payment>';
+  const sign = await sha1hex(md5hex(data + pass));
+  const body = '<?xml version="1.0" encoding="UTF-8"?><request version="1.0"><merchant><id>' + xmlEsc(id) +
+    '</id><signature>' + sign + '</signature></merchant><data>' + data + '</data></request>';
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/xml; charset=utf-8' }, body });
+  const t = await r.text();
+  /* Помилка в Приват24 — <error message="…"/> або <response><data><error …>. */
+  const err = /<error[^>]*message="([^"]*)"/i.exec(t) || /<error>([^<]*)<\/error>/i.exec(t);
+  if (err) throw new Error('Приват24: ' + xmlUnesc(err[1]));
+  if (!r.ok) throw new Error('Приват24 ' + r.status + ': ' + t.slice(0, 200));
+  return t;
+}
+function p24Attrs(tag){
+  const o = {}; const re = /([\w-]+)="([^"]*)"/g; let m;
+  while ((m = re.exec(tag))) o[m[1]] = xmlUnesc(m[2]);
+  return o;
+}
+/* Рух виписки → платіж. Сума — «cardamount» зі знаком у валюті картки. */
+function p24Row(st, accId){
+  const amt = parseFloat(String(st.cardamount || st.amount || '').replace(',', '.'));
+  if (!isFinite(amt) || !amt) return null;
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(st.trandate || '').trim());
+  const t = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(String(st.trantime || '').trim()) || [];
+  if (!d) return null;
+  const key = [st.trandate, st.trantime, st.appcode || '', String(st.cardamount || '').replace(/\s+/g, '')].join('_');
+  return {
+    id: 'p24_' + accId + '_' + key.replace(/[^\w.-]/g, ''),
+    at: kyivIso(+d[1], +d[2], +d[3], +(t[1] || 12), +(t[2] || 0), +(t[3] || 0)),
+    amount: amt, acc: accId,
+    counter: String(st.terminal || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+    desc: String(st.description || '').replace(/\s+/g, ' ').trim(),
+    src: 'privat',
+    balAfter: (() => { const v = parseFloat(String(st.rest || '').replace(',', '.')); return isFinite(v) ? v : null; })()
+  };
+}
+function p24Date(d){ return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); }
+async function p24Poll(env, acc, raw){
+  const card = String(env['PRIVAT24_CARD_' + acc.id] || '').replace(/\D/g, '');
+  if (!env['PRIVAT24_ID_' + acc.id] || !env['PRIVAT24_PASS_' + acc.id] || !card)
+    return { acc: acc.id, skip: 'немає секретів PRIVAT24_ID_' + acc.id + ' / PRIVAT24_PASS_' + acc.id + ' / PRIVAT24_CARD_' + acc.id };
+  const до = new Date(), від = new Date(Date.now() - 3 * 864e5);
+  const xml = await p24Request(env, acc, 'https://api.privatbank.ua/p24api/rest_fiz',
+    [['sd', p24Date(від)], ['ed', p24Date(до)], ['card', card]]);
+  const rows = (xml.match(/<statement\b[^>]*\/?>/gi) || []).map(p24Attrs);
+  if (raw) return { рухи_сирі: rows.slice(0, 10), відповідь: xml.replace(/\s+/g, ' ').slice(0, 1500) };
+  const пакет = []; let n = 0;
+  for (const st of rows) { const r = p24Row(st, acc.id); if (r && await payment(env, r, пакет)) n++; }
+  await fsCommit(env, пакет);
+  /* Залишок — окремим запитом; не вдався — рухи від цього не гірші. */
+  let залишок = null;
+  try {
+    const b = await p24Request(env, acc, 'https://api.privatbank.ua/p24api/balance', [['cardnum', card], ['country', 'UA']]);
+    const v = parseFloat(String((/<av_balance>([^<]*)</i.exec(b) || /<balance>([^<]*)</i.exec(b) || [])[1] || '').replace(',', '.'));
+    if (isFinite(v)) { await bankBalance(env, acc.id, v, new Date().toISOString(), 'privat'); залишок = v; }
+  } catch (e) { залишок = 'не прочитано: ' + e.message; }
+  return { acc: acc.id, рухів: n, залишок };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1011,6 +1116,17 @@ async function poll(env, opts) {
      підписом «рахунок не вказано». Вигадувати рахунок не можна: гроші
      лягли б у чужий підсумок. */
   const npAcc = (accs.filter(x => x.bank === 'np')[0] || {}).id || env.NP_ACCOUNT || '';
+  /* Картки Приват24 фізосіб — разом із НП, раз на 30 хв: Приват24 обмежує
+     частоту запитів виписки. */
+  const p24 = accs.filter(x => x.bank === 'privat24');
+  if (p24.length) {
+    out.privat24 = [];
+    if (opts.np === false) out.privat24.push({ skip: 'за розкладом — раз на 30 хв' });
+    else for (const a of p24) {
+      try { out.privat24.push(await p24Poll(env, a)); }
+      catch (e) { out.privat24.push({ acc: a.id, error: e.message }); }
+    }
+  }
   if (opts.np === false) out.np = { skip: 'за розкладом — раз на 30 хв' };
   else {
     try { out.np = await npPoll(env, npAcc); }
@@ -1023,7 +1139,7 @@ async function poll(env, opts) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { novapayEnvelope, novapayUntil, novapayRow, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
+export const _pure = { md5hex, p24Row, novapayEnvelope, novapayUntil, novapayRow, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -1083,6 +1199,15 @@ export default {
       if (parts[0] === 'poll') {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
         return json({ ok: true, ...(await poll(env)) });
+      }
+      /* Картка Приват24 фізособи: /p24/probe/<код> — сира виписка за 3 дні;
+         /p24/poll/<код> — записати рухи й залишок зараз. */
+      if (parts[0] === 'p24' && (parts[1] === 'probe' || parts[1] === 'poll')) {
+        if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
+        const a = (await accounts(env)).filter(x => x.id === parts[2])[0];
+        if (!a) return json({ ok: false, error: 'У Фінансах немає рахунку ' + (parts[2] || '') }, 404);
+        try { return json({ ok: true, ...(await p24Poll(env, a, parts[1] === 'probe')) }); }
+        catch (e) { return json({ ok: false, error: String((e && e.message) || e) }); }
       }
       /* Що САМЕ каже Приват про залишок рахунку — сирий відгук і розібране. */
       if (parts[0] === 'privat' && parts[1] === 'balance') {
