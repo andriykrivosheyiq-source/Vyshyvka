@@ -7369,27 +7369,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9ff294fdec"></script>
-<script src="loomiq-fingerprint.js?v=9ff294fdec"></script>
-<script src="loomiq-pricing.js?v=9ff294fdec"></script>
+<script src="loomiq-select.js?v=dbdc96fdc6"></script>
+<script src="loomiq-fingerprint.js?v=dbdc96fdc6"></script>
+<script src="loomiq-pricing.js?v=dbdc96fdc6"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9ff294fdec"></script>
+<script src="loomiq-money-core.js?v=dbdc96fdc6"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9ff294fdec"></script>
-<script src="loomiq-mock.js?v=9ff294fdec"></script>
+<script src="loomiq-design.js?v=dbdc96fdc6"></script>
+<script src="loomiq-mock.js?v=dbdc96fdc6"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9ff294fdec"></script>
-<script src="loomiq-threads.js?v=9ff294fdec"></script>
+<script src="imagetracer.js?v=dbdc96fdc6"></script>
+<script src="loomiq-threads.js?v=dbdc96fdc6"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9ff294fdec"></script>
+<script src="loomiq-cards.js?v=dbdc96fdc6"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7434,7 +7434,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9ff294fdec';
+var LQ_VER = 'dbdc96fdc6';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10300,7 +10300,10 @@ function finOwnCalc(){
   /* NovaPay сам каже, що це: пул наложок (вже пораховані поштучно) чи
      переказ собі ж. Не дохід і не витрата — хіба людина сказала «ні». */
   all.forEach(p => { if(p.flow && p.tag !== 'notown') own[p.id] = 1; });
-  const вільні = all.filter(p => !own[p.id] && p.tag !== 'notown' && p.acc);
+  /* Переказ собі (flow: self) уже «між своїми», але другу половину — на
+     підключеній картці — йому все одно шукаємо: інакше вона лишиться
+     «надходженням» без пари. */
+  const вільні = all.filter(p => (!own[p.id] || (p.flow === 'self' && p.tag !== 'own')) && p.tag !== 'notown' && p.acc);
   const ins = вільні.filter(p => +p.amount > 0);
   const банк = {};
   finAccounts().forEach(a => { банк[a.id] = a.bank || ''; });

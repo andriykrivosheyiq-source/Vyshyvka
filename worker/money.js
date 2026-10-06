@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-06.1 · картка Приват24 фізособи';
+const VERSION = '2026-10-06.2 · переказ власних коштів — між своїми';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -468,6 +468,9 @@ async function privatPoll(env, acc) {
       acc: acc.id,
       counter: t.AUT_CNTR_NAM || t.AUT_MY_CRF_NAM || '',
       desc: t.OSND || '',
+      /* «Переказ власних коштів» (06.10) — ФОП виводить собі на картку: не
+         витрата, між своїми, навіть поки саму картку не підключено. */
+      flow: /переказ\s+власних\s+кошт/i.test(String(t.OSND || '')) ? 'self' : undefined,
       src: 'privat'
     }, пакет);
     n++;
