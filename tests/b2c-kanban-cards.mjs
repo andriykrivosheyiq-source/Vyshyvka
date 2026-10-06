@@ -152,6 +152,7 @@ await p.evaluate(() => {
   j.units = [unit('tee','Футболка оверсайз','Бежевий','#d9c7a7','S',20), unit('tote','Шопер','Натуральний','#e8dcc3','',10)];
   d = D.dzNew(); Object.assign(d, { name:'Груди', side:'front', mm:{ w:90, h:90 }, who:'art@loomiq', sentAt: now, status:'revision' });
   d.vers.push(ver(pic('#EFE7DA', '#d9c7a7', 'v2'))); d.vers.push(ver(pic('#EFE7DA', '#d9c7a7', 'v3'))); j.units[0].graphic.push(d);
+  window.__V1 = d.vers[0].files[0].url; window.__V3 = d.vers[1].files[0].url;
   // 4: виробництво
   j = designJobMake('2000104'); j.due = inDays(4);
   j.units = [unit('hoodie','Худі базове','Чорний','#1d1d1f','M',2)];
@@ -186,12 +187,23 @@ const board = seat => p.evaluate(s => { window.LQDesign.ui.setTab(s); openDesign
       steps: w.querySelectorAll('.dz-c-steps i').length,
       stepsDone: w.querySelectorAll('.dz-c-steps i.done').length,
       who: (() => { const e = w.querySelector('.dz-c-who'); return e ? Math.round(e.getBoundingClientRect().width) : 0; })(),
-      due: (w.querySelector('.dz-c-bot .dz-card-due') || {}).textContent || '',
+      due: [...w.querySelectorAll('.dz-c-stk')].map(e => e.textContent).join('|'),
+      dueUnder: (() => { const t = w.querySelector('.dz-c-main > b'), k = w.querySelector('.dz-c-stk'), m = w.querySelector('.dz-c-money');
+        if(!t || !k) return false; const a = t.getBoundingClientRect(), b = k.getBoundingClientRect(), c = m ? m.getBoundingClientRect() : null;
+        return b.top >= a.bottom - 1 && Math.abs(b.left - a.left) < 2 && (!c || c.top >= b.bottom - 1); })(),
+      src: (w.querySelector('.dz-c-pic img') || {}).src || '',
+      oneRow: (() => { const ch = w.querySelector('.dz-c-chain.one'); if(!ch) return null;
+        const tops = [...ch.querySelectorAll('b')].map(b => Math.round(b.getBoundingClientRect().top)); return new Set(tops).size === 1; })(),
+      arrows: w.querySelectorAll('.dz-c-chr [data-chs]').length,
+      igBox: (() => { const e = w.querySelector('.dz-card-ig'); if(!e) return null; const r = e.getBoundingClientRect(), c = w.getBoundingClientRect();
+        const k = w.querySelector('.dz-c-stk'), kr = k ? k.getBoundingClientRect() : null;
+        const ch = w.querySelector('.dz-c-chr'), cr = ch ? ch.getBoundingClientRect() : null;
+        return { h: Math.round(r.height), wFrac: +(r.width / c.width).toFixed(2), bottom: c.bottom - r.bottom < 16,
+                 belowChain: !!cr && r.top >= cr.bottom - 1, left: r.left - c.left < 20 }; })(),
       chip: [...w.querySelectorAll('.dz-card-m b')].map(b => b.textContent),
       ready: [...w.querySelectorAll('.dz-c-ready b')].map(b => b.className + ':' + b.textContent.trim()),
       ig: !!w.querySelector('.dz-card-ig'),
-      igLast: (w.lastElementChild || {}).className === 'dz-card-ig',
-      over: [...w.querySelectorAll('.dz-card *')].filter(e => {
+      over: [...w.querySelectorAll('.dz-card *')].filter(e => !e.closest('.dz-c-chain.one')).filter(e => {
         const r = e.getBoundingClientRect(), c = w.getBoundingClientRect();
         return r.width && (r.right > c.right + 1 || r.left < c.left - 1); }).length
     }))
@@ -218,15 +230,24 @@ ok(a2.steps === 0 && a2.chain.length === 5 && a2.chain[0] === 'now:Графік�
 ok(a4.chain.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | now:Одяг не замовлено | now:У виробництві | next:Відправка',
   'у цеху: ✓ Графіка · ✓ Вишивка · Одяг не замовлено · У виробництві · Відправка', 'ланцюжок: ' + a4.chain.join(' | '));
 ok(a2.who === 0 && a4.who === 0, 'кружечка з людиною немає — у кого етап, написано словами', 'кружечок лишився');
-ok(/^до відправки \d+ (день|дні|днів)$/.test(a2.due), 'унизу — «до відправки N днів»: ' + a2.due, 'строк не той: ' + a2.due);
-ok(a2.ig && a2.igLast, 'канал клієнта (Instagram) — внизу картки', 'кнопки каналу внизу немає');
+/* 06.10: один стікер строку — найближчий; під номером, під ним гроші. */
+ok(a2.due.split('|').length === 1 && /^(лишилось|до відправки|прострочено) /.test(a2.due) && a2.dueUnder,
+  'один стікер строку під номером («' + a2.due + '»), під ним — гроші', 'стікер: ' + a2.due + ' / під номером: ' + a2.dueUnder);
+ok(a2.oneRow === true && a2.arrows === 2 && a4.oneRow === true, 'етапи — одним рядком зі стрілками ‹ › (гортати минулі й наступні)', 'рядок етапів: ' + JSON.stringify([a2.oneRow, a2.arrows, a4.oneRow]));
+ok(a2.ig && a2.igBox && a2.igBox.h <= 36 && a2.igBox.wFrac < 0.5 && a2.igBox.bottom && a2.igBox.belowChain && a2.igBox.left, 'Instagram — кнопкою внизу картки, як у B2B, а не смугою на весь низ', 'кнопка: ' + JSON.stringify(a2.igBox));
+if(process.env.LQ_SHOT){ await board('acct'); await p.screenshot({ path: process.env.LQ_SHOT, fullPage: false }); }
+const igClick = await p.evaluate(() => { window.__chatAsked = 0;
+  const b = document.querySelector('.dz-card-ig.is-in'); const before = document.querySelectorAll('.dz-card.on').length;
+  b.click(); return { opened: document.querySelectorAll('.dz-card.on').length > before }; });
+ok(!igClick.opened, 'натиск на Instagram не відкриває саму картку', 'картка відкрилась від Instagram');
+ok(!a2.state && !a4.state, 'рядка «у роботі · …» немає — хто робить, видно в рядку етапів', 'стан лишився: ' + a2.state);
 ok(a3.fix && a3.chip.indexOf('правки клієнта') >= 0, 'правки клієнта — червоним', 'правки не видно');
-ok(a5 && a5.col === 'prod' && /контролі якості/.test(a5.state), 'контроль якості не зникає: картка в «Виробництві», стан «на контролі якості»',
-  'контроль якості: ' + JSON.stringify(a5 && { col: a5.col, state: a5.state }));
-ok(/^у цеху/.test(a4.state), 'у цеху — «у цеху · …», а не «ще не передано»: ' + a4.state, 'стан у цеху: ' + a4.state);
+ok(a5 && a5.col === 'prod', 'контроль якості не зникає: картка в «Виробництві»', 'контроль якості: ' + JSON.stringify(a5 && { col: a5.col }));
+/* 06.10: картинка — V1 першого макета (сам файл), однакова на всіх дошках до кінця. */
+const V = await p.evaluate(() => [window.__V1, window.__V3]);
+ok(a3.src === V[0] && a3.src !== V[1], 'картинка — перша версія макета (V1), а не остання', 'картинка 2000003 — не V1');
 
 console.log('');
-if(process.env.LQ_SHOT){ await board('acct'); await p.screenshot({ path: process.env.LQ_SHOT, fullPage: false }); }
 console.log('═══ ДИЗАЙНЕР ═══');
 const G = await board('graphic');
 const g2 = find(G, '2000002'), g3 = find(G, '2000003');
@@ -253,6 +274,9 @@ ok(p4.chain.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | now
 ok(/^одяг:/.test(p4.state), 'під виробами — лише де одяг (вишивку видно значком)', 'стан цеху: ' + p4.state);
 
 console.log('');
+/* Та сама картинка на всіх дошках — від менеджера до цеху. */
+const same = ['2000002', '2000004'].every(no => { const ss = [A, G, T, P].map(b => (find(b, no) || {}).src).filter(Boolean); return ss.length >= 2 && ss.every(x => x === ss[0]); });
+ok(same, 'картинка замовлення однакова на всіх дошках (менеджер, графіка, вишивка, цех)', 'картинки різні');
 const всі = [A, G, T, P].flat().flatMap(c => c.cards);
 ok(всі.every(k => !k.over), 'ніщо не вилазить за край картки', 'вилазить: ' + всі.filter(k => k.over).map(k => k.no).join(', '));
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

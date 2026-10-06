@@ -261,17 +261,17 @@ console.log('\n═══ НА ПЛИТЦІ ДОШКИ — СКІЛЬКИ ЛИШ�
 const плитка = await p.evaluate(() => {
   const U = window.LQDesign.ui;
   const job = designJobs['2000101'];
-  job.due = new Date(Date.now() + 86400000 * 4).toISOString().slice(0, 10);
+  job.due = new Date(Date.now() + 86400000 * 1).toISOString().slice(0, 10);
   U.setTab('queue');
   U.render(document.getElementById('dzRoot'));
-  const e = document.querySelector('.dz-card-due');
+  const e = document.querySelector('.dz-c-stk');
   return { текст: e ? e.textContent.trim() : '',
            підказка: e ? (e.getAttribute('title') || '') : '' };
 });
 console.log('  ' + JSON.stringify(плитка));
-/* Підпис — «до відправки» (04.10): угорі картки вже стоїть годинник етапу,
-   і два однакові «лишилось» поруч читались як одне. */
-ok(/до відправки 4 дні/.test(плитка.текст),
+/* 06.10: на картці один стікер — найближчий строк. Відправка завтра, а
+   годинник етапу — 2 дні: показуємо відправку, підписану «до відправки». */
+ok(/^до відправки /.test(плитка.текст),
   'на плитці стоїть лишок, а не число календаря: ' + плитка.текст,
   'на плитці й далі дата: ' + плитка.текст);
 ok(/до \d\d\.\d\d/.test(плитка.підказка),

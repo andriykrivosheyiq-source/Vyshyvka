@@ -182,7 +182,7 @@ const строк = await p.evaluate(() => {
   const к = document.querySelector('.dz-card-w');
   /* Годинник етапу має свій клас: обіцянка клієнту й внутрішній строк —
      різні речі, і однаковими на вигляд вони читались як один. */
-  const т = (к.querySelector('.dz-card-h') || {}).textContent || '';
+  const т = (к.querySelector('.dz-c-stk') || {}).textContent || '';
   return { напис: т.trim(), датаЗамовлення: /14\.10/.test(к.textContent) };
 });
 console.log('  ' + JSON.stringify(строк));
@@ -355,7 +355,7 @@ ok(/\d/.test(правка.нових),
    прострочена. Інакше дизайнер отримував би картку, вже червону від
    народження. */
 const наново = await p.evaluate(() => {
-  const c = document.querySelector('.dz-card-w .dz-card-h');
+  const c = document.querySelector('.dz-card-w .dz-c-stk');
   return (c ? c.textContent : '').trim();
 });
 console.log('  ' + наново);
