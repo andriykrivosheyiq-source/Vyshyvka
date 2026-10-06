@@ -6438,8 +6438,32 @@
      кнопки переписки з клієнтом (Instagram / Telegram), щоб перевірити, що
      саме домовлено, без зайвої шапки з контактами. */
   var PROD_TZ_OPEN = {};
+  /* ПОЧАТКОВЕ ТЗ З ВИХІДНИКАМИ (Андрій, 06.10): цех має бачити те, з чого
+     почався дизайн, — коментар «словами клієнта» й картинки, які менеджер
+     поклав до кожної позиції. Доти тут стояло лише загальне ТЗ замовлення
+     (`job.brief`), а в нових замовленнях воно порожнє: усе лежить у
+     позиціях. Тепер — і те, і те; кілька позицій — з підписом виробу. */
+  function prodPicsHtml(pics){
+    return '<div class="dz-pics">' + pics.map(function(pp){
+      return '<span class="dz-pic">' +
+        '<button type="button" class="dz-pic-b" data-do="pic-open" data-url="' + esc(pp.url) + '" ' +
+          'title="' + esc(pp.name || 'Подивитись') + '"><img src="' + esc(pp.url) + '" alt="" loading="lazy"></button>' +
+        '<button type="button" class="dz-pic-dl" data-do="dz-dl" data-url="' + esc(pp.url) + '" data-name="' +
+          esc(pp.name || 'вихідник') + '" title="Скачати">⤓</button></span>';
+    }).join('') + '</div>';
+  }
   function prodTzHtml(job, o){
     var br = (job && job.brief) || {};
+    var us = U.unitsOf(job).filter(function(u){ return u && (String(u.note || '').trim() || (u.pics || []).length); });
+    var поЮнітах = us.map(function(u){
+      var назва = [(U.catItem(u.gid) || {}).name || u.name || '', u.color || ''].filter(Boolean).join(' · ');
+      return '<div class="dz-tz-u">' +
+        (us.length > 1 && назва ? '<div class="dz-tz-uh">' + esc(назва) + '</div>' : '') +
+        (String(u.note || '').trim() ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
+          esc(u.note).replace(/\n/g, '<br>') + '</div>' : '') +
+        ((u.pics || []).length ? prodPicsHtml(u.pics) : '') +
+      '</div>';
+    }).join('');
     var t = String(br.text || '').trim();
     var pics = br.pics || [];
     var key = String((o && o.orderId) || '');
@@ -6454,14 +6478,13 @@
           (tg ? '<button type="button" class="dz-ig is-tg" data-do="chat-tg" data-id="' + esc(key) + '">Telegram</button>' : '') +
         '</div>'
       : '';
-    if(!t && !pics.length && !кнопки) return '';
-    return (t ? '<div class="dz-tz-t' + (довге && !відкр ? ' is-cut' : '') + '">' + esc(t).replace(/\n/g, '<br>') + '</div>' +
+    if(!t && !pics.length && !поЮнітах && !кнопки) return '';
+    return поЮнітах +
+      (t ? '<div class="dz-tz-t' + (довге && !відкр ? ' is-cut' : '') + '">' + esc(t).replace(/\n/g, '<br>') + '</div>' +
                 (довге ? '<button type="button" class="dz-buy-more" data-do="prod-tz" data-id="' + esc(key) + '">' +
                   (відкр ? 'згорнути' : 'розгорнути') + '</button>' : '')
-              : (pics.length ? '' : '<div class="dz-miss is-calm">ТЗ текстом не заповнено.</div>')) +
-      (pics.length ? '<div class="dz-pics">' + pics.map(function(pp){
-          return '<a class="dz-thumb" href="' + esc(pp.url) + '" target="_blank" rel="noopener"><img src="' + esc(pp.url) + '" alt=""></a>';
-        }).join('') + '</div>' : '') +
+              : (pics.length || поЮнітах ? '' : '<div class="dz-miss is-calm">ТЗ не заповнено.</div>')) +
+      (pics.length ? prodPicsHtml(pics) : '') +
       кнопки;
   }
   function packPanel(p){
