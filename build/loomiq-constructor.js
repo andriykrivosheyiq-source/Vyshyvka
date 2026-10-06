@@ -6171,6 +6171,13 @@
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
+            /* Разова оплата за замовлення (пакування, обробка) — не макет:
+               ні малюнка, ні перемикача виду в неї немає. */
+            if(f.kind === 'order'){
+              tb += r('Разова оплата за замовлення <span style="color:#8a94a6;">(' +
+                      Math.round(f.fee) + ' грн ÷ ' + f.units + ' шт)</span>', money(per), money(perC));
+              return;
+            }
             /* «Схоже на інший макет замовлення». Найчастіше непорозуміння
                в прорахунку: логотип на вигляд один, а підготовка ділиться
                не на всі вироби. Причина майже завжди та сама — файл клали
@@ -6206,7 +6213,8 @@
                іншим написом цього ж прорахунку. */
             var основний = lines.filter(function(f){ return f.kind === x.kind; })[0] ||
               skets.filter(function(y){ return y !== x && y.kind === x.kind; })[0];
-            tb += r(designPic(x.di) + (x.kind === 'txt' ? 'Ескіз напису ' : 'Додатковий ескіз ') +
+            var newModel = lines.some(function(f){ return f.kind === 'order'; });
+            tb += r(designPic(x.di) + (x.kind === 'txt' ? 'Ескіз напису ' : (newModel ? 'Ескіз картинки ' : 'Додатковий ескіз ')) +
                     (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
                     x.units + ' шт)</span>' +
@@ -6255,6 +6263,16 @@
           var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
           tb += r('Підготовка макета (÷' + feeDiv + ')', money(oFeePer), money(oCostPer));
         }
+      }
+      if(nLogos === 0 && P && P.feeLines){
+        // Виріб без нанесення теж несе свою частку разової оплати за замовлення
+        P.feeLines.forEach(function(f){
+          if(f.kind !== 'order') return;
+          tb += r('Разова оплата за замовлення <span style="color:#8a94a6;">(' + Math.round(f.fee) +
+                  ' грн ÷ ' + f.units + ' шт)</span>',
+                  money(f.units > 0 ? Math.round(f.fee / f.units) : 0),
+                  money(f.units > 0 ? Math.round(f.cost / f.units) : 0));
+        });
       }
       tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});
       if(nLogos === 0) tb += '<tr><td colspan="3" style="padding:6px 8px 0;color:#8a94a6;font-size:11px;">Дизайн не завантажено — рахується лише база виробу зі знижкою.</td></tr>';
