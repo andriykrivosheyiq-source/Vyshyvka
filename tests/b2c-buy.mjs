@@ -481,11 +481,20 @@ const тз = await p.evaluate(async () => {
   await new Promise(z => setTimeout(z, 100));
   const t2 = document.querySelector('.dz-panel .dz-tz-t');
   r.open = !t2.classList.contains('is-cut'); r.h2 = t2.getBoundingClientRect().height;
+  /* Початкове ТЗ із позицій (06.10): коментар клієнта й вихідники. */
+  j.units[0].note = 'Лого як на фото, нитка золота';
+  j.units[0].pics = [{ name:'лого.png', url:'https://x/logo-src.png' }];
+  U.render(document.getElementById('dzRoot'));
+  r.тзПоз = { нота: ((document.querySelector('.dz-panel .dz-tz-u .dz-w-note') || {}).textContent || ''),
+    фото: !!document.querySelector('.dz-panel .dz-tz-u img[src="https://x/logo-src.png"]'),
+    скач: !!document.querySelector('.dz-panel .dz-tz-u [data-do="dz-dl"][data-url="https://x/logo-src.png"]') };
   return r;
 });
 console.log('  ' + JSON.stringify(тз));
 ok(тз.зони.join('|') === 'Що шиємо|ТЗ|Переписка з менеджером', 'у цеху: Що шиємо → ТЗ → Переписка з менеджером', 'зони: ' + тз.зони.join('|'));
 ok(тз.cut && тз.open && тз.h2 > тз.h, 'ТЗ — перші рядки, «розгорнути» показує все', 'ТЗ: ' + JSON.stringify(тз));
+ok(/нитка золота/.test(тз.тзПоз.нота) && тз.тзПоз.фото && тз.тзПоз.скач,
+  'у ТЗ цеху — початкове ТЗ позиції: слова клієнта й вихідники зі скачуванням', 'ТЗ позиції: ' + JSON.stringify(тз.тзПоз));
 ok(тз.кнопки.join() === 'Instagram', 'під ТЗ — кнопка переписки з клієнтом (Instagram), без шапки з контактами', 'кнопки: ' + тз.кнопки);
 ok(цех.одяг.length === 2 && /В дорозі · №1/.test(цех.одяг[1]) && /ТТН 20450012345678/.test(цех.одяг[1]) && /Отримано/.test(цех.одяг[0]),
   'біля кожного одягу — стан закупівлі, номер і ТТН', 'одяг: ' + JSON.stringify(цех.одяг));
