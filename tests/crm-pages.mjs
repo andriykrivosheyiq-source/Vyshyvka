@@ -18,9 +18,8 @@ const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text
                '.webp':'image/webp' };
 
 const CHAT_ID = '6aa910231444b9f4123817a1';
-/* 25 повідомлень, Sitniks віддає найновіші першими по 10. Розмір сторінки
-   він не міняє (limit ігнорує), а наступну дає за ?page=N — так ми й
-   перевіряємо, що адмінка сама знайде гортання. */
+/* 25 повідомлень, найновіші першими по 10. Гортання — лише ?limit&offset,
+   ліміт понад 30 — помилка 400: адмінка мусить знайти це сама. */
 const T0 = Date.parse('2026-10-06T07:00:00Z');
 let MSGS = Array.from({ length:25 }, (_, i) => ({
   id:'m' + (i + 1), createdAt:new Date(T0 + i * 60000).toISOString(),
@@ -45,9 +44,14 @@ const srv = createServer(async (req, res) => {
         return json(200, { ok:true });
       }
       asked.push(u.search);
-      const page = +(u.searchParams.get('page') || 1);
+      /* Як може повестись справжній Sitniks: завеликий ліміт — 400, page
+         ігнорує, гортає лише зсувом разом із лімітом. */
+      const lim = u.searchParams.get('limit'), off = u.searchParams.get('offset');
+      if(lim != null && +lim > 30) return json(400, { message:'limit must not be greater than 30' });
       const desc = MSGS.slice().reverse();
-      return json(200, desc.slice((page - 1) * 10, page * 10));
+      const per = lim != null ? +lim : 10;
+      const from = (off != null && lim != null) ? +off : 0;
+      return json(200, desc.slice(from, from + per));
     }
     if(/\/chats\/[0-9a-f]{8,}$/i.test(u.pathname))
       return json(200, { id:CHAT_ID, client:{ clientName:'Anastasia Dera', userName:'asia_dera' } });
@@ -128,8 +132,10 @@ console.log('  на екрані: ' + rows.length + ' · запити: ' + asked
 ok(rows.length === 25, 'усі 25 повідомлень, а не останні 10', 'на екрані ' + rows.length);
 ok(rows[0] && rows[0].txt === 'Повідомлення 1' && rows[24].txt === 'Повідомлення 25',
   'від першого до останнього, по порядку', 'порядок: ' + rows.map(r => r.txt.split(' ')[1]).join(','));
-const way = await p.evaluate(() => JSON.parse(localStorage.getItem('crmPageWay') || 'null'));
-ok(way && way.next === 'page', 'знайдено гортання ?page=N і запамʼятовано', 'спосіб: ' + JSON.stringify(way));
+const way = await p.evaluate(() => JSON.parse(localStorage.getItem('crmPageWay2') || 'null'));
+ok(way && (way.size === 'limit=20' || way.next === 'offset'), 'знайдено гортання (limit/offset) і запамʼятовано', 'спосіб: ' + JSON.stringify(way));
+const raw = await p.evaluate(() => crmRawSample(orders[0]));
+ok(/Гортання: .*спосіб/.test(raw), 'у «{ }» видно, яким способом гортали', 'у «{ }»: ' + raw.slice(0, 120));
 
 console.log('');
 console.log('═══ ЧАС ЗА КИЄВОМ ═══');
