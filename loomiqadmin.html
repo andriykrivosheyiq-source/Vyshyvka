@@ -3526,7 +3526,11 @@
 
      Наповнення лишається своє: у B2C інші кроки й інші поля. Однакова
      оболонка, різний зміст — саме так і має бути. */
-  .dz-col{flex:0 0 232px;background:transparent;border-radius:12px;padding:4px 6px 12px;}
+  /* Ширина колонки — ФІКСОВАНА (06.10, Андрій: «не розтягувати картки, як
+     перша колонка, мінус 10–15%»). Вміст її не розпирає: рядок етапів
+     гортається всередині картки. */
+  .dz-col{flex:0 0 300px;width:300px;min-width:0;max-width:300px;background:transparent;border-radius:12px;padding:4px 6px 12px;box-sizing:border-box;}
+  .dz-col .dz-card-w{min-width:0;max-width:100%;}
   .dz-col-h{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
     letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);padding:2px 4px 8px;}
   .dz-col-h i{margin-left:auto;font-style:normal;font-weight:700;color:var(--ink-soft);}
@@ -4452,6 +4456,8 @@
   .dz-card .dz-c-chain b,.dz-c-chain b{display:inline;font-size:11.5px;font-weight:600;white-space:nowrap;margin:0;line-height:1.35;}
   .dz-c-chain b.ok{color:#067647;}
   .dz-c-chain b.now{color:var(--ink);}
+  /* Етап, на якому зараз робота, — у рамці (06.10); паралельних — кілька. */
+  .dz-card .dz-c-chain.one b.now{border:1.5px solid var(--ink);border-radius:6px;padding:0 6px;line-height:1.5;}
   .dz-c-chain b.next{color:#98A2B3;font-weight:500;}
   .dz-c-chain.in-panel,.dz-panel-h .dz-c-chain.in-panel{flex-basis:100%;margin:6px 0 0;}
   .dz-c-chain.in-panel b{font-size:12px;}
@@ -5480,7 +5486,7 @@
     /* На вузькому екрані панель займає його весь — так само, як картка
        замовлення в Канбані: один рівень на екран. */
     .dz-panel{width:100%;max-height:none;}
-    .dz-col{flex:0 0 min(84vw,272px);}
+    .dz-col{flex:0 0 min(84vw,300px);width:min(84vw,300px);max-width:min(84vw,300px);}
   }
 </style>
 </head>
@@ -7369,27 +7375,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=dbdc96fdc6"></script>
-<script src="loomiq-fingerprint.js?v=dbdc96fdc6"></script>
-<script src="loomiq-pricing.js?v=dbdc96fdc6"></script>
+<script src="loomiq-select.js?v=796561fc3b"></script>
+<script src="loomiq-fingerprint.js?v=796561fc3b"></script>
+<script src="loomiq-pricing.js?v=796561fc3b"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=dbdc96fdc6"></script>
+<script src="loomiq-money-core.js?v=796561fc3b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=dbdc96fdc6"></script>
-<script src="loomiq-mock.js?v=dbdc96fdc6"></script>
+<script src="loomiq-design.js?v=796561fc3b"></script>
+<script src="loomiq-mock.js?v=796561fc3b"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=dbdc96fdc6"></script>
-<script src="loomiq-threads.js?v=dbdc96fdc6"></script>
+<script src="imagetracer.js?v=796561fc3b"></script>
+<script src="loomiq-threads.js?v=796561fc3b"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=dbdc96fdc6"></script>
+<script src="loomiq-cards.js?v=796561fc3b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7434,7 +7440,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'dbdc96fdc6';
+var LQ_VER = '796561fc3b';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

@@ -213,6 +213,17 @@ const find = (cols, no) => { for(const c of cols) for(const k of c.cards) if(k.n
 console.log('═══ МЕНЕДЖЕР ═══');
 const A = await board('acct');
 const a1 = find(A, '2000001'), a2 = find(A, '2000002'), a3 = find(A, '2000003'), a4 = find(A, '2000004'), a5 = find(A, '2000005');
+/* 06.10: колонки однакової фіксованої ширини; поточні етапи — у рамці. */
+const geo = await p.evaluate(() => { window.LQDesign.ui.setTab('acct'); openDesign();
+  return new Promise(r => setTimeout(() => r({ cols: [...document.querySelectorAll('.dz-board .dz-col')].map(c => Math.round(c.getBoundingClientRect().width)),
+    cards: [...document.querySelectorAll('.dz-board .dz-card-w')].map(c => Math.round(c.getBoundingClientRect().width)),
+    framed: [...document.querySelectorAll('.dz-c-chain.one b.now')].map(b => getComputedStyle(b).borderTopWidth + '|' + b.textContent.trim()) }), 600)); });
+console.log('   ' + JSON.stringify(geo).slice(0, 300));
+ok(new Set(geo.cols).size === 1 && geo.cols[0] === 300 && Math.max(...geo.cards) - Math.min(...geo.cards) <= 1,
+  'колонки однакові й фіксовані (300 px), картки не розтягуються', 'ширини: ' + JSON.stringify(geo).slice(0, 200));
+const fr = geo.framed.filter(x => parseFloat(x) >= 1);
+ok(fr.length >= 2 && fr.some(x => /Одяг не замовлено/.test(x)) && fr.some(x => /У виробництві/.test(x)),
+  'поточний етап — у рамці; два паралельні (одяг і виробництво) — обидва', 'рамки: ' + JSON.stringify(geo.framed));
 console.log('   ' + JSON.stringify(a2));
 ok(A.every(c => c.cards.every(k => k.v2)), 'усі картки менеджера — нового вигляду', 'є старі картки');
 ok(a1 && a1.img && a2 && a2.img && a4.img, 'на картці ескіз (або картинка з ТЗ, поки ескізу немає)', 'картинки немає');
