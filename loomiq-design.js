@@ -8859,27 +8859,40 @@
   /* ЗІБРАТИ АРКУШ. Один збирач на два випадки — здачу версії й скачування
      на вимогу: два різні означали б, що аркуш у картці й аркуш у теці
      колись розійдуться, і ніхто не помітить котрий із них правда. */
-  function sheetLines(u, g, pl){
+  /* ОПИС ДЛЯ КАРТКИ (Андрій, 06.10):
+       Футболка базова
+       Білий · 100% бавовна · 190 г/м²
+       Розмір: L   Кількість: 2 шт
+       Нанесення:
+       Вишивка спереду 18,8 × 15,1 см
+       Вишивка ззаду 18,8 × 15,1 см */
+  function sideWord(sp){
+    var t = String((sp && (sp.label || sp.side)) || '').toLowerCase();
+    if(/перед|груд|front/.test(t)) return 'спереду';
+    if(/спин|зад|back/.test(t)) return 'ззаду';
+    if(/рука|рукав|sleeve/.test(t)) return 'на рукаві';
+    return t;
+  }
+  function sheetDesc(u, g, pl){
     var specs = [];
     try{ specs = (host().specs && host().specs(u.gid)) || []; }catch(e){}
     var мат = specs.filter(function(sp){ return sp && /матеріал|склад|тканин/i.test(String(sp.label || '')); })
                    .map(function(sp){ return String(sp.value || '').trim(); }).filter(Boolean)[0] || '';
-    var модель = [(g && g.name) || u.name || '', String(u.color || '').toLowerCase(), мат]
-      .filter(Boolean).join(', ');
+    var колір = String(u.color || '').trim();
+    if(колір) колір = колір.charAt(0).toUpperCase() + колір.slice(1);
+    var sub = [колір].concat(мат ? мат.split(/\s*[,;]\s*/) : []).filter(Boolean).join(' · ');
     var місця = ((pl && pl.spots) || []).filter(function(sp){ return sp && +sp.wCm > 0; });
-    var нан = '';
-    if(місця.length > 1){
-      нан = 'Вишивка ' + місця.map(function(sp){
-        return String(sp.label || sp.side || '').toLowerCase() + ' ' + мсм(sp.wCm) + ' × ' + мсм(sp.hCm); }).join(', ');
-    } else if(pl && +pl.wCm > 0){
-      нан = 'Вишивка ' + мсм(pl.wCm) + ' × ' + мсм(pl.hCm);
-    } else нан = 'Вишивка';
-    return [
-      ['', модель],
-      ['Розмір', u.size || ''],
-      ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : ''],
-      ['Нанесення', нан]
-    ];
+    var apps = місця.length
+      ? місця.map(function(sp){
+          return ['Вишивка', sideWord(sp), мсм(sp.wCm) + ' × ' + мсм(sp.hCm)].filter(Boolean).join(' '); })
+      : [(pl && +pl.wCm > 0) ? 'Вишивка ' + мсм(pl.wCm) + ' × ' + мсм(pl.hCm) : 'Вишивка'];
+    return {
+      model: (g && g.name) || u.name || '',
+      sub: sub,
+      row: [['Розмір', u.size || ''], ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : '']]
+             .filter(function(r){ return r[1]; }),
+      apps: apps
+    };
   }
   function sheetV(){ return (window.LQMock && window.LQMock.cardV) || 1; }
   async function sheetPng(job, o, u, ver, place, note){
@@ -8901,7 +8914,7 @@
         catch(e){ return 'Макет на узгодження'; }
       })(),
       no: U.unitNo(job, u),
-      nums: sheetLines(u, g, pl),
+      desc: sheetDesc(u, g, pl),
       note: note || (function(){
         try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
       })()
