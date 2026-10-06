@@ -1140,10 +1140,10 @@
     var innerW = DOC_W - 128;
     var n = Math.max(1, рамки.length), cw = (innerW - gap * (n - 1)) / n;
     var cellH = Math.round(Math.min(560, cw * 1.12));
-    /* Низ (Андрій, 06.10): модель; під нею сірим колір · матеріал;
-       «Розмір: L   Кількість: 2 шт» в один рядок; «Нанесення:» і під ним
-       кожне місце окремим рядком. Примітка — компактним сірим блоком на
-       всю ширину в самому низу. */
+    /* Низ (Андрій, 06.10) — три колонки під тонкою лінією:
+         ВИРІБ (модель великим, під нею сірим колір · матеріал) │
+         РОЗМІР · КІЛЬКІСТЬ │ НАНЕСЕННЯ (місце ліворуч, розмір праворуч).
+       Примітка — компактним сірим блоком з «i» на всю ширину внизу. */
     var d = data.desc;
     if(!d){
       // Старий формат даних: рядки [підпис, значення]
@@ -1155,24 +1155,37 @@
     var FM = '700 22px Inter, system-ui, sans-serif', FS = '400 16px Inter, system-ui, sans-serif',
         FL = '400 16px Inter, system-ui, sans-serif', FV = '600 16px Inter, system-ui, sans-serif',
         FN = '400 13px Inter, system-ui, sans-serif';
-    var опис = [];               // [{ t, font, color, h, parts? }]
-    if(d.model) опис.push({ h: 30, draw: function(y0){ x.fillStyle = '#0F2034'; x.font = FM; x.fillText(String(d.model), 64, y0 + 22); } });
-    if(d.sub) опис.push({ h: 26, draw: function(y0){ x.fillStyle = '#6B7280'; x.font = FS; x.fillText(String(d.sub), 64, y0 + 17); } });
-    if((d.row || []).length) опис.push({ h: 40, draw: function(y0){
-      var px = 64;
-      d.row.forEach(function(r){
-        x.font = FL; x.fillStyle = '#6B7280'; var l = r[0] + ': '; x.fillText(l, px, y0 + 31); px += x.measureText(l).width;
-        x.font = FV; x.fillStyle = '#0F2034'; x.fillText(String(r[1]), px, y0 + 31); px += x.measureText(String(r[1])).width + 36;
+    var колG = 40, кол1 = Math.round(innerW * 0.34), кол2 = Math.round(innerW * 0.22), кол3 = innerW - кол1 - кол2 - колG * 2;
+    var FLb = '600 11px Inter, system-ui, sans-serif';
+    var subL = d.sub ? wrap(проба, String(d.sub), кол1, FS) : [];
+    var c1H = 18 + 30 + subL.length * 22;
+    var c2H = 18 + 30;
+    var c3H = 18 + (d.apps || []).length * 28;
+    var описH = Math.max(c1H, c2H, c3H) + 4;
+    var опис = [{ h: описH, draw: function(y0){
+      var X1 = 64, X2 = X1 + кол1 + колG, X3 = X2 + кол2 + колG;
+      x.fillStyle = '#E6E9EE';
+      x.fillRect(X2 - колG / 2, y0, 1, описH - 4); x.fillRect(X3 - колG / 2, y0, 1, описH - 4);
+      var cap = function(t, px){ x.fillStyle = '#9AA5B5'; x.font = FLb; x.fillText(t, px, y0 + 10); };
+      cap('ВИРІБ', X1);
+      x.fillStyle = '#0F2034'; x.font = FM; x.fillText(String(d.model || ''), X1, y0 + 42);
+      x.fillStyle = '#6B7280'; x.font = FS; subL.forEach(function(l, k){ x.fillText(l, X1, y0 + 66 + k * 22); });
+      (d.row || []).forEach(function(r, k){
+        var px = X2 + k * Math.round(кол2 / 2);
+        cap(String(r[0]).toUpperCase(), px);
+        x.fillStyle = '#0F2034'; x.font = FM; x.fillText(String(r[1]), px, y0 + 42);
       });
-    } });
-    if((d.apps || []).length){
-      опис.push({ h: 38, draw: function(y0){ x.fillStyle = '#6B7280'; x.font = FL; x.fillText('Нанесення:', 64, y0 + 30); } });
-      d.apps.forEach(function(t){ опис.push({ h: 24, draw: function(y0){ x.fillStyle = '#0F2034'; x.font = FV; x.fillText(String(t), 64, y0 + 18); } }); });
-    }
-    var описH = опис.reduce(function(a, r){ return a + r.h; }, 0);
-    var нота = data.note ? wrap(проба, String(data.note), innerW - 36, FN) : [];
+      cap('НАНЕСЕННЯ', X3);
+      (d.apps || []).forEach(function(t, k){
+        var m = String(t).match(/^(.*?)\s+(\d[\d,.]*\s*×\s*[\d,.]+\s*см)$/);
+        var yy = y0 + 42 + k * 28;
+        x.fillStyle = '#0F2034'; x.font = FV; x.fillText(m ? m[1] : String(t), X3, yy);
+        if(m){ x.textAlign = 'right'; x.fillStyle = '#3B4656'; x.fillText(m[2], X3 + кол3, yy); x.textAlign = 'left'; }
+      });
+    } }];
+    var нота = data.note ? wrap(проба, String(data.note), innerW - 60, FN) : [];
     var нотаH = нота.length ? 20 + нота.length * 19 : 0;
-    var H = top + головаH + 20 + cellH + 28 + 1 + 24 + описH + (нотаH ? 26 + нотаH : 0) + 44;
+    var H = top + головаH + 20 + cellH + 28 + 1 + 24 + описH + (нотаH ? 22 + нотаH : 0) + 44;
     var cv = document.createElement('canvas');
     cv.width = DOC_W; cv.height = H;
     var x = cv.getContext('2d');
@@ -1199,15 +1212,18 @@
     y += 1 + 24;
     опис.forEach(function(r){ r.draw(y); y += r.h; });
     if(нотаH){
-      y += 26;
+      y += 22;
       x.fillStyle = '#F4F5F7'; round(x, 64, y, innerW, нотаH, 10); x.fill();
+      x.strokeStyle = '#9AA5B5'; x.lineWidth = 1.4; x.beginPath(); x.arc(64 + 24, y + нотаH / 2, 7, 0, Math.PI * 2); x.stroke();
+      x.fillStyle = '#9AA5B5'; x.font = '700 10px Inter, system-ui, sans-serif'; x.textAlign = 'center';
+      x.fillText('i', 64 + 24, y + нотаH / 2 + 3.5); x.textAlign = 'left';
       x.fillStyle = '#6B7280'; x.font = FN;
-      нота.forEach(function(t, k){ x.fillText(t, 64 + 18, y + 10 + 14 + k * 19); });
+      нота.forEach(function(t, k){ x.fillText(t, 64 + 42, y + 10 + 14 + k * 19); });
     }
     return cv.toDataURL('image/png');
   }
   /* Версія вигляду картки: аркуші, зібрані раніше, перезбираються. */
-  var CARD_V = 3;
+  var CARD_V = 4;
   /* ══════════ ВИРОБНИЧА КАРТА ВИШИВКИ ══════════
 
      Андрій: «зліва оператор бачить ДЕ і ЯК розмістити вишивку, справа
