@@ -7315,6 +7315,10 @@
                 return '<div class="dz-buy-s">' +
                   '<label><input type="checkbox" data-buys="' + esc(k) + '"' + buyChk(sz.rows) + '>' +
                     '<b>' + esc(sz.size) + '</b><span>× ' + sz.qty + '</span></label>' +
+                  (function(){
+                    var mm = buyMissMap(), звідки = sz.rows.map(function(r){ return mm[D.buyKey(r.orderId, r.uid)]; }).filter(Boolean)[0];
+                    return звідки ? '<em class="dz-buy-miss">не прийшло з «' + esc(звідки) + '»</em>' : '';
+                  })() +
                   '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc('n:' + k) + '">' +
                     (BUY_OPEN['n:' + k] ? 'сховати' : 'номери') + '</button>' +
                   (BUY_OPEN['n:' + k]
@@ -7333,6 +7337,47 @@
         'погоджено й одяг підтверджено, — і її немає на складі.</div>') +
     '</div>';
   }
+  /* ══ ПЕРЕВІРКА ОТРИМАНОЇ ПОСИЛКИ (Андрій, 06.10) ══
+
+     Закупник розпаковує посилку й відмічає галочкою кожну позицію, яка
+     справді в ній є. Усе на місці — «Підтвердити отримання»: закупівля
+     «Отримано», замовлення йдуть у «Готово до роботи». Чогось бракує —
+     «Пропала позиція»: невідмічене виходить із цієї закупівлі (лягає в
+     `missing` — хто, коли), і саме тому знову зʼявляється в «Треба
+     замовити» з позначкою, звідки не прийшло. Прийняте йде далі одразу. */
+  var BUY_CHECK = {};        // відкрита перевірка: id закупівлі → 1
+  var BUY_CHK = {};          // відмічене: id → { індекс рядка: 1 }
+  function buyCheckHtml(b){
+    var m = BUY_CHK[b.id] || {};
+    var rows = b.rows || [];
+    var є = rows.filter(function(r, i){ return m[i]; }).length;
+    var усе = rows.length && є === rows.length;
+    return '<div class="dz-buy-ck">' +
+      '<div class="dz-buy-ckh">Відмітьте, що є в посилці <i>' + є + ' з ' + rows.length + '</i>' +
+        '<button type="button" class="dz-buy-more" data-do="buy-ck-all" data-id="' + esc(b.id) + '">' +
+          (усе ? 'зняти всі' : 'відмітити всі') + '</button></div>' +
+      rows.map(function(r, i){
+        return '<label class="dz-buy-ckr' + (m[i] ? ' on' : '') + '">' +
+          '<input type="checkbox" data-bchk="' + esc(b.id + '|' + i) + '"' + (m[i] ? ' checked' : '') + '>' +
+          '<b>' + esc([r.name, r.color].filter(Boolean).join(' · ')) + '</b>' +
+          '<span>' + esc(r.size || '') + ' × ' + (+r.qty || 0) + '</span>' +
+          '<i>№' + esc(r.no || r.orderId) + '</i></label>';
+      }).join('') +
+      '<div class="dz-buy-cka">' +
+        '<button type="button" class="dz-b pri" data-do="buy-recv" data-id="' + esc(b.id) + '"' + (усе ? '' : ' disabled') + '>' +
+          'Підтвердити отримання</button>' +
+        '<button type="button" class="dz-b" data-do="buy-miss" data-id="' + esc(b.id) + '"' + (rows.length && !усе ? '' : ' disabled') + '>' +
+          'Пропала позиція' + (rows.length && !усе ? ' · ' + (rows.length - є) : '') + '</button>' +
+      '</div></div>';
+  }
+  /* Звідки позиція не прийшла: «замовлення|позиція» → назва закупівлі. */
+  function buyMissMap(){
+    var out = {};
+    buys().forEach(function(b){
+      (b.missing || []).forEach(function(r){ out[D.buyKey(r.orderId, r.uid)] = buyTitle(b); });
+    });
+    return out;
+  }
   function buyDocHtml(b){
     var gs = buyGroups((b.rows || []).map(function(r){ return Object.assign({}, r); }));
     var шт = (b.rows || []).reduce(function(a, r){ return a + (+r.qty || 0); }, 0);
@@ -7344,10 +7389,19 @@
         (b.stock ? (b.returned && !(b.rows || []).length ? '<span class="dz-cloth">Повернуто на склад</span>'
             : '<span class="dz-cloth is-got">Отримано</span>' +
               '<button type="button" class="dz-buy-more" data-do="stock-back" data-id="' + esc(b.id) + '">повернути на склад</button>')
-          : '<select class="dz-buy-st" data-buyst="' + esc(b.id) + '" aria-label="Стан закупівлі">' +
-          D.BUY_ST.map(function(s){
-            return '<option value="' + s.key + '"' + (s.key === b.status ? ' selected' : '') + '>' + esc(s.label) + '</option>';
-          }).join('') + '</select>') + '</div>' +
+          : (b.status === 'got'
+            ? '<span class="dz-cloth is-got">Отримано</span>' +
+              ((b.missing || []).length ? '<span class="dz-cloth is-miss">не прийшло: ' +
+                (b.missing || []).reduce(function(a, r){ return a + (+r.qty || 0); }, 0) + ' шт</span>' : '')
+            /* «Отримано» вибором більше не ставиться: лише перевіркою посилки
+               (Андрій, 06.10) — галочками по кожній позиції. */
+            : '<select class="dz-buy-st" data-buyst="' + esc(b.id) + '" aria-label="Стан закупівлі">' +
+              D.BUY_ST.filter(function(s){ return s.key !== 'got'; }).map(function(s){
+                return '<option value="' + s.key + '"' + (s.key === b.status ? ' selected' : '') + '>' + esc(s.label) + '</option>';
+              }).join('') + '</select>' +
+              '<button type="button" class="dz-b pri dz-buy-chk" data-do="buy-check" data-id="' + esc(b.id) + '">' +
+                (BUY_CHECK[b.id] ? 'Сховати перевірку' : 'Перевірити посилку') + '</button>')) + '</div>' +
+      (!b.stock && b.status !== 'got' && BUY_CHECK[b.id] ? buyCheckHtml(b) : '') +
       '<div class="dz-buy-ol">' + gs.map(function(g){
         return '<div><b>' + esc(g.name) + '</b>' + (g.color ? ' · ' + esc(g.color) : '') + ': ' +
           g.list.map(function(sz){ return esc(sz.size) + ' × ' + sz.qty; }).join(', ') +
@@ -7597,6 +7651,14 @@
         if(!b || !D.buySetStatus(b, el.value, (host().me && host().me()) || '')) return;
         var st = D.BUY_ST.filter(function(x){ return x.key === b.status; })[0] || {};
         buySave(b, buyTitle(b) + ' · ' + (st.label || ''));
+      };
+    });
+    root.querySelectorAll('[data-bchk]').forEach(function(el){
+      el.onchange = function(){
+        var pp = String(el.dataset.bchk).split('|'), id = pp[0], i = +pp[1];
+        BUY_CHK[id] = BUY_CHK[id] || {};
+        if(el.checked) BUY_CHK[id][i] = 1; else delete BUY_CHK[id][i];
+        render(root);
       };
     });
     root.querySelectorAll('[data-buyttn]').forEach(function(el){
@@ -8040,6 +8102,51 @@
       return render(root);
     }
     if(what === 'buy-all'){ BUY_ALL = true; return render(root); }
+    if(what === 'buy-check'){
+      var ci = String((data && data.id) || '');
+      if(BUY_CHECK[ci]) delete BUY_CHECK[ci]; else BUY_CHECK[ci] = 1;
+      return render(root);
+    }
+    if(what === 'buy-ck-all'){
+      var ca = buys().filter(function(x){ return x.id === (data && data.id); })[0];
+      if(!ca) return;
+      var mA = BUY_CHK[ca.id] || {}, всі = (ca.rows || []).every(function(r, i){ return mA[i]; });
+      BUY_CHK[ca.id] = {};
+      if(!всі) (ca.rows || []).forEach(function(r, i){ BUY_CHK[ca.id][i] = 1; });
+      return render(root);
+    }
+    if(what === 'buy-recv' || what === 'buy-miss'){
+      var bc = buys().filter(function(x){ return x.id === (data && data.id); })[0];
+      if(!bc) return;
+      var mk = BUY_CHK[bc.id] || {}, хто2 = (host().me && host().me()) || '';
+      var прийшло = (bc.rows || []).filter(function(r, i){ return mk[i]; });
+      var нема = (bc.rows || []).filter(function(r, i){ return !mk[i]; });
+      if(what === 'buy-recv' && нема.length) return say('Відмічено не все — або відмітьте, або «Пропала позиція»');
+      if(what === 'buy-miss'){
+        if(!нема.length) return say('Усе відмічено — підтвердіть отримання');
+        var шт2 = нема.reduce(function(a, r){ return a + (+r.qty || 0); }, 0);
+        var ок2 = true;
+        try{ ок2 = window.confirm('Не прийшло ' + шт2 + ' шт (' + нема.length + ' поз.). ' +
+          'Вони повернуться в «Треба замовити», решту приймаємо. Так?'); }catch(e){}
+        if(!ок2) return;
+        var at2 = new Date().toISOString();
+        bc.missing = (bc.missing || []).concat(нема.map(function(r){
+          return Object.assign({}, r, { at: at2, by: хто2 }); }));
+        bc.rows = прийшло;
+      }
+      bc.checked = { at: new Date().toISOString(), by: хто2 };
+      D.buySetStatus(bc, 'got', хто2);
+      delete BUY_CHECK[bc.id]; delete BUY_CHK[bc.id];
+      /* Синхронізуємо стан одягу і тих замовлень, чиї позиції не прийшли:
+         вони вже не в цій закупівлі, а знати про це мусять. */
+      var для = Object.assign({}, bc, { rows: (bc.rows || []).concat(bc.missing || []) });
+      if(!host().buySave) return say('Збереження закупівлі недоступне');
+      try{ await host().buySave(bc); }catch(e){ console.error(e); return say('Закупівля не збереглась'); }
+      try{ await buyTrackSync(для); }catch(e){ console.warn(e); }
+      say(what === 'buy-recv' ? buyTitle(bc) + ' · отримано, усе на місці'
+                              : buyTitle(bc) + ' · прийнято, пропале повернулось у «Треба замовити»');
+      return render(root);
+    }
     /* ОФОРМИТИ: позначене розкладається по підрядниках — кожен везе своєю
        посилкою, тож і замовлення, і ТТН у кожного своє. Дата одна. */
     if(what === 'buy-make'){
