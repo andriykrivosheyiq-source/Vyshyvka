@@ -178,6 +178,16 @@ const над = t => (/Надійшло: ([^₴]+)₴/.exec(t) || [])[1], вит 
 ok(/пул наложок/.test(пул) && /між своїми/.test(собі) && над(доПулу) === над(зПулом) && вит(доПулу) === вит(зПулом),
   'пул NovaPay — «пул наложок», переказ собі — «між своїми»; ні доходом, ні витратою не порахувались', 'пул: ' + пул + ' / ' + собі + ' · ' + доПулу + ' → ' + зПулом);
 
+const iso2 = await p.evaluate(() => new Date(Date.parse(payments[0].at) + 3600e3).toISOString());
+await p.evaluate(at => { payments.push(
+  { id:'privat_R9', at, amount:-10050, acc:'mono3', counter:'ЗЕЛЕНА ІРИНА ОЛЕГІВНА', desc:'Переказ власних коштів', src:'privat', flow:'self' },
+  { id:'p24_card_1', at: new Date(Date.parse(at) + 60000).toISOString(), amount:10050, acc:'mono1', counter:'ФОП Зелена Ірина', desc:'Зарахування', src:'privat' });
+  renderFin(); }, iso2);
+await p.waitForTimeout(200);
+const pr9 = await p.evaluate(() => { const r = document.querySelector('.fin-row[data-fin-id="privat_R9"]');
+  return { pair: !!(r && r.classList.contains('is-pair')), card: !!document.querySelector('.fin-row[data-fin-id="p24_card_1"]') }; });
+ok(pr9.pair && !pr9.card, '«Переказ власних коштів» ФОП → картка — одним рядком «між своїми», надходження на картці не висить окремо', 'пара: ' + JSON.stringify(pr9));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'витрати підписані категоріями, перекази між своїми — одним рядком');

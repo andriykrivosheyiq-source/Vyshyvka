@@ -86,7 +86,8 @@ globalThis.fetch = async (url, opt) => {
   if(url.startsWith('https://acp.privatbank.ua/api/statements/transactions'))
     return res({ status:'SUCCESS', transactions: [
       { REF:'R1', SUM:'1500.55', TRANTYPE:'C', DATE_TIME_DAT_OD_TIM_P:'03.10.2026 10:00:00', AUT_CNTR_NAM:'ТОВ Ромашка', OSND:'Оплата' },
-      { REF:'R2', SUM:'320.20',  TRANTYPE:'D', DATE_TIME_DAT_OD_TIM_P:'03.10.2026 11:00:00', AUT_CNTR_NAM:'Постачальник', OSND:'Тканина' } ] });
+      { REF:'R2', SUM:'320.20',  TRANTYPE:'D', DATE_TIME_DAT_OD_TIM_P:'03.10.2026 11:00:00', AUT_CNTR_NAM:'Постачальник', OSND:'Тканина' },
+      { REF:'R3', SUM:'10050.00', TRANTYPE:'D', DATE_TIME_DAT_OD_TIM_P:'03.10.2026 21:55:00', AUT_CNTR_NAM:'ЗЕЛЕНА ІРИНА ОЛЕГІВНА', OSND:'Переказ власних коштів' } ] });
   if(url.startsWith('https://acp.privatbank.ua/api/statements/balance')) return res(privatBal);
   if(url.startsWith('https://api.novaposhta.ua')){
     const b = JSON.parse(opt.body);
@@ -175,6 +176,8 @@ ok(calls < 50 && commits >= 2,
   'звернень ' + calls + ' — Cloudflare обірве воркер («Too many subrequests»)');
 const pr = (po.privat || [])[0] || {};
 console.log('   опитування: ' + JSON.stringify(pr));
+ok(((DB['payments/privat_R3'] || {}).flow || {}).stringValue === 'self' && !(DB['payments/privat_R2'] || {}).flow,
+  '«Переказ власних коштів» з ФОП — позначено між своїми (flow: self), звичайна витрата — ні', 'flow: ' + JSON.stringify([DB['payments/privat_R3'], DB['payments/privat_R2']]));
 ok(num((DB['payments/privat_R1'] || {}).amount) === 1500.55 && num((DB['payments/privat_R2'] || {}).amount) === -320.2,
   'рухи Привату з копійками й знаком', 'рухи: ' + JSON.stringify([DB['payments/privat_R1'], DB['payments/privat_R2']].map(x => x && num(x.amount))));
 ok(bb('mono3') && bb('mono3').bal === 5123.45 && bb('mono3').src === 'privat',
@@ -185,7 +188,7 @@ ok(pr.залишок === 5123.45, 'і опитування каже, який з
 privatBal = { status:'ERROR', message:'technical' };
 const prevBal = bb('mono3');
 const po2 = await call('/poll?s=sek');
-ok(((po2.privat || [])[0] || {}).рухів === 2 && JSON.stringify(bb('mono3')) === JSON.stringify(prevBal),
+ok(((po2.privat || [])[0] || {}).рухів === 3 && JSON.stringify(bb('mono3')) === JSON.stringify(prevBal),
   'банк не віддав залишок — рухи пишуться, а залишок лишається попереднім, не нуль',
   'без залишку: ' + JSON.stringify({ po2: po2.privat, bal: bb('mono3') }));
 
