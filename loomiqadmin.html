@@ -7375,27 +7375,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=79d5763fd6"></script>
-<script src="loomiq-fingerprint.js?v=79d5763fd6"></script>
-<script src="loomiq-pricing.js?v=79d5763fd6"></script>
+<script src="loomiq-select.js?v=796561fc3b"></script>
+<script src="loomiq-fingerprint.js?v=796561fc3b"></script>
+<script src="loomiq-pricing.js?v=796561fc3b"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=79d5763fd6"></script>
+<script src="loomiq-money-core.js?v=796561fc3b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=79d5763fd6"></script>
-<script src="loomiq-mock.js?v=79d5763fd6"></script>
+<script src="loomiq-design.js?v=796561fc3b"></script>
+<script src="loomiq-mock.js?v=796561fc3b"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=79d5763fd6"></script>
-<script src="loomiq-threads.js?v=79d5763fd6"></script>
+<script src="imagetracer.js?v=796561fc3b"></script>
+<script src="loomiq-threads.js?v=796561fc3b"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=79d5763fd6"></script>
+<script src="loomiq-cards.js?v=796561fc3b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7440,7 +7440,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '79d5763fd6';
+var LQ_VER = '796561fc3b';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9911,8 +9911,7 @@ const FIN_CATS_DEFAULT = [
                                          { id:'pack', name:'Пакування' }] },
   { id:'prod',   name:'Виробництво', subs:[{ id:'emb', name:'Вишивка (підряд)' }, { id:'print', name:'Друк' }] },
   { id:'ship',   name:'Доставка', subs:[{ id:'np', name:'Нова пошта' }, { id:'ukr', name:'Укрпошта' }] },
-  { id:'team',   name:'Команда', subs:[{ id:'salary', name:'Зарплата' }, { id:'bonus', name:'Бонуси' },
-                                        { id:'payout', name:'Виплати з картки' }] },
+  { id:'team',   name:'Команда', subs:[{ id:'salary', name:'Зарплата' }, { id:'bonus', name:'Бонуси' }] },
   { id:'tax',    name:'Податки й банк', subs:[{ id:'tax', name:'Податки' }, { id:'fee', name:'Комісії банку' }] },
   { id:'office', name:'Офіс і сервіси', subs:[{ id:'rent', name:'Оренда' }, { id:'soft', name:'Сервіси й підписки' },
                                               { id:'phone', name:'Звʼязок' }] },
@@ -9927,10 +9926,6 @@ function finCatOf(p){
   if(!p || (+p.amount || 0) >= 0) return null;
   if(p.cat) return { cat: p.cat, sub: p.sub || '', how: 'hand' };
   if(p.src === 'salary' || p.salary) return { cat: 'team', sub: 'salary', how: 'auto' };
-  /* Вивід з Приват ФОП на картку (06.10, Андрій обрав: «у витрати
-     команди»): з картки платять співробітникам, тож це витрата, а не
-     «між своїми». */
-  if(finTeamOut(p)) return { cat: 'team', sub: 'payout', how: 'auto' };
   const h = finHay(p);
   const r = finRules().filter(x => x && x.q && h.indexOf(String(x.q).toLowerCase()) >= 0)[0];
   return r ? { cat: r.cat, sub: r.sub || '', how: 'rule', q: r.q } : null;
@@ -10304,21 +10299,17 @@ function renderAnAll(days, month, spend){
    Між рахунками одного банку гроші приходять за хвилини — вікно 30 хв;
    між різними банками (Моно → Приват) зарахування буває за години — вікно
    доба (05.10). Повертає { own: {id:1}, pair: {id: id пари} }. */
-/* «Переказ власних коштів» з Приват ФОП (воркер ставить flow: self) —
-   виплати команді через картку, а не переказ між своїми. Позначка людини
-   «між своїми» сильніша. */
-function finTeamOut(p){ return !!p && p.flow === 'self' && p.src === 'privat' && p.tag !== 'own' && (+p.amount || 0) < 0; }
 function finOwnCalc(){
   const all = (payments || []).filter(p => p && p.id && !p.orderId && Math.round(+p.amount || 0) !== 0);
   const own = {}, pair = {};
   all.forEach(p => { if(p.tag === 'own') own[p.id] = 1; });
   /* NovaPay сам каже, що це: пул наложок (вже пораховані поштучно) чи
      переказ собі ж. Не дохід і не витрата — хіба людина сказала «ні». */
-  all.forEach(p => { if(p.flow && p.tag !== 'notown' && !finTeamOut(p)) own[p.id] = 1; });
+  all.forEach(p => { if(p.flow && p.tag !== 'notown') own[p.id] = 1; });
   /* Переказ собі (flow: self) уже «між своїми», але другу половину — на
      підключеній картці — йому все одно шукаємо: інакше вона лишиться
      «надходженням» без пари. */
-  const вільні = all.filter(p => (!own[p.id] || (p.flow === 'self' && p.tag !== 'own')) && p.tag !== 'notown' && p.acc && !finTeamOut(p));
+  const вільні = all.filter(p => (!own[p.id] || (p.flow === 'self' && p.tag !== 'own')) && p.tag !== 'notown' && p.acc);
   const ins = вільні.filter(p => +p.amount > 0);
   const банк = {};
   finAccounts().forEach(a => { банк[a.id] = a.bank || ''; });
