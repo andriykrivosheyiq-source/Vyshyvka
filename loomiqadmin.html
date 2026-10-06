@@ -7391,27 +7391,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=c0d3d2bc03"></script>
-<script src="loomiq-fingerprint.js?v=c0d3d2bc03"></script>
-<script src="loomiq-pricing.js?v=c0d3d2bc03"></script>
+<script src="loomiq-select.js?v=3efadb8fab"></script>
+<script src="loomiq-fingerprint.js?v=3efadb8fab"></script>
+<script src="loomiq-pricing.js?v=3efadb8fab"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=c0d3d2bc03"></script>
+<script src="loomiq-money-core.js?v=3efadb8fab"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=c0d3d2bc03"></script>
-<script src="loomiq-mock.js?v=c0d3d2bc03"></script>
+<script src="loomiq-design.js?v=3efadb8fab"></script>
+<script src="loomiq-mock.js?v=3efadb8fab"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=c0d3d2bc03"></script>
-<script src="loomiq-threads.js?v=c0d3d2bc03"></script>
+<script src="imagetracer.js?v=3efadb8fab"></script>
+<script src="loomiq-threads.js?v=3efadb8fab"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=c0d3d2bc03"></script>
+<script src="loomiq-cards.js?v=3efadb8fab"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7456,7 +7456,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'c0d3d2bc03';
+var LQ_VER = '3efadb8fab';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -30513,6 +30513,10 @@ function openDesign(){
       .map(p => ({ email:p.email, name:p.name || p.email })),
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
+    /* Колонки виробничої дошки, які бачить роль (null — усі). */
+    prodCols: () => { const d = roleDef(myRole()); return (d && Array.isArray(d.cols) && d.cols.length) ? d.cols : null; },
+    /* Роль з колонками виробництва сидить на виробничій дошці. */
+    roleSeat: r => { const d = roleDef(r); return (d && Array.isArray(d.cols) && d.cols.length) ? 'prod' : ''; },
     cardTitle: () => b2cCfg().cardTitle,
     /* Наші контакти для шапки аркуша — ті самі, що в комерційній
        пропозиції. Аркуш доходить до цеху й до підрядника, і питання «а це
@@ -30707,7 +30711,21 @@ const ROLES = { owner:'Власник', manager:'Менеджер',
                    менеджер. Але роль заводимо зараз — щойно зʼявиться
                    окремий закупник, його заводять одним рядком, а не
                    переробкою доступів. */
-                supply:'Закупівля' };
+                supply:'Закупівля',
+                /* Ролі цеху (Андрій, 06.10): оператори й контроль якості
+                   бачать на виробничій дошці B2C лише свої колонки. */
+                operator:'Оператори', qcprod:'Контроль якості' };
+/* Колонки виробничої дошки B2C — ті самі ключі, що в LQDesign (D.PROD). */
+const PROD_COLS = [
+  { key:'redo',  label:'Передрук' }, { key:'new',  label:'Нове' },
+  { key:'wait',  label:'Очікуємо одяг' }, { key:'ready', label:'Готово до роботи' },
+  { key:'run',   label:'На станках' }, { key:'qc',   label:'Контроль якості' },
+  { key:'appr',  label:'Чекає погодження' }, { key:'ship', label:'Можна відправляти' },
+  { key:'sent',  label:'Відправлено' }
+];
+/* Ролі, які зʼявились після того, як список ролей уже зберегли: їх
+   додаємо до збереженого, інакше їх ніде не можна було б призначити. */
+const ROLES_ADDED = ['operator', 'qcprod'];
 /* ══════════ НАПРЯМ ЖИВЕ В РОЛІ, А НЕ ПОРУЧ ІЗ НЕЮ ══════════════════════
    У компанії два різні бізнеси, і ролі в них різні: менеджер B2B і менеджер
    B2C — різні люди з різними обовʼязками. Якийсь час напрям зберігався
@@ -30981,6 +30999,12 @@ const ROLE_PRESET = {
      писати клієнту — ні (права 'write' немає). */
   production: preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
                 see:['chat'], can:['stage'] }),
+  /* Оператори: передрук, нове, очікуємо одяг, готово до роботи, на станках. */
+  operator:   preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
+                see:['chat'], can:['stage'], cols:['redo','new','wait','ready','run'] }),
+  /* Контроль якості: на станках, контроль, чекає погодження, можна відправляти. */
+  qcprod:     preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
+                see:['chat'], can:['stage'], cols:['run','qc','appr','ship'] }),
   /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
      до відправки, в обох напрямах. Собівартість лишається у власника — вона
      не потрібна нікому, хто не ухвалює рішення про ціну закупівлі, а зайве
@@ -31031,7 +31055,14 @@ function roleDefs(){
      як». Пряме звертання там не «порожньо», а помилка, яка вбиває решту
      скрипта. */
   const saved = contentSafe().roles;
-  if(Array.isArray(saved) && saved.length) return saved.filter(r => !(r && r.key === 'qa'));
+  if(Array.isArray(saved) && saved.length){
+    const out = saved.filter(r => !(r && r.key === 'qa'));
+    ROLES_ADDED.forEach(k => {
+      if(!out.some(r => r && r.key === k))
+        out.push(Object.assign({ key:k, name:ROLES[k] || k }, JSON.parse(JSON.stringify(ROLE_PRESET[k]))));
+    });
+    return out;
+  }
   // Першого разу збираємо з вбудованих: починати з порожнечі нікому не треба.
   return Object.keys(ROLE_PRESET).map(k => Object.assign({ key:k, name:ROLES[k] || k },
     JSON.parse(JSON.stringify(ROLE_PRESET[k]))));
@@ -31053,7 +31084,8 @@ function presetOf(role){
     see:Array.isArray(src.see) ? src.see.slice() : [],
     can: src.can === '*' ? '*' : (Array.isArray(src.can) ? src.can.slice() : []),
     navAll: Array.isArray(src.navAll) ? src.navAll : null,
-    canAll: Array.isArray(src.canAll) ? src.canAll : null });
+    canAll: Array.isArray(src.canAll) ? src.canAll : null,
+    cols: Array.isArray(src.cols) ? src.cols.slice() : null });
 }
 /* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
 function accOf(member){
@@ -31770,11 +31802,12 @@ const ZONE_GROUPS = [
   { g:'nav',    t:'Розділи',         s:'Куди людина заходить у меню.' },
   { g:'boards', t:'Дошки',           s:'Які дошки їй показувати.' },
   { g:'see',    t:'Бачить у картці', s:'Що з картки замовлення їй видно.' },
-  { g:'can',    t:'Може робити',     s:'Які дії їй дозволені. Немає права — немає й кнопки.' }
+  { g:'can',    t:'Може робити',     s:'Які дії їй дозволені. Немає права — немає й кнопки.' },
+  { g:'cols',   t:'Колонки виробництва B2C', s:'Які колонки виробничої дошки бачить. Жодної не відмічено — бачить усі.' }
 ];
 function zoneItems(g){
   return g === 'nav' ? ZONE_NAV : g === 'boards' ? zoneBoards()
-       : g === 'see' ? ZONE_SEE : ZONE_CAN;
+       : g === 'see' ? ZONE_SEE : g === 'cols' ? PROD_COLS : ZONE_CAN;
 }
 function roleHas(r, g, k){
   const v = r && r[g];
@@ -32281,7 +32314,8 @@ async function rolesSave(){
     boards: r.boards === '*' ? '*' : (Array.isArray(r.boards) ? r.boards.slice() : []),
     see: Array.isArray(r.see) ? r.see.slice() : [],
     can: r.can === '*' ? '*' : (Array.isArray(r.can) ? r.can.slice() : []),
-    canAll: ZONE_CAN.map(z => z.key) })).filter(r => r.key);
+    canAll: ZONE_CAN.map(z => z.key),
+    cols: Array.isArray(r.cols) ? r.cols.slice() : [] })).filter(r => r.key);
   /* Хоч одна роль має вміти налаштовувати: інакше найближче збереження
      замкне систему так само, як список команди без власника. */
   if(!list.some(r => r.can === '*' || (r.can || []).indexOf('setup') >= 0))
