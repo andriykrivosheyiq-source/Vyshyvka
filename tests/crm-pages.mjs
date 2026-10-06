@@ -147,7 +147,7 @@ console.log('═══ ОПИТУВАННЯ НЕ ОБРІЗАЄ СТРІЧКУ �
 MSGS.push({ id:'m26', createdAt:new Date(T0 + 25 * 60000).toISOString(), text:'Чекаю',
             client:{ clientName:'Diana Rudenko', userName:'diana' } });
 asked.length = 0;
-await p.evaluate(() => crmPollOnce(orders[0]));
+await p.evaluate(() => { crmPollOnce(orders[0]); });
 await p.waitForTimeout(400);
 rows = await feed();
 ok(rows.length === 26 && rows[25].txt === 'Чекаю', 'нове дописалось, стара частина на місці (26)',
@@ -155,7 +155,7 @@ ok(rows.length === 26 && rows[25].txt === 'Чекаю', 'нове дописал
 ok(asked.length === 1, 'опитування — один запит, без гортання', 'запитів: ' + asked.length);
 /* Видалене у свіжій сторінці — червоним слідом */
 MSGS = MSGS.filter(m => m.id !== 'm24');
-await p.evaluate(() => crmPollOnce(orders[0]));
+await p.evaluate(() => { crmPollOnce(orders[0]); });
 await p.waitForTimeout(400);
 const gone = await p.evaluate(() => (crmChat[orders[0].id].msgs || []).filter(m => m.gone).map(m => m.text));
 ok(gone.join() === 'Повідомлення 24', 'видалене з розмови лишилось слідом «видалено»', 'видалені: ' + JSON.stringify(gone));

@@ -592,6 +592,47 @@ const стара = await p.evaluate(() => {
 ok(стара.стан === 'approved' && стара.як === 'auto', 'стара здача вишивки сама стала «готово» — без натиску', 'стара: ' + JSON.stringify(стара));
 
 console.log('');
+console.log('═══ 8. ПЕРЕВІРКА ОТРИМАНОЇ ПОСИЛКИ (06.10) ═══');
+/* Закупник відмічає, що є в посилці. Усе — «Підтвердити отримання».
+   Чогось немає — «Пропала позиція»: воно повертається в «Треба замовити». */
+const пос = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const b1 = Object.values(designBuys).find(x => x.n === 1 && !x.stock);
+  const b2 = Object.values(designBuys).find(x => x.n === 2 && !x.stock);
+  // у №2 мусить бути щонайменше дві позиції — додамо копію першої з іншим розміром
+  const r0 = b2.rows[0];
+  b2.rows.push(Object.assign({}, r0, { uid: r0.uid + '-x', size: 'XL', qty: 1 }));
+  U.setTab('supply'); U.open(''); U.render(document.getElementById('dzRoot'));
+  const q = s => document.querySelector(s);
+  const стан1 = !!q('[data-buyst="' + b1.id + '"] option[value="got"]');
+  q('[data-do="buy-check"][data-id="' + b1.id + '"]').click();
+  await new Promise(r => setTimeout(r, 150));
+  const вимкн = !!q('[data-do="buy-recv"][data-id="' + b1.id + '"][disabled]');
+  document.querySelectorAll('[data-bchk^="' + b1.id + '|"]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); });
+  await new Promise(r => setTimeout(r, 150));
+  q('[data-do="buy-recv"][data-id="' + b1.id + '"]').click();
+  await new Promise(r => setTimeout(r, 500));
+  const після1 = { st: designBuys[b1.id].status, by: !!(designBuys[b1.id].checked || {}).at };
+  // №2: відмічаємо лише першу, друга «пропала»
+  q('[data-do="buy-check"][data-id="' + b2.id + '"]').click();
+  await new Promise(r => setTimeout(r, 150));
+  const c0 = q('[data-bchk="' + b2.id + '|0"]'); c0.checked = true; c0.dispatchEvent(new Event('change'));
+  await new Promise(r => setTimeout(r, 150));
+  q('[data-do="buy-miss"][data-id="' + b2.id + '"]').click();
+  await new Promise(r => setTimeout(r, 500));
+  const x2 = designBuys[b2.id];
+  return { стан1, вимкн, після1,
+           st2: x2.status, рядків: x2.rows.length, пропало: (x2.missing || []).map(r => r.size),
+           мітка: [...document.querySelectorAll('.dz-buy-need .dz-buy-miss')].map(e => e.textContent),
+           плашка: !!document.querySelector('.dz-cloth.is-miss') };
+});
+console.log('  ' + JSON.stringify(пос));
+ok(!пос.стан1 && пос.вимкн, '«Отримано» руками не ставиться; поки не все відмічено — підтвердити не можна', JSON.stringify(пос));
+ok(пос.після1.st === 'got' && пос.після1.by, 'усе відмічено → «Підтвердити отримання» → Отримано', JSON.stringify(пос.після1));
+ok(пос.st2 === 'got' && пос.рядків === 1 && пос.пропало.join() === 'XL' && пос.плашка,
+  'пропала позиція: прийняте — Отримано, пропале вийшло з закупівлі й видно «не прийшло»', JSON.stringify(пос));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
 await browser.close(); srv.close();

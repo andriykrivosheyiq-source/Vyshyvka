@@ -4737,6 +4737,20 @@
   .dz-cloth.is-sent{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;}
   .dz-cloth.is-way{background:#FFFBEB;color:#B45309;border-color:#FDE68A;}
   .dz-cloth.is-got{background:#ECFDF5;color:#047857;border-color:#A7F3D0;}
+  .dz-cloth.is-miss{background:#FEF2F2;color:#B42318;border-color:#FECACA;margin-left:0;}
+  /* Перевірка отриманої посилки: галочка на кожну позицію */
+  .dz-buy-chk{margin-left:6px;}
+  .dz-buy-ck{margin-top:8px;border:1px dashed var(--line);border-radius:10px;padding:8px 10px;background:#FAFBFC;}
+  .dz-buy-ckh{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;margin-bottom:6px;}
+  .dz-buy-ckh i{font-style:normal;color:var(--muted);font-weight:500;}
+  .dz-buy-ckh .dz-buy-more{margin-left:auto;}
+  .dz-buy-ckr{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #EEF0F3;font-size:13px;cursor:pointer;}
+  .dz-buy-ckr:last-of-type{border-bottom:0;}
+  .dz-buy-ckr span{color:var(--ink-soft,#4A5768);}
+  .dz-buy-ckr i{margin-left:auto;font-style:normal;color:var(--muted);font-size:12px;}
+  .dz-buy-ckr.on b{color:#047857;}
+  .dz-buy-cka{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .dz-buy-miss{font-style:normal;font-size:11.5px;color:#B42318;background:#FEF2F2;border-radius:999px;padding:1px 8px;margin-left:6px;}
   .dz-cloth a{color:inherit;}
   .dz-panel-id .dz-cloth{margin-left:8px;}
   .dz-prod-cap{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
@@ -7391,27 +7405,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3efadb8fab"></script>
-<script src="loomiq-fingerprint.js?v=3efadb8fab"></script>
-<script src="loomiq-pricing.js?v=3efadb8fab"></script>
+<script src="loomiq-select.js?v=b81cb273d3"></script>
+<script src="loomiq-fingerprint.js?v=b81cb273d3"></script>
+<script src="loomiq-pricing.js?v=b81cb273d3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=3efadb8fab"></script>
+<script src="loomiq-money-core.js?v=b81cb273d3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3efadb8fab"></script>
-<script src="loomiq-mock.js?v=3efadb8fab"></script>
+<script src="loomiq-design.js?v=b81cb273d3"></script>
+<script src="loomiq-mock.js?v=b81cb273d3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=3efadb8fab"></script>
-<script src="loomiq-threads.js?v=3efadb8fab"></script>
+<script src="imagetracer.js?v=b81cb273d3"></script>
+<script src="loomiq-threads.js?v=b81cb273d3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3efadb8fab"></script>
+<script src="loomiq-cards.js?v=b81cb273d3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7456,7 +7470,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3efadb8fab';
+var LQ_VER = 'b81cb273d3';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
