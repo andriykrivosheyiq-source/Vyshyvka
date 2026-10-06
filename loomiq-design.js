@@ -8781,7 +8781,7 @@
            у картці менеджер бачив мокап і вважав, що це і є аркуш, а клієнту
            їхав мокап без контактів і без примітки про колір. Мовчазна
            підміна гірша за відмову: її помічають уже з боку клієнта. */
-        if(аркушФайл) файли.push(Object.assign({}, аркушФайл, { role:'sheet' }));
+        if(аркушФайл) файли.push(Object.assign({}, аркушФайл, { role:'sheet', v: sheetV() }));
         else say('Аркуш не зібрався — версія піде без нього, зберіть кнопкою в картці');
         D.dzVer(dd, m, файли, hTxt,
           { wCm: чер2.mock.wCm, hCm: чер2.mock.hCm, topCm: чер2.mock.topCm,
@@ -8859,6 +8859,29 @@
   /* ЗІБРАТИ АРКУШ. Один збирач на два випадки — здачу версії й скачування
      на вимогу: два різні означали б, що аркуш у картці й аркуш у теці
      колись розійдуться, і ніхто не помітить котрий із них правда. */
+  function sheetLines(u, g, pl){
+    var specs = [];
+    try{ specs = (host().specs && host().specs(u.gid)) || []; }catch(e){}
+    var мат = specs.filter(function(sp){ return sp && /матеріал|склад|тканин/i.test(String(sp.label || '')); })
+                   .map(function(sp){ return String(sp.value || '').trim(); }).filter(Boolean)[0] || '';
+    var модель = [(g && g.name) || u.name || '', String(u.color || '').toLowerCase(), мат]
+      .filter(Boolean).join(', ');
+    var місця = ((pl && pl.spots) || []).filter(function(sp){ return sp && +sp.wCm > 0; });
+    var нан = '';
+    if(місця.length > 1){
+      нан = 'Вишивка ' + місця.map(function(sp){
+        return String(sp.label || sp.side || '').toLowerCase() + ' ' + мсм(sp.wCm) + ' × ' + мсм(sp.hCm); }).join(', ');
+    } else if(pl && +pl.wCm > 0){
+      нан = 'Вишивка ' + мсм(pl.wCm) + ' × ' + мсм(pl.hCm);
+    } else нан = 'Вишивка';
+    return [
+      ['', модель],
+      ['Розмір', u.size || ''],
+      ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : ''],
+      ['Нанесення', нан]
+    ];
+  }
+  function sheetV(){ return (window.LQMock && window.LQMock.cardV) || 1; }
   async function sheetPng(job, o, u, ver, place, note){
     if(!window.LQMock) return null;
     var g = U.catItem(u.gid), pl = place || {};
@@ -8868,25 +8891,17 @@
       art: (vp.work[0] || {}).url, mock: (vp.mock[0] || {}).url,
       mocks: vp.mock.map(function(f){ return f.url; }),
       works: vp.work.map(function(f){ return f.url; }),
-      /* Характеристики виробу — з картки товару, як у картках B2B. */
-      specs: (function(){ try{ return (host().specs && host().specs(u.gid)) || []; }catch(e){ return []; } })(),
-      /* Заголовок — один на всі картки, з налаштувань B2C: Андрій ще
-         думає над назвою, і міняти її має бути полем, а не правкою коду. */
+      /* ОПИС БЕЗ ПОВТОРІВ (Андрій, 06.10): модель одним рядком — назва,
+         колір, матеріал; далі розмір, кількість і нанесення одразу з
+         розміром. Окремих «Модель», «Колір», «Розмір нанесення» й рядків
+         характеристик на кшталт «Нанесення: DTF друк та вишивка» немає —
+         вони казали те саме двічі. */
       title: (function(){
         try{ return (host().cardTitle && host().cardTitle()) || 'Макет на узгодження'; }
         catch(e){ return 'Макет на узгодження'; }
       })(),
       no: U.unitNo(job, u),
-      /* Опис замовлення — як в описі картки B2B: модель, колір, розмір,
-         кількість, тип і розмір нанесення. У B2C усе йде через вишивку. */
-      nums: [
-        ['Модель', (g && g.name) || u.name || '—'],
-        ['Колір', u.color || '—'],
-        ['Розмір', u.size || '—'],
-        ['Кількість', (+u.qty || 0) + ' шт'],
-        ['Нанесення', 'Вишивка'],
-        ['Розмір нанесення', pl.wCm ? (мсм(pl.wCm) + ' × ' + мсм(pl.hCm)) : '—']
-      ],
+      nums: sheetLines(u, g, pl),
       note: note || (function(){
         try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
       })()
@@ -8912,8 +8927,10 @@
      різних аркушів на одну версію теж. */
   async function sheetGet(job, o, u, ver){
     var vp = D.verParts(ver);
-    if(vp.sheet) return vp.sheet;
-    var fs = (ver && ver.files) || [];
+    /* Аркуш старого вигляду перезбираємо один раз: інакше клієнту й далі
+       їхала б картка з плиткою логотипа й повторами в описі. */
+    if(vp.sheet && (+vp.sheet.v || 0) >= sheetV()) return vp.sheet;
+    var fs = ((ver && ver.files) || []).filter(function(f){ return !(f && (f.role === 'sheet' || (!f.role && /^аркуш/i.test(String(f.name || ''))))); });
     if(!vp.work.length || !vp.mock.length) return null;
     try{
       var png = await sheetPng(job, o, u, ver, ver.place, null);
@@ -8923,7 +8940,7 @@
       /* Аркуш ДОПИСУЄМО з позначкою ролі, а не кладемо на третє місце:
          на виробі з переду й спини там стояла робота, і її затирало. */
       ver.files = fs.slice();
-      ver.files.push({ name: up.name || ('аркуш-v' + (ver.n || 1) + '.png'), url: up.url, role:'sheet' });
+      ver.files.push({ name: up.name || ('аркуш-v' + (ver.n || 1) + '.png'), url: up.url, role:'sheet', v: sheetV() });
       return ver.files[ver.files.length - 1];
     }catch(e){ console.error('аркуш', e); return null; }
   }

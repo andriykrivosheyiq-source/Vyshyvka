@@ -343,7 +343,8 @@ const безШапки = await p.evaluate(async () => {
   await new Promise(r => { im.onload = r; im.src = a; });
   const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
   const x = c.getContext('2d'); x.drawImage(im, 0, 0);
-  const px = x.getImageData(64 + 30, 56 + 44 + 28 + 30 + 30, 1, 1).data;
+  /* Перша рамка — сама картинка (06.10), друга — мокап: кут беремо в мокапа. */
+  const px = x.getImageData(64 + 548 + 16 + 30, 56 + 44 + 28 + 30 + 30, 1, 1).data;
   return { контактиІгноруються: a === b2, кутРамки: [px[0], px[1], px[2]],
            заголовок: (function(){ try{ return window.LQDesign.ui.host.cardTitle(); }catch(e){ return ''; } })() };
 });
@@ -353,6 +354,40 @@ ok(Math.abs(безШапки.кутРамки[0] - 0xEE) < 6 && Math.abs(без�
   'кадр заповнює рамку до країв — у куті рамки тло самого фото', 'кут рамки: ' + безШапки.кутРамки);
 ok(безШапки.заголовок === 'Макет на узгодження', 'заголовок за замовчуванням — «Макет на узгодження» (міняється в налаштуваннях)',
    'заголовок: ' + безШапки.заголовок);
+
+console.log('\n═══ КАРТКА 06.10: СПЕРШУ КАРТИНКИ, ПОТІМ МОКАПИ, РАМКИ ОДНАКОВІ ═══');
+const ряд = await p.evaluate(async () => {
+  const svg = (c) => 'data:image/svg+xml;base64,' + btoa(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect width="300" height="400" fill="' + c + '"/></svg>');
+  const лого = svg('#E4572E'), лого2 = svg('#2E57E4'), перед = svg('#EEE8E1'), зад = svg('#E1E8EE');
+  const рамки = async d => {
+    const png = await window.LQMock.card(Object.assign({ title:'Макет на узгодження',
+      nums:[['', 'Футболка базова, біла, 100% бавовна'], ['Розмір','L']], note:'Колір одягу…' }, d));
+    const im = new Image(); await new Promise(r => { im.onload = r; im.src = png; });
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    // уздовж середини першого ряду рахуємо, скільки разів міняється «рамка/проміжок»
+    const y = 56 + 44 + 20 + 150, row = x.getImageData(0, y, im.width, 1).data;
+    let n = 0, in_ = false, ws = [], from = 0;
+    for(let i = 64; i < im.width - 60; i++){
+      const white = row[i*4] > 252 && row[i*4+1] > 252 && row[i*4+2] > 252;
+      if(!white && !in_){ in_ = true; from = i; n++; }
+      if(white && in_){ in_ = false; ws.push(i - from); }
+    }
+    if(in_) ws.push(im.width - 60 - from);
+    return { n, ws };
+  };
+  return { один: await рамки({ works:[лого, лого], mocks:[перед, зад] }),
+           два: await рамки({ works:[лого, лого2], mocks:[перед, зад] }) };
+});
+console.log('  ' + JSON.stringify(ряд));
+const рівні = ws => ws.length && Math.max(...ws) - Math.min(...ws) <= 3;
+ok(ряд.один.n === 3 && рівні(ряд.один.ws),
+  'та сама картинка на переді й спині — картинка + два мокапи, рамки однакові',
+  'рамок: ' + JSON.stringify(ряд.один));
+ok(ряд.два.n === 4 && рівні(ряд.два.ws),
+  'дві різні картинки — дві картинки + два мокапи, рамки однакові',
+  'рамок: ' + JSON.stringify(ряд.два));
 
 console.log('\n═══ НА КАРТЦІ — ПРИМІТКА ═══');
 /* Дві речі, яких аркушу бракувало.

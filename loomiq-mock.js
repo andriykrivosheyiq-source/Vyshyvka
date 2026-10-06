@@ -1102,27 +1102,66 @@
     rows.forEach(function(t){ wrap(x, t, w, font).forEach(function(l){ out.push(l); }); });
     return out;
   }
+  /* КАРТКА «МАКЕТ НА УЗГОДЖЕННЯ» — ВИГЛЯД ВІД 06.10 (Андрій).
+
+     Угорі в ряд рамки ОДНАКОВОГО розміру: спершу картинки (самі роботи),
+     потім мокапи. Та сама картинка на переді й спині — одна картинка й два
+     мокапи; різні — дві картинки й два мокапи. Окремої дрібної плитки з
+     логотипом більше немає: картинка і є перша рамка.
+
+     Знизу ліворуч — опис без повторів (модель з кольором і матеріалом,
+     розмір, кількість, нанесення з розміром), праворуч — примітка звичайним
+     сірим текстом, без плашки. */
+  function framedArt(x, im, a, b, w, h){
+    if(!im) return;
+    x.save();
+    round(x, a, b, w, h, 16); x.clip();
+    x.fillStyle = '#F4F5F7'; x.fillRect(a, b, w, h);
+    var C = window.LQCards || {};
+    var t = (C.trim && C.trim(im)) || { x:0, y:0, w:im.width, h:im.height };
+    var k = Math.min(w * 0.78 / t.w, h * 0.78 / t.h);
+    var dw = t.w * k, dh = t.h * k;
+    x.drawImage(im, t.x, t.y, t.w, t.h, a + (w - dw) / 2, b + (h - dh) / 2, dw, dh);
+    x.restore();
+  }
   async function card(data){
     var mocks = (data.mocks && data.mocks.length ? data.mocks : [data.mock]).filter(Boolean);
     var works = (data.works && data.works.length ? data.works : [data.art]).filter(Boolean);
-    var мок = [], роб = [];
-    for(var i = 0; i < mocks.length; i++){ var im = await img(mocks[i]); if(im) мок.push(im); }
+    // Та сама картинка на кількох сторонах — одна рамка
+    var бачив = {};
+    works = works.filter(function(u){ var k = String(u); if(бачив[k]) return false; бачив[k] = 1; return true; });
+    var роб = [], мок = [];
     for(var j = 0; j < works.length; j++){ var iw = await img(works[j]); if(iw) роб.push(iw); }
-    if(!мок.length && роб.length){ мок = роб.slice(0, 1); роб = роб.slice(1); }
+    for(var i = 0; i < mocks.length; i++){ var im = await img(mocks[i]); if(im) мок.push(im); }
+    var рамки = роб.map(function(im){ return { im: im, art: true }; })
+      .concat(мок.map(function(im){ return { im: im, art: false }; }));
     var проба = document.createElement('canvas').getContext('2d');
     var top = 52, головаH = 40, gap = 16;
-    var cellH = мок.length > 2 ? 470 : 540;
-    var тайл = роб.length ? 150 : 0;
     var innerW = DOC_W - 128;
-    var лівоW = Math.round(innerW * 0.6) - 12, правоW = innerW - лівоW - 24;
-    var specs = (data.specs || []).map(function(sp){ return [sp.label, sp.value].filter(Boolean).join(': '); });
-    var nums = (data.nums || []).filter(function(n){ return n && n[1] != null && n[1] !== '' && n[1] !== '—'; })
-      .map(function(n){ return n[0] + ': ' + n[1]; });
-    var FONT = '400 15px Inter, system-ui, sans-serif', FB = '600 15px Inter, system-ui, sans-serif';
-    var лівіРядки = linesOf(проба, nums, лівоW, FB).length + (specs.length ? linesOf(проба, specs, лівоW, FONT).length + 1 : 0);
-    var нота = data.note ? wrap(проба, String(data.note), правоW - 36, '400 14px Inter, system-ui, sans-serif') : [];
-    var низH = Math.max(лівіРядки * 22 + 8, нота.length ? 24 + нота.length * 21 : 0);
-    var H = top + головаH + 20 + cellH + (тайл ? gap + тайл : 0) + 32 + низH + 40;
+    var n = Math.max(1, рамки.length), cw = (innerW - gap * (n - 1)) / n;
+    var cellH = Math.round(Math.min(560, cw * 1.12));
+    var лівоW = Math.round(innerW * 0.62), правоW = innerW - лівоW - 40;
+    /* Низ: ліворуч модель великим, під нею в ряд підписи капітеллю зі
+       значеннями (розмір · кількість · нанесення); праворуч — примітка
+       сірим, вирівняна по верху з описом. Над усім — тонка лінія. */
+    var rows = (data.nums || []).filter(function(r){ return r && r[1] != null && r[1] !== '' && r[1] !== '—'; });
+    var модель = rows.filter(function(r){ return !r[0]; }).map(function(r){ return String(r[1]); })[0] || '';
+    var поля = rows.filter(function(r){ return r[0]; });
+    var FM = '600 20px Inter, system-ui, sans-serif', FL = '600 11px Inter, system-ui, sans-serif',
+        FV = '600 16px Inter, system-ui, sans-serif', FN = '400 14px Inter, system-ui, sans-serif';
+    var мРядки = модель ? wrap(проба, модель, лівоW, FM) : [];
+    /* Поля йдуть рядом колонок; нанесення буває довгим — воно останнє і
+       бере всю решту ширини, переносячись у ній. */
+    var колW = поля.length ? Math.min(150, лівоW / поля.length) : 0;
+    var полеРядки = поля.map(function(r, k){
+      var w = (k === поля.length - 1) ? лівоW - колW * k : колW - 16;
+      return wrap(проба, String(r[1]), w, FV);
+    });
+    var поляH = поля.length ? 18 + Math.max.apply(null, полеРядки.map(function(l){ return l.length; })) * 22 : 0;
+    var лівоH = мРядки.length * 27 + (поля.length ? 14 + поляH : 0);
+    var нота = data.note ? wrap(проба, String(data.note), правоW, FN) : [];
+    var низH = Math.max(лівоH, нота.length * 21);
+    var H = top + головаH + 20 + cellH + 28 + 1 + 26 + низH + 48;
     var cv = document.createElement('canvas');
     cv.width = DOC_W; cv.height = H;
     var x = cv.getContext('2d');
@@ -1139,38 +1178,35 @@
       x.textAlign = 'left';
     }
     y = top + головаH + 20;
-    var n = Math.max(1, мок.length), cw = (innerW - gap * (n - 1)) / n;
-    мок.forEach(function(im, k){ framed(x, im, 64 + k * (cw + gap), y, cw, cellH); });
-    y += cellH;
-    if(тайл){
-      y += gap;
-      роб.forEach(function(im, k){
-        var tx = 64 + k * (тайл + gap);
-        if(tx + тайл > DOC_W - 64) return;
-        framed(x, im, tx, y, тайл, тайл);
+    рамки.forEach(function(r, k){
+      var a = 64 + k * (cw + gap);
+      if(r.art) framedArt(x, r.im, a, y, cw, cellH);
+      else framed(x, r.im, a, y, cw, cellH);
+    });
+    y += cellH + 28;
+    x.fillStyle = '#E6E9EE'; x.fillRect(64, y, innerW, 1);
+    y += 1 + 26;
+    // Ліворуч — модель і поля
+    var ly = y;
+    x.fillStyle = '#0F2034'; x.font = FM;
+    мРядки.forEach(function(l){ x.fillText(l, 64, ly + 18); ly += 27; });
+    if(поля.length){
+      ly += 14;
+      поля.forEach(function(r, k){
+        var px = 64 + k * колW;
+        x.fillStyle = '#9AA5B5'; x.font = FL;
+        x.fillText(String(r[0]).toUpperCase(), px, ly + 10);
+        x.fillStyle = '#0F2034'; x.font = FV;
+        полеРядки[k].forEach(function(l, i){ x.fillText(l, px, ly + 18 + 16 + i * 22); });
       });
-      y += тайл;
     }
-    y += 32;
-    /* Ліворуч — опис замовлення й характеристики виробу. */
-    var ly = y + 4;
-    x.fillStyle = '#0F2034';
-    linesOf(x, nums, лівоW, FB).forEach(function(l){ x.font = FB; x.fillText(l, 64, ly + 15); ly += 22; });
-    if(specs.length){
-      ly += 22 * 0.5;
-      x.fillStyle = '#4A5768';
-      linesOf(x, specs, лівоW, FONT).forEach(function(l){ x.font = FONT; x.fillText(l, 64, ly + 15); ly += 22; });
-    }
-    /* Праворуч — коротке попередження. */
-    if(нота.length){
-      var nx = 64 + лівоW + 24, nh = 24 + нота.length * 21;
-      x.fillStyle = '#FFF8EB'; round(x, nx, y, правоW, nh, 12); x.fill();
-      x.fillStyle = '#F2B544'; x.fillRect(nx, y, 3, nh);
-      x.fillStyle = '#6B4E16'; x.font = '400 14px Inter, system-ui, sans-serif';
-      нота.forEach(function(t, k){ x.fillText(t, nx + 18, y + 30 + k * 21); });
-    }
+    // Праворуч — примітка, просто сірим текстом
+    x.fillStyle = '#7A8494'; x.font = FN;
+    нота.forEach(function(t, k){ x.fillText(t, 64 + лівоW + 40, y + 15 + k * 21); });
     return cv.toDataURL('image/png');
   }
+  /* Версія вигляду картки: аркуші, зібрані раніше, перезбираються. */
+  var CARD_V = 2;
   /* ══════════ ВИРОБНИЧА КАРТА ВИШИВКИ ══════════
 
      Андрій: «зліва оператор бачить ДЕ і ЯК розмістити вишивку, справа
@@ -1608,7 +1644,7 @@
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
-    open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, prodCard: prodCard, close: close,
+    open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, cardV: CARD_V, prodCard: prodCard, close: close,
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */
