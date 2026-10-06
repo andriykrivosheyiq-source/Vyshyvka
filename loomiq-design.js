@@ -233,7 +233,12 @@
      «Очікуємо одяг» стоїть раніше за «готово до виробництва» навмисно:
      доти обидва стани були одним, і замовлення, яке чекає постачальника,
      виглядало як таке, за яке просто ще не взялись. */
+  /* «Передрук» (Андрій, 06.10) — партія, яку контроль якості забракував і
+     яку оператори переробляють. Стоїть першою: це робота, що вже горить.
+     Звідси картка йде сама, щойно брак закрито (контроль знову «на
+     перевірці» → «Чекає погодження»). */
   var PROD = [
+    { key:'redo',   label:'Передрук',            color:'rose'   },
     { key:'new',    label:'Нове',                color:'gray'   },
     { key:'wait',   label:'Очікуємо одяг',       color:'amber'  },
     { key:'ready',  label:'Готово до роботи',    color:'cyan'   },
@@ -249,7 +254,7 @@
     /* Фото є, слова менеджера ще немає — окрема колонка, а не «контроль».
        Інакше цех вважає роботу зданою, а вона висить. */
     if(trk(o, 'qc') === 'check') return 'appr';
-    if(trk(o, 'qc') === 'bad') return 'qc';
+    if(trk(o, 'qc') === 'bad') return 'redo';
     if(trk(o, 'prod') === 'done') return 'qc';
     if(trk(o, 'prod') === 'work') return 'run';
     if(trk(o, 'prod') === 'ready') return 'ready';
@@ -2146,7 +2151,9 @@
      перемикаються вручну; решта прив'язана до своєї. */
   function roleSeat(r){
     for(var i = 0; i < ROLES.length; i++) if(ROLES[i].role === r) return ROLES[i].key;
-    return '';
+    /* Ролі, заведені поруч із вбудованими (оператори, контроль якості), —
+       робоче місце знає, чиє це крісло. */
+    try{ return (host.roleSeat && host.roleSeat(r)) || ''; }catch(e){ return ''; }
   }
   function isBoss(r){ return !r || r === 'owner' || r === 'manager' || r === 'designmgr'; }
   var tab = 'acct', openKey = '';
@@ -6617,7 +6624,18 @@
        здане одразу «Готово». */
     if(seat === 'stitch')  return { steps: D.GRAPHIC.filter(function(x){ return x.key !== 'review' && x.key !== 'revision'; }),
                                     cards: graphicCards('stitch') };
-    if(seat === 'prod')    return { steps: D.PROD,    cards: prodCards() };
+    if(seat === 'prod'){
+      /* Ролі виробництва бачать свої колонки (Андрій, 06.10): оператори —
+         від «Передруку» до «На станках», контроль якості — від «На станках»
+         до «Можна відправляти», загальна роль — усе. Список колонок живе в
+         ролі; немає списку — уся дошка. */
+      var можна = null;
+      try{ можна = (host().prodCols && host().prodCols()) || null; }catch(e){}
+      var кроки = (можна && можна.length)
+        ? D.PROD.filter(function(x){ return можна.indexOf(x.key) >= 0; }) : D.PROD;
+      var ключі = кроки.map(function(x){ return x.key; });
+      return { steps: кроки, cards: prodCards().filter(function(c){ return ключі.indexOf(c.step) >= 0; }) };
+    }
     if(seat === 'supply')  return { steps: D.SUPPLY,  cards: supplyCards() };
     return { steps: D.CHAIN, cards: chainCards() };     // акаунт-менеджер
   }
