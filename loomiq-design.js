@@ -7512,8 +7512,11 @@
     /* Рядок етапів картки: поточний етап — на виду; стрілки гортають. */
     root.querySelectorAll('.dz-c-chr').forEach(function(r){
       var ch = r.querySelector('.dz-c-chain'); if(!ch) return;
+      /* Видно етап у рамці: перший поточний — біля лівого краю, з одним
+         готовим перед ним, щоб було видно, звідки прийшли. */
       var now = ch.querySelector('b.now') || ch.querySelector('b.next');
-      if(now) ch.scrollLeft = Math.max(0, now.offsetLeft - ch.offsetLeft - 4);
+      var prev = now && now.previousElementSibling;
+      if(now) ch.scrollLeft = Math.max(0, (prev || now).offsetLeft - ch.offsetLeft - 4);
       r.querySelectorAll('[data-chs]').forEach(function(a){
         a.onclick = function(e){ e.stopPropagation(); e.preventDefault();
           ch.scrollBy({ left: (+a.dataset.chs) * Math.max(60, ch.clientWidth * 0.7), behavior: 'smooth' }); };
