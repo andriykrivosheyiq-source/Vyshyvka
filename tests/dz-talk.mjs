@@ -296,7 +296,30 @@ console.log('  ' + JSON.stringify(вікно));
 ok(вікно.кнопок === 3 && /Не прибирати/.test(вікно.за),
   'у вікні здачі три варіанти фону, за замовчуванням — «Не прибирати»',
   'вибір фону: ' + JSON.stringify(вікно));
-ok(/вбудований/.test(вікно.після), 'обрали вбудований — робота перемалювалась без тла', 'після вибору: ' + вікно.після);
+ok(/Внутрішній/.test(вікно.після), 'обрали «1 · Внутрішній» — робота перемалювалась без тла', 'після вибору: ' + вікно.після);
+
+/* 07.10: внутрішній сам вирішує — рівне тло швидким алгоритмом, складне —
+   нейромережею в браузері (тут підмінена); PhotoRoom і внутрішні рахуються. */
+const внутр = await p.evaluate(async () => {
+  const лічба = [];
+  window.LQMock.host = Object.assign({}, window.LQMock.host, { bgCount: k => лічба.push(k) });
+  let моделі = 0;
+  window.LQBgPipeline = async src => { моделі++; return src; };
+  const рівне = document.createElement('canvas'); рівне.width = 60; рівне.height = 60;
+  let x = рівне.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 60, 60); x.fillStyle = '#000'; x.fillRect(20, 20, 20, 20);
+  await window.LQMock.removeBg(рівне.toDataURL('image/png'), 'local');
+  const фото = document.createElement('canvas'); фото.width = 60; фото.height = 60;
+  x = фото.getContext('2d');
+  for(let i = 0; i < 60; i++) for(let j = 0; j < 60; j++){ x.fillStyle = 'rgb(' + (i * 4) + ',' + (j * 4) + ',' + ((i * j) % 255) + ')'; x.fillRect(i, j, 1, 1); }
+  await window.LQMock.removeBg(фото.toDataURL('image/png'), 'local');
+  await window.LQMock.removeBg(рівне.toDataURL('image/png'), 'photoroom');
+  delete window.LQBgPipeline;
+  return { моделі, лічба };
+});
+console.log('  ' + JSON.stringify(внутр));
+ok(внутр.моделі === 1 && внутр.лічба.join() === 'simple,smart,photoroom',
+  'рівне тло — простий алгоритм, фото — нейромережа; кожне прибирання рахується (простий, нейромережа, PhotoRoom)',
+  'внутрішній: ' + JSON.stringify(внутр));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
