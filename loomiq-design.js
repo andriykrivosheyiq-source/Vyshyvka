@@ -388,15 +388,25 @@
     { key:'stitchq', label:'Черга вишивки',             color:'amber'  },
     { key:'stitch',  label:'У вишивального дизайнера',  color:'violet' },
     { key:'prod',    label:'Виробництво',               color:'cyan'   },
+    /* Цех здав фото — тепер слово за акаунтом (Андрій, 07.10: «в акаунт
+       менеджера повинна бути колонка… Чекає погодження»). Доти таке
+       замовлення ховалось у «Виробництві», і фото ніхто не дивився. */
+    { key:'appr',    label:'Чекає погодження',          color:'amber'  },
     { key:'ready',   label:'До відправки',              color:'amber'  },
     { key:'shipped', label:'Відправлено',               color:'green', done:true }
   ];
   function trk(o, key){ return String(((o || {}).tracks || {})[key] || ''); }
+  /* Після цеху — за станом цеху (07.10): ТТН менеджер створює й до
+     погодження, тож «є ТТН» більше не означає «відправлено». Відправлено —
+     коли посилка в реєстрі / в Новій пошті. Старі замовлення з ТТН (до
+     фото-погодження) — як і були, відправлені. */
+  var CHAIN_OF_PROD = { appr:'appr', ship:'ready', reg:'ready', courier:'shipped', way:'shipped',
+    arrived:'shipped', stuck:'shipped', done:'shipped', refused:'shipped' };
   function chainAt(job, o){
-    if(trk(o, 'ship') === 'sent' || (o && o.ttn && trk(o, 'ship') === 'ttn')) return 'shipped';
-    if(trk(o, 'qc') === 'ok') return 'ready';
-    if(trk(o, 'qc') === 'check' || trk(o, 'qc') === 'bad' || trk(o, 'prod') === 'done') return 'qc';
-    if(trk(o, 'prod') === 'work' || trk(o, 'prod') === 'ready') return 'prod';
+    var ш = trk(o, 'ship');
+    if((ш === 'sent' || (o && o.ttn && ш === 'ttn')) && !(o && o.prodQc) && !trk(o, 'qc') &&
+       !trk(o, 'prod') && String((o && o.ttnAt) || '') < '2026-10-07') return 'shipped';
+    if(trk(o, 'qc') || trk(o, 'prod')) return CHAIN_OF_PROD[prodAt(job, o)] || 'prod';
     /* Вишивка — це коли графіку вже погодив клієнт, а файли ще не всі
        готові. Саме тут найчастіше й губився час: макет є, на машину нічого
        не пішло, і зовні виглядає, ніби все гаразд. */
@@ -455,7 +465,7 @@
   var CHAIN_WHO = {
     new:'акаунт-менеджер', design:'графічний дизайнер', client:'клієнт',
     fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
-    prod:'виробництво', qc:'акаунт-менеджер', ready:'виробництво', shipped:'—'
+    prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—'
   };
 
   /* ══════════ ДОРУЧЕННЯ ══════════
@@ -2196,7 +2206,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, CHAIN_OF_PROD: CHAIN_OF_PROD,
     PROD: PROD, prodAt: prodAt, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
@@ -2535,11 +2545,11 @@
   function boardHtml(steps, cards){
     return '<div class="dz-board">' + steps.map(function(s){
       var mine = cards.filter(function(c){ return c.step === s.key; });
-      return '<div class="dz-col" data-col="' + esc(s.key) + '">' +
+      return '<div class="dz-col' + (s.cls ? ' ' + esc(s.cls) : '') + '" data-col="' + esc(s.key) + '">' +
         '<div class="dz-col-h"><span class="dz-dot is-' + esc(s.color) + '"></span>' +
-          esc(s.label) + '<i>' + mine.length + '</i>' + (s.head || '') + '</div>' +
+          esc(s.label) + '<i>' + (s.n != null ? s.n : mine.length) + '</i>' + (s.head || '') + '</div>' +
         '<div class="dz-col-b">' +
-          (mine.length ? mine.map(function(c){
+          (s.body != null ? s.body : mine.length ? mine.map(function(c){
             /* Строк, розмова, непрочитане й «чекають на відповідь» — на
                самій картці. Це саме ті питання, які задають дошці: що
                горить, де стоїть і кому писати. Відповідати на них
@@ -5382,7 +5392,6 @@
       /* Клієнт просить зміни — червоним, як правка в дизайнера: це те, що
          губилось найчастіше. */
       var правки = col === 'fixes';
-      if(col === 'qc') col = 'prod';
       return { id: p.o.orderId, step: col, v2: true,
         pic: cardPic(p.job),
         /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
@@ -5416,12 +5425,13 @@
      усе передано й погоджено, замовлення вже в цеху. */
   function stateOf(job, o, col, open){
     var доруч = open ? ' · доручень ' + open : '';
-    if(col === 'shipped') return (o && o.ttn ? 'відправлено · ТТН ' + o.ttn : 'відправлено') + доруч;
     if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn : 'чекає ТТН') + доруч;
-    if(col === 'qc')      return 'на контролі якості' + доруч;
-    if(col === 'prod'){
+    if(col === 'appr')    return 'фото з цеху — погодьте' + доруч;
+    if(col === 'prod' || col === 'shipped'){
       var pk = D.prodAt(job, o);
       var pl = (D.PROD.filter(function(x){ return x.key === pk; })[0] || {}).label || '';
+      if(col === 'shipped') return (D.CHAIN_OF_PROD[pk] === 'shipped' && pl ? pl.toLowerCase() : 'відправлено') +
+        (o && o.ttn ? ' · ТТН ' + o.ttn : '') + доруч;
       return 'у цеху' + (pl ? ' · ' + pl.toLowerCase() : '') + доруч;
     }
     return jobWhere(job) + доруч;
@@ -5525,7 +5535,7 @@
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
-  var CHAIN_STEP = { new:0, design:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, qc:2, ready:3, shipped:4 };
+  var CHAIN_STEP = { new:0, design:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
   var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
   function cmTxt(mm){
     if(!mm || !(+mm.w > 0)) return '';
@@ -5880,10 +5890,11 @@
        менеджер відкриває картку й бачить «На станках», а не просто
        «Виробництво». До цеху поруч стоїть стан одягу. */
     var уЦеху = !!PROD_AT[кол];
-    if(уЦеху && кол === 'prod'){
+    if(уЦеху && (кол === 'prod' || кол === 'shipped')){
       var пк = D.prodAt(job, o);
       var пс = (D.PROD || []).filter(function(x){ return x.key === пк; })[0];
-      if(пс) крок = { label: 'Виробництво · ' + пс.label, color: пс.color };
+      if(пс && кол === 'prod') крок = { label: 'Виробництво · ' + пс.label, color: пс.color };
+      else if(пс && D.CHAIN_OF_PROD[пк] === 'shipped') крок = { label: 'Відправлено · ' + пс.label, color: пс.color };
     }
     return '<div class="dz-panel-h">' +
         '<span class="dz-panel-id"><b>' + U.jobNo(p.job) + '</b>' +
@@ -6989,7 +7000,7 @@
      вишивку (у менеджера це «Виробництво»), і ті, що вже йдуть далі. */
   /* У цех — щойно вишивку здали (Андрій: «як тільки вишивку здали, одразу
      йде на виробництво в нове»). До того в цеху нічого немає. */
-  var PROD_AT = { prod:1, qc:1, ready:1, shipped:1 };
+  var PROD_AT = { prod:1, appr:1, ready:1, shipped:1 };
   function atProd(p){ return !!PROD_AT[D.chainAt(p.job, p.o)]; }
   /* ХТО ДІЙШОВ ДО ЗАКУПНИКА: хоча б одна позиція з підтвердженим одягом
      або вже замовлена. Старі замовлення без позицій — коли їх закупівлю
@@ -7091,15 +7102,40 @@
       try{ можна = (host().prodCols && host().prodCols()) || null; }catch(e){}
       var кроки = (можна && можна.length)
         ? D.PROD.filter(function(x){ return можна.indexOf(x.key) >= 0; }) : D.PROD;
-      /* Доставка після «Передано курʼєру» — схована, доки не розгорнули. */
-      if(!PROD_DELIV) кроки = кроки.filter(function(x){ return !x.hide; });
+      /* Доставка після «Передано курʼєру» — схована, доки не розгорнули.
+         Згорнута — окремою вузькою колонкою «Доставка ▸» з лічильниками,
+         а не лише кнопкою вгорі: кнопку не помічали (Андрій, 07.10: «де
+         ця зона?»). */
+      var сховані = кроки.filter(function(x){ return x.hide; });
+      var всіКарти = prodCards();
+      if(!PROD_DELIV){
+        кроки = кроки.filter(function(x){ return !x.hide; });
+        if(сховані.length){
+          var разом = 0;
+          var рядки = сховані.map(function(x){
+            var n = всіКарти.filter(function(c){ return c.step === x.key; }).length;
+            разом += n;
+            return '<span class="dz-deliv-r' + (n ? '' : ' is-0') + '"><i class="dz-dot is-' + esc(x.color) + '"></i>' +
+              esc(x.label) + '<b>' + n + '</b></span>';
+          }).join('');
+          кроки = кроки.concat([{ key:'deliv', label:'Доставка', color:'blue', cls:'dz-deliv-col', n: разом,
+            body: '<button type="button" class="dz-deliv-open" data-do="prod-deliv" title="Показати колонки доставки">' +
+              рядки + '<span class="dz-deliv-go">Розгорнути ▸</span></button>' }]);
+        }
+      }
+      else if(сховані.length){
+        кроки = кроки.map(function(x){
+          return x.key === сховані[0].key ? Object.assign({}, x, { head: '<button type="button" class="dz-deliv-x" ' +
+            'data-do="prod-deliv" title="Згорнути доставку">◂ згорнути</button>' }) : x;
+        });
+      }
       кроки = кроки.map(function(x){
         if(x.key === 'ready') return Object.assign({}, x, { head: prodSortHtml() });
         if(x.key === 'reg') return Object.assign({}, x, { head: regHeadHtml() });
         return x;
       });
       var ключі = кроки.map(function(x){ return x.key; });
-      var карти = prodCards().filter(function(c){ return ключі.indexOf(c.step) >= 0; });
+      var карти = всіКарти.filter(function(c){ return ключі.indexOf(c.step) >= 0; });
       /* ТЕРМІНОВІСТЬ (Володимир, 07.10): у «Готово до роботи» — від найближчої
          дати відправки; без дати — у кінці. Лише там, де ввімкнули. */
       if(PROD_SORT){
