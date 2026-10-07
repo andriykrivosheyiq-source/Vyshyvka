@@ -178,6 +178,19 @@ ok(p6.ok && a6 === 1 && a7 === 0, 'NovaPay дає строк як «dd.mm.yyyy h
 expFmt = 'iso';
 
 console.log('');
+console.log('═══ ДОГНАТИ ПРОПУЩЕНІ ДНІ ═══');
+/* Ключ не пускали тиждень — виписку беремо від останнього вдалого прогону
+   (з запасом у добу), а не лише за 3 дні: інакше рухи між загубились би. */
+const дата = d => String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear();
+DB['loomiq/novapayOk'] = { at: sv(new Date(Date.now() - 7 * 864e5).toISOString()) };
+calls.length = 0;
+await fresh4.fetch(new Request('https://w.test/novapay/poll?s=sek'), Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'NEW-KEY-2', NOVAPAY_CERT: 'NEW-CERT' })).then(r => r.json());
+const ex8 = calls.filter(c => c.action === 'GetAccountExtract')[0];
+const від8 = ex8 && (/<tem:date_from>([^<]*)</.exec(ex8.body) || [])[1];
+ok(від8 === дата(new Date(Date.now() - 8 * 864e5)) && DB['loomiq/novapayOk'] && Date.parse(DB['loomiq/novapayOk'].at.stringValue) > Date.now() - 60000,
+  'після перерви виписка — від останнього вдалого прогону (−1 доба), і мітку оновлено', 'від: ' + від8);
+
+console.log('');
 console.log('═══ /novapay/probe ═══');
 const pr = await call('/novapay/probe?s=sek');
 ok(pr.ok && pr.рахунки[0].id === '49' && pr.виписка_рухи[0].Amount === '50000.00' && /реєстру/.test(pr.виписка_рухи[0].Purpose),
