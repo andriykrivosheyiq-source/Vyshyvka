@@ -642,6 +642,89 @@ ok(пос.st2 === 'got' && пос.рядків === 1 && пос.пропало.jo
   'пропала позиція: прийняте — Отримано, пропале вийшло з закупівлі й видно «не прийшло»', JSON.stringify(пос));
 
 console.log('');
+console.log('═══ 9. ЦЕХ: ПЕРЕТЯГНУТИ, «ГОТОВО» З ФОТО, ПОГОДЖЕННЯ З ТТН, ПЕРЕДРУК (06.10) ═══');
+const цехПотік = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, o = __o, j = __j, out = {};
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const tg = [];
+  U.host.prodBot = async (cap, pngs) => { tg.push({ cap, n: pngs.length }); return true; };
+  U.host.upload = async f => 'https://cdn.test/' + encodeURIComponent(f.name || 'f');
+  // одяг отримано → «Готово до роботи»
+  o.tracks = Object.assign({}, o.tracks, { supply:'got', prod:'ready' }); delete o.tracks.qc; o.prodQc = null; o.ttn = '';
+  U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
+  out.було = D.prodAt(j, o);
+  out.неМожна = !D.prodCanMove('new', 'ship') && !D.prodCanMove('ready', 'appr');
+  // перетягуємо картку «Готово до роботи» → «На станках»
+  const card = document.querySelector('.dz-col[data-col="ready"] [data-open="' + o.orderId + '"]');
+  const w = card && (card.closest('.dz-card-w') || card);
+  out.тягнеться = !!(w && w.getAttribute('draggable') === 'true');
+  const dt = new DataTransfer();
+  w.dispatchEvent(new DragEvent('dragstart', { bubbles:true, dataTransfer: dt }));
+  out.підсвітка = !!document.querySelector('.dz-col[data-col="run"].can-drop') && !document.querySelector('.dz-col[data-col="ship"].can-drop');
+  const col = document.querySelector('.dz-col[data-col="run"]');
+  col.dispatchEvent(new DragEvent('dragover', { bubbles:true, cancelable:true, dataTransfer: dt }));
+  col.dispatchEvent(new DragEvent('drop', { bubbles:true, cancelable:true, dataTransfer: dt }));
+  await wait(1500);
+  out.станки = D.prodAt(j, o);
+  out.телеграм = tg.length ? tg[0] : null;
+  // «Готово — фото»: два фото й коментар → «Чекає погодження»
+  U.open(o.orderId); U.render(document.getElementById('dzRoot'));
+  document.querySelector('#dzPanel [data-do="prod-done"]').click();
+  await wait(200);
+  const inp = document.querySelector('#dzProdModal [data-pm-file]');
+  const dt2 = new DataTransfer();
+  const c = document.createElement('canvas'); c.width = 4; c.height = 4;
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  dt2.items.add(new File([blob], 'a.png', { type:'image/png' })); dt2.items.add(new File([blob], 'b.png', { type:'image/png' }));
+  inp.files = dt2.files; inp.dispatchEvent(new Event('change'));
+  await wait(300);
+  document.querySelector('#dzProdModal [data-pm-note]').value = 'Усе рівно';
+  document.querySelector('#dzProdModal [data-pm-go]').click();
+  await wait(500);
+  out.погодж = D.prodAt(j, o); out.фото = ((o.prodQc || {}).photos || []).length;
+  // акаунт: без ТТН «Погодити» неактивна; з ТТН — «Можна відправляти»
+  U.setTab('acct'); U.open(o.orderId); U.render(document.getElementById('dzRoot'));
+  out.безТТН = !!document.querySelector('#dzPanel [data-do="prod-ok"][disabled]');
+  o.ttn = '20450000000001';
+  U.render(document.getElementById('dzRoot'));
+  document.querySelector('#dzPanel [data-do="prod-ok"]').click();
+  await wait(400);
+  out.можна = D.prodAt(j, o);
+  // передрук з вини графічного: 1 шт, коментар → «Передрук», одяг на дозакупівлю, правки дизайнерам
+  o.tracks.qc = 'check'; o.prodQc.ok = null;
+  U.render(document.getElementById('dzRoot'));
+  document.querySelector('#dzPanel [data-do="prod-redo"]').click();
+  await wait(200);
+  const pm = document.getElementById('dzProdModal');
+  pm.querySelector('input[name="dzpmb"][value="graphic"]').checked = true;
+  pm.querySelectorAll('[data-pmq]').forEach((el, i) => { el.value = i === 0 ? 1 : 0; });
+  pm.querySelector('[data-pm-note]').value = 'Клієнту не сподобався колір ниток';
+  pm.querySelector('[data-pm-go]').click();
+  await wait(500);
+  const u0 = U.unitsOf(j).filter(u => u && u.gid)[0];
+  out.передрук = D.prodAt(j, o);
+  out.запис = (o.reprints || []).slice(-1)[0];
+  out.редо = +u0.redo || 0;
+  out.правки = D.dzList(u0, 'graphic').map(d => d.status).concat(D.dzList(u0, 'stitch').map(d => d.status));
+  // з «Передруку» перетягують куди треба
+  out.зПередруку = D.prodMove(j, o, 'ready', 'test@loomiq');
+  out.закрито = (o.reprints || []).slice(-1)[0].open === false;
+  return out;
+});
+console.log('  ' + JSON.stringify(Object.assign({}, цехПотік, { запис: цехПотік.запис && { blame: цехПотік.запис.blame, n: цехПотік.запис.n, from: цехПотік.запис.from } })));
+ok(цехПотік.було === 'ready' && цехПотік.неМожна, 'стартуємо з «Готово до роботи»; зайві переходи руками заборонені', JSON.stringify(цехПотік));
+ok(цехПотік.тягнеться && цехПотік.підсвітка && цехПотік.станки === 'run',
+  'картку перетягнули «Готово до роботи» → «На станках» (підсвічено лише дозволене)', JSON.stringify(цехПотік));
+ok(цехПотік.телеграм && цехПотік.телеграм.n >= 1 && /Замовлення #\d/.test(цехПотік.телеграм.cap),
+  'на станках — виробнича карта сама пішла в Telegram цеху', 'telegram: ' + JSON.stringify(цехПотік.телеграм));
+ok(цехПотік.погодж === 'appr' && цехПотік.фото === 2, '«Готово — фото» (2 фото) → «Чекає погодження»', JSON.stringify(цехПотік));
+ok(цехПотік.безТТН && цехПотік.можна === 'ship', 'без ТТН погодити не можна; з ТТН — «Можна відправляти»', JSON.stringify(цехПотік));
+ok(цехПотік.передрук === 'redo' && цехПотік.запис && цехПотік.запис.blame === 'graphic' && цехПотік.запис.from === 'appr' &&
+   цехПотік.редо === 1 && цехПотік.правки.length && цехПотік.правки.every(x => x === 'revision'),
+  'не погоджено → «Передрук»: провина графічного, 1 шт на дозакупівлю, правки графічному й вишивальному', JSON.stringify(цехПотік));
+ok(цехПотік.зПередруку === 'ready' && цехПотік.закрито, 'з «Передруку» перетягують у потрібну колонку — передрук закрито', JSON.stringify(цехПотік));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
 await browser.close(); srv.close();
