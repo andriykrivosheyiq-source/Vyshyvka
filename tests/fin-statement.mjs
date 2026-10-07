@@ -58,6 +58,10 @@ PAY.push({ id:'privat_2', acc:'mono3', at:D(3), amount: -200, counter:'Пост�
 /* Рахунок без банку: початковий залишок плюс рухи — з копійками. */
 PAY.push({ id:'man_1', acc:'cash', at:D(1), amount: 100.55, counter:'Готівка', desc:'', src:'manual' });
 PAY.push({ id:'man_2', acc:'cash', at:D(2), amount: -50.10, counter:'Кава', desc:'', src:'manual' });
+/* Картка NovaPay (07.10): лише перекази з ФОП (+1000, +200) і витрата руками. */
+PAY.push({ id:'novapay_1_in', acc:'npcard', at:D(1), amount: 1000, counter:'ФОП Кривошей', desc:'', src:'novapay', flow:'self' });
+PAY.push({ id:'novapay_2_in', acc:'npcard', at:D(3), amount: 200, counter:'ФОП Кривошей', desc:'', src:'novapay', flow:'self' });
+PAY.push({ id:'man_np', acc:'npcard', at:D(1), amount: -1197.23, counter:'На Моно', desc:'', src:'manual' });
 /* Багато рухів — для «показати ще». */
 for(let i = 0; i < 150; i++)
   PAY.push({ id:'many_' + i, acc:'mono4', at:D(i % 25, i % 24), amount: (i % 2 ? 10 : -5), counter:'Рух ' + i, desc:'', src:'mono' });
@@ -81,6 +85,7 @@ const ACCS = [
   { id:'mono1', name:'Моно ФОП Малєєва', bank:'mono', linked:true, start: 0 },
   { id:'mono3', name:'Приват ФОП Зелена', bank:'privat', linked:true },
   { id:'cash',  name:'Каса', bank:'other', start: 1000 },
+  { id:'npcard', name:'Картка NovaPay', bank:'novapaycard' },
   { id:'mono4', name:'Моно ФОП 4', bank:'mono', start: 0 },
   { id:'npacc', name:'NovaPay', bank:'np', start: 0 }
 ];
@@ -173,6 +178,9 @@ ok(card('mono3').s === '5 000 ₴' && /^банк/.test(card('mono3').at),
 ok(card('cash').s === '1 050,45 ₴' && card('cash').at === 'розрахунок',
   'рахунок без банку — початковий + рухи, копійки не губляться (1000 + 100,55 − 50,10)',
   'розрахунок неточний: ' + JSON.stringify(card('cash')));
+ok(card('npcard').s === '1 200 ₴' && /виведено з ФОП/.test(card('npcard').at),
+  'картка NovaPay — не «залишок», а скільки виведено з ФОП за 30 днів (1000 + 200)',
+  'картка NovaPay: ' + JSON.stringify(card('npcard')));
 ok(card('all').s === '64 177,80 ₴',
   '«Разом» — сума карток (52 572,35 + 5 000 + 1 050,45 + 375 + 5 180)',
   '«Разом» не сходиться: ' + card('all').s);
