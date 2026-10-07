@@ -243,7 +243,9 @@
     { key:'wait',   label:'Очікуємо одяг',       color:'amber'  },
     { key:'ready',  label:'Готово до роботи',    color:'cyan'   },
     { key:'run',    label:'На станках',          color:'blue'   },
-    { key:'qc',     label:'Контроль якості',     color:'violet' },
+    /* «Контроль якості» окремою колонкою прибрано (Володимир, 06.10):
+       контроль — це кнопка «Готово» з фото на станках, і далі одразу
+       «Чекає погодження» в акаунт-менеджера. */
     { key:'appr',   label:'Чекає погодження',    color:'amber'  },
     { key:'ship',   label:'Можна відправляти',   color:'cyan'   },
     { key:'sent',   label:'Відправлено',         color:'green', done:true }
@@ -255,7 +257,7 @@
        Інакше цех вважає роботу зданою, а вона висить. */
     if(trk(o, 'qc') === 'check') return 'appr';
     if(trk(o, 'qc') === 'bad') return 'redo';
-    if(trk(o, 'prod') === 'done') return 'qc';
+    if(trk(o, 'prod') === 'done') return 'appr';
     if(trk(o, 'prod') === 'work') return 'run';
     if(trk(o, 'prod') === 'ready') return 'ready';
     var sup = trk(o, 'supply');
@@ -938,6 +940,11 @@
   ];
   function buyReady(u){ return graphicDone(u) && clothOk(u); }
   function buyKey(orderId, uid){ return String(orderId || '') + '|' + String(uid || ''); }
+  /* Скільки одягу позиції треба мати: тираж + перезамовлене на передрук
+     (Володимир, 06.10: «за будь-якої провини одяг перезамовляємо»).
+     Передрук не міняє тиражу — він додає потребу, і закупник бачить її в
+     «Треба замовити» з позначкою «передрук». */
+  function buyQty(u){ return Math.round(+((u || {}).qty) || 0) + Math.round(+((u || {}).redo) || 0); }
   /* Яке оформлене замовлення тримає цю позицію. */
   function buyOf(buys, orderId, uid){
     var k = buyKey(orderId, uid);
@@ -980,7 +987,7 @@
       jobUnits(p.job).forEach(function(u){
         if(!buyReady(u)) return;
         /* Лишок, а не вся позиція: частину могли вже взяти зі складу. */
-        var лишок = Math.round(+u.qty || 0) - buyCovered(buys, p.o.orderId, u.id);
+        var лишок = buyQty(u) - buyCovered(buys, p.o.orderId, u.id);
         if(лишок <= 0) return;
         out.push({ orderId: String(p.o.orderId || ''), uid: u.id, job: p.job, u: u,
                    gid: u.gid, color: String(u.color || ''), colorHex: u.colorHex || '',
@@ -1100,13 +1107,113 @@
   function buyOrderState(job, orderId, buys){
     var us = jobUnits(job).filter(function(u){ return u && u.gid; });
     if(!us.length) return '';
-    var st = us.map(function(u){ return buyStateOf(buys, orderId, u.id, u.qty).key; });
+    var st = us.map(function(u){ return buyStateOf(buys, orderId, u.id, buyQty(u)).key; });
     /* Ключі — ті самі, що в треку «Закупки»: «в дорозі» там ще «замовлено»,
        «частково отримано» — коли приїхала лише частина позицій. */
     if(st.every(function(k){ return k === 'got'; })) return 'got';
     if(st.some(function(k){ return k === 'got'; })) return 'part';
     return st.some(function(k){ return k !== 'none'; }) ? 'sent' : 'todo';
   }
+  /* ══════════ ЦЕХ: ГОТОВО, ПОГОДЖЕННЯ, ПЕРЕДРУК (Володимир, 06.10) ══════════
+
+     Готово до роботи → На станках — оператор перетягує картку (і карта
+     летить у Telegram цеху). На станках → «Готово»: фото (скільки завгодно)
+     і коментар — це і є контроль якості; далі «Чекає погодження» в
+     акаунт-менеджера. Погодив (лише з ТТН) → «Можна відправляти». Не
+     погодив або цех сам натиснув «Передрук» → «Передрук».
+
+     Передрук: скільки штук, фото, коментар, чия провина. Одяг перезамовляємо
+     за будь-якої провини (u.redo → «Треба замовити» з позначкою «передрук»).
+     Провина графічного — правка графічному і вишивальному; вишивального —
+     лише вишивальному. Картка стоїть у «Передруку», доки її не перетягнуть. */
+  var REDO_BLAME = [
+    { key:'operator', label:'Оператор' },
+    { key:'machine',  label:'Машинка' },
+    { key:'graphic',  label:'Графічний дизайнер' },
+    { key:'stitch',   label:'Вишивальний дизайнер' }
+  ];
+  function prodTrack(o, key, val, by){
+    o.tracks = o.tracks || {};
+    if(val) o.tracks[key] = val; else delete o.tracks[key];
+    o.trackHist = (o.trackHist || []).concat([{ t: key, s: val || '', at: nowIso(), by: String(by || '') }]).slice(-60);
+  }
+  function reprintOpen(o){
+    var l = (o && o.reprints) || [];
+    var r = l[l.length - 1];
+    return (r && r.open) ? r : null;
+  }
+  /* «Готово» на станках: фото й коментар → «Чекає погодження». */
+  function prodReady(o, by, photos, note){
+    var ph = (photos || []).filter(Boolean).map(String);
+    if(!o || !ph.length) return null;
+    o.prodQc = { photos: ph.slice(0, 40), note: String(note || '').slice(0, 2000), at: nowIso(), by: String(by || '') };
+    prodTrack(o, 'prod', 'done', by);
+    prodTrack(o, 'qc', 'check', by);
+    return o.prodQc;
+  }
+  /* Погодити може лише замовлення з ТТН: без накладної «можна відправляти»
+     — неправда (Володимир: «обовʼязково повинен створити ТТН»). */
+  function prodApprove(o, by){
+    if(!o || !o.prodQc) return 'no-photos';
+    if(!String(o.ttn || '').trim()) return 'no-ttn';
+    o.prodQc.ok = { at: nowIso(), by: String(by || '') };
+    prodTrack(o, 'qc', 'ok', by);
+    return 'ok';
+  }
+  /* Передрук. qty — { idПозиції: штук }. */
+  function prodReprint(job, o, by, opts){
+    opts = opts || {};
+    var blame = REDO_BLAME.some(function(b){ return b.key === opts.blame; }) ? opts.blame : 'operator';
+    var note = String(opts.note || '').trim();
+    if(!o || !note) return null;
+    var штук = 0, по = {};
+    jobUnits(job).forEach(function(u){
+      var n = Math.max(0, Math.round(+((opts.qty || {})[u.id]) || 0));
+      if(!n) return;
+      u.redo = Math.round(+u.redo || 0) + n;
+      по[u.id] = n; штук += n;
+    });
+    var r = { at: nowIso(), by: String(by || ''), blame: blame, note: note.slice(0, 3000),
+              photos: (opts.photos || []).filter(Boolean).map(String).slice(0, 40),
+              qty: по, n: штук, from: opts.from === 'appr' ? 'appr' : 'run', open: true };
+    o.reprints = (o.reprints || []).concat([r]);
+    prodTrack(o, 'qc', 'bad', by);
+    /* Правки дизайнерам — у розмову при самому дизайні: там дизайнер її й
+       побачить, і там же відповість. */
+    var кому = blame === 'graphic' ? ['graphic', 'stitch'] : blame === 'stitch' ? ['stitch'] : [];
+    jobUnits(job).forEach(function(u){
+      кому.forEach(function(kind){
+        dzList(u, kind).forEach(function(d){
+          if(!d || !dzReal(d)) return;
+          d.thread.push({ at: nowIso(), by: String(by || ''), kind: 'fix',
+            text: 'Передрук — ' + note, file: (r.photos[0] ? { name: 'брак.jpg', url: r.photos[0] } : null),
+            seen: [String(by || '')], role: 'acct' });
+          d.status = 'revision';
+        });
+      });
+    });
+    return r;
+  }
+  /* Ручне перетягування на дошці цеху. Дозволено лише те, що робиться
+     руками: з «Передруку» — у будь-яку робочу колонку; «Готово до роботи»
+     ↔ «На станках». Решта переходів — кнопками (там потрібні фото чи ТТН). */
+  var PROD_MOVES = { redo: ['new', 'wait', 'ready', 'run'], ready: ['run'], run: ['ready'] };
+  function prodCanMove(from, to){ return (PROD_MOVES[from] || []).indexOf(to) >= 0; }
+  function prodMove(job, o, to, by){
+    var from = prodAt(job, o);
+    if(!prodCanMove(from, to)) return null;
+    if(from === 'redo'){
+      var r = reprintOpen(o);
+      if(r){ r.open = false; r.closedAt = nowIso(); r.closedBy = String(by || ''); }
+      prodTrack(o, 'qc', '', by);
+      if(o.prodQc) o.prodQc = null;
+    }
+    if(to === 'run') prodTrack(o, 'prod', 'work', by);
+    else if(to === 'ready') prodTrack(o, 'prod', 'ready', by);
+    else prodTrack(o, 'prod', '', by);
+    return prodAt(job, o);
+  }
+
   /* ══════════ ПЕРЕПИСКА ЦЕХУ З МЕНЕДЖЕРОМ ══════════
      Одна розмова на замовлення. Роль — 'prod' або 'acct': своє праворуч,
      чуже ліворуч, прочитане позначається «пошта|роль», як і в дизайнерів. */
@@ -2023,7 +2130,8 @@
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt,
-    PROD: PROD, prodAt: prodAt, SUPPLY: SUPPLY, supplyAt: supplyAt,
+    PROD: PROD, prodAt: prodAt, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
+    prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
     taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
     taskDone: taskDone, taskAccept: taskAccept, taskReturn: taskReturn,
@@ -2039,7 +2147,7 @@
     verParts: verParts, verSpots: verSpots, msgRole: msgRole,
     unitMissing: unitMissing, graphicDone: graphicDone, placeLocked: placeLocked,
     clothOk: clothOk, clothConfirm: clothConfirm, dzReal: dzReal,
-    BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyOf: buyOf, buyStateOf: buyStateOf,
+    BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyQty: buyQty, buyOf: buyOf, buyStateOf: buyStateOf,
     buyNeed: buyNeed, buyNew: buyNew, buyNext: buyNext, buySetStatus: buySetStatus,
     buyOrderState: buyOrderState, buyCovered: buyCovered,
     stockK: stockK, stockFind: stockFind, stockQty: stockQty, stockValue: stockValue,
@@ -5333,7 +5441,7 @@
       : gDone ? { st:'now', t: sWho ? 'Вишивка · ' + імя(sWho) : 'Вишивка', title: sWho ? 'Працює: ' + nameOf(sWho) : 'У черзі вишивального' }
       : { st:'next', t:'Вишивка' });
     if(us.length){
-      var ks = us.map(function(u){ return D.buyStateOf(всі || [], o.orderId, u.id, u.qty).key; });
+      var ks = us.map(function(u){ return D.buyStateOf(всі || [], o.orderId, u.id, D.buyQty(u)).key; });
       var одяг = ks.every(function(k){ return k === 'got'; }) ? { st:'ok', t:'Одяг' }
         : !gDone ? { st:'next', t:'Одяг' }
         : { st: 'now',
@@ -5540,7 +5648,10 @@
       var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m, kind, kind); }, 0);
       var верс = mine.reduce(function(a, x){ return Math.max(a, x.d.vers.length); }, 0);
       var крок = DZ_COL[st] || 'new';
-      if(kind === 'stitch') крок = крок === 'revision' ? 'work' : крок === 'review' ? 'done' : крок;
+      /* «Правки» у вишивального тепер окремою колонкою (Володимир, 06.10:
+         «додати статус правки вишивальним») — туди йде й передрук з його
+         провини. «На перевірці» в B2C, як і було, немає. */
+      if(kind === 'stitch') крок = крок === 'review' ? 'done' : крок;
       var u0 = mine[0].u;
       /* Що малювати — нанесення з розмірами: «груди 10 × 6 см, спина 25 × 30 см». */
       var місця = mine.map(function(x){
@@ -5618,7 +5729,7 @@
     var всі = buys();
     var us = U.unitsOf(job).filter(function(u){ return D.clothOk(u); });
     if(!us.length) return '';
-    var st = us.map(function(u){ return D.buyStateOf(всі, o.orderId, u.id, u.qty).key; });
+    var st = us.map(function(u){ return D.buyStateOf(всі, o.orderId, u.id, D.buyQty(u)).key; });
     var k = st.indexOf('none') >= 0 ? 'none' : st.indexOf('sent') >= 0 ? 'sent'
           : st.indexOf('way') >= 0 ? 'way' : 'got';
     var t = { none:'Треба замовити одяг', sent:'Одяг замовлено', way:'Одяг в дорозі', got:'Одяг отримано' }[k];
@@ -5723,6 +5834,8 @@
           U.unitsHtml(job, { bare:true, o:o })) +
         /* Замовлення в цеху — розмова з виробництвом тут же, у тому самому
            вигляді, що з дизайнерами. */
+        /* Фото від цеху на погодження / передрук — над розмовою з цехом. */
+        (уЦеху ? prodActsZone(job, o, 'acct') : '') +
         (уЦеху ? U.zoneHtml('green', '🏭', 'Виробництво',
           (function(){ var n = D.prodUnseen(job, (host().me && host().me()) || '', 'acct');
                        return n ? n + ' нових' : ''; })(),
@@ -6310,7 +6423,7 @@
            (d.vers || [])[(d.vers || []).length - 1] || null;
   }
   function clothHtml(o, u){
-    var bs = D.buyStateOf(buys(), o.orderId, u.id, u.qty);
+    var bs = D.buyStateOf(buys(), o.orderId, u.id, D.buyQty(u));
     var b = bs.buy;
     return '<span class="dz-cloth is-' + esc(bs.key) + '">' + esc(bs.label) +
       (b ? (b.stock ? ' · зі складу' : ' · №' + esc(b.n) + ' від ' + esc(buyDate(b.at))) : '') +
@@ -6427,10 +6540,163 @@
         '<button class="dz-x" data-close>×</button>' +
         U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</div>' +
       '<div class="dz-panel-b is-zones">' +
+        prodActsZone(job, o, 'prod') +
         U.zoneHtml('violet', '👕', 'Що шиємо', '', prodUnitsHtml(p)) +
         U.zoneHtml('blue', '📝', 'ТЗ', '', prodTzHtml(job, o)) +
         U.zoneHtml('green', '💬', 'Переписка з менеджером', '', prodChatHtml(job, 'prod')) +
       '</div>';
+  }
+  /* ДІЇ ЦЕХУ І ПОГОДЖЕННЯ (06.10) — зона над «Що шиємо». Що в ній, залежить
+     від колонки: на станках — «Готово» з фото й «Передрук»; чекає
+     погодження — фото й (в акаунта) «Погодити / Не погоджено»; можна
+     відправляти — фото «погоджено» й ТТН; передрук — що сталось і чия
+     провина. as: 'prod' (цех) або 'acct' (акаунт-менеджер). */
+  function photosHtml(l){
+    return (l || []).length ? '<div class="dz-pics">' + l.map(function(u){
+      return '<span class="dz-pic"><button type="button" class="dz-pic-b" data-do="pic-open" data-url="' + esc(u) + '">' +
+        '<img src="' + esc(u) + '" alt="" loading="lazy"></button></span>'; }).join('') + '</div>' : '';
+  }
+  function reprintHtml(r){
+    if(!r) return '';
+    var b = (D.REDO_BLAME.filter(function(x){ return x.key === r.blame; })[0] || {}).label || r.blame;
+    return '<div class="dz-redo">' +
+      '<div class="dz-redo-h"><b>Передрук' + (r.n ? ' · ' + r.n + ' шт' : '') + '</b><span>провина: ' + esc(b) +
+        ' · ' + esc(dt(r.at)) + (r.by ? ' · ' + esc(nameOf(r.by)) : '') +
+        (r.from === 'appr' ? ' · не погодив акаунт' : '') + '</span></div>' +
+      '<div class="dz-redo-t">' + esc(r.note).replace(/\n/g, '<br>') + '</div>' +
+      photosHtml(r.photos) + '</div>';
+  }
+  function prodActsZone(job, o, as){
+    var at = D.prodAt(job, o), q = o.prodQc || null, body = '', head = '';
+    var tg = '<button type="button" class="dz-b" data-do="prod-tg" title="Надіслати виробничу карту в Telegram цеху">✈ Карта в Telegram</button>';
+    if(at === 'redo'){
+      head = 'Передрук';
+      body = reprintHtml(D.reprintOpen(o)) +
+        (as === 'prod' ? '<div class="dz-miss is-calm">Коли буде одяг і правки — перетягніть картку в потрібну колонку.</div>' : '');
+    } else if(at === 'ready' && as === 'prod'){
+      head = 'Готово до роботи';
+      body = '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-move" data-to="run">На станки</button>' + tg + '</div>';
+    } else if(at === 'run' && as === 'prod'){
+      head = 'На станках';
+      body = '<div class="dz-prod-acts">' +
+        '<button type="button" class="dz-b pri" data-do="prod-done">✓ Готово — фото</button>' +
+        '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>' + tg + '</div>';
+    } else if(at === 'appr' && q){
+      head = 'Чекає погодження';
+      body = photosHtml(q.photos) + (q.note ? '<div class="dz-w-note"><i>Коментар цеху</i>' + esc(q.note) + '</div>' : '') +
+        (as === 'acct'
+          ? '<div class="dz-prod-acts">' +
+              (String(o.ttn || '').trim() ? '' : '<div class="dz-miss">Без ТТН погодити не можна — спершу створіть накладну.</div>' +
+                '<button type="button" class="dz-b" data-do="ship">Створити ТТН</button>') +
+              '<button type="button" class="dz-b pri" data-do="prod-ok"' + (String(o.ttn || '').trim() ? '' : ' disabled') + '>Погодити</button>' +
+              '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo" data-from="appr">Не погоджено — передрук</button></div>'
+          : '<div class="dz-miss is-calm">Фото пішли акаунт-менеджеру на погодження.</div>');
+    } else if(at === 'ship' || at === 'sent'){
+      head = at === 'ship' ? 'Можна відправляти' : 'Відправлено';
+      body = (q ? '<div class="dz-ok">Фото погоджено' + (q.ok ? ' · ' + esc(dt(q.ok.at)) : '') + '</div>' + photosHtml(q.photos) : '') +
+        '<div class="dz-ttn">ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>') + '</div>';
+    }
+    if(!body) return '';
+    return U.zoneHtml('amber', at === 'redo' ? '🔁' : '⚙', head, '', body);
+  }
+  /* ── Вікно: «Готово» (фото + коментар) і «Передрук» ─────────────────── */
+  function prodModal(kind, job, o, from){
+    var old = document.getElementById('dzProdModal');
+    if(old) old.remove();
+    var us = U.unitsOf(job).filter(function(u){ return u && u.gid; });
+    var ph = [];
+    var m = document.createElement('div');
+    m.id = 'dzProdModal'; m.className = 'dz-pm';
+    var redo = kind === 'redo';
+    m.innerHTML = '<div class="dz-pm-w"><div class="dz-pm-h"><b>' +
+        (redo ? 'Передрук' : 'Готово — фото партії') + '</b><button type="button" class="dz-x" data-pm-x>×</button></div>' +
+      '<div class="dz-pm-b">' +
+      (redo ? '<div class="dz-pm-l">Чия провина</div><div class="dz-pm-bl">' + D.REDO_BLAME.map(function(b, i){
+          return '<label><input type="radio" name="dzpmb" value="' + b.key + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(b.label) + '</label>'; }).join('') + '</div>' +
+        '<div class="dz-pm-l">Скільки штук передрукувати (одяг перезамовимо)</div>' +
+        us.map(function(u){
+          return '<label class="dz-pm-q"><span>' + esc([(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · ')) + '</span>' +
+            '<input type="number" min="0" step="1" data-pmq="' + esc(u.id) + '" value="' + (us.length === 1 ? (Math.round(+u.qty || 0) || 1) : 0) + '"></label>'; }).join('')
+        : '') +
+      '<div class="dz-pm-l">Фото — скільки завгодно (зняти, вибрати або вставити Ctrl+V)</div>' +
+      '<div class="dz-pics" data-pm-pics></div>' +
+      '<label class="dz-b dz-pm-add">＋ Фото<input type="file" accept="image/*" multiple hidden data-pm-file></label>' +
+      '<div class="dz-pm-l">' + (redo ? 'Що не так і що виправити (обовʼязково)' : 'Коментар') + '</div>' +
+      '<textarea rows="' + (redo ? 5 : 3) + '" data-pm-note placeholder="' +
+        (redo ? 'Що саме не сподобалось клієнту / що зіпсовано, і як виправити' : 'Що варто знати акаунту') + '"></textarea>' +
+      '</div><div class="dz-pm-f"><button type="button" class="dz-b pri" data-pm-go>' +
+        (redo ? 'Відправити в передрук' : 'Надіслати на погодження') + '</button></div></div>';
+    document.body.appendChild(m);
+    var пік = m.querySelector('[data-pm-pics]');
+    var малюй = function(){
+      пік.innerHTML = ph.map(function(p, i){
+        return '<span class="dz-pic"><img src="' + esc(p.url || p.prev) + '" alt="">' +
+          (p.url ? '' : '<i class="dz-pm-w8">…</i>') +
+          '<button type="button" class="dz-pic-x" data-pm-del="' + i + '">×</button></span>'; }).join('');
+    };
+    var додай = function(files){
+      Array.prototype.forEach.call(files || [], function(f){
+        if(!f || !/^image\//.test(f.type || '')) return;
+        var it = { prev: URL.createObjectURL(f), url: '' };
+        ph.push(it); малюй();
+        Promise.resolve(host().upload(f)).then(function(u){ it.url = u || ''; if(!u) ph.splice(ph.indexOf(it), 1); малюй(); },
+          function(){ ph.splice(ph.indexOf(it), 1); малюй(); say('Фото не завантажилось'); });
+      });
+    };
+    m.querySelector('[data-pm-file]').onchange = function(e){ додай(e.target.files); e.target.value = ''; };
+    var paste = function(e){
+      var fs = [];
+      Array.prototype.forEach.call((e.clipboardData && e.clipboardData.items) || [], function(it){
+        if(it.kind === 'file'){ var f = it.getAsFile(); if(f) fs.push(f); } });
+      if(fs.length){ e.preventDefault(); додай(fs); }
+    };
+    document.addEventListener('paste', paste);
+    var close = function(){ document.removeEventListener('paste', paste); m.remove(); };
+    m.addEventListener('click', async function(e){
+      var t = e.target;
+      if(t.closest('[data-pm-x]') || t === m) return close();
+      var del = t.closest('[data-pm-del]');
+      if(del){ ph.splice(+del.dataset.pmDel, 1); return малюй(); }
+      if(!t.closest('[data-pm-go]')) return;
+      if(ph.some(function(p){ return !p.url; })) return say('Зачекайте — фото ще завантажуються');
+      var urls = ph.map(function(p){ return p.url; });
+      var note = String(m.querySelector('[data-pm-note]').value || '').trim();
+      var me = (host().me && host().me()) || '';
+      if(redo){
+        if(!note) return say('Напишіть, що не так і що виправити');
+        var bl = (m.querySelector('input[name="dzpmb"]:checked') || {}).value || 'operator';
+        var q = {};
+        m.querySelectorAll('[data-pmq]').forEach(function(el){ q[el.dataset.pmq] = +el.value || 0; });
+        if(!D.prodReprint(job, o, me, { blame: bl, note: note, photos: urls, qty: q, from: from })) return say('Передрук не записався');
+        close();
+        return save(job, o, 'Передрук записано · одяг — у закупника з позначкою «передрук»');
+      }
+      if(!urls.length) return say('Додайте хоча б одне фото');
+      D.prodReady(o, me, urls, note);
+      close();
+      return save(job, o, 'Надіслано на погодження акаунт-менеджеру');
+    });
+  }
+  /* ── Виробнича карта в Telegram цеху ─────────────────────────────────── */
+  async function prodToTelegram(job, o, quiet){
+    if(!host().prodBot) { if(!quiet) say('Telegram цеху не налаштовано'); return false; }
+    var cards = [];
+    var us = U.unitsOf(job).filter(function(u){ return u && u.gid; });
+    for(var i = 0; i < us.length; i++){
+      var gr = D.dzList(us[i], 'graphic');
+      for(var g = 0; g < gr.length; g++){
+        if(!verOkOf(gr[g])) continue;
+        try{ var c = await embCards(job, us[i], g); if(c) cards = cards.concat(c); }catch(e){ console.warn('карта', e); }
+      }
+    }
+    if(!cards.length){ if(!quiet) say('Виробничої карти ще немає — ескіз не погоджено'); return false; }
+    if(!quiet) say('Надсилаю в Telegram цеху…');
+    try{
+      var r = await host().prodBot('Замовлення ' + U.jobNo(job) + ' · ' + cards.length + ' ' + (cards.length === 1 ? 'карта' : 'карти'),
+                                   cards.map(function(c){ return c.png; }));
+      if(!quiet) say(r === true ? 'Карту надіслано в Telegram цеху' : ('Telegram: ' + (r || 'не надіслалось')));
+      return r === true;
+    }catch(e){ console.warn(e); if(!quiet) say('Telegram цеху не відповів'); return false; }
   }
   /* ТЗ ДЛЯ ЦЕХУ (05.10). Андрій: «щоб вони побачили — можливо, там якась
      уточнина від клієнта, — і могли звірити». Перші кілька рядків і
@@ -6590,7 +6856,7 @@
       var us = U.unitsOf(p.job).filter(function(u){ return u && u.gid; });
       if(us.length){
         var ст = {};
-        us.forEach(function(u){ var k = D.buyStateOf(всі, p.o.orderId, u.id, u.qty).label; ст[k] = (ст[k] || 0) + 1; });
+        us.forEach(function(u){ var k = D.buyStateOf(всі, p.o.orderId, u.id, D.buyQty(u)).label; ст[k] = (ст[k] || 0) + 1; });
         var вишивка = us.every(function(u){
           var l = D.dzList(u, 'stitch'); return l.length && l.every(function(d){ return !!d.ok; }); });
         r = { ok: true, why: [] };
@@ -6602,7 +6868,7 @@
          Усі три є — картка з зеленим краєм. */
       var готов = [];
       if(us.length){
-        var одяг = us.every(function(u){ return D.buyStateOf(всі, p.o.orderId, u.id, u.qty).key === 'got'; });
+        var одяг = us.every(function(u){ return D.buyStateOf(всі, p.o.orderId, u.id, D.buyQty(u)).key === 'got'; });
         var виш = us.every(function(u){ var l = D.dzList(u, 'stitch'); return l.length && l.every(function(d){ return !!d.ok; }); });
         var файл = us.every(function(u){ var l = D.dzList(u, 'stitch');
           return l.length && l.every(function(d){ var v = d.vers[d.vers.length - 1]; return v && D.verParts(v).machine.length; }); });
@@ -6622,7 +6888,8 @@
         left: D.stageLeft(p.job, p.o, 'prod', termHours('prod')),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
-        foot: r.foot || (r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || '')) };
+        foot: (D.reprintOpen(p.o) ? '🔁 передрук · ' : '') +
+              (r.foot || (r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || ''))) };
     });
   }
   function supplyCards(){
@@ -6645,7 +6912,7 @@
     if(seat === 'graphic') return { steps: D.GRAPHIC, cards: graphicCards('graphic') };
     /* Вишивальнику — без «На перевірці» й «Правок»: перевірки в B2C немає,
        здане одразу «Готово». */
-    if(seat === 'stitch')  return { steps: D.GRAPHIC.filter(function(x){ return x.key !== 'review' && x.key !== 'revision'; }),
+    if(seat === 'stitch')  return { steps: D.GRAPHIC.filter(function(x){ return x.key !== 'review'; }),
                                     cards: graphicCards('stitch') };
     if(seat === 'prod'){
       /* Ролі виробництва бачать свої колонки (Андрій, 06.10): оператори —
@@ -7342,6 +7609,10 @@
                     var mm = buyMissMap(), звідки = sz.rows.map(function(r){ return mm[D.buyKey(r.orderId, r.uid)]; }).filter(Boolean)[0];
                     return звідки ? '<em class="dz-buy-miss">не прийшло з «' + esc(звідки) + '»</em>' : '';
                   })() +
+                  /* Передрук (06.10): одяг перезамовляється — закупник бачить чому. */
+                  (sz.rows.some(function(r){
+                    var pp = U.pairOf(r.orderId), uu = pp && U.unitAt(pp.job, r.uid);
+                    return uu && (+uu.redo || 0) > 0; }) ? '<em class="dz-buy-miss">передрук</em>' : '') +
                   '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc('n:' + k) + '">' +
                     (BUY_OPEN['n:' + k] ? 'сховати' : 'номери') + '</button>' +
                   (BUY_OPEN['n:' + k]
@@ -7696,6 +7967,44 @@
         buySave(b, t ? 'ТТН збережено' : 'ТТН прибрано');
       };
     });
+    /* ПЕРЕТЯГУВАННЯ НА ДОШЦІ ЦЕХУ (Володимир, 06.10): оператор переносить
+       картку мишкою. Дозволено лише ручні переходи (D.prodCanMove); колонка,
+       куди не можна, не підсвічується й нічого не приймає. */
+    if(U.tab() === 'prod'){
+      var тягну = null;
+      root.querySelectorAll('.dz-board .dz-col [data-open]').forEach(function(c){
+        var w = c.closest('.dz-card-w') || c;
+        w.setAttribute('draggable', 'true');
+        w.ondragstart = function(e){
+          var col = w.closest('.dz-col');
+          тягну = { id: c.dataset.open, from: col ? col.dataset.col : '' };
+          try{ e.dataTransfer.setData('text/plain', тягну.id); e.dataTransfer.effectAllowed = 'move'; }catch(_){}
+          root.querySelectorAll('.dz-board .dz-col').forEach(function(k){
+            if(D.prodCanMove(тягну.from, k.dataset.col)) k.classList.add('can-drop'); });
+        };
+        w.ondragend = function(){
+          тягну = null;
+          root.querySelectorAll('.dz-col.can-drop, .dz-col.drop-on').forEach(function(k){ k.classList.remove('can-drop', 'drop-on'); });
+        };
+      });
+      root.querySelectorAll('.dz-board .dz-col').forEach(function(k){
+        k.ondragover = function(e){
+          if(тягну && D.prodCanMove(тягну.from, k.dataset.col)){ e.preventDefault(); k.classList.add('drop-on'); }
+        };
+        k.ondragleave = function(){ k.classList.remove('drop-on'); };
+        k.ondrop = function(e){
+          e.preventDefault();
+          if(!тягну) return;
+          var p = U.pairOf(тягну.id), to = k.dataset.col;
+          тягну = null;
+          if(!p) return;
+          var me0 = (host().me && host().me()) || '';
+          if(!D.prodMove(p.job, p.o, to, me0)) return say('Так перенести не можна');
+          if(to === 'run') prodToTelegram(p.job, p.o, true);
+          save(p.job, p.o, to === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
+        };
+      });
+    }
     root.querySelectorAll('[data-do]').forEach(function(b){
       b.onclick = function(e){
         /* Кнопка всередині картки (Instagram) — картку не відкриває. */
@@ -8304,6 +8613,22 @@
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
 
+    /* ── Цех: рух, «Готово», передрук, погодження, Telegram (06.10) ── */
+    if(what === 'prod-move'){
+      var до = String((data && data.to) || '');
+      if(!D.prodMove(job, o, до, m)) return say('Так перенести не можна');
+      if(до === 'run') prodToTelegram(job, o, true);     // карта — у Telegram цеху автоматично
+      return save(job, o, до === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
+    }
+    if(what === 'prod-done') return prodModal('done', job, o);
+    if(what === 'prod-redo') return prodModal('redo', job, o, (data && data.from) === 'appr' ? 'appr' : 'run');
+    if(what === 'prod-ok'){
+      var рез = D.prodApprove(o, m);
+      if(рез === 'no-ttn') return say('Спершу створіть ТТН — без неї погодити не можна');
+      if(рез !== 'ok') return say('Немає фото від цеху');
+      return save(job, o, 'Погоджено — цех бачить «Можна відправляти»');
+    }
+    if(what === 'prod-tg') return prodToTelegram(job, o, false);
     if(what === 'prod-say'){
       var pas = (data && data.as) === 'prod' ? 'prod' : 'acct';
       var pel = (root || document).querySelector('[data-prodsay="' + pas + '"]');
