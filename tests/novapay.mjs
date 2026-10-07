@@ -24,6 +24,7 @@ const env = {
   HOOK_SECRET: 'sek', NOVAPAY_LOGIN: 'andriy', NOVAPAY_REFRESH_TOKEN: 'RT-0', NOVAPAY_CERT: 'CERT-0'
 };
 const sv = v => ({ stringValue: v });
+const DBT = {}; let TICK = 0;
 const DB = {};
 DB['loomiq/photos'] = { fin: { mapValue: { fields: { accounts: { arrayValue: { values: [
   { mapValue: { fields: { id: sv('np1'), bank: sv('np'), iban: sv('UA29 358710 0000673200 000000190'), name: sv('NovaPay') } } } ] } } } } } };
@@ -76,6 +77,7 @@ globalThis.fetch = async (url, opt) => {
     for(const w of JSON.parse(opt.body).writes){
       const p = w.update.name.split('/documents/')[1];
       DB[p] = DB[p] || {}; w.updateMask.fieldPaths.forEach(k => { DB[p][k] = w.update.fields[k]; });
+      DBT[p] = 't' + (++TICK);
       calls.push({ action: 'FS ' + p });
     }
     return res({});
@@ -83,10 +85,15 @@ globalThis.fetch = async (url, opt) => {
   const m = /documents\/([^?]+)/.exec(url);
   if(m){
     const p = decodeURIComponent(m[1]);
-    if((opt.method || 'GET') === 'GET') return DB[p] ? res({ fields: DB[p] }) : res({ error:'nf' }, 404);
+    if((opt.method || 'GET') === 'GET') return DB[p] ? res({ fields: DB[p], updateTime: DBT[p] || 't0' }) : res({ error:'nf' }, 404);
+    /* Умовний запис, як у Firestore: документ змінили після читання — 400. */
+    const ut = /currentDocument\.updateTime=([^&]+)/.exec(url), ex = /currentDocument\.exists=(true|false)/.exec(url);
+    if(ut && decodeURIComponent(ut[1]) !== (DBT[p] || 't0')) return res({ error:'FAILED_PRECONDITION' }, 400);
+    if(ex && (ex[1] === 'true') !== !!DB[p]) return res({ error:'FAILED_PRECONDITION' }, 400);
     const b = JSON.parse(opt.body);
     const mask = [...url.matchAll(/updateMask\.fieldPaths=([^&]+)/g)].map(x => decodeURIComponent(x[1]));
     DB[p] = DB[p] || {}; mask.forEach(k => { DB[p][k] = b.fields[k]; });
+    DBT[p] = 't' + (++TICK);
     calls.push({ action: 'FS ' + p });
     return res({});
   }
@@ -109,7 +116,7 @@ const saved = DB['secrets/novapay'] || {};
 const order = calls.map(c => c.action);
 ok(p1.ok && saved.refresh_token && saved.refresh_token.stringValue === 'RT-1' && saved.public_certificate.stringValue === 'CERT-1',
   'новий ключ (RT-1) і сертифікат збережено в secrets/novapay', 'збереження ключа: ' + JSON.stringify(saved));
-ok(order.indexOf('FS secrets/novapay') === order.indexOf('UserAuthenticationJWT') + 1,
+ok(order[order.indexOf('UserAuthenticationJWT') + 1] === 'FS secrets/novapay',
   'ключ зберігається одразу після входу — до будь-якого іншого запиту', 'порядок: ' + order.join(' → '));
 const bal = ((DB['loomiq/bankBal'] || {}).np1 || {}).mapValue;
 const P = id => (DB['payments/' + id] || {});
@@ -176,6 +183,22 @@ await fresh4.fetch(new Request('https://w.test/novapay/poll?s=sek'), env4).then(
 const a7 = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
 ok(p6.ok && a6 === 1 && a7 === 0, 'NovaPay дає строк як «dd.mm.yyyy hh:mm» — вхід один, ключ не крутиться вдруге', 'входів: ' + a6 + ' + ' + a7 + ' · ' + JSON.stringify(p6).slice(0, 200));
 expFmt = 'iso';
+
+console.log('');
+console.log('═══ ДВА ПРОГОНИ РАЗОМ — ОДИН ВХІД ═══');
+/* Розклад і ручний /novapay/poll в ту саму мить: обидва з тим самим ключем.
+   Доти обидва входили, і в базі міг лишитись не той ключ (07.10:
+   «Refresh token does not apply to login»). Тепер другий чекає на першого. */
+{
+  const fa = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 5))).default;
+  const fb = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 6))).default;
+  valid = 'PAR-KEY';
+  const envP = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'PAR-KEY', NOVAPAY_CERT: 'NEW-CERT' });
+  calls.length = 0;
+  const [ra, rb] = await Promise.all([fa, fb].map(w => w.fetch(new Request('https://w.test/novapay/poll?s=sek'), envP).then(r => r.json())));
+  const входів = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
+  ok(ra.ok && rb.ok && входів === 1, 'два прогони одночасно — вхід один, другий бере jwt першого', 'входів: ' + входів + ' · ' + JSON.stringify([ra.error, rb.error]));
+}
 
 console.log('');
 console.log('═══ ДОГНАТИ ПРОПУЩЕНІ ДНІ ═══');

@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-07.1 · NovaPay догонить пропущені дні';
+const VERSION = '2026-10-07.2 · NovaPay: один вхід одночасно, догонить пропущені дні';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -914,6 +914,28 @@ function novapayUntil(exp, now) {
   return t;
 }
 let NOVAPAY_JWT = null;   // { jwt, until } — у памʼяті живого воркера
+/* ОДИН ВХІД ОДНОЧАСНО (07.10). Ключ NovaPay одноразовий. Два прогони, що
+   входять тим самим ключем одночасно (розклад + ручний /novapay/poll),
+   можуть лишити в базі не той ключ, який NovaPay вважає живим, — і далі
+   «Refresh token does not apply to login», доки не згенерують новий. Тому
+   перед входом займаємо замок: пишемо lockAt лише за умови, що документ
+   ніхто не змінив з моменту читання (precondition updateTime). Не вийшло
+   або замок свіжий (< 60 с) — хтось уже входить: чекаємо й беремо його jwt. */
+async function novapayLock(env) {
+  const r = await fetch(docPath(env, 'secrets/novapay'),
+    { headers: { Authorization: 'Bearer ' + await accessToken(env) } });
+  const d = r.status === 404 ? null : await r.json().catch(() => null);
+  const lockAt = d && d.fields && d.fields.lockAt && d.fields.lockAt.stringValue;
+  if (lockAt && Date.now() - Date.parse(lockAt) < 60000) return false;
+  const pre = d && d.updateTime ? '&currentDocument.updateTime=' + encodeURIComponent(d.updateTime)
+    : '&currentDocument.exists=' + (d && d.fields ? 'true' : 'false');
+  const w = await fetch(docPath(env, 'secrets/novapay') + '?updateMask.fieldPaths=lockAt' + pre, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + await accessToken(env), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { lockAt: { stringValue: new Date().toISOString() } } })
+  });
+  return w.ok;
+}
 async function novapayJwt(env, force) {
   if (!env.NOVAPAY_LOGIN || !env.NOVAPAY_REFRESH_TOKEN || !env.NOVAPAY_CERT)
     throw new Error('Немає секретів NOVAPAY_LOGIN / NOVAPAY_REFRESH_TOKEN / NOVAPAY_CERT');
@@ -922,12 +944,35 @@ async function novapayJwt(env, force) {
      криво: кожен зайвий вхід крутить ключ, а NovaPay другого не пускає. */
   if (!force && NOVAPAY_JWT && (NOVAPAY_JWT.until - 60000 > now || now - (NOVAPAY_JWT.at || 0) < 5 * 60000))
     return NOVAPAY_JWT.jwt;
-  const saved = await fsGet(env, 'secrets/novapay').catch(() => null);
+  let saved = await fsGet(env, 'secrets/novapay').catch(() => null);
   const seed = await sha(env.NOVAPAY_REFRESH_TOKEN);
-  const savedOk = saved && saved.seed === seed;
+  let savedOk = saved && saved.seed === seed;
   if (!force && savedOk && saved.jwt && Date.parse(saved.until || '') - 60000 > now) {
     NOVAPAY_JWT = { jwt: saved.jwt, until: Date.parse(saved.until) };
     return saved.jwt;
+  }
+  if (!(await novapayLock(env).catch(() => true))) {
+    /* Інший прогін саме входить — чекаємо на його jwt, а не крутимо ключ удруге. */
+    for (let i = 0; i < 4; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const s2 = await fsGet(env, 'secrets/novapay').catch(() => null);
+      if (s2 && s2.seed === seed && s2.jwt && Date.parse(s2.until || '') - 60000 > Date.now()) {
+        NOVAPAY_JWT = { jwt: s2.jwt, until: Date.parse(s2.until), at: Date.now() };
+        return s2.jwt;
+      }
+    }
+    throw new Error('NovaPay: інший прогін саме входить — спробуйте за хвилину');
+  }
+  /* Замок наш — перечитуємо: поки чекали, інший прогін міг уже ввійти й
+     покласти новий ключ, а старий, прочитаний вище, вже мертвий. */
+  const fresh = await fsGet(env, 'secrets/novapay').catch(() => null);
+  if (fresh && fresh.seed === seed) {
+    if (!force && fresh.jwt && Date.parse(fresh.until || '') - 60000 > Date.now()) {
+      await fsWrite(env, 'secrets/novapay', { lockAt: '' }).catch(() => null);
+      NOVAPAY_JWT = { jwt: fresh.jwt, until: Date.parse(fresh.until), at: Date.now() };
+      return fresh.jwt;
+    }
+    saved = fresh; savedOk = true;
   }
   const token = savedOk && saved.refresh_token ? saved.refresh_token : env.NOVAPAY_REFRESH_TOKEN;
   NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: savedOk && saved.refresh_token
@@ -935,6 +980,7 @@ async function novapayJwt(env, force) {
   const cert = savedOk && saved.public_certificate ? saved.public_certificate : env.NOVAPAY_CERT;
   const a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
   if (a.error) {
+    await fsWrite(env, 'secrets/novapay', { lockAt: '' }).catch(() => null);
     /* Що саме пішло в NovaPay — без самих значень ключа: логін, довжина
        токена, чи схожий сертифікат на цілий (BEGIN…END). Щоб розібратись,
        чого не так, без пересилання секретів. */
@@ -959,7 +1005,7 @@ async function novapayJwt(env, force) {
   const until = novapayUntil(exp, now);
   /* Новий ключ — у базу першим ділом: старий уже не діє. */
   await fsWrite(env, 'secrets/novapay', { seed, refresh_token: next, public_certificate: nextCert || cert,
-    jwt, until: new Date(until).toISOString(), at: new Date().toISOString() });
+    jwt, until: new Date(until).toISOString(), at: new Date().toISOString(), lockAt: '' });
   NOVAPAY_JWT = { jwt, until, at: now };
   return jwt;
 }
