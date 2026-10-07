@@ -214,6 +214,28 @@ ok(від8 === дата(new Date(Date.now() - 8 * 864e5)) && DB['loomiq/novapayO
   'після перерви виписка — від останнього вдалого прогону (−1 доба), і мітку оновлено', 'від: ' + від8);
 
 console.log('');
+console.log('═══ ВИВЕДЕНЕ НА СВОЮ КАРТКУ ═══');
+/* Особисту картку NovaPay API не віддає, але переказ на неї видно у виписці
+   ФОП. Немає рахунку з її IBAN — poll підказує IBAN; є («NovaPay · картка
+   фізособи») — переказ лягає туди дзеркалом, між своїми. */
+{
+  const КАРТКА = 'UA789358710000067406000279221';
+  const envK = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'NEW-KEY-2', NOVAPAY_CERT: 'NEW-CERT' });
+  const k1 = await fresh4.fetch(new Request('https://w.test/novapay/poll?s=sek'), envK).then(r => r.json());
+  const підказка = ((k1.novapay || [])[0] || {}).картка_без_рахунку || [];
+  const accs = DB['loomiq/photos'].fin.mapValue.fields.accounts.arrayValue.values;
+  accs.push({ mapValue: { fields: { id: sv('npc1'), bank: sv('novapaycard'), iban: sv('UA78 9358710000067406000279221'), name: sv('Картка NovaPay') } } });
+  const k2 = await fresh4.fetch(new Request('https://w.test/novapay/poll?s=sek'), envK).then(r => r.json());
+  const дз = DB['payments/novapay_58194299_in'] || {};
+  ok(підказка.indexOf(КАРТКА) >= 0, 'переказ собі на рахунок поза Фінансами — poll підказує IBAN картки', JSON.stringify(k1).slice(0, 300));
+  ok(дз.acc && дз.acc.stringValue === 'npc1' && дз.amount.doubleValue === 1000 && дз.flow.stringValue === 'self' &&
+     ((k2.novapay || [])[0] || {}).виведено_на_картку === 1,
+    'з рахунком «NovaPay · картка фізособи» переказ лягає на картку надходженням 1000, між своїми', JSON.stringify(дз));
+  ok(!DB['payments/novapay_58190001_in'] && !DB['payments/novapay_58236056_in'], 'чужі витрати й пул на картку не дзеркаляться', 'зайве дзеркало');
+  accs.pop();
+}
+
+console.log('');
 console.log('═══ /novapay/probe ═══');
 const pr = await call('/novapay/probe?s=sek');
 ok(pr.ok && pr.рахунки[0].id === '49' && pr.виписка_рухи[0].Amount === '50000.00' && /реєстру/.test(pr.виписка_рухи[0].Purpose),
