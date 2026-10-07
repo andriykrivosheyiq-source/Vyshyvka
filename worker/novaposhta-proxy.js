@@ -261,6 +261,54 @@ export default {
         const r = await createTtn(env, body.order || {});
         return json({ ok: true, ...r }, 200, cors);
       }
+      /* ── РЕЄСТРИ Й СТАТУСИ ПАЧКОЮ (07.10, дошка цеху) ── */
+      /* Реєстр із ТТН одного відправника. Нова пошта приймає внутрішні Ref
+         накладних; номери без Ref (вписані руками) шукаємо в його накладних
+         за 60 днів. */
+      if (op === 'registry') {
+        await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
+        const key = keyFor(env, body.sender || '');
+        const docs = Array.isArray(body.docs) ? body.docs.slice(0, 500) : [];
+        const refs = [], треба = {};
+        docs.forEach(d => { const n = String(d.ttn || '').replace(/\D/g, ''); if (d.ref) refs.push(String(d.ref)); else if (n) треба[n] = 1; });
+        if (Object.keys(треба).length) {
+          const до = new Date(), від = new Date(Date.now() - 60 * 864e5);
+          const dd = x => String(x.getDate()).padStart(2, '0') + '.' + String(x.getMonth() + 1).padStart(2, '0') + '.' + x.getFullYear();
+          for (let page = 1; page <= 20 && Object.keys(треба).length; page++) {
+            const l = await np(env, 'InternetDocument', 'getDocumentList',
+              { DateTimeFrom: dd(від), DateTimeTo: dd(до), GetFullList: '1', Page: String(page), Limit: '100' }, key);
+            l.forEach(x => { const n = String(x.IntDocNumber || ''); if (треба[n] && x.Ref) { refs.push(String(x.Ref)); delete треба[n]; } });
+            if (l.length < 100) break;
+          }
+        }
+        if (!refs.length) return json({ ok: false, error: 'Жодної накладної цього відправника не знайдено' }, 200, cors);
+        const r = await np(env, 'ScanSheet', 'insertDocuments', { DocumentRefs: refs }, key);
+        const x = r[0] || {};
+        return json({ ok: !!x.Ref, ref: String(x.Ref || ''), number: String(x.Number || ''), date: String(x.Date || ''),
+                      notFound: Object.keys(треба), errors: (x.Data && x.Data.Errors) || [] }, 200, cors);
+      }
+      /* PDF реєстру для друку. Адреса друку НП містить ключ, тож її віддавати
+         в браузер не можна — тягнемо файл тут і віддаємо байти. */
+      if (op === 'registryPdf') {
+        await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
+        const ref = String(body.ref || '').replace(/[^A-Za-z0-9-]/g, '');
+        if (!ref) return json({ ok: false, error: 'Немає реєстру' }, 400, cors);
+        const key = keyFor(env, body.sender || '');
+        const pdf = await fetch('https://my.novaposhta.ua/scanSheet/printScanSheet/refs[]/' + ref + '/type/pdf/apiKey/' + key);
+        if (!pdf.ok) return json({ ok: false, error: 'Нова пошта не віддала PDF (' + pdf.status + ')' }, 502, cors);
+        return new Response(pdf.body, { status: 200, headers: { ...cors, 'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment; filename="reestr-' + ref.slice(0, 8) + '.pdf"' } });
+      }
+      /* Статуси до 100 накладних за раз — для автоматичних колонок дошки. */
+      if (op === 'trackMany') {
+        const list = (Array.isArray(body.ttns) ? body.ttns : []).slice(0, 100)
+          .map(t => ({ DocumentNumber: String(t.ttn || t || '').replace(/\D/g, ''), Phone: String(t.phone || '') }))
+          .filter(t => t.DocumentNumber);
+        if (!list.length) return json({ ok: true, list: [] }, 200, cors);
+        const d = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: list }, anyKey());
+        return json({ ok: true, list: d.map(x => ({ ttn: String(x.Number || ''), code: String(x.StatusCode || ''),
+          status: String(x.Status || ''), at: String(x.RecipientDateTime || x.ActualDeliveryDate || x.DateCreated || '') })) }, 200, cors);
+      }
       if (op === 'track') {
         const ttn = String(body.ttn || '').replace(/\D/g, '');
         if (!ttn) return json({ ok: false, error: 'Порожній номер накладної' }, 400, cors);
