@@ -4739,6 +4739,16 @@
   .dz-cloth.is-got{background:#ECFDF5;color:#047857;border-color:#A7F3D0;}
   /* Цех (06.10): дії, передрук, вікно фото, перетягування */
   .dz-prod-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+  .dz-sort{margin-left:auto;display:inline-flex;align-items:center;gap:2px;}
+  .dz-sort button{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);padding:1px 6px;border-radius:999px;}
+  .dz-sort.on button{background:#EEF3FB;color:#2f4c8f;}
+  .dz-sort .dz-sort-x{padding:1px 5px;}
+  .dz-reg-h{margin-left:auto;display:inline-flex;gap:4px;align-items:center;}
+  .dz-reg-make{padding:3px 9px !important;font-size:11.5px !important;}
+  .dz-reg-list{all:unset;cursor:pointer;font-size:14px;padding:0 4px;}
+  .dz-reg-r{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #EEF0F3;font-size:13px;}
+  .dz-reg-r span{color:var(--muted);flex:1;}
+  .dz-deliv.on{background:#EEF3FB;}
   .dz-b-warn{border-color:#FECACA !important;color:#B42318 !important;}
   .dz-redo{border:1px solid #FECACA;background:#FEF6F6;border-radius:10px;padding:8px 10px;margin-bottom:6px;}
   .dz-redo-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px;}
@@ -7438,28 +7448,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=56f56019be"></script>
-<script src="loomiq-fingerprint.js?v=56f56019be"></script>
-<script src="loomiq-pricing.js?v=56f56019be"></script>
+<script src="loomiq-select.js?v=435df39994"></script>
+<script src="loomiq-fingerprint.js?v=435df39994"></script>
+<script src="loomiq-pricing.js?v=435df39994"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=56f56019be"></script>
+<script src="loomiq-money-core.js?v=435df39994"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=56f56019be"></script>
-<script src="loomiq-bg.js?v=56f56019be"></script>
-<script src="loomiq-mock.js?v=56f56019be"></script>
+<script src="loomiq-design.js?v=435df39994"></script>
+<script src="loomiq-bg.js?v=435df39994"></script>
+<script src="loomiq-mock.js?v=435df39994"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=56f56019be"></script>
-<script src="loomiq-threads.js?v=56f56019be"></script>
+<script src="imagetracer.js?v=435df39994"></script>
+<script src="loomiq-threads.js?v=435df39994"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=56f56019be"></script>
+<script src="loomiq-cards.js?v=435df39994"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7504,7 +7514,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '56f56019be';
+var LQ_VER = '435df39994';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11735,7 +11745,7 @@ function renderDash(){
 /* АНАЛІТИКА БРАКУ (Володимир, 06.10): кожен передрук — чия провина, скільки
    штук, що сталось і фото. Джерело — `o.reprints` (записує цех кнопкою
    «Передрук» або акаунт, коли не погодив фото). */
-const REDO_UA = { operator:'Оператор', machine:'Машинка', graphic:'Графічний дизайнер', stitch:'Вишивальний дизайнер' };
+const REDO_UA = { operator:'Оператор', machine:'Машинка', graphic:'Графічний дизайнер', stitch:'Вишивальний дизайнер', color:'Кольори' };
 function dashRedoHtml(m){
   const E = escapeHtml, list = [];
   (orders || []).forEach(o => (Array.isArray(o && o.reprints) ? o.reprints : []).forEach(r => {
@@ -11756,7 +11766,29 @@ function dashRedoHtml(m){
           '<td>' + (x.r.photos || []).slice(0, 3).map(u => '<a href="' + E(u) + '" target="_blank" rel="noopener"><img src="' + E(u) +
             '" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:6px;margin-right:3px;"></a>').join('') + '</td></tr>').join('') +
         '</tbody></table>'
-      : '<div class="tm-none">Цього місяця передруків не було.</div>') + '</div>';
+      : '<div class="tm-none">Цього місяця передруків не було.</div>') + '</div>' + dashLossHtml(m);
+}
+/* ЗБИТКИ (07.10): компенсації, повні відмови (собівартість + недоплачене) —
+   окремим списком, щоб бачити, скільки не дозаробили. У Фінанси не йде. */
+function dashLossHtml(m){
+  const E = escapeHtml, list = [];
+  (orders || []).forEach(o => (Array.isArray(o && o.losses) ? o.losses : []).forEach(l => {
+    if(l && String(l.at || '').slice(0, 7) === m) list.push({ o, l });
+  }));
+  list.sort((a, b) => String(b.l.at).localeCompare(String(a.l.at)));
+  const KIND = { comp:'Компенсація', refuse:'Повна відмова', cod:'Неоплачена наложка' };
+  const total = list.reduce((a, x) => a + (+x.l.sum || 0), 0);
+  return '<div class="dash-loss"><div class="fin-l" style="margin-top:18px;">Збитки · ' + E(finMonthLabel(m)) + '</div>' +
+    (list.length
+      ? '<div class="an-row"><div class="an-c"><span>Разом</span><b>' + fmt(total) + ' ₴</b></div>' +
+        Object.keys(KIND).map(k => '<div class="an-c"><span>' + E(KIND[k]) + '</span><b>' +
+          fmt(list.filter(x => x.l.kind === k).reduce((a, x) => a + (+x.l.sum || 0), 0)) + ' ₴</b></div>').join('') + '</div>' +
+        '<table class="an-t"><thead><tr><th>Коли</th><th>Замовлення</th><th>Що</th><th>Сума</th><th>З чого</th></tr></thead><tbody>' +
+        list.map(x => '<tr><td>' + E(String(x.l.at).slice(8, 10) + '.' + String(x.l.at).slice(5, 7)) + '</td><td>№' + E(x.o.orderId || '') + '</td>' +
+          '<td>' + E(KIND[x.l.kind] || x.l.kind) + '</td><td><b>' + fmt(+x.l.sum || 0) + ' ₴</b></td><td>' +
+          E(x.l.kind === 'refuse' ? 'собівартість ' + fmt(+x.l.cost || 0) + ' + недоплачено ' + fmt(+x.l.unpaid || 0) : (x.l.note || '')) + '</td></tr>').join('') +
+        '</tbody></table>'
+      : '<div class="tm-none">Цього місяця збитків не записано.</div>') + '</div>';
 }
 (function(){
   document.addEventListener('change', async e => {
@@ -21792,7 +21824,7 @@ async function npCall(op, extra){
   /* Накладну й реквізити відправника воркер дає лише тому, хто увійшов в
      адмінку: його адреса лежить у публічних налаштуваннях сайту. */
   let idToken = '';
-  if(op === 'create' || op === 'sender'){
+  if(op === 'create' || op === 'sender' || op === 'registry'){
     try{ idToken = await fbAuth.currentUser.getIdToken(); }
     catch(e){ throw new Error('Сесія застаріла — увійдіть ще раз'); }
   }
@@ -21808,6 +21840,65 @@ async function npCall(op, extra){
     return d;
   } finally { clearTimeout(t); }
 }
+/* ══ РЕЄСТРИ Й СТАТУСИ НП ДЛЯ ДОШКИ ЦЕХУ (07.10) ══ */
+async function npRegistry(sender, docs){
+  try{ return await npCall('registry', { sender: sender || '', docs: docs || [] }); }
+  catch(e){ return { error: String((e && e.message) || e) }; }
+}
+async function npRegistryPdf(ref, sender){
+  const u = npUrl();
+  if(!u) return 'адреса воркера Нової пошти не задана';
+  let idToken = '';
+  try{ idToken = await fbAuth.currentUser.getIdToken(); }catch(e){ return 'сесія застаріла — увійдіть ще раз'; }
+  try{
+    const r = await fetch(u, { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ op:'registryPdf', ref, sender: sender || '', idToken }) });
+    if(!r.ok || !/pdf/i.test(r.headers.get('Content-Type') || '')){
+      const j = await r.json().catch(() => ({}));
+      return j.error || ('код ' + r.status + ' — оновіть воркер Нової пошти');
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'реєстр-' + String(ref).slice(0, 8) + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return true;
+  }catch(e){ return 'воркер не відповів'; }
+}
+/* Статуси посилок із реєстрів — щопівгодини й при відкритті відділу. Дошка
+   цеху сама переставляє картки: в дорозі → прибуло → виконано / відмова. */
+const NP_FINAL = ['9','10','11','106','102','103','108','105','2'];
+let npPollAt = 0;
+async function prodNpPoll(force){
+  if(!force && Date.now() - npPollAt < 25 * 60000) return;
+  if(!npUrl()) return;
+  npPollAt = Date.now();
+  const ці = (orders || []).filter(o => o && o.ttn && o.reg && o.reg.ref &&
+    !(o.npSt && NP_FINAL.indexOf(String(o.npSt.code)) >= 0));
+  if(!ці.length) return;
+  let змін = 0;
+  for(let i = 0; i < ці.length; i += 100){
+    const part = ці.slice(i, i + 100);
+    let d;
+    try{ d = await npCall('trackMany', { ttns: part.map(o => ({ ttn: o.ttn, phone: o.phone || '' })) }); }
+    catch(e){ console.warn('статуси НП', e); return; }
+    (d.list || []).forEach(x => {
+      const o = part.filter(y => String(y.ttn).replace(/\D/g, '') === String(x.ttn).replace(/\D/g, ''))[0];
+      if(!o || !x.code) return;
+      const було = o.npSt || {};
+      if(String(було.code) === String(x.code) && було.status === x.status) return;
+      const at = new Date().toISOString();
+      o.npSt = { code: String(x.code), status: String(x.status || '').slice(0, 120), at,
+                 arrivedAt: (x.code === '7' || x.code === '8') ? (було.arrivedAt || at) : (було.arrivedAt || '') };
+      змін++;
+    });
+  }
+  if(змін){
+    try{ await storeSet('orders', orders); }catch(e){ console.warn('статуси НП не збереглись', e); }
+    try{ const r = document.getElementById('dzRoot'); if(r && window.LQDesign) window.LQDesign.ui.render(r); }catch(e){}
+  }
+}
+setInterval(() => { try{ prodNpPoll(false); }catch(e){} }, 30 * 60000);
 function shipUnits(o){
   return (o.items || []).filter(it => itemKind(it) === 'main')
     .reduce((a, it) => a + (+it.qty || 0), 0);
@@ -30532,6 +30623,7 @@ async function designSave(job, o){
     await setTrack(o, 'design', step);
 }
 function openDesign(){
+  try{ prodNpPoll(false); }catch(e){}
   const root = document.getElementById('dzRoot');
   if(!root || !window.LQDesign || !window.LQDesign.ui) return;
   /* Панель відділу закривається тим самим рухом, що й картка замовлення:
@@ -30673,6 +30765,10 @@ function openDesign(){
     cardNote: () => b2cCfg().note,
     /* Виробнича карта — у Telegram цеху. */
     prodBot: (caption, pngs) => prodBotSend(caption, pngs),
+    /* Реєстри НП і борг клієнта (для «повної відмови»). */
+    npRegistry: (sender, docs) => npRegistry(sender, docs),
+    npPrint: (ref, sender) => npRegistryPdf(ref, sender),
+    due: o => dueSum(o),
     /* Колонки виробничої дошки, які бачить роль (null — усі). */
     prodCols: () => { const d = roleDef(myRole()); return (d && Array.isArray(d.cols) && d.cols.length) ? d.cols : null; },
     /* Роль з колонками виробництва сидить на виробничій дошці. */
@@ -30881,7 +30977,10 @@ const PROD_COLS = [
   { key:'wait',  label:'Очікуємо одяг' }, { key:'ready', label:'Готово до роботи' },
   { key:'run',   label:'На станках' },
   { key:'appr',  label:'Чекає погодження' }, { key:'ship', label:'Можна відправляти' },
-  { key:'sent',  label:'Відправлено' }
+  { key:'reg',   label:'Реєстр' }, { key:'courier', label:'Передано курʼєру' },
+  { key:'way',   label:'В дорозі' }, { key:'arrived', label:'Прибуло' },
+  { key:'stuck', label:'Понад 3 дні у відділенні' }, { key:'done', label:'Виконано' },
+  { key:'refused', label:'Відмова' }
 ];
 /* Ролі, які зʼявились після того, як список ролей уже зберегли: їх
    додаємо до збереженого, інакше їх ніде не можна було б призначити. */

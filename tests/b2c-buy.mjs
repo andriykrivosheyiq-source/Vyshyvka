@@ -696,7 +696,7 @@ const цехПотік = await p.evaluate(async () => {
   document.querySelector('#dzPanel [data-do="prod-redo"]').click();
   await wait(200);
   const pm = document.getElementById('dzProdModal');
-  pm.querySelector('input[name="dzpmb"][value="graphic"]').checked = true;
+  pm.querySelector('input[name="dzpmb"][data-reason="sketch"]').checked = true;
   pm.querySelectorAll('[data-pmq]').forEach((el, i) => { el.value = i === 0 ? 1 : 0; });
   pm.querySelector('[data-pm-note]').value = 'Клієнту не сподобався колір ниток';
   pm.querySelector('[data-pm-go]').click();
@@ -705,7 +705,8 @@ const цехПотік = await p.evaluate(async () => {
   out.передрук = D.prodAt(j, o);
   out.запис = (o.reprints || []).slice(-1)[0];
   out.редо = +u0.redo || 0;
-  out.правки = D.dzList(u0, 'graphic').map(d => d.status).concat(D.dzList(u0, 'stitch').map(d => d.status));
+  out.правкиГ = D.dzList(u0, 'graphic').map(d => d.status);
+  out.правки = D.dzList(u0, 'stitch').map(d => d.status);
   // з «Передруку» перетягують куди треба
   out.зПередруку = D.prodMove(j, o, 'ready', 'test@loomiq');
   out.закрито = (o.reprints || []).slice(-1)[0].open === false;
@@ -719,10 +720,86 @@ ok(цехПотік.телеграм && цехПотік.телеграм.n >= 1
   'на станках — виробнича карта сама пішла в Telegram цеху', 'telegram: ' + JSON.stringify(цехПотік.телеграм));
 ok(цехПотік.погодж === 'appr' && цехПотік.фото === 2, '«Готово — фото» (2 фото) → «Чекає погодження»', JSON.stringify(цехПотік));
 ok(цехПотік.безТТН && цехПотік.можна === 'ship', 'без ТТН погодити не можна; з ТТН — «Можна відправляти»', JSON.stringify(цехПотік));
-ok(цехПотік.передрук === 'redo' && цехПотік.запис && цехПотік.запис.blame === 'graphic' && цехПотік.запис.from === 'appr' &&
-   цехПотік.редо === 1 && цехПотік.правки.length && цехПотік.правки.every(x => x === 'revision'),
-  'не погоджено → «Передрук»: провина графічного, 1 шт на дозакупівлю, правки графічному й вишивальному', JSON.stringify(цехПотік));
+ok(цехПотік.передрук === 'redo' && цехПотік.запис && цехПотік.запис.blame === 'stitch' && цехПотік.запис.from === 'appr' &&
+   цехПотік.редо === 1 && цехПотік.правки.length && цехПотік.правки.every(x => x === 'revision') &&
+   !цехПотік.правкиГ.some(x => x === 'revision'),
+  'не погоджено «проблема з ескізом» → «Передрук»: 1 шт на дозакупівлю, правки лише вишивальному', JSON.stringify(цехПотік));
 ok(цехПотік.зПередруку === 'ready' && цехПотік.закрито, 'з «Передруку» перетягують у потрібну колонку — передрук закрито', JSON.stringify(цехПотік));
+
+console.log('');
+console.log('═══ 10. ДОСТАВКА: РЕЄСТР, СТАТУСИ НП, СОРТУВАННЯ, ПЕРЕРОБКА, ЗБИТКИ (07.10) ═══');
+const дост = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, o = __o, j = __j, out = {};
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const st = (x) => D.prodAt(j, Object.assign({}, o, x));
+  // коди НП → колонки
+  out.коди = [st({ tracks:{ qc:'ok' }, prodQc:{}, npSt:{ code:'5' } }), st({ tracks:{ qc:'ok' }, prodQc:{}, npSt:{ code:'7', arrivedAt: new Date().toISOString() } }),
+    st({ tracks:{ qc:'ok' }, prodQc:{}, npSt:{ code:'7', arrivedAt: new Date(Date.now() - 4 * 864e5).toISOString() } }),
+    st({ tracks:{ qc:'ok' }, prodQc:{}, npSt:{ code:'9' } }), st({ tracks:{ qc:'ok' }, prodQc:{}, npSt:{ code:'103' } })].join();
+  // ТТН створили рано (на станках) — не «відправлено»; старе замовлення з ТТН — «Виконано»
+  out.рано = st({ tracks:{ prod:'work', ship:'sent' }, prodQc:null, ttnAt: new Date().toISOString(), npSt:null, reg:null });
+  out.старе = st({ tracks:{ ship:'sent' }, prodQc:null, ttnAt:'2026-10-01T10:00:00Z', npSt:null, reg:null });
+  // погоджене з ТТН → «Можна відправляти» → перетягнути в «Реєстр» → «Створити реєстр»
+  o.tracks = Object.assign({}, o.tracks, { qc:'ok' }); o.prodQc = { photos:['x'], ok:{} }; o.ttn = '20450000000001'; o.shipOld = '';
+  (o.reprints || []).forEach(r => { r.open = false; }); o.npSt = null; o.reg = null; o.shipCol = '';
+  out.можна = D.prodAt(j, o);
+  out.вРеєстр = D.prodMove(j, o, 'reg', 'test@loomiq');
+  const реєстр = [];
+  U.host.npRegistry = async (sender, docs) => { реєстр.push({ sender, docs }); return { ref:'REF-1', number:'105-0001' }; };
+  const pdf = []; U.host.npPrint = async (ref, sender) => { pdf.push(ref); return true; };
+  window.confirm = () => true;
+  U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
+  out.кнопкаРеєстру = !!document.querySelector('.dz-col[data-col="reg"] [data-do="reg-make"]');
+  out.схованоДо = !document.querySelector('.dz-col[data-col="done"]');
+  document.querySelector('.dz-col[data-col="reg"] [data-do="reg-make"]').click();
+  await wait(600);
+  out.курʼєр = D.prodAt(j, o); out.реєстр = реєстр.length ? реєстр[0].docs.map(d => d.ttn).join() : '';
+  document.querySelector('[data-do="reg-list"]').click(); await wait(100);
+  out.список = (document.querySelector('#dzRegPop') || {}).textContent || '';
+  document.querySelector('#dzRegPop [data-do="reg-pdf"]').click(); await wait(200);
+  out.pdf = pdf.join(); document.getElementById('dzRegPop').remove();
+  // «Доставка ▾» показує сховані колонки
+  document.querySelector('[data-do="prod-deliv"]').click(); await wait(100);
+  out.схованіВидно = !!document.querySelector('.dz-col[data-col="refused"]');
+  // сортування «Готово до роботи»: кнопка-стрілочка і хрестик
+  document.querySelector('.dz-col[data-col="ready"] [data-do="prod-sort"]').click(); await wait(100);
+  out.сорт = !!document.querySelector('.dz-col[data-col="ready"] .dz-sort.on [data-do="prod-sort-off"]');
+  document.querySelector('[data-do="prod-sort-off"]').click(); await wait(100);
+  out.сортЗнято = !document.querySelector('.dz-col[data-col="ready"] .dz-sort.on');
+  // відмова → компенсація, повна відмова, переробка
+  o.npSt = { code:'103', status:'Відмова одержувача', at: new Date().toISOString() };
+  U.open(o.orderId); U.render(document.getElementById('dzRoot'));
+  out.відмова = D.prodAt(j, o);
+  out.кнопки = [...document.querySelectorAll('#dzPanel .dz-prod-acts [data-do]')].map(b => b.dataset.do).join();
+  window.prompt = (q) => /грн/.test(q) ? '300' : 'знижка за затримку';
+  document.querySelector('#dzPanel [data-do="loss-comp"]').click(); await wait(400);
+  o.totalCost = 500;
+  document.querySelector('#dzPanel [data-do="loss-full"]').click(); await wait(400);
+  out.збитки = (o.losses || []).map(l => l.kind + ':' + l.sum).join();
+  document.querySelector('#dzPanel [data-do="prod-redo"][data-from="after"]').click(); await wait(200);
+  const pm = document.getElementById('dzProdModal');
+  out.безКольору = !pm.querySelector('input[name="dzpmb"][value="color"]');
+  pm.querySelector('input[name="dzpmb"][value="machine"]').checked = true;
+  pm.querySelector('[data-pm-note]').value = 'Повернули — нитка розійшлась';
+  pm.querySelector('[data-pm-go]').click(); await wait(500);
+  out.переробка = D.prodAt(j, o); out.стара = o.shipOld; out.npСкинуто = !o.npSt && !o.reg;
+  o.tracks.qc = 'check'; o.prodQc = { photos:['y'] };
+  out.стараТТН = D.prodApprove(o, 'test@loomiq');
+  return out;
+});
+console.log('  ' + JSON.stringify(дост));
+ok(дост.коди === 'way,arrived,stuck,done,refused', 'коди НП → В дорозі / Прибуло / Понад 3 дні / Виконано / Відмова', дост.коди);
+ok(дост.рано === 'run' && дост.старе === 'done', 'рання ТТН не перекидає в «відправлено»; старі відправлені — у «Виконано»', JSON.stringify(дост));
+ok(дост.можна === 'ship' && дост.вРеєстр === 'reg' && дост.кнопкаРеєстру && дост.схованоДо,
+  '«Можна відправляти» → «Реєстр»; у колонці кнопка «Створити реєстр»; доставка схована', JSON.stringify(дост));
+ok(дост.курʼєр === 'courier' && дост.реєстр === '20450000000001' && /105-0001/.test(дост.список) && дост.pdf === 'REF-1',
+  'реєстр створено → «Передано курʼєру»; у списку реєстрів — номер і PDF', JSON.stringify(дост));
+ok(дост.схованіВидно && дост.сорт && дост.сортЗнято, '«Доставка ▾» показує сховане; сортування вмикається стрілочкою й знімається хрестиком', JSON.stringify(дост));
+ok(дост.відмова === 'refused' && /prod-redo/.test(дост.кнопки) && /loss-comp/.test(дост.кнопки) && /loss-full/.test(дост.кнопки),
+  'на «Відмові» — Переробка, Компенсація, Повна відмова', дост.кнопки);
+ok(/comp:300/.test(дост.збитки) && /refuse:\d+/.test(дост.збитки), 'компенсація й повна відмова — у збитки', дост.збитки);
+ok(дост.безКольору && дост.переробка === 'redo' && дост.стара === '20450000000001' && дост.npСкинуто && дост.стараТТН === 'old-ttn',
+  'переробка після відмови → «Передрук»; стара доставка скинута, погодити зі старою ТТН не можна', JSON.stringify(дост));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
