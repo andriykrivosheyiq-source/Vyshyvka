@@ -6949,6 +6949,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <div class="sub" style="margin:6px 0 12px;">Вставте адресу вашого Worker-проксі (див. <code>worker/README.md</code>). <b>Ключ Photoroom сюди НЕ вставляти</b> — він зберігається лише в секретах Worker. Якщо поле порожнє або сервіс не відповідає, сайт використовує вбудований алгоритм.</div>
           <input id="bgapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-photoroom.ВАШ-АКАУНТ.workers.dev">
           <button class="pc-btn up" id="bgapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
+          <div id="bg-usage" class="sub" style="margin-top:14px;line-height:1.6;"></div>
         </div>
 
         <div class="card" style="max-width:640px;">
@@ -7407,27 +7408,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=10afe9b980"></script>
-<script src="loomiq-fingerprint.js?v=10afe9b980"></script>
-<script src="loomiq-pricing.js?v=10afe9b980"></script>
+<script src="loomiq-select.js?v=695a5fa15f"></script>
+<script src="loomiq-fingerprint.js?v=695a5fa15f"></script>
+<script src="loomiq-pricing.js?v=695a5fa15f"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=10afe9b980"></script>
+<script src="loomiq-money-core.js?v=695a5fa15f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=10afe9b980"></script>
-<script src="loomiq-mock.js?v=10afe9b980"></script>
+<script src="loomiq-design.js?v=695a5fa15f"></script>
+<script src="loomiq-bg.js?v=695a5fa15f"></script>
+<script src="loomiq-mock.js?v=695a5fa15f"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=10afe9b980"></script>
-<script src="loomiq-threads.js?v=10afe9b980"></script>
+<script src="imagetracer.js?v=695a5fa15f"></script>
+<script src="loomiq-threads.js?v=695a5fa15f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=10afe9b980"></script>
+<script src="loomiq-cards.js?v=695a5fa15f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7472,7 +7474,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '10afe9b980';
+var LQ_VER = '695a5fa15f';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -29691,6 +29693,53 @@ document.addEventListener('click', async e=>{
   }
 });
 
+/* ══ СКІЛЬКИ ПІШЛО НА ПРИБИРАННЯ ФОНУ (07.10) ══
+   Андрій: «скільки ми витрачаємо на PhotoRoom». Два числа: наш лічильник
+   (CRM рахує кожне прибирання — простим алгоритмом, нейромережею в
+   браузері, PhotoRoom) і залишок кредитів із самого PhotoRoom (воркер
+   питає /account). Квіз і каталог клієнта рахуються лише в кредитах:
+   лічильник CRM там не пише — анонімний відвідувач у базу не пише. */
+function bgMonth(){ return new Date().toISOString().slice(0, 7); }
+function bgCountAdd(kind){
+  if(['simple','smart','photoroom'].indexOf(kind) < 0) return;
+  const ym = bgMonth();
+  const u = contentData.bgUsage = contentData.bgUsage || {};
+  const m = u[ym] = u[ym] || {};
+  m[kind] = (+m[kind] || 0) + 1;
+  try{
+    const inc = (window.firebase && firebase.firestore && firebase.firestore.FieldValue &&
+                 firebase.firestore.FieldValue.increment) ? firebase.firestore.FieldValue.increment(1) : m[kind];
+    PHOTOS_DOC.set({ bgUsage: { [ym]: { [kind]: inc } } }, { merge:true }).catch(e => console.warn('лічильник фону', e));
+  }catch(e){ console.warn('лічильник фону', e); }
+}
+function paintBgUsage(){
+  const box = document.getElementById('bg-usage');
+  if(!box) return;
+  const u = contentData.bgUsage || {};
+  const months = Object.keys(u).sort().reverse().slice(0, 3);
+  const line = ym => {
+    const m = u[ym] || {};
+    return '<b>' + escapeHtml(ym) + '</b>: внутрішній ' + ((+m.simple || 0) + (+m.smart || 0)) +
+      ' (простий ' + (+m.simple || 0) + ', нейромережа ' + (+m.smart || 0) + ') · PhotoRoom з CRM ' + (+m.photoroom || 0);
+  };
+  box.innerHTML = '<div><b>Прибирання фону в CRM</b></div>' +
+    (months.length ? months.map(line).join('<br>') : 'Ще не рахувалось.') +
+    '<div id="bg-credits" style="margin-top:6px;color:var(--ink-soft);">PhotoRoom: перевіряю залишок…</div>';
+  const url = String((contentData.bgApi || {}).proxyUrl || '').trim().replace(/\/+$/, '');
+  const cr = document.getElementById('bg-credits');
+  if(!/^https:\/\//i.test(url)){ if(cr) cr.textContent = 'PhotoRoom: адреса воркера не вказана.'; return; }
+  fetch(url + '/account').then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => {
+    const c = (j && (j.credits || j.images || j.account)) || j || {};
+    const av = c.available != null ? c.available : c.remaining;
+    const sub = c.subscription != null ? c.subscription : c.total;
+    if(cr) cr.innerHTML = av != null
+      ? 'PhotoRoom: залишилось <b>' + escapeHtml(String(av)) + '</b>' + (sub != null ? ' з ' + escapeHtml(String(sub)) : '') +
+        ' кредитів (усе разом: CRM, квіз, каталог)'
+      : 'PhotoRoom відповів: ' + escapeHtml(JSON.stringify(j).slice(0, 160));
+  }).catch(e => {
+    if(cr) cr.textContent = 'PhotoRoom: залишок не отримано (' + e + '). Оновіть воркер loomiq-photoroom з worker/photoroom-proxy.js — у ньому зʼявився запит /account.';
+  });
+}
 function renderSiteTab(){
   const ct = contentData.contacts || {};
   document.getElementById('site-phone').value = ct.phone || '';
@@ -29698,6 +29747,7 @@ function renderSiteTab(){
   document.getElementById('site-viber').value = ct.viber || '';
   const bgApi = contentData.bgApi || {};
   const bgEl = document.getElementById('bgapi-url'); if(bgEl) bgEl.value = bgApi.proxyUrl || '';
+  paintBgUsage();
   const aiEl = document.getElementById('aiapi-url'); if(aiEl) aiEl.value = bgApi.geminiUrl || '';
   const crmEl = document.getElementById('crmapi-url'); if(crmEl) crmEl.value = bgApi.sitniksUrl || '';
   const tgEl = document.getElementById('tgapi-url'); if(tgEl) tgEl.value = bgApi.tgUrl || '';
@@ -30426,6 +30476,7 @@ function openDesign(){
     /* Адреса Worker-проксі PhotoRoom — та сама, що в конструкторі сайту.
        Ключ живе лише в секретах Worker. */
     bgUrl: () => ((contentData || {}).bgApi || {}).proxyUrl || '',
+    bgCount: kind => bgCountAdd(kind),
     toast: m => toast(m)
   };
   /* Ядро рахує строки й мусить знати про вихідні. Але команди воно не

@@ -460,8 +460,10 @@
       if(p && works[p.work]) return p.work;
       return works.length ? works.length - 1 : -1;
     }
-    var ФОН = [['none', 'Не прибирати'], ['local', 'Прибрати — вбудований'],
-               ['photoroom', 'Прибрати — PhotoRoom']];
+    /* 1 — внутрішній (безкоштовно, у браузері), 2 — PhotoRoom (платний).
+       Андрій (07.10): спершу внутрішній, зовнішній — коли той не впорався. */
+    var ФОН = [['none', 'Не прибирати'], ['local', '1 · Внутрішній'],
+               ['photoroom', '2 · PhotoRoom']];
     function фонHtml(){
       var i = активна();
       if(i < 0 || opt.placeOnly) return '';
@@ -474,7 +476,8 @@
           return '<button type="button" class="mko-bg-b' + (f[0] === cur ? ' on' : '') +
             '" data-mko-bg="' + f[0] + '"' + (w.bgBusy ? ' disabled' : '') + '>' + esc(f[1]) + '</button>';
         }).join('') +
-        (w.bgBusy ? '<i class="mko-bg-w">прибираю…</i>' : '') +
+        (w.bgBusy ? '<i class="mko-bg-w">' + esc(w.bgNote || 'прибираю…') + '</i>' : '') +
+        (!w.bgBusy && w.bg === 'local' ? '<i class="mko-bg-w">не чисто — спробуйте «2 · PhotoRoom»</i>' : '') +
       '</div>';
     }
     async function фон(mode){
@@ -485,7 +488,8 @@
       if(!w.orig) w.orig = w.url;
       w.bgBusy = true; малюй();
       var out = null;
-      try{ out = await removeBg(w.orig, mode); }
+      w.bgNote = '';
+      try{ out = await removeBg(w.orig, mode, function(t){ w.bgNote = t; малюй(); }); }
       catch(e){
         console.warn('фон', e);
         w.bgBusy = false; малюй();
@@ -1650,11 +1654,32 @@
       });
     });
   }
-  /* mode: 'none' | 'local' | 'photoroom'. Повертає data-URL або вихідну адресу. */
-  function removeBg(src, mode){
+  /* Лічильник прибирань фону — щоб бачити, скільки пішло на PhotoRoom і
+     скільки зекономив внутрішній. Рахує робоче місце (адмінка); там, де
+     його немає (квіз, каталог), — мовчки нічого. */
+  function bgCount(kind){ try{ if(HOST.bgCount) HOST.bgCount(kind); }catch(e){} }
+  /* Внутрішній: рівне тло — швидкий алгоритм; інакше — нейромережа в
+     браузері (loomiq-bg.js); вона не змогла — знову швидкий. */
+  function removeBgInternal(d, onNote){
+    var B = window.LQBg;
+    if(!B) return removeBgLocal(d).then(function(r){ bgCount('simple'); return r; });
+    return B.plain(d).catch(function(){ return true; }).then(function(рівне){
+      if(рівне) return removeBgLocal(d).then(function(r){ bgCount('simple'); return r; });
+      if(onNote && !B.ready()) onNote('перший раз — завантажую модель (~100 МБ)…');
+      return B.smart(d, onNote).then(function(r){ bgCount('smart'); return r; })
+        .catch(function(e){
+          console.warn('розумне прибирання фону', e);
+          return removeBgLocal(d).then(function(r){ bgCount('simple'); return r; });
+        });
+    });
+  }
+  /* mode: 'none' | 'local' (внутрішній) | 'photoroom'. Повертає data-URL або вихідну адресу. */
+  function removeBg(src, mode, onNote){
     if(mode !== 'local' && mode !== 'photoroom') return Promise.resolve(src);
     return toDataUrl(src).then(function(d){
-      return mode === 'photoroom' ? removeBgPhotoroom(d) : removeBgLocal(d);
+      return mode === 'photoroom'
+        ? removeBgPhotoroom(d).then(function(r){ bgCount('photoroom'); return r; })
+        : removeBgInternal(d, onNote);
     });
   }
 

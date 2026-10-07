@@ -26,7 +26,7 @@ function corsHeaders(origin, env) {
   const ok = origin && allow.includes(origin);
   return {
     'Access-Control-Allow-Origin': ok ? origin : allow[0],
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin'
@@ -39,6 +39,26 @@ export default {
     const cors = corsHeaders(origin, env);
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+
+    /* GET /account — скільки кредитів PhotoRoom лишилось (07.10). Адмінка
+       показує це в налаштуваннях: «скільки ми витрачаємо». Ключ лишається
+       тут; назовні — лише числа. */
+    if (request.method === 'GET' && new URL(request.url).pathname.replace(/\/+$/, '') === '/account') {
+      if (origin && !allowedOrigins(env).includes(origin))
+        return new Response('Forbidden origin', { status: 403, headers: cors });
+      if (!env.PHOTOROOM_API_KEY)
+        return new Response(JSON.stringify({ error: 'PHOTOROOM_API_KEY не налаштовано' }),
+          { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
+      try {
+        const r = await fetch('https://image-api.photoroom.com/v1/account',
+          { headers: { 'x-api-key': env.PHOTOROOM_API_KEY, 'Accept': 'application/json' } });
+        const t = await r.text();
+        return new Response(t, { status: r.status, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: 'photoroom-unreachable' }),
+          { status: 502, headers: { ...cors, 'Content-Type': 'application/json' } });
+      }
+    }
     if (request.method !== 'POST') {
       return new Response('Only POST', { status: 405, headers: cors });
     }
