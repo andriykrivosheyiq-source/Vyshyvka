@@ -7457,28 +7457,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=12d4b754a7"></script>
-<script src="loomiq-fingerprint.js?v=12d4b754a7"></script>
-<script src="loomiq-pricing.js?v=12d4b754a7"></script>
+<script src="loomiq-select.js?v=883578844d"></script>
+<script src="loomiq-fingerprint.js?v=883578844d"></script>
+<script src="loomiq-pricing.js?v=883578844d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=12d4b754a7"></script>
+<script src="loomiq-money-core.js?v=883578844d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=12d4b754a7"></script>
-<script src="loomiq-bg.js?v=12d4b754a7"></script>
-<script src="loomiq-mock.js?v=12d4b754a7"></script>
+<script src="loomiq-design.js?v=883578844d"></script>
+<script src="loomiq-bg.js?v=883578844d"></script>
+<script src="loomiq-mock.js?v=883578844d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=12d4b754a7"></script>
-<script src="loomiq-threads.js?v=12d4b754a7"></script>
+<script src="imagetracer.js?v=883578844d"></script>
+<script src="loomiq-threads.js?v=883578844d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=12d4b754a7"></script>
+<script src="loomiq-cards.js?v=883578844d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7523,7 +7523,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '12d4b754a7';
+var LQ_VER = '883578844d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9831,6 +9831,20 @@ function finBankBal(id){
   const b = bankBal && bankBal[id];
   return (b && b.bal != null && isFinite(+b.bal)) ? b : null;
 }
+/* КАРТКА NOVAPAY — ПРОХІДНА (07.10). Андрій: «на карті 2,77 грн, а показує
+   1000» — витрат з картки NovaPay не віддає, тож «залишок» з одних
+   надходжень брехав би. Показуємо, скільки ВИВЕДЕНО з ФОП за місяць, і в
+   «Разом на рахунках» її не додаємо. Витрату, внесену руками, видно у
+   виписці, як і завжди. */
+function finIsPass(id){
+  const a = finAccounts().filter(x => x.id === id)[0];
+  return !!(a && a.bank === 'novapaycard');
+}
+function finPassMonth(id){
+  const від = new Date(Date.now() - 30 * 864e5).toISOString();
+  return Math.round((payments || []).reduce((s, p) =>
+    s + (p.acc === id && +p.amount > 0 && String(p.at || '') >= від ? +p.amount : 0), 0) * 100) / 100;
+}
 function finBalance(id){
   const bb = finBankBal(id);
   if(bb) return Math.round(+bb.bal * 100) / 100;
@@ -9863,8 +9877,17 @@ function renderFinCards(){
   const box = document.getElementById('fin-cards');
   if(!box) return;
   const accs = finAccounts();
-  const разом = accs.reduce((s, a) => s + finBalance(a.id), 0);
+  const разом = accs.reduce((s, a) => s + (finIsPass(a.id) ? 0 : finBalance(a.id)), 0);
   box.innerHTML = accs.map(a => {
+    if(a.bank === 'novapaycard')
+      return '<div class="fin-c' + (finHist.acc === a.id ? ' on' : '') + '" role="button" tabindex="0" ' +
+          'data-fin-acc-open="' + escapeHtml(a.id) + '" title="Показати, що виведено на картку">' +
+        '<button class="fin-c-set" data-fin-acc-edit="' + escapeHtml(a.id) + '" title="Налаштування рахунку">⚙</button>' +
+        '<span class="fin-c-b">' + escapeHtml(FIN_BANKS[a.bank]) + '<i class="fin-c-on" title="Перекази з ФОП NovaPay — самі">●</i></span>' +
+        '<span class="fin-c-n">' + escapeHtml(a.name || a.id) + '</span>' +
+        '<span class="fin-c-s">' + escapeHtml(payMoneyK(finPassMonth(a.id)).replace('+', '')) + '</span>' +
+        '<span class="fin-c-at is-calc" title="Залишку картки NovaPay не віддає — лише перекази на неї з ФОП. У «Разом» не входить.">виведено з ФОП · 30 днів</span>' +
+      '</div>';
     const b = finBalance(a.id);
     const bb = finBankBal(a.id);
     const жив = !!a.linked;
@@ -9946,7 +9969,8 @@ function renderFinHist(){
       '<span>Рухів: <b>' + rows.length + '</b></span>' +
       '<span class="is-in">Прийшло: <b>' + escapeHtml(payMoneyK(прийшло)) + '</b></span>' +
       '<span class="is-out">Пішло: <b>' + escapeHtml(payMoneyK(-пішло)) + '</b></span>' +
-      '<span>Залишок зараз: <b>' + escapeHtml(payMoneyK(finBalance(id)).replace('+', '')) + '</b></span>' +
+      (finIsPass(id) ? '<span>Залишку картки NovaPay не віддає — тут лише виведене з ФОП</span>'
+        : '<span>Залишок зараз: <b>' + escapeHtml(payMoneyK(finBalance(id)).replace('+', '')) + '</b></span>') +
     '</div>' +
     (вантажу ? '<div class="fin-none">Завантажую всю історію рахунку…</div>' : '') +
     (payErr ? '<div class="fin-none">' + escapeHtml(payErr) + '</div>'
@@ -9962,9 +9986,10 @@ function renderFinHist(){
         '<span class="fin-who"><b>' + escapeHtml(p.counter || (дохід ? 'Надходження' : 'Витрата')) + '</b>' +
           (p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : '') + '</span>' +
         '<span class="fin-amt' + (дохід ? ' is-in' : '') + '">' + escapeHtml(payMoneyK(p.amount)) + '</span>' +
+        (finIsPass(id) ? '<span class="fin-bal is-calc"></span>' :
         '<span class="fin-bal' + (з.bank ? '' : ' is-calc') + '" title="' +
           (з.bank ? 'Залишок після руху — так каже банк' : 'Залишок після руху — пораховано від поточного') + '">' +
-          escapeHtml(payMoneyK(з.v).replace('+', '')) + '</span>' +
+          escapeHtml(payMoneyK(з.v).replace('+', '')) + '</span>') +
         '<span class="fin-link">' +
           (p.orderId
             ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
@@ -10291,7 +10316,7 @@ function renderAnAll(days, month, spend){
   const E = escapeHtml;
   const живі = (orders || []).filter(o => o && o.orderId && o.status !== 'cancel');
   /* Гроші зараз. */
-  const наРахунках = finAccounts().reduce((a, x) => a + finBalance(x.id), 0);
+  const наРахунках = finAccounts().reduce((a, x) => a + (finIsPass(x.id) ? 0 : finBalance(x.id)), 0);
   const винні = { b2b: 0, b2c: 0 };
   живі.forEach(o => {
     if(typeof orderMade === 'function' && !orderMade(o)) return;
