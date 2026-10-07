@@ -739,6 +739,14 @@ const дост = await p.evaluate(async () => {
   // ТТН створили рано (на станках) — не «відправлено»; старе замовлення з ТТН — «Виконано»
   out.рано = st({ tracks:{ prod:'work', ship:'sent' }, prodQc:null, ttnAt: new Date().toISOString(), npSt:null, reg:null });
   out.старе = st({ tracks:{ ship:'sent' }, prodQc:null, ttnAt:'2026-10-01T10:00:00Z', npSt:null, reg:null });
+  // дошка акаунта: фото з цеху — «Чекає погодження»; рання ТТН — ще «Виробництво»
+  const ch = x => D.chainAt(j, Object.assign({}, o, { npSt:null, reg:null, shipCol:'' }, x));
+  out.акаунт = [ch({ tracks:{ prod:'work', ship:'sent' }, ttnAt: new Date().toISOString() }),
+    ch({ tracks:{ prod:'done', qc:'check' }, prodQc:{ photos:['x'] } }),
+    ch({ tracks:{ qc:'ok' }, prodQc:{ photos:['x'] } }),
+    ch({ tracks:{ qc:'ok' }, prodQc:{ photos:['x'] }, reg:{ ref:'R' } }),
+    ch({ tracks:{ ship:'sent' }, prodQc:null, ttnAt:'2026-10-01T10:00:00Z' })].join();
+  out.колонкаАкаунта = D.CHAIN.some(c => c.key === 'appr' && c.label === 'Чекає погодження');
   // погоджене з ТТН → «Можна відправляти» → перетягнути в «Реєстр» → «Створити реєстр»
   o.tracks = Object.assign({}, o.tracks, { qc:'ok' }); o.prodQc = { photos:['x'], ok:{} }; o.ttn = '20450000000001'; o.shipOld = '';
   (o.reprints || []).forEach(r => { r.open = false; }); o.npSt = null; o.reg = null; o.shipCol = '';
@@ -751,6 +759,7 @@ const дост = await p.evaluate(async () => {
   U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
   out.кнопкаРеєстру = !!document.querySelector('.dz-col[data-col="reg"] [data-do="reg-make"]');
   out.схованоДо = !document.querySelector('.dz-col[data-col="done"]');
+  out.згорнута = (document.querySelector('.dz-col[data-col="deliv"] .dz-deliv-open') || {}).textContent || '';
   document.querySelector('.dz-col[data-col="reg"] [data-do="reg-make"]').click();
   await wait(600);
   out.курʼєр = D.prodAt(j, o); out.реєстр = реєстр.length ? реєстр[0].docs.map(d => d.ttn).join() : '';
@@ -759,8 +768,9 @@ const дост = await p.evaluate(async () => {
   document.querySelector('#dzRegPop [data-do="reg-pdf"]').click(); await wait(200);
   out.pdf = pdf.join(); document.getElementById('dzRegPop').remove();
   // «Доставка ▾» показує сховані колонки
-  document.querySelector('[data-do="prod-deliv"]').click(); await wait(100);
-  out.схованіВидно = !!document.querySelector('.dz-col[data-col="refused"]');
+  document.querySelector('.dz-col[data-col="deliv"] [data-do="prod-deliv"]').click(); await wait(100);
+  out.схованіВидно = !!document.querySelector('.dz-col[data-col="refused"]') && !document.querySelector('.dz-col[data-col="deliv"]');
+  out.згорнути = !!document.querySelector('.dz-col[data-col="way"] .dz-deliv-x');
   // сортування «Готово до роботи»: кнопка-стрілочка і хрестик
   document.querySelector('.dz-col[data-col="ready"] [data-do="prod-sort"]').click(); await wait(100);
   out.сорт = !!document.querySelector('.dz-col[data-col="ready"] .dz-sort.on [data-do="prod-sort-off"]');
@@ -790,11 +800,15 @@ const дост = await p.evaluate(async () => {
 console.log('  ' + JSON.stringify(дост));
 ok(дост.коди === 'way,arrived,stuck,done,refused', 'коди НП → В дорозі / Прибуло / Понад 3 дні / Виконано / Відмова', дост.коди);
 ok(дост.рано === 'run' && дост.старе === 'done', 'рання ТТН не перекидає в «відправлено»; старі відправлені — у «Виконано»', JSON.stringify(дост));
+ok(дост.акаунт === 'prod,appr,ready,shipped,shipped' && дост.колонкаАкаунта,
+  'в акаунта: рання ТТН — ще «Виробництво», фото з цеху — «Чекає погодження», погоджене — «До відправки», у реєстрі — «Відправлено»', JSON.stringify(дост));
+ok(/В дорозі/.test(дост.згорнута) && /Відмова/.test(дост.згорнута) && /Розгорнути/.test(дост.згорнута),
+  'згорнута доставка — видна окремою колонкою з лічильниками', дост.згорнута);
 ok(дост.можна === 'ship' && дост.вРеєстр === 'reg' && дост.кнопкаРеєстру && дост.схованоДо,
   '«Можна відправляти» → «Реєстр»; у колонці кнопка «Створити реєстр»; доставка схована', JSON.stringify(дост));
 ok(дост.курʼєр === 'courier' && дост.реєстр === '20450000000001' && /105-0001/.test(дост.список) && дост.pdf === 'REF-1',
   'реєстр створено → «Передано курʼєру»; у списку реєстрів — номер і PDF', JSON.stringify(дост));
-ok(дост.схованіВидно && дост.сорт && дост.сортЗнято, '«Доставка ▾» показує сховане; сортування вмикається стрілочкою й знімається хрестиком', JSON.stringify(дост));
+ok(дост.схованіВидно && дост.згорнути && дост.сорт && дост.сортЗнято, '«Доставка ▾» показує сховане; сортування вмикається стрілочкою й знімається хрестиком', JSON.stringify(дост));
 ok(дост.відмова === 'refused' && /prod-redo/.test(дост.кнопки) && /loss-comp/.test(дост.кнопки) && /loss-full/.test(дост.кнопки),
   'на «Відмові» — Переробка, Компенсація, Повна відмова', дост.кнопки);
 ok(/comp:300/.test(дост.збитки) && /refuse:\d+/.test(дост.збитки), 'компенсація й повна відмова — у збитки', дост.збитки);
