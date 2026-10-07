@@ -4988,6 +4988,14 @@
                         ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
                         : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 20 20 4M4 4l16 16"/></svg>')) +
                   '</button>' +
+                  /* «2» — прибрати фон PhotoRoom, коли внутрішній не впорався.
+                     Лише там, де проксі налаштоване: інакше кнопка нічого б не
+                     вміла. */
+                  (bgApiUrl() && !l.text
+                    ? '<button class="pm-bg-dot pm-bg-pro'+(l.bgPro?' on':'')+'" data-bgpro="'+l.id+'" '+
+                      'title="Прибрати фон через PhotoRoom (платно) — коли внутрішній не впорався" '+
+                      'aria-label="Прибрати фон через PhotoRoom">2</button>'
+                    : '') +
                 '</div>' +
               '</div>';
             });
@@ -5333,6 +5341,27 @@
           if(layer) recolorLogo(layer, pick.value);
         });
       })();
+      pmTabPanel.querySelectorAll('[data-bgpro]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          var layer = findLayerAnySide(Number(el.dataset.bgpro));
+          if(!layer || el.disabled) return;
+          el.disabled = true; el.textContent = '…';
+          var src = layer.origUrl || layer.url;
+          (/^data:/i.test(String(src)) ? Promise.resolve(src)
+            : fetch(src).then(function(r){ return r.blob(); }).then(blobToDataUrl))
+            .then(removeBgPro)
+            .then(function(clean){
+              layer.cleanUrl = clean; layer.removeBg = true; layer.bgPro = true; layer.url = clean;
+              return measureLayerShape(layer, layer.url);
+            })
+            .then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); })
+            .catch(function(err){
+              el.disabled = false; el.textContent = '2';
+              try{ alert('PhotoRoom не відповів (' + ((err && err.message) || 'помилка') + '). Перевірте адресу воркера в налаштуваннях.'); }catch(_){}
+            });
+        });
+      });
       pmTabPanel.querySelectorAll('[data-bgtoggle]').forEach(function(el){
         el.addEventListener('click', function(e){
           e.stopPropagation();
@@ -6471,9 +6500,32 @@
           return blobToDataUrl(out);
         });
     }
-    // Головна точка входу: спершу API (якщо налаштоване), інакше — власний алгоритм.
+    /* ГОЛОВНА ТОЧКА ВХОДУ — СПЕРШУ ВНУТРІШНІЙ (Андрій, 07.10).
+
+       Доти кожне завантаження йшло спершу в PhotoRoom і витрачало кредит,
+       навіть на логотип на білому, який вбудований алгоритм знімає ідеально.
+       Тепер: рівне тло — швидкий алгоритм; складне — нейромережа в браузері
+       (loomiq-bg.js, якщо сторінка її має); не вийшло — швидкий. PhotoRoom
+       автоматично не викликається: лише кнопкою «2» на логотипі. */
+    /* Лічильник живе в адмінці. Конструктор КП відкритий у ній рамкою — тож
+       питаємо і себе, і батьківське вікно; на сайті його немає зовсім. */
+    function bgCount(kind){
+      try{ if(typeof window.bgCountAdd === 'function') return window.bgCountAdd(kind); }catch(e){}
+      try{ if(window.parent && window.parent !== window && typeof window.parent.bgCountAdd === 'function')
+             window.parent.bgCountAdd(kind); }catch(e){}
+    }
     function removeBgForUpload(dataUrl){
-      return removeBgViaApi(dataUrl).catch(function(){ return removeBgLocal(dataUrl); });
+      var B = window.LQBg;
+      var simple = function(){ return removeBgLocal(dataUrl).then(function(r){ bgCount('simple'); return r; }); };
+      if(!B) return simple();
+      return B.plain(dataUrl).catch(function(){ return true; }).then(function(рівне){
+        if(рівне) return simple();
+        return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; }, simple);
+      });
+    }
+    /* «2» — PhotoRoom на вимогу, коли внутрішній не впорався. */
+    function removeBgPro(dataUrl){
+      return removeBgViaApi(dataUrl).then(function(r){ bgCount('photoroom'); return r; });
     }
     // ── Генерація логотипа через Gemini (ключ живе у Worker-проксі, не на сайті) ──
     var AI_API_DEFAULT = 'https://loomiq-gemini.stvory.workers.dev';
