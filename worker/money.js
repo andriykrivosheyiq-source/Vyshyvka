@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-06.2 · переказ власних коштів — між своїми';
+const VERSION = '2026-10-07.1 · NovaPay догонить пропущені дні';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -944,8 +944,12 @@ async function novapayJwt(env, force) {
       (/\s/.test(t) ? ' — у токені є пробіл чи перенос' : '') +
       ', сертифікат ' + c.length + ' симв.' + (/BEGIN/.test(c) && /END/.test(c) ? '' : ' — НЕМАЄ рядків BEGIN/END') +
       (savedOk ? ', ключ зі збереженого' : ', ключ із секрету');
+    /* Збережений ключ NovaPay більше не приймає (07.10: «Refresh token does
+       not apply to login» — ключ перегенерували в кабінеті чи погасили) —
+       вихід той самий, що й з протермінованим: новий ключ у Cloudflare. */
     throw new Error('NovaPay вхід: ' + a.error + ' · ' + діаг +
-      (savedOk ? '' : ' · якщо ключ протермінований — згенеруйте новий у кабінеті й покладіть у NOVAPAY_REFRESH_TOKEN і NOVAPAY_CERT'));
+      ' · ' + (savedOk ? 'збережений ключ NovaPay більше не приймає — ' : 'якщо ключ протермінований — ') +
+      'згенеруйте новий у кабінеті й покладіть у NOVAPAY_REFRESH_TOKEN і NOVAPAY_CERT');
   }
   const jwt = xmlUnesc(xmlTag(a.res, 'jwt') || '');
   const next = xmlUnesc(xmlTag(a.res, 'refresh_token') || '');
@@ -988,6 +992,14 @@ async function novapayPoll(env) {
   if (!env.NOVAPAY_LOGIN) return { skip: 'немає секретів NOVAPAY_*' };
   const fin = await accounts(env);
   const list = await novapayAccounts(env);
+  /* ДОГНАТИ ПРОПУЩЕНЕ (07.10). Ключ кілька днів не пускали — виписка за
+     3 дні загубила б рухи між. Тож беремо від останнього вдалого прогону
+     (з запасом у добу), але не далі 14 днів. Повтори не страшні: id руху
+     стійкий, двічі він не запишеться. */
+  const було = await fsGet(env, 'loomiq/novapayOk').catch(() => null);
+  const з = Date.parse((було && було.at) || '');
+  const від = new Date(Math.max(Date.now() - 14 * 864e5,
+    Math.min(Date.now() - 3 * 864e5, isNaN(з) ? Infinity : з - 864e5)));
   const out = [];
   for (const a of list) {
     const iban = String(a.IBAN || a.iban || '').replace(/\s+/g, '');
@@ -998,7 +1010,7 @@ async function novapayPoll(env) {
     /* Рухи — лише в рахунок Фінансів з тим самим IBAN: без нього нема куди. */
     let рухів = 0;
     if (наш) {
-      const до = new Date(), від = new Date(Date.now() - 3 * 864e5);
+      const до = new Date();
       const ex = await novapayCall(env, 'GetAccountExtract', { account_id: a.id, date_from: npDate(від), date_to: npDate(до) });
       const пакет = [];
       for (const d of xmlTags(xmlUnesc(xmlTag(ex, 'extract') || ''), 'Docs').map(xmlFlat)) {
@@ -1010,6 +1022,7 @@ async function novapayPoll(env) {
     out.push({ рахунок: a.name || a.client, iban: iban.slice(0, 6) + '…' + iban.slice(-4), фінанси: наш ? наш.id : 'не знайдено за IBAN',
                залишок: isFinite(bal) ? bal : null, рухів });
   }
+  await fsWrite(env, 'loomiq/novapayOk', { at: new Date().toISOString() }).catch(() => null);
   return out;
 }
 /* Рух виписки NovaPay → платіж Фінансів. Напрям — за нашим IBAN: ми в
