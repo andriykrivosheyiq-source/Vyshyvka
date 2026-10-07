@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-07.2 · NovaPay: один вхід одночасно, догонить пропущені дні';
+const VERSION = '2026-10-07.3 · NovaPay: виведене на свою картку';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -1054,19 +1054,39 @@ async function novapayPoll(env) {
     const bal = parseFloat(String(xmlUnesc(xmlTag(rest, 'available_balance') || xmlTag(rest, 'confirmed_balance') || '')).replace(',', '.'));
     if (наш && isFinite(bal)) await bankBalance(env, наш.id, bal, new Date().toISOString(), 'novapay');
     /* Рухи — лише в рахунок Фінансів з тим самим IBAN: без нього нема куди. */
-    let рухів = 0;
+    let рухів = 0, виведено = 0;
+    const без = [];
     if (наш) {
       const до = new Date();
       const ex = await novapayCall(env, 'GetAccountExtract', { account_id: a.id, date_from: npDate(від), date_to: npDate(до) });
       const пакет = [];
       for (const d of xmlTags(xmlUnesc(xmlTag(ex, 'extract') || ''), 'Docs').map(xmlFlat)) {
         const r = novapayRow(d, iban, наш.id);
+        /* ВИВЕДЕНЕ НА СВОЮ КАРТКУ (07.10). Андрій: «щоб було видно, які
+           кошти я вивів на свою карту NovaPay». Особисту картку NovaPay API
+           не віддає, але кожен переказ на неї видно у виписці ФОП. Тож
+           пишемо його ще й дзеркалом — надходженням на рахунок Фінансів
+           «NovaPay · картка фізособи» з тим самим IBAN (з будь-якого нашого
+           ФОП, тож це між своїми). Лише для цього типу: Моно / Приват свої
+           надходження пишуть самі, дзеркало там задвоїло б гроші. */
+        const куди = r && r.amount < 0 ? String(d.CreditCodeIBAN || '').replace(/\s+/g, '') : '';
+        const картка = куди ? fin.filter(f => f.iban && f.iban === куди && f.bank === 'novapaycard')[0] : null;
+        if (картка) r.flow = 'self';
         if (r && await payment(env, r, пакет)) рухів++;
+        if (картка) {
+          await payment(env, Object.assign({}, r, { id: r.id + '_in', amount: -r.amount, acc: картка.id,
+            counter: String(d.DebitName || '').trim() || 'з ФОП' }), пакет);
+          виведено++;
+        } else if (r && r.flow === 'self' && куди && !fin.some(f => f.iban === куди) && без.indexOf(куди) < 0) без.push(куди);
       }
       await fsCommit(env, пакет);
     }
     out.push({ рахунок: a.name || a.client, iban: iban.slice(0, 6) + '…' + iban.slice(-4), фінанси: наш ? наш.id : 'не знайдено за IBAN',
-               залишок: isFinite(bal) ? bal : null, рухів });
+               залишок: isFinite(bal) ? bal : null, рухів,
+               виведено_на_картку: виведено || undefined,
+               /* Переказ собі на рахунок, якого немає у Фінансах: ось його
+                  IBAN — додайте рахунок «NovaPay · картка фізособи». */
+               картка_без_рахунку: без.length ? без : undefined });
   }
   await fsWrite(env, 'loomiq/novapayOk', { at: new Date().toISOString() }).catch(() => null);
   return out;
