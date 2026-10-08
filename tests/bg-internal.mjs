@@ -141,6 +141,39 @@ ok(кнопка && доКнопки === 0, 'завантаження логот�
 ok(викликів === 1 && після, '«2» — один виклик PhotoRoom, фон замінено його результатом', 'викликів ' + викликів + ', on ' + після);
 
 console.log('');
+console.log('═══ CRM: ВИБІР ФОНУ ПЕРЕД ЗАВАНТАЖЕННЯМ ═══');
+/* 08.10, Андрій: «одразу кнопки — видалити внутрішнім, зовнішнім, і не
+   видаляти… і потім тільки фото». Лише менеджеру; клієнту — без питань. */
+await p.evaluate(() => { window.__lqInline = true; });
+const шарів = () => p.evaluate(() => document.querySelectorAll('#pmTabPanel [data-bgpro]').length);
+const ш0 = await шарів();
+викликів = 0;
+await p.setInputFiles('#pmFileInput', LOGO);
+await p.waitForTimeout(500);
+const вікно = await p.evaluate(() => {
+  const d = document.getElementById('pmBgAsk');
+  return d ? [...d.querySelectorAll('[data-bg]')].map(b => b.dataset.bg).join() : '';
+});
+const ш1 = await шарів();
+ok(вікно === 'x,in,pro,no' && ш1 === ш0, 'після вибору файлу — вікно «Внутрішній / PhotoRoom / Не прибирати», фото ще не на виробі', 'вікно: ' + вікно + ', шарів ' + ш0 + '→' + ш1);
+await p.click('#pmBgAsk [data-bg="pro"]');
+await p.waitForTimeout(1500);
+const післяPro = await p.evaluate(() => ({ є: !!document.getElementById('pmBgAsk'), on: document.querySelectorAll('#pmTabPanel [data-bgpro].on').length }));
+ok(!післяPro.є && викликів === 1 && (await шарів()) === ш0 + 1 && післяPro.on >= 1,
+  '«2 · PhotoRoom» — один виклик PhotoRoom, фото лягло, на мініатюрі «2» увімкнено', JSON.stringify(післяPro) + ' / ' + викликів);
+await p.setInputFiles('#pmFileInput', LOGO);
+await p.waitForTimeout(400);
+await p.click('#pmBgAsk [data-bg="no"]');
+await p.waitForTimeout(800);
+ok(викликів === 1 && (await шарів()) === ш0 + 2, '«Не прибирати» — фото як є, PhotoRoom не викликався', 'викликів ' + викликів);
+await p.setInputFiles('#pmFileInput', LOGO);
+await p.waitForTimeout(400);
+await p.click('#pmBgAsk [data-bg="x"]');
+await p.waitForTimeout(400);
+ok((await шарів()) === ш0 + 2 && !(await p.evaluate(() => !!document.getElementById('pmBgAsk'))), '«×» — нічого не додано', 'додалось');
+await p.evaluate(() => { window.__lqInline = false; });
+
+console.log('');
 console.log('═══ МАКСИМУМ ВИШИВКИ ═══');
 /* 08.10, Андрій: «максимальна висота 29 см, а ширина 44 см — це саме
    максимум, який ми можемо робити». Стеля стоїть поруч із розміром. */
