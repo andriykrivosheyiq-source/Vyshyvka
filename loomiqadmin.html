@@ -1942,13 +1942,26 @@
      Те саме правило: один рівень на екран. Шапка — один рядок, який
      гортається вбік, з номером КП, що лишається на місці. Конструктор
      відкривається НА ВЕСЬ редактор, а не половиною. */
+  .oe-acts{display:contents;}
   @media(max-width:767px){
-    #offerEd .oe{border-radius:0;}
-    #offerEd .oe-head{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+    #offerEd.oe-wrap{padding:0;}
+    #offerEd .oe{border-radius:0;height:100%;max-height:none;}
+    /* Два рядки (08.10): номер КП і ✕ — завжди на місці; дії — другим
+       рядком, що гортається вбік. Доти весь рядок гортався, і ✕, «Зберегти
+       позицію» та решта ховались за правим краєм — «обрізано». */
+    #offerEd .oe-head{flex-wrap:wrap;overflow:visible;
       gap:6px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));}
-    #offerEd .oe-head::-webkit-scrollbar{display:none;}
-    #offerEd .oe-title{position:sticky;left:0;z-index:2;flex:none;width:auto;
-      max-width:46vw;background:var(--canvas);padding-right:8px;}
+    #offerEd .oe-title{flex:1;min-width:0;width:auto;max-width:none;}
+    #offerEd .oe-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    #offerEd .oe-acts{display:flex;order:5;flex:0 0 100%;gap:6px;overflow-x:auto;scrollbar-width:none;
+      -webkit-overflow-scrolling:touch;padding-bottom:2px;
+      -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);
+      mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);}
+    #offerEd .oe-acts::-webkit-scrollbar{display:none;}
+    #offerEd .oe-acts > *{flex:none;align-self:center;}
+    #offerEd .oe-acts .oe-btn,#offerEd .oe-acts .oe-brand,#offerEd .oe-acts .oe-logo-add{min-height:38px;padding-top:6px;padding-bottom:6px;}
+    #offerEd .oe-acts .oe-btn--save{order:-1;}
+    #offerEd .oe-btn--x{flex:none;}
     #offerEd .oe-title b{font-size:14px;}
     #offerEd .oe-btn,#offerEd .oe-brand,#offerEd .oe-logo-add{flex:none;min-height:40px;}
     #offerEd .oe-body{position:relative;flex-direction:column;}
@@ -7459,28 +7472,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=da674b409f"></script>
-<script src="loomiq-fingerprint.js?v=da674b409f"></script>
-<script src="loomiq-pricing.js?v=da674b409f"></script>
+<script src="loomiq-select.js?v=d0ed6bba59"></script>
+<script src="loomiq-fingerprint.js?v=d0ed6bba59"></script>
+<script src="loomiq-pricing.js?v=d0ed6bba59"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=da674b409f"></script>
+<script src="loomiq-money-core.js?v=d0ed6bba59"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=da674b409f"></script>
-<script src="loomiq-bg.js?v=da674b409f"></script>
-<script src="loomiq-mock.js?v=da674b409f"></script>
+<script src="loomiq-design.js?v=d0ed6bba59"></script>
+<script src="loomiq-bg.js?v=d0ed6bba59"></script>
+<script src="loomiq-mock.js?v=d0ed6bba59"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=da674b409f"></script>
-<script src="loomiq-threads.js?v=da674b409f"></script>
+<script src="imagetracer.js?v=d0ed6bba59"></script>
+<script src="loomiq-threads.js?v=d0ed6bba59"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=da674b409f"></script>
+<script src="loomiq-cards.js?v=d0ed6bba59"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7525,7 +7538,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'da674b409f';
+var LQ_VER = 'd0ed6bba59';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -27642,6 +27655,10 @@ function renderOfferEd(){
       <b>КП ${escapeHtml(o.orderId || '')}</b>
       <span>${escapeHtml(o.company || o.name || o.instagram || 'клієнт')}</span>
     </div>
+    ${/* Дії — окремою групою: на телефоні вона йде другим рядком і гортається,
+         а номер КП і ✕ лишаються в першому (08.10). На компʼютері групи не
+         видно (display:contents) — шапка як була. */''}
+    <div class="oe-acts">
     <div class="oe-brands">
       ${BRAND_KEYS.map(k=>`<button class="oe-brand${k===curBrand?' on':''}" data-brand="${k}">${
         escapeHtml(brands[k].name)}</button>`).join('')}
@@ -27686,6 +27703,7 @@ function renderOfferEd(){
     <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>
     <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
     <span class="oe-save is-ok">Збережено ✓</span>
+    </div>
     <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
       aria-label="Закрити">✕</button>`;
 

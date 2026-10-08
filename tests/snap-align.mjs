@@ -82,6 +82,9 @@ await p.waitForTimeout(1200);
 await p.evaluate(() => window.__openProductModal('tee'));
 await p.waitForTimeout(800);
 await p.setInputFiles('#pmFileInput', LOGO);
+/* CRM (08.10): перед завантаженням — вибір фону; тут — «Внутрішній». */
+await p.waitForTimeout(400);
+await p.evaluate(() => { const b = document.querySelector('#pmBgAsk [data-bg="in"]'); if(b) b.click(); });
 await p.waitForTimeout(1800);
 
 /* Де логотип на сцені — у частках самого фото, а не контейнера. Саме це

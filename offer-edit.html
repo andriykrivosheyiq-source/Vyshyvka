@@ -991,9 +991,32 @@
   .stage .lq-inline .pm-footer-social,
   .stage .lq-inline .pm-legal-links{display:none !important;}
   #lqCtorHost > *{z-index:300;}
+  /* ТЕЛЕФОН — ОДИН ЕКРАН ЗА РАЗ (08.10). Андрій: «щоб нічого не
+     підрізалося, не висло… я не можу нічого зробити тут». Доти склад КП
+     стискався до одного рядка, а конструктор лежав під ним. Тепер: склад на
+     весь екран; тап по позиції — конструктор на весь екран зі смугою
+     «← Склад КП»; «Сайт» і «Картки» — під вкладками, без складу. */
+  .mback{display:none;}
   @media (max-width:820px){
     .body{flex-direction:column;}
-    .list{flex:0 0 auto; max-height:38vh; border-right:0; border-bottom:1px solid #E2E8F0;}
+    .list{flex:1 1 auto; max-height:none; border-right:0;}
+    .work{display:none;}
+    body.m-work .list{display:none;}
+    body.m-work .work{display:flex; flex:1; min-height:0;}
+    body.m-work .stage{flex:1; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch;}
+    .mback{display:flex; align-items:center; gap:8px; flex:none; position:sticky; top:0; z-index:400;
+      padding:8px 10px; background:#fff; border-bottom:1px solid #E2E8F0;}
+    .mback button{display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px;
+      border:1px solid #D0D5DD; border-radius:10px; background:#fff; font:inherit; font-size:14px;
+      font-weight:700; color:#1B2536; cursor:pointer;}
+    .mback span{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      font-size:13px; font-weight:700; color:#475467; text-align:right;}
+    body.v-other .list{flex:none;}
+    body.v-other .list > :not(.tabs){display:none !important;}
+    body.v-other .work{display:none !important;}
+    .list-f{position:sticky; bottom:0; background:#fff;}
+    .list-f .dg{display:flex; flex-wrap:wrap; gap:6px;}
+    .it{min-height:52px;}
   }
 </style>
 </head>
@@ -1036,6 +1059,7 @@
     </div>
   </aside>
   <main class="work" id="paneWork">
+    <div class="mback" id="mBack"><button type="button" data-mback>← Склад КП</button><span id="mBackT"></span></div>
     <div class="stage" id="stage">
       <div class="empty">Оберіть позицію ліворуч або додайте товар.</div>
     </div>
@@ -1078,25 +1102,25 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=da674b409f',
+    ['loomiq-select.js?v=d0ed6bba59',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=da674b409f'].forEach(function(src){
+     'loomiq-cards.js?v=d0ed6bba59'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=da674b409f';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=da674b409f';
-  var CTOR_JS   = 'loomiq-constructor.js?v=da674b409f';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=d0ed6bba59';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=d0ed6bba59';
+  var CTOR_JS   = 'loomiq-constructor.js?v=d0ed6bba59';
   /* Внутрішнє прибирання фону (нейромережа в браузері, 07.10): без нього
      конструктор КП різав би лише швидким алгоритмом. Не завантажився —
      не біда, конструктор працює й без нього. */
-  var CTOR_BG   = 'loomiq-bg.js?v=da674b409f';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=da674b409f';
+  var CTOR_BG   = 'loomiq-bg.js?v=d0ed6bba59';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=d0ed6bba59';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2030,11 +2054,31 @@
   /* Перехід до позиції. Спершу зберігаємо ту, що збирали: менеджер міг
      півгодини накладати логотипи, і мовчки втратити це через один клік по
      сусідньому рядку — найдорожча помилка, яку тут можна зробити. */
-  function pickItem(kind, i, force){
+  /* Телефон: склад або конструктор — перемикач. */
+  function mWork(on){
+    document.body.classList.toggle('m-work', !!on);
+    if(on){
+      var t = '';
+      try{ var r = document.querySelector('#listBody .it.on .it-n'); t = r ? r.textContent : ''; }catch(e){}
+      var el = document.getElementById('mBackT'); if(el) el.textContent = t;
+      var fit = function(){ try{ if(window.__fitGarment) window.__fitGarment(); }catch(e){} };
+      setTimeout(fit, 60); setTimeout(fit, 400);
+    }
+  }
+  document.addEventListener('click', function(e){
+    if(!(e.target.closest && e.target.closest('[data-mback]'))) return;
+    /* Повертаючись до складу, не губимо зроблене: зберігаємо, якщо є що. */
+    if(dirty) saveCurrent();
+    mWork(false);
+  });
+  function pickItem(kind, i, force, stay){
+    /* stay — відкрили самі при завантаженні: на телефоні лишаємось на складі. */
+    if(!stay) mWork(true);
     if(!force && cur && cur.kind === kind && cur.i === i) return;
     var go = function(){
       cur = { kind: kind, i: i };
       renderList();
+      if(!stay && document.body.classList.contains('m-work')) mWork(true);
       parkCtor();
       document.getElementById('stage').innerHTML = '<div class="empty">Відкриваємо…</div>';
       send({ act:'editInline', kind: kind, i: i });
@@ -2645,6 +2689,8 @@
       document.querySelectorAll('[data-view]').forEach(function(x){ x.classList.toggle('on', x === b); });
       var view = b.dataset.view;
       var client = view === 'client', cards = view === 'cards';
+      document.body.classList.toggle('v-other', client || cards);
+      if(client || cards) document.body.classList.remove('m-work');
       // Ховаємо тільки робоче поле: ліва панель зі складом і перемикачем
       // лишається на місці, інакше не буде чим перемкнутись назад
       document.getElementById('paneWork').classList.toggle('hide', client || cards);
@@ -2775,7 +2821,7 @@
       else if(lastReco >= 0 && nr > lastReco) pickItem('reco', nr - 1);
       // Перша позиція відкривається сама: порожнє робоче місце змушує
       // здогадуватись, що робити далі
-      else if(!cur && n) pickItem('main', 0);
+      else if(!cur && n) pickItem('main', 0, false, true);
       lastCount = n; lastReco = nr;
       return;
     }

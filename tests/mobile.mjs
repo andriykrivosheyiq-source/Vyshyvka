@@ -256,9 +256,15 @@ const ed = await p.evaluate(async () => {
     .map(el => el.getBoundingClientRect());
   const wrapped = kids.length > 1 && kids.some(r => r.top >= kids[0].bottom - 1);
   const title = document.querySelector('#offerEd .oe-title');
+  /* 08.10: два рядки — номер КП і ✕ завжди на місці, дії гортаються другим
+     рядком (доти гортався весь рядок, і ✕ ховався за правим краєм). */
+  const acts = document.querySelector('#offerEd .oe-acts');
+  const x = document.querySelector('#offerEd .oe-btn--x').getBoundingClientRect();
+  const tr = title.getBoundingClientRect(), ar = acts.getBoundingClientRect();
   const before = { h: Math.round(hr.height), wrapped,
-                   scrolls: head.scrollWidth > head.clientWidth + 2,
-                   sticky: getComputedStyle(title).position };
+                   firstRow: Math.abs(x.top - tr.top) < 16 && x.right <= innerWidth,
+                   actsBelow: ar.top >= tr.bottom - 1,
+                   scrolls: acts.scrollWidth > acts.clientWidth + 2 };
   /* Відкриваємо конструктор так само, як його відкриває робота з позицією. */
   const win = calcOverEl();
   win.classList.add('open');
@@ -273,16 +279,15 @@ const ed = await p.evaluate(async () => {
            covers: wr.height >= body.height - 2 && wr.width >= body.width - 2,
            frameH: Math.round(fr.height) };
 });
-console.log('  шапка ' + ed.before.h + 'px · перенесена: ' + ed.before.wrapped +
-            ' · гортається: ' + ed.before.scrolls);
+console.log('  шапка ' + ed.before.h + 'px · ' + JSON.stringify(ed.before));
 console.log('  конструктор ' + ed.winW + '×' + ed.winH +
             ' при робочій області ' + ed.bodyW + '×' + ed.bodyH);
-ok(!ed.before.wrapped && ed.before.h <= 88,
-  'шапка редактора — один рядок, а не чотири ряди на третину екрана',
-  'шапка розгорнулась: перенос ' + ed.before.wrapped + ', висота ' + ed.before.h);
-ok(ed.before.scrolls && ed.before.sticky === 'sticky',
-  'дії гортаються вбік, а номер КП лишається на місці',
-  'шапка не гортається або номер їде разом з усім');
+ok(ed.before.h <= 120 && ed.before.firstRow && ed.before.actsBelow,
+  'шапка редактора — два рядки: номер КП і ✕ на місці, під ними дії (не чотири ряди на третину екрана)',
+  'шапка: ' + JSON.stringify(ed.before));
+ok(ed.before.scrolls,
+  'дії гортаються вбік окремим рядком, ✕ і номер КП нікуди не їдуть',
+  'рядок дій не гортається');
 ok(ed.covers,
   'конструктор відкривається на весь редактор, а не половиною',
   'конструктор ділить екран: ' + ed.winW + '×' + ed.winH +
