@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-08.1 · NovaPay: ключ із кабінету багаторазовий';
+const VERSION = '2026-10-08.2 · NovaPay: сертифікат без &#xD;';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -842,10 +842,19 @@ async function npPoll(env, accId) {
    відгук). Рухи у Фінанси — коли побачимо справжній формат виписки. */
 const NOVAPAY_URL = 'https://business.novapay.ua/Services/ClientAPIService.svc';
 function xmlEsc(v) {
-  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  /* \r — сутністю: сирий CR парсер XML на тому боці нормалізує в LF, а
+     сертифікат NovaPay може звірятись байт у байт (08.10). */
+  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/\r/g, '&#xD;');
 }
+/* Числові сутності теж (08.10). NovaPay (.NET) віддає сертифікат з
+   переносами CRLF, а \r пише як «&#xD;». Доти вони лишались у тексті
+   буквально: збережений сертифікат ставав 466 символів замість 425, і
+   наступний вхід — «Refresh token does not apply to login». Двічі. */
 function xmlUnesc(v) {
   return String(v || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(+d))
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
 }
 /* Перший вміст тега (з будь-яким префіксом простору імен) — сирим текстом. */
@@ -981,19 +990,24 @@ async function novapayJwt(env, force) {
      кабінеті — 30 днів). Тому: збережений не прийняли — пробуємо ключем із
      секрету; вийшло — запамʼятовуємо static і далі ходимо тільки ним. */
   const статичний = savedOk && saved.static === true;
-  let token = !статичний && savedOk && saved.refresh_token ? saved.refresh_token : env.NOVAPAY_REFRESH_TOKEN;
-  let cert = !статичний && savedOk && saved.public_certificate ? saved.public_certificate : env.NOVAPAY_CERT;
-  let зСекрету = token === env.NOVAPAY_REFRESH_TOKEN;
-  NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: зСекрету
-    ? 'беру з секрету NOVAPAY_REFRESH_TOKEN' + (статичний ? ' (ключ із кабінету багаторазовий)' : '')
-    : 'беру збережений (від ' + (saved.at || '?') + ')' });
-  let a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
-  let static_ = статичний;
-  if (a.error && !зСекрету) {
-    NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: 'збережений не прийняли — пробую ключ із секрету' });
-    token = env.NOVAPAY_REFRESH_TOKEN; cert = env.NOVAPAY_CERT; зСекрету = true;
+  /* Спроби входу — від найімовірнішої. Збережений сертифікат чистимо від
+     «&#xD;» (так він лежить з 05–07.10). Невдалий вхід ключа не крутить,
+     тож кілька спроб — безпечно. */
+  const спроби = [];
+  if (!статичний && savedOk && saved.refresh_token) {
+    const sc = xmlUnesc(saved.public_certificate || '');
+    if (sc) спроби.push({ token: saved.refresh_token, cert: sc, що: 'збережений ключ' });
+    if (sc && sc.replace(/\r/g, '') !== sc) спроби.push({ token: saved.refresh_token, cert: sc.replace(/\r/g, ''), що: 'збережений ключ, сертифікат без CR' });
+    спроби.push({ token: saved.refresh_token, cert: env.NOVAPAY_CERT, що: 'збережений ключ із сертифікатом секрету' });
+  }
+  спроби.push({ token: env.NOVAPAY_REFRESH_TOKEN, cert: env.NOVAPAY_CERT, що: 'ключ із секрету', секрет: true });
+  let a = null, token = '', cert = '', зСекрету = false, static_ = статичний;
+  for (const сп of спроби) {
+    token = сп.token; cert = сп.cert; зСекрету = !!сп.секрет;
+    NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: 'пробую: ' + сп.що +
+      (сп.секрет && статичний ? ' (ключ із кабінету багаторазовий)' : '') });
     a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
-    if (!a.error) static_ = true;
+    if (!a.error) { if (зСекрету && спроби.length > 1) static_ = true; break; }
   }
   if (a.error) {
     await fsWrite(env, 'secrets/novapay', { lockAt: '' }).catch(() => null);
