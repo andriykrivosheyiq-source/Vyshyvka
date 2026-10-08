@@ -6511,13 +6511,31 @@
       try{ if(window.parent && window.parent !== window && typeof window.parent.bgCountAdd === 'function')
              window.parent.bgCountAdd(kind); }catch(e){}
     }
+    /* ХТО ПРИБИРАЄ ФОН (08.10).
+       • Рівне тло — простий алгоритм (безкоштовно, точно до пікселя). Але
+         після нього дивимось на краї: лишилось тло (білий, що переходить у
+         сірий, — фото аркуша) — значить, не впорався, і йдемо далі.
+       • Далі: клієнт на сайті — PhotoRoom (Андрій: «PhotoRoom лишається для
+         сайту, квізів, каталогу»); менеджер (адмінка, КП) — внутрішня
+         нейромережа, PhotoRoom — кнопкою «2».
+       Доти на сайті працював лише простий алгоритм, і клієнт не міг
+       прибрати сірувате тло з логотипа, хоч як пробував. */
     function removeBgForUpload(dataUrl){
-      var B = window.LQBg;
+      var B = window.LQBg, client = !isMgrMode();
       var simple = function(){ return removeBgLocal(dataUrl).then(function(r){ bgCount('simple'); return r; }); };
-      if(!B) return simple();
+      var strong = function(){
+        if(client) return removeBgPro(dataUrl);
+        return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; });
+      };
+      if(!B) return client ? removeBgPro(dataUrl).catch(simple) : simple();
       return B.plain(dataUrl).catch(function(){ return true; }).then(function(рівне){
-        if(рівне) return simple();
-        return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; }, simple);
+        if(!рівне) return strong().catch(simple);
+        return removeBgLocal(dataUrl).then(function(r){
+          return (B.edgeClear ? B.edgeClear(r) : Promise.resolve(1)).catch(function(){ return 1; }).then(function(k){
+            if(k >= 0.6){ bgCount('simple'); return r; }
+            return strong().catch(function(){ bgCount('simple'); return r; });
+          });
+        });
       });
     }
     /* «2» — PhotoRoom на вимогу, коли внутрішній не впорався. */

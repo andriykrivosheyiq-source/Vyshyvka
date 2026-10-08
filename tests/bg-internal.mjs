@@ -80,6 +80,7 @@ console.log('═══ ЗАВАНТАЖЕННЯ: СПЕРШУ ВНУТРІШНІ
 const внутр = await p.evaluate(async () => {
   let моделі = 0;
   window.LQBgPipeline = async s => { моделі++; return s; };
+  window.__lqInline = true;          // менеджер (адмінка, КП): внутрішній спершу
   await window.__openProductModal('tee');
   await new Promise(r => setTimeout(r, 600));
   const рівне = document.createElement('canvas'); рівне.width = 60; рівне.height = 60;
@@ -90,11 +91,41 @@ const внутр = await p.evaluate(async () => {
   x = фото.getContext('2d');
   for(let i = 0; i < 60; i++) for(let j = 0; j < 60; j++){ x.fillStyle = 'rgb(' + (i * 4) + ',' + (j * 4) + ',' + ((i * j) % 255) + ')'; x.fillRect(i, j, 1, 1); }
   await window.LQ_removeBg(фото.toDataURL('image/png'));
+  window.__lqInline = false;
   return { простий: /^data:image\/png/.test(r1) && після1 === 0, моделі };
 });
 console.log('  ' + JSON.stringify(внутр) + ' · PhotoRoom викликів: ' + викликів);
 ok(внутр.простий && внутр.моделі === 1 && викликів === 0,
   'рівне тло — простий алгоритм, фото — нейромережа, PhotoRoom не викликався', JSON.stringify(внутр) + ' / ' + викликів);
+
+console.log('');
+console.log('═══ КЛІЄНТ НА САЙТІ ═══');
+/* 08.10: клієнт не міг прибрати сірувате тло (фото аркуша: білий, що внизу
+   переходить у сірий) — на сайті працював лише простий алгоритм. Тепер:
+   рівне тло — простий; не впорався чи фото — PhotoRoom. */
+const клієнт = await p.evaluate(async () => {
+  let моделі = 0;
+  window.LQBgPipeline = async s => { моделі++; return s; };
+  const лого = document.createElement('canvas'); лого.width = 80; лого.height = 80;
+  let x = лого.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 80, 80); x.fillStyle = '#0a0'; x.fillRect(25, 25, 30, 30);
+  await window.LQ_removeBg(лого.toDataURL('image/png'));
+  const аркуш = document.createElement('canvas'); аркуш.width = 80; аркуш.height = 120;
+  x = аркуш.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, 120); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c9c9c9');
+  x.fillStyle = g; x.fillRect(0, 0, 80, 120); x.fillStyle = '#0a0'; x.beginPath(); x.arc(40, 50, 18, 0, 7); x.fill();
+  /* Як фото з телефона: зерно по всьому кадру. Детерміновано, щоб тест не блимав. */
+  const im = x.getImageData(0, 0, 80, 120); let seed = 7;
+  for(let i = 0; i < im.data.length; i += 4){ seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const n = (seed % 41) - 20; for(let c = 0; c < 3; c++) im.data[i + c] = Math.max(0, Math.min(255, im.data[i + c] + n)); }
+  x.putImageData(im, 0, 0);
+  return { моделі, dataUrl: аркуш.toDataURL('image/png') };
+});
+const доАркуша = викликів;
+await p.evaluate(async d => { await window.LQ_removeBg(d); }, клієнт.dataUrl);
+console.log('  рівне: PhotoRoom ' + доАркуша + ' · аркуш із сірим: PhotoRoom ' + (викликів - доАркуша) + ' · модель ' + клієнт.моделі);
+ok(доАркуша === 0 && клієнт.моделі === 0, 'клієнт: логотип на рівному білому — простий алгоритм, PhotoRoom не витрачаємо', 'викликів ' + доАркуша);
+ok(викликів - доАркуша === 1, 'клієнт: білий, що переходить у сірий, — простий не впорався, фон прибирає PhotoRoom', 'PhotoRoom ' + (викликів - доАркуша));
+викликів = 0;
 
 console.log('');
 console.log('═══ КНОПКА «2» — PHOTOROOM НА ВИМОГУ ═══');
