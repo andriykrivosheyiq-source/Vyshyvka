@@ -391,6 +391,10 @@
     { key:'sketch',  label:'Готовий граф. ескіз',       color:'violet' },
     { key:'client',  label:'У клієнта на погодженні',   color:'amber'  },
     { key:'fixes',   label:'Правки клієнта',            color:'red'    },
+    /* Клієнт погодив ЕСКІЗ (Андрій, 08.10). Ще не «Погоджено»: ту кнопку
+       тиснуть, коли уточнили дані (розміри, кількість — обовʼязкові). Сюди
+       переносять руками з «У клієнта на погодженні». */
+    { key:'sketchok', label:'Ескіз узгоджено',          color:'green'  },
     /* Ескіз погоджено, позиція в черзі вишивального відділу, але ще ніхто
        не взяв. Андрій: окремий статус — інакше «у вишивального» брехало б,
        поки роботу ніхто не почав. */
@@ -439,6 +443,10 @@
   }
   /* У якій із дизайнерських колонок стоїть замовлення. Порожньо — значить
      дизайнів ще немає зовсім, і рішення лишається за старим полем. */
+  function sketchOk(x){
+    var l = (x && x.vers) || [], last = l[l.length - 1];
+    return !!(x && x.sketchOk && (!last || +x.sketchOk === +last.n));
+  }
   function clientSaw(x){
     var l = (x && x.vers) || [], last = l[l.length - 1];
     if(!last) return !!(x && x.clientManual);
@@ -447,7 +455,7 @@
   /* РУЧНЕ ПЕРЕНЕСЕННЯ НА ДОШЦІ АКАУНТА (08.10): ескіз надіслали не через
      CRM — менеджер переносить «Готовий граф. ескіз» → «У клієнта на
      погодженні» сам. Назад — лише якщо клієнту його не надсилали з CRM. */
-  var ACCT_MOVES = { sketch: ['client'], client: ['sketch'] };
+  var ACCT_MOVES = { sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client'] };
   function acctCanMove(from, to){ return (ACCT_MOVES[from] || []).indexOf(to) >= 0; }
   function acctMove(job, o, to, by){
     var from = chainAt(job, o);
@@ -456,7 +464,14 @@
     jobUnits(job).forEach(function(u){
       dzList(u, 'graphic').forEach(function(x){ if(x.sentAt && x.status === 'review') g.push(x); }); });
     if(!g.length) return null;
-    if(to === 'client'){
+    if(to === 'sketchok'){
+      g.forEach(function(x){
+        var l = x.vers || [], last = l[l.length - 1];
+        x.sketchOk = last ? last.n : 1; x.sketchOkBy = String(by || ''); x.sketchOkAt = nowIso();
+      });
+    } else if(to === 'client' && from === 'sketchok'){
+      g.forEach(function(x){ delete x.sketchOk; delete x.sketchOkBy; delete x.sketchOkAt; });
+    } else if(to === 'client'){
       g.forEach(function(x){
         var l = x.vers || [], last = l[l.length - 1];
         x.clientManual = last ? last.n : 1; x.clientManualBy = String(by || ''); x.clientManualAt = nowIso();
@@ -492,7 +507,10 @@
        перетягнув картку (clientManual — номер версії, бо нова версія — нове
        надсилання). Інакше — «Готовий граф. ескіз». */
     var наРозгляді = передані.filter(function(x){ return x.status === 'review'; });
-    if(наРозгляді.length) return наРозгляді.every(clientSaw) ? 'client' : 'sketch';
+    if(наРозгляді.length){
+      if(!наРозгляді.every(clientSaw)) return 'sketch';
+      return наРозгляді.every(sketchOk) ? 'sketchok' : 'client';
+    }
     /* Ескіз погоджено. У виробництво — коли погоджено ВСІ вишивальні дизайни
        замовлення (Андрій: усі B2C-позиції йдуть через вишивку); поки
        вишивку ще не завели — це черга вишивки. */
@@ -505,7 +523,7 @@
   /* Хто зараз тримає замовлення. Питання «а чиє це» має мати відповідь у
      кожній колонці — інакше воно щодня ставиться вголос. */
   var CHAIN_WHO = {
-    new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт',
+    new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт', sketchok:'акаунт-менеджер',
     fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
     prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—'
   };
@@ -2496,6 +2514,13 @@
       return '<b class="' + esc(x.st) + '"' + (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' +
         (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</b>'; }).join('') + '</span>';
   }
+  /* «08.10» — дата без часу (на плитці). */
+  function dayOnly(v){
+    var t = Date.parse(String(v || ''));
+    if(isNaN(t)) return '';
+    var d = new Date(t);
+    return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1);
+  }
   function cardV2Html(c, годинник, лишок){
     var pic = c.pic
       ? '<span class="dz-c-pic"><img src="' + esc(c.pic) + '" alt="" loading="lazy"></span>'
@@ -2540,21 +2565,27 @@
       var к = кандидати[0];
       стікер = '<em class="dz-c-stk' + (к.late ? ' late' : к.soon ? ' soon' : '') + '"' + (к.title ? ' title="' + esc(к.title) + '"' : '') + '>' + esc(к.t) + '</em>';
     }
+    if(c.urg){
+      var ug = c.urg;
+      стікер = ug.kind === 'late'
+        ? '<em class="dz-c-stk late dz-c-urg" title="' + esc(ug.title || '') + '">Прострочено</em>'
+        : (ug.kind === 'urgent' ? '<em class="dz-c-stk urg dz-c-urg">Термінове</em>' : '') +
+          '<em class="dz-c-stk' + (ug.min < 24 * 60 ? ' soon' : '') + '" title="' + esc(ug.title || '') + '">' + esc(ug.txt) + '</em>';
+    }
     /* ЕТАПИ — ОДНИМ РЯДКОМ (06.10): «щоб можна було стрілочками
        перемотувати, дивитися минулі стадії, але багато місця не займала».
        Хто зараз робить — тут же («Вишивка · Володимир»), окремого рядка
        «у роботі» більше немає. Стрілки — не кнопки (картка сама кнопка). */
-    var рядок = c.chain
-      ? '<span class="dz-c-chr"><span class="dz-c-arr" data-chs="-1" role="button" aria-label="Попередні етапи">‹</span>' +
-          chainHtml(c.chain, 'one') +
-          '<span class="dz-c-arr" data-chs="1" role="button" aria-label="Наступні етапи">›</span></span>'
-      : кроки;
+    /* СТАТУСИ — ЛИШЕ ВСЕРЕДИНІ КАРТКИ (Андрій, 08.10): на плитці ланцюжка
+       етапів більше немає, він у відкритій картці. */
+    var рядок = c.chain ? '' : кроки;
     return '<div class="dz-card-w is-v2' + (c.fix ? ' is-fix' : '') + (c.unseen ? ' has-n' : '') +
         (c.green ? ' is-go' : '') + (c.chat ? ' has-ig' : '') + '">' +
       '<button class="dz-card' + (c.id === openKey ? ' on' : '') + '" data-open="' + esc(c.id) + '">' +
         '<span class="dz-c-top">' + pic +
           '<span class="dz-c-main">' +
-            '<b>' + esc(c.title) + '</b>' +
+            '<b>' + esc(c.title) + (c.created ? ' <i class="dz-c-date" title="Створено ' + esc(dt(c.created)) + '">' +
+              esc(dayOnly(c.created)) + '</i>' : '') + '</b>' +
             (c.nick && !c.chain ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
             (стікер ? '<span class="dz-c-row">' + стікер + '</span>' : '') +
             гроші +
@@ -3023,11 +3054,44 @@
      «передача роботи · Передано в роботу» — це двічі те саме в одному
      рядку; а «повернення на правку · лого ще менше» — це причина, без якої
      запис ні про що. */
-  var HIST_TXT = { fix:1, ask:1, no:1, swap:1 };
+  /* 08.10, Андрій: «детальніше опис історії». Номер версії, «надіслано
+     клієнту · версія 2», «клієнт погодив» — теж слова, що додають сенсу. */
+  var HIST_TXT = { fix:1, ask:1, no:1, swap:1, ver:1, tell:1, ok:1 };
+  /* Події самого замовлення — не лише дизайн: створення, ручні переходи на
+     дошці, одяг, цех, відправка (трек і його історія). */
+  var HIST_TRK = {
+    supply: { label:'одяг', s:{ todo:'не замовлено', sent:'замовлено', way:'в дорозі', part:'отримано частково', got:'отримано весь' } },
+    prod:   { label:'цех', s:{ ready:'готово до роботи', work:'на станках', done:'готово — фото з цеху' } },
+    qc:     { label:'погодження цеху', s:{ check:'фото на погодженні', ok:'погоджено — можна відправляти', bad:'не погоджено — передрук' } },
+    ship:   { label:'відправка', s:{ ttn:'ТТН створено', sent:'ТТН створено' } } };
+  function histOrder(job, o){
+    var out = [];
+    var створ = (o && o.createdAt) || (job && job.createdAt);
+    if(створ) out.push({ at: створ, by: '', kind: 'new', що: 'замовлення створено', де: '',
+      текст: (o && o.source) ? 'джерело: ' + o.source : '' });
+    ((o && o.trackHist) || []).forEach(function(h){
+      var t = HIST_TRK[h && h.t]; if(!t) return;
+      out.push({ at: h.at, by: h.by, kind: 'trk', що: t.label + ': ' + (t.s[h.s] || h.s || '—'), де: '', текст: '' });
+    });
+    unitsOf(job).forEach(function(u, ui){
+      dzList(u, 'graphic').forEach(function(d){
+        if(d.clientManualAt) out.push({ at: d.clientManualAt, by: d.clientManualBy, kind: 'move',
+          що: 'перенесено вручну: «У клієнта на погодженні»', де: (ui + 1) + ' · графіка', текст: 'версія ' + (d.clientManual || '') });
+        if(d.sketchOkAt) out.push({ at: d.sketchOkAt, by: d.sketchOkBy, kind: 'move',
+          що: 'перенесено вручну: «Ескіз узгоджено»', де: (ui + 1) + ' · графіка', текст: 'версія ' + (d.sketchOk || '') });
+      });
+    });
+    ((o && o.reprints) || []).forEach(function(r){
+      out.push({ at: r.at, by: r.by, kind: 'no', що: 'передрук', де: '', текст: String(r.note || r.reason || '').slice(0, 90) });
+    });
+    if(o && o.reg && o.reg.at) out.push({ at: o.reg.at, by: o.reg.by, kind: 'trk', що: 'реєстр Нової пошти', де: '', текст: o.reg.no ? '№ ' + o.reg.no : '' });
+    return out;
+  }
   /* Підпис складеної зони: скільки подій і коли остання. Інакше довелось
      би розгортати, щоб дізнатись, чи там узагалі щось є. */
-  function histSub(job){
+  function histSub(job, o){
     var n = 0, last = '';
+    histOrder(job, o).forEach(function(e){ n++; if(String(e.at) > last) last = String(e.at); });
     unitsOf(job).forEach(function(u){
       ['graphic','stitch'].forEach(function(k){
         dzList(u, k).forEach(function(d){
@@ -3041,8 +3105,8 @@
     return n ? (n + ' ' + (n === 1 ? 'подія' : n < 5 ? 'події' : 'подій') +
                 (last ? ' · остання ' + dt(last) : '')) : '';
   }
-  function histHtml(job){
-    var out = [];
+  function histHtml(job, o){
+    var out = histOrder(job, o);
     unitsOf(job).forEach(function(u, ui){
       ['graphic','stitch'].forEach(function(k){
         dzList(u, k).forEach(function(d){
@@ -3081,7 +3145,7 @@
       return '<div class="dz-hist-r k-' + esc(e.kind) + '">' +
         '<i>' + esc(dt(e.at)) + '</i>' +
         '<b>' + esc(nameOf(e.by)) + '</b>' +
-        '<span>' + esc(e.що) + ' · поз. ' + esc(e.де) +
+        '<span>' + esc(e.що) + (e.де ? ' · поз. ' + esc(e.де) : '') +
           (e.текст ? ' · ' + esc(e.текст) : '') + '</span>' +
       '</div>';
     }).join('') + '</div>';
@@ -4400,6 +4464,37 @@
       від = new Date();
     return calIso(plusDays(від, d));
   }
+  /* ТАЙМЕР АКАУНТА, «ТЕРМІНОВЕ», «ПРОСТРОЧЕНО» (Андрій, 08.10, B2C).
+
+     Дедлайн акаунта = дата отримання посилки − 4 дні (ці 4 дні — на
+     виробництво й доставку). Дата — та, що поставили руками; не ставили —
+     звичайний строк від створення (налаштування, 9 днів).
+       • до дати отримання менше 4 днів, а у виробництво не передали —
+         «Прострочено», без таймера; лише позначка, жодних дій;
+       • дату поставили руками — таймер до дедлайну акаунта;
+       • «Термінове» — дату поставили раніше за звичайний строк, або від
+         створення минуло понад 4 дні;
+       • дату не ставили й нічого не горить — ні таймера, ні позначки.
+     У виробництві — нічого: свою частину акаунт зробив. */
+  function acctUrg(job, o, inProd){
+    if(!job || inProd) return null;
+    var норм = readyFrom(job);
+    var своя = (job.dueSet && job.due && calParse(job.due)) ? job.due : '';
+    var фін = своя || норм;
+    if(!фін) return null;
+    var лишДо = daysBetween(calIso(new Date()), фін);
+    if(лишДо < 4) return { kind: 'late', txt: 'Прострочено',
+      title: 'До дати отримання ' + dueShort(фін) + ' лишилось менше 4 днів, а у виробництво не передано' };
+    var d = calParse(фін);
+    var кінець = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 4, 23, 59, 59);
+    var хв = Math.round((кінець.getTime() - Date.now()) / 60000);
+    var створ = Date.parse(String(job.createdAt || (o && o.createdAt) || ''));
+    var минуло = isNaN(створ) ? 0 : (Date.now() - створ) / 864e5;
+    var термін = (своя && норм && своя < норм) || минуло > 4;
+    if(!термін && !своя) return null;
+    return { kind: термін ? 'urgent' : 'date', min: хв, txt: 'лишилось ' + hm(Math.max(0, хв)),
+             title: 'Передати у виробництво до ' + dueShort(calIso(кінець)) + ' (дата отримання ' + dueShort(фін) + ' − 4 дні)' };
+  }
   /* Скільки днів між двома датами. Потрібне в обидва боки: порахувати
      дату зі строку й порахувати строк із обраної дати. Рахуємо по
      календарних добах, а не по мілісекундах: переведення годинника
@@ -5054,7 +5149,7 @@
     dlBase: dlBase, dlMock: dlMock, dlNames: dlNames,
     seek: seek, seekSet: seekSet, seekHit: seekHit,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
-    unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, writeHtml: writeHtml,
+    unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, acctUrg: acctUrg, writeHtml: writeHtml,
     verTilesHtml: verTilesHtml,
     unitsOf: unitsOf, unitAt: unitAt,
     shipHtml: shipHtml, shipBody: shipBody,
@@ -5443,18 +5538,24 @@
         steps: { n: 5, at: at, labels: CHAIN_STEP_L, txt: CHAIN_STEP_L[at] },
         chain: stageMarks(p.job, p.o, всіЗ),
         who: хто ? nameOf(хто) : '', whoTitle: хто ? 'Зараз працює: ' + nameOf(хто) : '',
-        fix: правки, fixLabel: правки ? 'правки клієнта' : '',
+        /* «Правки клієнта» — без таблетки (08.10): колонка й так про це каже. */
+        fix: false, fixLabel: '',
         title: U.jobNo(p.job),
+        /* На плитці — лише дата створення; дата з часом — в історії картки. */
+        created: p.o.createdAt || p.job.createdAt || '',
+        urg: U.acctUrg(p.job, p.o, !!PROD_AT[col]),
         /* Свій годинник — від приходу замовлення до передачі у
            виробництво. Доти тут не світилось нічого, і замовлення могло
            простояти в акаунта тиждень непоміченим. */
-        left: D.stageLeft(p.job, p.o, 'acct', termHours('acct')),
+        /* Годинник етапу й «до відправки» на плитці акаунта замінив таймер
+           «дата отримання − 4 дні» (08.10) — див. U.acctUrg. */
+        left: null,
         nick: cardNick(p.o),
         /* Число й готовий напис разом: рахує його шар панелі, а малює шар
            дошки — і лізти одному в помічники іншого означає рано чи пізно
            отримати «money is not defined» рівно там, де його не видно. */
         sum: jobSum(p.o), sumTxt: money(jobSum(p.o)),
-        due: p.job.due || p.job.readyAt || '',
+        due: '',
         chat: hasChat(p.o),
         /* Пропущене від клієнта — кружечком на кнопці Instagram, від
            дизайнерів — кружечком на самій картці. */
@@ -5599,7 +5700,7 @@
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
-  var CHAIN_STEP = { new:0, design:0, sketch:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
+  var CHAIN_STEP = { new:0, design:0, sketch:0, client:0, sketchok:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
   var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
   function cmTxt(mm){
     if(!mm || !(+mm.w > 0)) return '';
@@ -6005,7 +6106,7 @@
         U.foldHtml('amber', '📦', 'Відправка', U.shipSub(o), U.shipBody(p)) +
         /* Історія — в самому низу. Її читають не щодня, але коли читають —
            читають усю, і місце їй саме там, де вона нікому не заважає. */
-        U.foldHtml('gray', '🕘', 'Історія', U.histSub(job), U.histHtml(job)) +
+        U.foldHtml('gray', '🕘', 'Історія', U.histSub(job, o), U.histHtml(job, o)) +
       '</div>' +
       /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
          У картці десяток блоків, і кнопка в кінці означає «догортайте до
@@ -8281,7 +8382,7 @@
         var звідки = (c.closest('.dz-col') || {}).dataset;
         /* На дошці акаунта тягнуться лише ескізи: «Готовий граф. ескіз» ↔
            «У клієнта на погодженні». Решта колонок рухається сама. */
-        if(!цех && !(звідки && (звідки.col === 'sketch' || звідки.col === 'client'))) return;
+        if(!цех && !(звідки && (звідки.col === 'sketch' || звідки.col === 'client' || звідки.col === 'sketchok'))) return;
         w.setAttribute('draggable', 'true');
         w.ondragstart = function(e){
           var col = w.closest('.dz-col');
@@ -8309,7 +8410,7 @@
           var me0 = (host().me && host().me()) || '';
           if(!цех){
             if(!D.acctMove(p.job, p.o, to, me0)) return say('Так перенести не можна — ескіз уже надіслано клієнту з CRM');
-            return save(p.job, p.o, to === 'client' ? 'У клієнта на погодженні' : 'Готовий граф. ескіз');
+            return save(p.job, p.o, to === 'client' ? 'У клієнта на погодженні' : to === 'sketchok' ? 'Ескіз узгоджено' : 'Готовий граф. ескіз');
           }
           if(!D.prodMove(p.job, p.o, to, me0)) return say('Так перенести не можна');
           if(to === 'run') prodToTelegram(p.job, p.o, true);
