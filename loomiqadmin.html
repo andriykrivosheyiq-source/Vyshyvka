@@ -4685,6 +4685,7 @@
   .dz-buy-t input{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;
     width:170px;font-variant-numeric:tabular-nums;}
   .dz-buy-t input:focus{outline:none;border-color:var(--accent);}
+  .dz-buy-t input.dz-buy-desc{flex:1 1 220px;min-width:0;width:auto;}
   .dz-buy-t a{font-size:12.5px;color:var(--accent);}
   .dz-buy-side{display:flex;flex-direction:column;gap:14px;min-width:0;}
   .dz-buy-sup{display:flex;flex-direction:column;gap:6px;padding-top:4px;}
@@ -5114,6 +5115,8 @@
   .fin-chip.on{border-style:solid;border-color:#1B6B3A;background:#E7F6EC;color:#1B6B3A;
     font-weight:600;}
   .fin-chip i{font-style:normal;color:#B03A1A;}
+  .fin-chip.is-chk-go{border-style:solid;border-color:#1B6B3A;color:#1B6B3A;font-weight:700;margin-right:4px;}
+  .fin-sum .is-chk b{color:#1B6B3A;}
   .fin-none{padding:22px 0;color:var(--ink-soft);font-size:13px;}
   .fin-catsum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px;}
   .fin-cs{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;cursor:pointer;}
@@ -6224,6 +6227,14 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             <option value="">привʼязка будь-яка</option>
             <option value="no">не привʼязані</option>
             <option value="yes">привʼязані</option>
+            <option value="unchk">надходження не підтверджені</option>
+            <option value="chk">надходження підтверджені</option>
+          </select>
+          <select id="fin-days" title="За який час">
+            <option value="">за весь час</option>
+            <option value="week">цей тиждень (з понеділка)</option>
+            <option value="7">останні 7 днів</option>
+            <option value="30">останні 30 днів</option>
           </select>
           <select id="fin-cat"></select>
           <button class="pc-btn" id="fin-cats" title="Категорії витрат і правила автопідпису">Категорії</button>
@@ -7472,28 +7483,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d0ed6bba59"></script>
-<script src="loomiq-fingerprint.js?v=d0ed6bba59"></script>
-<script src="loomiq-pricing.js?v=d0ed6bba59"></script>
+<script src="loomiq-select.js?v=38e01bb3b7"></script>
+<script src="loomiq-fingerprint.js?v=38e01bb3b7"></script>
+<script src="loomiq-pricing.js?v=38e01bb3b7"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=d0ed6bba59"></script>
+<script src="loomiq-money-core.js?v=38e01bb3b7"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d0ed6bba59"></script>
-<script src="loomiq-bg.js?v=d0ed6bba59"></script>
-<script src="loomiq-mock.js?v=d0ed6bba59"></script>
+<script src="loomiq-design.js?v=38e01bb3b7"></script>
+<script src="loomiq-bg.js?v=38e01bb3b7"></script>
+<script src="loomiq-mock.js?v=38e01bb3b7"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=d0ed6bba59"></script>
-<script src="loomiq-threads.js?v=d0ed6bba59"></script>
+<script src="imagetracer.js?v=38e01bb3b7"></script>
+<script src="loomiq-threads.js?v=38e01bb3b7"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d0ed6bba59"></script>
+<script src="loomiq-cards.js?v=38e01bb3b7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7538,7 +7549,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd0ed6bba59';
+var LQ_VER = '38e01bb3b7';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9655,7 +9666,7 @@ let bankBal = {};          // { acc: { bal, at, src, got } } — залишок 
 let payErr = '';           // чому рухи не читаються — показуємо словами
 /* Розгорнута виписка рахунку (див. renderFinHist). */
 const finHist = { acc: '', days: 30, shown: 100, all: {}, loading: '' };
-let finView = { acc:'', kind:'', link:'', q:'', cat:'' };
+let finView = { acc:'', kind:'', link:'', q:'', cat:'', days:'' };
 let finAn = { tab:'acc', dir:'b2c', per:'' };
 /* ── АНАЛІТИКА ФІНАНСІВ ──────────────────────────────────────────────────
 
@@ -10009,6 +10020,7 @@ function renderFinHist(){
           (p.orderId
             ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
               escapeHtml('#' + p.orderId + (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) + '</button>'
+            : дохід ? finChkChip(p)
             : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
         '</span>' +
       '</div>';
@@ -10197,9 +10209,61 @@ function payPaid(orderId){
   return (payments || []).reduce((a, p) =>
     a + ((String(p.orderId || '') === id && (+p.amount || 0) > 0) ? Math.round(+p.amount) : 0), 0);
 }
+/* Підтверджене надходження: підписане (передоплата / оплата / доплата /
+   наложка), але без замовлення. Записується тим самим payLinkSet — лише без
+   номера: тег, хто й коли (linkedBy / linkedAt). */
+function finChecked(p){ return !!(p && !p.orderId && PAY_TAGS[p.tag]); }
+function finWeekStart(){
+  const d = new Date(); const wd = (d.getDay() + 6) % 7;
+  d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - wd); return d;
+}
+function finChkChip(p){
+  return finChecked(p)
+    ? '<button class="fin-chip on is-chk" data-fin-chk="' + escapeHtml(p.id) + '" title="Підтвердив ' +
+        escapeHtml(p.linkedBy || '') + ' · ' + escapeHtml(payDate(p.linkedAt)) + '">✓ ' + escapeHtml(PAY_TAGS[p.tag].toLowerCase()) + '</button>'
+    : '<button class="fin-chip is-chk-go" data-fin-chk="' + escapeHtml(p.id) + '">✓ Підтвердити</button>' +
+      '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>';
+}
+/* Вікно «Підтвердити»: чим є платіж. Привʼязати до замовлення — окремо. */
+function finChk(id){
+  const p = (payments || []).filter(x => x.id === id)[0] ||
+    Object.keys(finHist.all).reduce((f, k) => f || finHist.all[k].filter(x => x.id === id)[0], null);
+  if(!p) return;
+  const d = document.createElement('div');
+  d.className = 'fin-modal';
+  d.innerHTML = `<div class="fin-w">
+    <div class="fin-h"><b>${escapeHtml(payMoney(p.amount))}</b>
+      <span>${escapeHtml(payDate(p.at))} · ${escapeHtml(finAccName(p.acc))}</span>
+      <button class="dz-x" data-fin-x>×</button></div>
+    <div class="fin-b">
+      ${p.counter || p.desc ? `<div class="fin-desc">${escapeHtml(p.counter || '')}${
+        p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : ''}</div>` : ''}
+      <div class="fin-l">Підтвердити: чим є цей платіж</div>
+      <div class="fin-tags fin-chk-tags">${Object.keys(PAY_TAGS).map(k =>
+        `<button class="fin-tag${finChecked(p) && p.tag === k ? ' on' : ''}" data-chk-tag="${k}">${PAY_TAGS[k]}</button>`).join('')}</div>
+      ${finChecked(p) ? `<div class="fin-note">Підтвердив ${escapeHtml(p.linkedBy || '—')} · ${escapeHtml(payDate(p.linkedAt))}</div>
+        <button class="dz-b" data-chk-tag="">Зняти підтвердження</button>` : ''}
+      <div class="fin-note">До замовлення платіж не привʼязується — у «сплачено / лишилось» картки він не йде.</div>
+      <button class="dz-b" data-chk-link>Привʼязати до замовлення…</button>
+    </div>
+  </div>`;
+  document.body.appendChild(d);
+  d.addEventListener('click', async e => {
+    if(e.target === d || (e.target.closest && e.target.closest('[data-fin-x]'))) return d.remove();
+    if(e.target.closest && e.target.closest('[data-chk-link]')){ d.remove(); return finOpen(p.id); }
+    const t = e.target.closest && e.target.closest('[data-chk-tag]');
+    if(!t) return;
+    try{
+      await payLinkSet(p, '', t.dataset.chkTag || null);
+      d.remove();
+      toast(t.dataset.chkTag ? 'Підтверджено: ' + PAY_TAGS[t.dataset.chkTag].toLowerCase() : 'Підтвердження знято');
+      renderFin();
+    }catch(err){ toast('Не збереглось: ' + ((err && err.message) || err)); }
+  });
+}
 function finRows(){
   const q = String(finView.q || '').trim().toLowerCase();
-  const свої = finView.cat ? finOwnSet() : {};
+  const свої = (finView.cat || finView.link === 'unchk') ? finOwnSet() : {};
   return (payments || []).filter(p => {
     if(finView.acc && p.acc !== finView.acc) return false;
     const дохід = (+p.amount || 0) > 0;
@@ -10207,6 +10271,14 @@ function finRows(){
     if(finView.kind === 'out' && дохід) return false;
     if(finView.link === 'no' && p.orderId) return false;
     if(finView.link === 'yes' && !p.orderId) return false;
+    /* ПІДТВЕРДЖЕНО (08.10): надходження перевірили й підписали, але до
+       замовлення не привʼязали — поки замовлення в CRM не ведуть. */
+    if(finView.link === 'chk' && !(дохід && finChecked(p))) return false;
+    if(finView.link === 'unchk' && !(дохід && !p.orderId && !finChecked(p) && !свої[p.id])) return false;
+    if(finView.days){
+      const від = finView.days === 'week' ? finWeekStart() : new Date(Date.now() - (+finView.days) * 864e5);
+      if(String(p.at || '') < від.toISOString()) return false;
+    }
     if(finView.cat){
       if(дохід || свої[p.id]) return false;
       const к = finCatOf(p);
@@ -10438,7 +10510,7 @@ function finOwnCalc(){
   /* Переказ собі (flow: self) уже «між своїми», але другу половину — на
      підключеній картці — йому все одно шукаємо: інакше вона лишиться
      «надходженням» без пари. */
-  const вільні = all.filter(p => (!own[p.id] || (p.flow === 'self' && p.tag !== 'own')) && p.tag !== 'notown' && p.acc);
+  const вільні = all.filter(p => (!own[p.id] || (p.flow === 'self' && p.tag !== 'own')) && p.tag !== 'notown' && !PAY_TAGS[p.tag] && p.acc);
   const ins = вільні.filter(p => +p.amount > 0);
   const банк = {};
   finAccounts().forEach(a => { банк[a.id] = a.bank || ''; });
@@ -10576,7 +10648,12 @@ function renderFin(){
     ? '<span>Рухів: <b>' + rows.length + '</b></span>' +
       '<span class="is-in">Надійшло: <b>' + payMoney(дохід) + '</b></span>' +
       '<span class="is-out">Витрачено: <b>' + payMoney(-витрата) + '</b></span>' +
-      (переказів ? '<span>Між своїми рахунками: <b>' + escapeHtml(payMoney(переказів).replace('+', '')) + '</b> — не враховано</span>' : '')
+      (переказів ? '<span>Між своїми рахунками: <b>' + escapeHtml(payMoney(переказів).replace('+', '')) + '</b> — не враховано</span>' : '') +
+      /* Звірка в неділю (08.10): підтверджені — по підписах. */
+      (finView.link === 'chk' ? Object.keys(PAY_TAGS).map(k => {
+        const v = rows.reduce((a, p) => a + (p.tag === k && (+p.amount || 0) > 0 ? Math.round(+p.amount) : 0), 0);
+        return v ? '<span class="is-chk">' + escapeHtml(PAY_TAGS[k]) + ': <b>' + escapeHtml(payMoney(v).replace('+', '')) + '</b></span>' : '';
+      }).join('') : '')
     : '';
   /* Фільтр і підсумок за категоріями витрат (05.10). */
   const кс = document.getElementById('fin-cat');
@@ -10647,7 +10724,7 @@ function renderFin(){
           : !дохід ? '<button class="fin-chip is-cat' + (кат ? ' on' : '') + '" data-fin-open="' + escapeHtml(p.id) + '"' +
               (кат && кат.how === 'rule' ? ' title="Підписано правилом: «' + escapeHtml(кат.q) + '»"' : '') + '>' +
               escapeHtml(кат ? finCatName(кат) : 'категорія?') + (кат && кат.how === 'rule' ? ' <i>⚙</i>' : '') + '</button>'
-          : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
+          : finChkChip(p)) +
       '</span>' +
     '</div>';
   }).join('');
@@ -11014,6 +11091,8 @@ async function finAddManual(){
     if(hd){ finHist.days = +hd.dataset.finHistDays || 0; finHist.shown = 100; return renderFinHist(); }
     if(e.target.closest && e.target.closest('[data-fin-hist-more]')){ finHist.shown += 100; return renderFinHist(); }
     if(e.target.closest && e.target.closest('[data-fin-hist-x]')){ finHist.acc = ''; return renderFinCards(); }
+    const chk = e.target.closest && e.target.closest('[data-fin-chk]');
+    if(chk) return finChk(chk.dataset.finChk);
     const open = e.target.closest && e.target.closest('[data-fin-open]');
     if(open) return finOpen(open.dataset.finOpen);
     if(e.target.id === 'fin-add') return finAddManual();
@@ -11028,6 +11107,8 @@ async function finAddManual(){
     if(el) el.addEventListener('change', ()=>{
       finView[id === 'fin-kind' ? 'kind' : 'link'] = el.value; renderFin(); });
   });
+  const fd = document.getElementById('fin-days');
+  if(fd) fd.addEventListener('change', ()=>{ finView.days = fd.value; renderFin(); });
   const q = document.getElementById('fin-q');
   if(q) q.addEventListener('input', ()=>{ finView.q = q.value; renderFin(); });
   const кс = document.getElementById('fin-cat');

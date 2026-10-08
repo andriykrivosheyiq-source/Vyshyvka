@@ -439,6 +439,13 @@ await p.waitForTimeout(500);
 const ттн = await p.evaluate(() => { const b = Object.values(designBuys).find(x => x.n === 1);
   return { ttn: b.ttn, st: b.status, лінк: !!document.querySelector('.dz-buy-o a[href*="20450012345678"]') }; });
 ok(ттн.ttn === '20450012345678' && ттн.st === 'way' && ттн.лінк, 'ТТН збережено, стан — «В дорозі», є посилання «Де посилка»', 'ТТН: ' + JSON.stringify(ттн));
+/* Опис посилки (08.10): «що за посилка, від кого». */
+await p.evaluate(() => { const b = Object.values(designBuys).find(x => x.n === 1);
+  const el = document.querySelector('[data-buydesc="' + b.id + '"]'); el.value = 'Футболки Gildan від Олега'; el.dispatchEvent(new Event('change')); });
+await p.waitForTimeout(500);
+const опис = await p.evaluate(() => { const b = Object.values(designBuys).find(x => x.n === 1);
+  return { desc: b.desc, поле: (document.querySelector('[data-buydesc="' + b.id + '"]') || {}).value }; });
+ok(опис.desc === 'Футболки Gildan від Олега' && опис.поле === опис.desc, 'опис посилки зберігається й видно в полі', JSON.stringify(опис));
 
 console.log('');
 console.log('═══ 6. ЦЕХ: ОДЯГ, ФАЙЛИ, КАРТКА ═══');

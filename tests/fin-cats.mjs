@@ -189,6 +189,48 @@ const pr9 = await p.evaluate(() => { const r = document.querySelector('.fin-row[
 ok(pr9.pair && !pr9.card, '«Переказ власних коштів» ФОП → картка — одним рядком «між своїми», надходження на картці не висить окремо', 'пара: ' + JSON.stringify(pr9));
 
 console.log('');
+console.log('═══ ПІДТВЕРДИТИ НАДХОДЖЕННЯ БЕЗ ПРИВʼЯЗКИ ═══');
+/* 08.10, Андрій: поки замовлення в CRM не ведемо — «натиснути підтвердити,
+   щоб випадало передоплата або доплата». Без замовлення; звірка в неділю. */
+await p.evaluate(() => {
+  payments.push({ id:'in1', at:new Date().toISOString(), amount: 1500, acc:'mono1', counter:'Олена К.', desc:'за худі', src:'mono' },
+                { id:'in2', at:new Date().toISOString(), amount: 4200, acc:'mono3', counter:'Ігор', src:'privat' });
+  window.__SETS = []; renderFin();
+});
+await p.waitForTimeout(300);
+const кнопка = await p.evaluate(() => ((document.querySelector('.fin-row[data-fin-id="in1"] [data-fin-chk]') || {}).textContent || '').trim());
+ok(кнопка === '✓ Підтвердити', 'біля надходження без привʼязки — «✓ Підтвердити»', 'кнопка: ' + кнопка);
+await p.evaluate(() => document.querySelector('.fin-row[data-fin-id="in1"] [data-fin-chk]').click());
+await p.waitForTimeout(200);
+const вибір = await p.evaluate(() => [...document.querySelectorAll('.fin-modal [data-chk-tag]')].map(b => b.textContent.trim()).join(','));
+ok(вибір === 'Передоплата,Оплата,Доплата,Наложка', 'випадає: передоплата / оплата / доплата / наложка', вибір);
+await p.evaluate(() => document.querySelector('.fin-modal [data-chk-tag="prepay"]').click());
+await p.waitForTimeout(400);
+await p.evaluate(() => { document.querySelector('.fin-row[data-fin-id="in2"] [data-fin-chk]').click(); });
+await p.waitForTimeout(200);
+await p.evaluate(() => document.querySelector('.fin-modal [data-chk-tag="final"]').click());
+await p.waitForTimeout(400);
+const підтв = await p.evaluate(() => {
+  const w = (window.__SETS || []).filter(x => x.id === 'in1').pop();
+  return { запис: w && w.v, чип: ((document.querySelector('.fin-row[data-fin-id="in1"] [data-fin-chk]') || {}).textContent || '').trim() };
+});
+ok(підтв.запис && підтв.запис.tag === 'prepay' && підтв.запис.orderId === null && !!підтв.запис.linkedAt && /передоплата/.test(підтв.чип),
+  'підтверджено: тег «передоплата», без замовлення; у рядку «✓ передоплата»', JSON.stringify(підтв));
+await p.selectOption('#fin-link', 'chk');
+await p.selectOption('#fin-days', 'week');
+await p.waitForTimeout(300);
+const звірка = await p.evaluate(() => ({ рядки: [...document.querySelectorAll('#fin-list .fin-row')].map(r => r.dataset.finId).sort().join(),
+  сума: document.getElementById('fin-sum').textContent.replace(/\s+/g, ' ') }));
+ok(звірка.рядки === 'in1,in2' && /Передоплата: 1 500/.test(звірка.сума) && /Доплата: 4 200/.test(звірка.сума),
+  'фільтр «підтверджені · цей тиждень» — підсумок по передоплатах і доплатах для звірки в неділю', JSON.stringify(звірка));
+await p.selectOption('#fin-link', 'unchk');
+await p.waitForTimeout(300);
+const не = await p.evaluate(() => [...document.querySelectorAll('#fin-list .fin-row')].map(r => r.dataset.finId).join());
+ok(!/in1|in2/.test(не), '«не підтверджені» — без уже підтверджених', не);
+await p.selectOption('#fin-link', '');
+await p.selectOption('#fin-days', '');
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'витрати підписані категоріями, перекази між своїми — одним рядком');
 await browser.close(); srv.close();

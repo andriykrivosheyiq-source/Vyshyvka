@@ -7951,6 +7951,11 @@
         '<input type="text" data-buyttn="' + esc(b.id) + '" value="' + esc(b.ttn || '') + '" ' +
           'placeholder="ТТН Нової пошти" maxlength="40" inputmode="numeric">' +
         (b.ttn ? '<a href="' + esc(buyTtnUrl(b.ttn)) + '" target="_blank" rel="noopener">Де посилка ↗</a>' : '')) +
+        /* ОПИС ПОСИЛКИ (08.10). Андрій: «опис — ТТН або щось, по чому можна
+           зрозуміти, що це за посилка». Вільний текст: постачальник, що в
+           ній, від кого. */
+        '<input type="text" class="dz-buy-desc" data-buydesc="' + esc(b.id) + '" value="' + esc(b.desc || '') + '" ' +
+          'placeholder="Опис: що за посилка, від кого" maxlength="200">' +
         '<button type="button" class="dz-buy-more" data-do="buy-open" data-k="' + esc(k) + '">' +
           (BUY_OPEN[k] ? 'сховати номери' : 'номери замовлень') + '</button>' +
       '</div>' +
@@ -8198,6 +8203,16 @@
         BUY_CHK[id] = BUY_CHK[id] || {};
         if(el.checked) BUY_CHK[id][i] = 1; else delete BUY_CHK[id][i];
         render(root);
+      };
+    });
+    root.querySelectorAll('[data-buydesc]').forEach(function(el){
+      el.onchange = function(){
+        var b = buyFind(el.dataset.buydesc);
+        if(!b) return;
+        var t = String(el.value || '').trim().slice(0, 200);
+        if(t === String(b.desc || '')) return;
+        b.desc = t;
+        buySave(b, t ? 'Опис збережено' : 'Опис прибрано');
       };
     });
     root.querySelectorAll('[data-buyttn]').forEach(function(el){
