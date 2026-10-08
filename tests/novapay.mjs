@@ -31,7 +31,7 @@ DB['loomiq/photos'] = { fin: { mapValue: { fields: { accounts: { arrayValue: { v
 
 const soap = (method, inner) => '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><' + method +
   'Response xmlns="http://tempuri.org/"><' + method + 'Result>' + inner + '</' + method + 'Result></' + method + 'Response></s:Body></s:Envelope>';
-let valid = 'RT-0', n = 0, expFmt = 'iso';
+let valid = 'RT-0', n = 0, expFmt = 'iso', staticKey = false;
 const calls = [];
 /* Виписка — як справжня (05.10, з /novapay/probe): пул від «НоваПей»,
    переказ собі на особистий рахунок, звичайна витрата. */
@@ -60,11 +60,11 @@ globalThis.fetch = async (url, opt) => {
     if(action === 'UserAuthenticationJWT'){
       if(get('refresh_token') !== valid || get('login') !== 'andriy')
         return res(soap(action, '<request_ref>x</request_ref><error><code>logic_error</code><message>Refresh token expired</message></error>'));
-      n++; valid = 'RT-' + n;
+      n++; if(!staticKey) valid = 'RT-' + n;
       return res(soap(action, '<request_ref>x</request_ref><response_ref>y</response_ref><jwt>JWT-' + n + '</jwt><expiration>' +
         (expFmt === 'dmy' ? new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric',
           hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(Date.now() + 30 * 60000)).replace(',', '')
-          : new Date(Date.now() + 30 * 60000).toISOString()) + '</expiration><refresh_token>' + valid + '</refresh_token><public_certificate>CERT-' + n + '</public_certificate>'));
+          : new Date(Date.now() + 30 * 60000).toISOString()) + '</expiration><refresh_token>' + (staticKey ? 'BOGUS-' + n : valid) + '</refresh_token><public_certificate>CERT-' + n + '</public_certificate>'));
     }
     if(!/^JWT-/.test(get('jwt'))) return res(soap(action, '<error><message>jwt invalid</message></error>'));
     if(action === 'GetClientsList') return res(soap(action, '<result>ok</result><clients><Clients><id>8</id><name>ФОП Кривошей</name></Clients></clients>'));
@@ -198,6 +198,30 @@ console.log('═══ ДВА ПРОГОНИ РАЗОМ — ОДИН ВХІД �
   const [ra, rb] = await Promise.all([fa, fb].map(w => w.fetch(new Request('https://w.test/novapay/poll?s=sek'), envP).then(r => r.json())));
   const входів = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
   ok(ra.ok && rb.ok && входів === 1, 'два прогони одночасно — вхід один, другий бере jwt першого', 'входів: ' + входів + ' · ' + JSON.stringify([ra.error, rb.error]));
+}
+
+console.log('');
+console.log('═══ КЛЮЧ ІЗ КАБІНЕТУ БАГАТОРАЗОВИЙ ═══');
+/* 08.10: як справжня NovaPay — ключ із кабінету живе свій строк, а ключ із
+   відповіді наступного разу не приймають. Воркер має сам перейти на ключ
+   із секрету й далі ходити тільки ним. */
+{
+  const fs1 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 11))).default;
+  const fs2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 12))).default;
+  const fs3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 13))).default;
+  staticKey = true; valid = 'CAB-KEY';
+  const envS = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'CAB-KEY', NOVAPAY_CERT: 'CAB-CERT' });
+  const r1 = await fs1.fetch(new Request('https://w.test/novapay/poll?s=sek'), envS).then(r => r.json());
+  DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
+  const r2 = await fs2.fetch(new Request('https://w.test/novapay/poll?s=sek'), envS).then(r => r.json());
+  DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
+  calls.length = 0;
+  const r3 = await fs3.fetch(new Request('https://w.test/novapay/poll?s=sek'), envS).then(r => r.json());
+  const входи3 = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
+  ok(r1.ok && r2.ok && /пробую ключ із секрету/.test(JSON.stringify(r2.кроки)) && DB['secrets/novapay'].static.booleanValue === true,
+    'збережений ключ не прийняли — воркер сам увійшов ключем із секрету й запамʼятав це', JSON.stringify([r1.error, r2.error, r2.кроки]).slice(0, 300));
+  ok(r3.ok && входи3 === 1, 'далі — одразу ключем із секрету, без зайвої відмови', 'входів: ' + входи3 + ' · ' + r3.error);
+  staticKey = false;
 }
 
 console.log('');

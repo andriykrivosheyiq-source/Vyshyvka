@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-07.3 · NovaPay: виведене на свою картку';
+const VERSION = '2026-10-08.1 · NovaPay: ключ із кабінету багаторазовий';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -974,11 +974,27 @@ async function novapayJwt(env, force) {
     }
     saved = fresh; savedOk = true;
   }
-  const token = savedOk && saved.refresh_token ? saved.refresh_token : env.NOVAPAY_REFRESH_TOKEN;
-  NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: savedOk && saved.refresh_token
-    ? 'беру збережений (від ' + (saved.at || '?') + ')' : 'беру з секрету NOVAPAY_REFRESH_TOKEN' });
-  const cert = savedOk && saved.public_certificate ? saved.public_certificate : env.NOVAPAY_CERT;
-  const a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
+  /* ЯКИЙ КЛЮЧ (08.10). Двічі (05.10 і 07.10) було одне й те саме: перший
+     вхід ключем із кабінету проходить, а ключ, який NovaPay віддає у
+     відповіді, наступного разу — «Refresh token does not apply to login».
+     Тож ключ із кабінету, схоже, НЕ одноразовий: він живе свій строк (у
+     кабінеті — 30 днів). Тому: збережений не прийняли — пробуємо ключем із
+     секрету; вийшло — запамʼятовуємо static і далі ходимо тільки ним. */
+  const статичний = savedOk && saved.static === true;
+  let token = !статичний && savedOk && saved.refresh_token ? saved.refresh_token : env.NOVAPAY_REFRESH_TOKEN;
+  let cert = !статичний && savedOk && saved.public_certificate ? saved.public_certificate : env.NOVAPAY_CERT;
+  let зСекрету = token === env.NOVAPAY_REFRESH_TOKEN;
+  NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: зСекрету
+    ? 'беру з секрету NOVAPAY_REFRESH_TOKEN' + (статичний ? ' (ключ із кабінету багаторазовий)' : '')
+    : 'беру збережений (від ' + (saved.at || '?') + ')' });
+  let a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
+  let static_ = статичний;
+  if (a.error && !зСекрету) {
+    NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: 'збережений не прийняли — пробую ключ із секрету' });
+    token = env.NOVAPAY_REFRESH_TOKEN; cert = env.NOVAPAY_CERT; зСекрету = true;
+    a = await novapaySoap('UserAuthenticationJWT', { refresh_token: token, login: env.NOVAPAY_LOGIN, public_certificate: cert });
+    if (!a.error) static_ = true;
+  }
   if (a.error) {
     await fsWrite(env, 'secrets/novapay', { lockAt: '' }).catch(() => null);
     /* Що саме пішло в NovaPay — без самих значень ключа: логін, довжина
@@ -989,23 +1005,27 @@ async function novapayJwt(env, force) {
       ', токен ' + t.length + ' симв.' + (/^\*+$/.test(t) ? ' — ЦЕ ЗІРОЧКИ, а не токен' : '') +
       (/\s/.test(t) ? ' — у токені є пробіл чи перенос' : '') +
       ', сертифікат ' + c.length + ' симв.' + (/BEGIN/.test(c) && /END/.test(c) ? '' : ' — НЕМАЄ рядків BEGIN/END') +
-      (savedOk ? ', ключ зі збереженого' : ', ключ із секрету');
-    /* Збережений ключ NovaPay більше не приймає (07.10: «Refresh token does
-       not apply to login» — ключ перегенерували в кабінеті чи погасили) —
-       вихід той самий, що й з протермінованим: новий ключ у Cloudflare. */
+      (зСекрету ? ', ключ із секрету' : ', ключ зі збереженого');
     throw new Error('NovaPay вхід: ' + a.error + ' · ' + діаг +
-      ' · ' + (savedOk ? 'збережений ключ NovaPay більше не приймає — ' : 'якщо ключ протермінований — ') +
-      'згенеруйте новий у кабінеті й покладіть у NOVAPAY_REFRESH_TOKEN і NOVAPAY_CERT');
+      ' · ключ із секрету теж не прийняли — згенеруйте новий у кабінеті й покладіть у NOVAPAY_REFRESH_TOKEN і NOVAPAY_CERT');
   }
   const jwt = xmlUnesc(xmlTag(a.res, 'jwt') || '');
   const next = xmlUnesc(xmlTag(a.res, 'refresh_token') || '');
   const nextCert = xmlUnesc(xmlTag(a.res, 'public_certificate') || '');
   const exp = xmlUnesc(xmlTag(a.res, 'expiration') || '');
-  if (!jwt || !next) throw new Error('NovaPay вхід: у відповіді немає jwt чи нового ключа');
+  if (!jwt) throw new Error('NovaPay вхід: у відповіді немає jwt');
+  /* Що NovaPay віддала замість ключа — без значень, лише чи він той самий.
+     Так видно, чи крутить вона ключ насправді. */
+  NOVAPAY_TRACE.push({ at: new Date().toISOString(), крок: 'ключ', відповідь: 'у відповіді ключ ' +
+    (!next ? 'відсутній' : next === token ? 'той самий' : 'інший (' + next.length + ' симв.)') +
+    ', сертифікат ' + (!nextCert ? 'відсутній' : nextCert === cert ? 'той самий' : 'інший') +
+    (static_ ? ' · ходимо ключем із секрету' : '') });
   const until = novapayUntil(exp, now);
-  /* Новий ключ — у базу першим ділом: старий уже не діє. */
-  await fsWrite(env, 'secrets/novapay', { seed, refresh_token: next, public_certificate: nextCert || cert,
-    jwt, until: new Date(until).toISOString(), at: new Date().toISOString(), lockAt: '' });
+  /* Ключ із відповіді — у базу першим ділом (на випадок, якщо NovaPay таки
+     крутить). Але static — ходимо ключем із секрету, а збережений лише
+     запасний. */
+  await fsWrite(env, 'secrets/novapay', { seed, refresh_token: next || token, public_certificate: nextCert || cert,
+    static: static_, jwt, until: new Date(until).toISOString(), at: new Date().toISOString(), lockAt: '' });
   NOVAPAY_JWT = { jwt, until, at: now };
   return jwt;
 }
