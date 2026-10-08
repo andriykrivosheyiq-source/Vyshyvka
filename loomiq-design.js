@@ -5518,20 +5518,42 @@
     out.push(sDone ? { st:'ok', t:'Вишивка' }
       : gDone ? { st:'now', t: sWho ? 'Вишивка · ' + імя(sWho) : 'Вишивка', title: sWho ? 'Працює: ' + nameOf(sWho) : 'У черзі вишивального' }
       : { st:'next', t:'Вишивка' });
+    /* ДАЛІ — КОЖЕН КРОК ОКРЕМО (Андрій, 08.10): «у акаунт-менеджера
+       повинно бути видно кожен статус»: одяг замовлено → одяг прибув → на
+       станках → погодження → можна відправляти → передано курʼєру → в
+       дорозі → доставлено. Цех — за D.prodAt, як на дошці цеху: одне
+       джерело, щоб менеджер і цех не бачили різного. */
+    var уЦеху = !!PROD_AT[col];
+    var пк = уЦеху ? D.prodAt(job, o) : '';
+    var ПОР = ['redo', 'new', 'wait', 'ready', 'run', 'appr', 'ship', 'reg', 'courier', 'way', 'arrived', 'stuck', 'done', 'refused'];
+    var рівень = пк ? ПОР.indexOf(пк) : -1;
+    var після = function(k){ return рівень > ПОР.indexOf(k); };
+    var КРОК = function(ok, now, t, tNow, title){
+      return ok ? { st:'ok', t: t } : now ? { st:'now', t: tNow || t, title: title || '' } : { st:'next', t: t };
+    };
     if(us.length){
       var ks = us.map(function(u){ return D.buyStateOf(всі || [], o.orderId, u.id, D.buyQty(u)).key; });
-      var одяг = ks.every(function(k){ return k === 'got'; }) ? { st:'ok', t:'Одяг' }
-        : !gDone ? { st:'next', t:'Одяг' }
-        : { st: 'now',
-            t: ks.some(function(k){ return k === 'got'; }) ? 'Одяг частково'
-             : ks.some(function(k){ return k === 'way'; }) ? 'Одяг в дорозі'
-             : ks.some(function(k){ return k === 'sent'; }) ? 'Одяг замовлено' : 'Одяг не замовлено' };
-      out.push(одяг);
+      var прибув = ks.every(function(k){ return k === 'got'; }) || рівень >= ПОР.indexOf('ready');
+      var замовлено = прибув || ks.every(function(k){ return k === 'got' || k === 'way' || k === 'sent'; });
+      var частково = ks.some(function(k){ return k === 'got'; });
+      out.push(КРОК(замовлено, gDone && !замовлено, 'Одяг замовлено',
+        ks.some(function(k){ return k !== 'none'; }) ? 'Одяг замовлено частково' : 'Одяг не замовлено'));
+      out.push(КРОК(прибув, замовлено && !прибув, 'Одяг прибув',
+        частково ? 'Одяг прибув частково' : ks.some(function(k){ return k === 'way'; }) ? 'Одяг в дорозі' : 'Чекаємо одяг'));
     }
-    out.push(крок >= 3 ? { st:'ok', t:'Виробництво' }
-      : крок === 2 ? { st:'now', t:'У виробництві' } : { st:'next', t:'Виробництво' });
-    out.push(col === 'shipped' ? { st:'ok', t:'Відправлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' }
-      : col === 'ready' ? { st:'now', t: o && o.ttn ? 'ТТН ' + o.ttn : 'Чекає ТТН' } : { st:'next', t:'Відправка' });
+    var передрук = уЦеху && typeof D.reprintOpen === 'function' && D.reprintOpen(o);
+    out.push(КРОК(після('run'), пк === 'run' || пк === 'redo' || пк === 'ready', 'На станках',
+      пк === 'redo' ? 'Передрук' : пк === 'ready' ? 'Готово до роботи' : передрук ? 'На станках · передрук' : 'На станках'));
+    if(пк === 'redo') out[out.length - 1].st = 'bad';
+    out.push(КРОК(після('appr'), пк === 'appr', 'Погодження', 'Погодження · фото з цеху'));
+    out.push(КРОК(після('reg'), пк === 'ship' || пк === 'reg', 'Можна відправляти',
+      o && o.ttn ? 'Можна відправляти · ТТН ' + o.ttn : 'Можна відправляти · без ТТН'));
+    out.push(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'));
+    out.push(КРОК(після('stuck'), пк === 'way' || пк === 'arrived' || пк === 'stuck', 'В дорозі',
+      пк === 'arrived' ? 'У відділенні' : пк === 'stuck' ? 'У відділенні понад 3 дні' : 'В дорозі'));
+    if(пк === 'refused') out.push({ st:'bad', t:'Відмова', title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
+    else out.push(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' });
+    if(пк === 'stuck') out[out.length - 2].st = 'bad';
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
@@ -8103,7 +8125,7 @@
       var ch = r.querySelector('.dz-c-chain'); if(!ch) return;
       /* Видно етап у рамці: перший поточний — біля лівого краю, з одним
          готовим перед ним, щоб було видно, звідки прийшли. */
-      var now = ch.querySelector('b.now') || ch.querySelector('b.next');
+      var now = ch.querySelector('b.now') || ch.querySelector('b.bad') || ch.querySelector('b.next');
       var prev = now && now.previousElementSibling;
       if(now) ch.scrollLeft = Math.max(0, (prev || now).offsetLeft - ch.offsetLeft - 4);
       r.querySelectorAll('[data-chs]').forEach(function(a){
