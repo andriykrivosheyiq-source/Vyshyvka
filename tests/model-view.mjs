@@ -85,6 +85,9 @@ await p.waitForTimeout(800);
 console.log('');
 console.log('═══ РАКУРС «НА МОДЕЛІ» У ЗБИРАННІ ═══');
 await p.setInputFiles('#pmFileInput', LOGO);
+/* CRM (08.10): перед завантаженням — вибір фону; тут — «Внутрішній». */
+await p.waitForTimeout(400);
+await p.evaluate(() => { const b = document.querySelector('#pmBgAsk [data-bg="in"]'); if(b) b.click(); });
 await p.waitForTimeout(1800);
 
 const state = () => p.evaluate(() => ({
@@ -220,6 +223,9 @@ await p.waitForTimeout(1200);
 await p.evaluate(() => window.__openProductModal('tee'));
 await p.waitForTimeout(700);
 await p.setInputFiles('#pmFileInput', LOGO);
+/* CRM (08.10): перед завантаженням — вибір фону; тут — «Внутрішній». */
+await p.waitForTimeout(400);
+await p.evaluate(() => { const b = document.querySelector('#pmBgAsk [data-bg="in"]'); if(b) b.click(); });
 await p.waitForTimeout(1800);
 /* Тиснемо дубль саме НА МОДЕЛІ — там, де він і потрібен щодня: у старих
    замовленнях на парному фото лежить одна копія, і доробити її нічим.
