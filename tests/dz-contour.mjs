@@ -134,7 +134,16 @@ await p.evaluate(() => {
       { name:'аркуш-v1.png', url:'https://x/s' + k + '.png', role:'sheet' }], '', null, 'graphic');
   });
 });
-ok(await стан() === 'client', 'версії здані — «У клієнта на погодженні»', 'стан: ' + await стан());
+/* 08.10: здали — це ще не «у клієнта». Клієнт бачить лише те, що йому надіслали. */
+ok(await стан() === 'sketch', 'версії здані — «Готовий граф. ескіз» (клієнту ще не надсилали)', 'стан: ' + await стан());
+const назад = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'new', 'test@loomiq'));
+const вручну = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'client', 'test@loomiq'));
+ok(!назад && вручну === 'client' && await стан() === 'client', 'менеджер перетягнув — «У клієнта на погодженні»; в інші колонки руками не можна', 'стан: ' + await стан());
+const повернув = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'sketch', 'test@loomiq'));
+ok(повернув === 'sketch' && await стан() === 'sketch', 'передумав — назад у «Готовий граф. ескіз»', 'стан: ' + await стан());
+await p.evaluate(() => { __j.units.forEach(u => { const d = window.LQDesign.dzList(u, 'graphic')[0]; d.vers[d.vers.length - 1].sentToClient = new Date().toISOString(); }); });
+const заборона = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'sketch', 'test@loomiq'));
+ok(await стан() === 'client' && !заборона, 'надіслали «Надіслати клієнту» — «У клієнта на погодженні», назад уже не перетягнеш', 'стан: ' + await стан());
 /* Менеджер погоджує через картку — справжньою дією, як кнопкою. */
 await p.evaluate(async () => {
   const U = window.LQDesign.ui;

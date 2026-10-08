@@ -1116,13 +1116,42 @@
      Знизу ліворуч — опис без повторів (модель з кольором і матеріалом,
      розмір, кількість, нанесення з розміром), праворуч — примітка звичайним
      сірим текстом, без плашки. */
+  function artBox(im){
+    if(im.__lqArt) return im.__lqArt;
+    var t = { x:0, y:0, w:im.width, h:im.height };
+    try{
+      var c = document.createElement('canvas');
+      var k = Math.min(200 / im.width, 200 / im.height, 1);
+      c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+      var q = c.getContext('2d'); q.drawImage(im, 0, 0, c.width, c.height);
+      var d = q.getImageData(0, 0, c.width, c.height).data;
+      var x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+      for(var y = 0; y < c.height; y++) for(var xx = 0; xx < c.width; xx++){
+        if(d[(y * c.width + xx) * 4 + 3] < 24) continue;
+        if(xx < x0) x0 = xx; if(xx > x1) x1 = xx; if(y < y0) y0 = y; if(y > y1) y1 = y;
+      }
+      if(x1 >= 0){
+        /* Запас у піксель зменшеної копії — щоб не зʼїсти тонкий край. */
+        x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1);
+        x1 = Math.min(c.width - 1, x1 + 1); y1 = Math.min(c.height - 1, y1 + 1);
+        t = { x: x0 / k, y: y0 / k, w: Math.min(im.width - x0 / k, (x1 - x0 + 1) / k),
+              h: Math.min(im.height - y0 / k, (y1 - y0 + 1) / k) };
+      }
+    }catch(e){}
+    im.__lqArt = t;
+    return t;
+  }
   function framedArt(x, im, a, b, w, h){
     if(!im) return;
     x.save();
     round(x, a, b, w, h, 16); x.clip();
     x.fillStyle = '#F4F5F7'; x.fillRect(a, b, w, h);
-    var C = window.LQCards || {};
-    var t = (C.trim && C.trim(im)) || { x:0, y:0, w:im.width, h:im.height };
+    /* ЕСКІЗ — ЦІЛКОМ (08.10). Андрій: «баг підрізає ескіз» — від «èva»
+       лишалось «va». Межі брались «за кольором кутів» (LQCards.trim, для
+       мокапів на папері): коли логотип торкається кута кадру, кут — це
+       сам логотип, і половина малюнка ставала «фоном». Ескіз же — не фото
+       на папері: обрізаємо лише ПРОЗОРІ поля; непрозорий кадр — увесь. */
+    var t = artBox(im);
     var k = Math.min(w * 0.78 / t.w, h * 0.78 / t.h);
     var dw = t.w * k, dh = t.h * k;
     x.drawImage(im, t.x, t.y, t.w, t.h, a + (w - dw) / 2, b + (h - dh) / 2, dw, dh);
@@ -1227,7 +1256,7 @@
     return cv.toDataURL('image/png');
   }
   /* Версія вигляду картки: аркуші, зібрані раніше, перезбираються. */
-  var CARD_V = 4;
+  var CARD_V = 5;   // 08.10: ескіз цілком (artBox) — старі картки перезбираються
   /* ══════════ ВИРОБНИЧА КАРТА ВИШИВКИ ══════════
 
      Андрій: «зліва оператор бачить ДЕ і ЯК розмістити вишивку, справа

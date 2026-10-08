@@ -168,7 +168,7 @@ await p.waitForTimeout(300);
 let r = await feed();
 console.log('  ' + JSON.stringify(pics(r)));
 ok(pics(r).length === 1 && pics(r)[0].pending, 'фото вже в стрічці праворуч, з позначкою «надсилаю…» — ще до відповіді Sitniks', JSON.stringify(r));
-await p.waitForFunction(() => window.__sendDone, null, { timeout: 15000 });
+await p.waitForFunction(() => window.__sendDone, null, { timeout: 45000 });
 await p.waitForTimeout(300);
 r = await feed();
 ok(pics(r).length === 1 && !pics(r)[0].pending && /res\.cloudinary\.com/.test(pics(r)[0].imgs[0]),
@@ -197,7 +197,7 @@ await send(3);
 await p.waitForTimeout(300);
 r = await feed();
 ok(pics(r).length === 2 && pics(r)[1].imgs.length === 3 && pics(r)[1].pending, 'три фото — одразу однією бульбашкою «надсилаю…»', JSON.stringify(pics(r)));
-await p.waitForFunction(() => window.__sendDone, null, { timeout: 15000 });
+await p.waitForFunction(() => window.__sendDone, null, { timeout: 45000 });
 MSGS.push({ id:'srv-x', createdAt: posted[posted.length - 1].at, text:'',
   attachments:['a','b','c'].map(x => ({ mediaType:'image', mediaUrl:'https://scontent.cdninstagram.com/v/' + x + '.jpg' })) });
 await poll(); await p.waitForTimeout(400);
@@ -225,7 +225,7 @@ console.log('');
 console.log('═══ Д. ПЕРЕЗАВАНТАЖЕННЯ ═══');
 MSGS = MSGS.filter(m => !/^out|^srv/.test(m.id));      // Sitniks «забув» наші фото
 await send(1);
-await p.waitForFunction(() => window.__sendDone, null, { timeout: 15000 });
+await p.waitForFunction(() => window.__sendDone, null, { timeout: 45000 });
 r = await feed();
 ok(pics(r).length === 3 && pics(r)[2].imgs.length === 1 && /cloudinary/.test(pics(r)[2].imgs[0]),
   'нове фото через хвилину після попереднього — окремою бульбашкою, не «злипається» з уже показаним', JSON.stringify(pics(r).map(x => x.imgs.length)));

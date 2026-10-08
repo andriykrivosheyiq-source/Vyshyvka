@@ -297,8 +297,13 @@
     if(trk(o, 'prod') === 'done') return 'appr';
     if(trk(o, 'prod') === 'work') return 'run';
     if(trk(o, 'prod') === 'ready') return 'ready';
+    /* ОДЯГ ВЕДЕ ЦЕХ САМ (Андрій, 08.10): «як тільки одяг замовили — очікуємо
+       одяг; як прийняли — одразу готовий до роботи». Нічого не замовлено
+       (todo) — «Нове»; замовлено чи прийшла частина — «Очікуємо одяг»;
+       прийнято весь — «Готово до роботи», без ручного перенесення. */
     var sup = trk(o, 'supply');
-    if(sup && sup !== 'got') return 'wait';
+    if(sup === 'got') return 'ready';
+    if(sup && sup !== 'todo') return 'wait';
     return 'new';
   }
   /* Дошка закупівлі. Чотири стани з ТЗ і жодного зайвого: закупникові не
@@ -380,6 +385,10 @@
   var CHAIN = [
     { key:'new',     label:'Нове',                      color:'gray'   },
     { key:'design',  label:'У графічного дизайнера',    color:'blue'   },
+    /* Дизайнер здав ескіз, клієнту його ще не надіслали (Андрій, 08.10).
+       Доти таке замовлення одразу ставало «У клієнта на погодженні», хоч
+       клієнт ще нічого не бачив. */
+    { key:'sketch',  label:'Готовий граф. ескіз',       color:'violet' },
     { key:'client',  label:'У клієнта на погодженні',   color:'amber'  },
     { key:'fixes',   label:'Правки клієнта',            color:'red'    },
     /* Ескіз погоджено, позиція в черзі вишивального відділу, але ще ніхто
@@ -430,6 +439,34 @@
   }
   /* У якій із дизайнерських колонок стоїть замовлення. Порожньо — значить
      дизайнів ще немає зовсім, і рішення лишається за старим полем. */
+  function clientSaw(x){
+    var l = (x && x.vers) || [], last = l[l.length - 1];
+    if(!last) return !!(x && x.clientManual);
+    return !!(last.sentToClient || (x.clientManual && +x.clientManual === +last.n));
+  }
+  /* РУЧНЕ ПЕРЕНЕСЕННЯ НА ДОШЦІ АКАУНТА (08.10): ескіз надіслали не через
+     CRM — менеджер переносить «Готовий граф. ескіз» → «У клієнта на
+     погодженні» сам. Назад — лише якщо клієнту його не надсилали з CRM. */
+  var ACCT_MOVES = { sketch: ['client'], client: ['sketch'] };
+  function acctCanMove(from, to){ return (ACCT_MOVES[from] || []).indexOf(to) >= 0; }
+  function acctMove(job, o, to, by){
+    var from = chainAt(job, o);
+    if(!acctCanMove(from, to)) return null;
+    var g = [];
+    jobUnits(job).forEach(function(u){
+      dzList(u, 'graphic').forEach(function(x){ if(x.sentAt && x.status === 'review') g.push(x); }); });
+    if(!g.length) return null;
+    if(to === 'client'){
+      g.forEach(function(x){
+        var l = x.vers || [], last = l[l.length - 1];
+        x.clientManual = last ? last.n : 1; x.clientManualBy = String(by || ''); x.clientManualAt = nowIso();
+      });
+    } else {
+      if(g.some(function(x){ var l = x.vers || [], last = l[l.length - 1]; return last && last.sentToClient; })) return null;
+      g.forEach(function(x){ delete x.clientManual; delete x.clientManualBy; delete x.clientManualAt; });
+    }
+    return chainAt(job, o) === to ? to : null;
+  }
   function designStage(job){
     var графіка = [], вишивка = [];
     jobUnits(job).forEach(function(u){
@@ -450,7 +487,12 @@
        а в «У графічного дизайнера» переходить само, щойно хтось узяв. */
     var передані = графіка.filter(function(x){ return x.sentAt && !dzInQueue(x); });
     if(!передані.length) return 'new';
-    if(передані.some(function(x){ return x.status === 'review'; })) return 'client';
+    /* Здано на розгляд: «У клієнта» — лише коли ескіз йому НАДІСЛАЛИ
+       («Надіслати клієнту» ставить sentToClient) або менеджер сам
+       перетягнув картку (clientManual — номер версії, бо нова версія — нове
+       надсилання). Інакше — «Готовий граф. ескіз». */
+    var наРозгляді = передані.filter(function(x){ return x.status === 'review'; });
+    if(наРозгляді.length) return наРозгляді.every(clientSaw) ? 'client' : 'sketch';
     /* Ескіз погоджено. У виробництво — коли погоджено ВСІ вишивальні дизайни
        замовлення (Андрій: усі B2C-позиції йдуть через вишивку); поки
        вишивку ще не завели — це черга вишивки. */
@@ -463,7 +505,7 @@
   /* Хто зараз тримає замовлення. Питання «а чиє це» має мати відповідь у
      кожній колонці — інакше воно щодня ставиться вголос. */
   var CHAIN_WHO = {
-    new:'акаунт-менеджер', design:'графічний дизайнер', client:'клієнт',
+    new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт',
     fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
     prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—'
   };
@@ -2206,7 +2248,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     PROD: PROD, prodAt: prodAt, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
@@ -5557,7 +5599,7 @@
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
-  var CHAIN_STEP = { new:0, design:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
+  var CHAIN_STEP = { new:0, design:0, sketch:0, client:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
   var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
   function cmTxt(mm){
     if(!mm || !(+mm.w > 0)) return '';
@@ -8230,17 +8272,23 @@
     /* ПЕРЕТЯГУВАННЯ НА ДОШЦІ ЦЕХУ (Володимир, 06.10): оператор переносить
        картку мишкою. Дозволено лише ручні переходи (D.prodCanMove); колонка,
        куди не можна, не підсвічується й нічого не приймає. */
-    if(U.tab() === 'prod'){
+    if(U.tab() === 'prod' || U.tab() === 'acct'){
+      var цех = U.tab() === 'prod';
+      var можна = цех ? D.prodCanMove : D.acctCanMove;
       var тягну = null;
       root.querySelectorAll('.dz-board .dz-col [data-open]').forEach(function(c){
         var w = c.closest('.dz-card-w') || c;
+        var звідки = (c.closest('.dz-col') || {}).dataset;
+        /* На дошці акаунта тягнуться лише ескізи: «Готовий граф. ескіз» ↔
+           «У клієнта на погодженні». Решта колонок рухається сама. */
+        if(!цех && !(звідки && (звідки.col === 'sketch' || звідки.col === 'client'))) return;
         w.setAttribute('draggable', 'true');
         w.ondragstart = function(e){
           var col = w.closest('.dz-col');
           тягну = { id: c.dataset.open, from: col ? col.dataset.col : '' };
           try{ e.dataTransfer.setData('text/plain', тягну.id); e.dataTransfer.effectAllowed = 'move'; }catch(_){}
           root.querySelectorAll('.dz-board .dz-col').forEach(function(k){
-            if(D.prodCanMove(тягну.from, k.dataset.col)) k.classList.add('can-drop'); });
+            if(можна(тягну.from, k.dataset.col)) k.classList.add('can-drop'); });
         };
         w.ondragend = function(){
           тягну = null;
@@ -8249,7 +8297,7 @@
       });
       root.querySelectorAll('.dz-board .dz-col').forEach(function(k){
         k.ondragover = function(e){
-          if(тягну && D.prodCanMove(тягну.from, k.dataset.col)){ e.preventDefault(); k.classList.add('drop-on'); }
+          if(тягну && можна(тягну.from, k.dataset.col)){ e.preventDefault(); k.classList.add('drop-on'); }
         };
         k.ondragleave = function(){ k.classList.remove('drop-on'); };
         k.ondrop = function(e){
@@ -8259,6 +8307,10 @@
           тягну = null;
           if(!p) return;
           var me0 = (host().me && host().me()) || '';
+          if(!цех){
+            if(!D.acctMove(p.job, p.o, to, me0)) return say('Так перенести не можна — ескіз уже надіслано клієнту з CRM');
+            return save(p.job, p.o, to === 'client' ? 'У клієнта на погодженні' : 'Готовий граф. ескіз');
+          }
           if(!D.prodMove(p.job, p.o, to, me0)) return say('Так перенести не можна');
           if(to === 'run') prodToTelegram(p.job, p.o, true);
           save(p.job, p.o, to === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
