@@ -31,7 +31,7 @@ DB['loomiq/photos'] = { fin: { mapValue: { fields: { accounts: { arrayValue: { v
 
 const soap = (method, inner) => '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><' + method +
   'Response xmlns="http://tempuri.org/"><' + method + 'Result>' + inner + '</' + method + 'Result></' + method + 'Response></s:Body></s:Envelope>';
-let valid = 'RT-0', n = 0, expFmt = 'iso', staticKey = false;
+let valid = 'RT-0', n = 0, expFmt = 'iso', staticKey = false, crCert = false, validCert = '';
 const calls = [];
 /* Виписка — як справжня (05.10, з /novapay/probe): пул від «НоваПей»,
    переказ собі на особистий рахунок, звичайна витрата. */
@@ -58,13 +58,17 @@ globalThis.fetch = async (url, opt) => {
     const get = k => ((new RegExp('<tem:' + k + '>([^<]*)</tem:' + k + '>')).exec(body) || [])[1] || '';
     calls.push({ action, body });
     if(action === 'UserAuthenticationJWT'){
-      if(get('refresh_token') !== valid || get('login') !== 'andriy')
+      /* Як справжня NovaPay (08.10): сертифікат віддає з CRLF, \r — «&#xD;»,
+         і наступний вхід приймає лише з тим самим сертифікатом. */
+      const certIn = get('public_certificate').replace(/&#xD;/g, '\r').replace(/&amp;/g, '&');
+      if(get('refresh_token') !== valid || get('login') !== 'andriy' || (crCert && validCert && certIn !== validCert))
         return res(soap(action, '<request_ref>x</request_ref><error><code>logic_error</code><message>Refresh token expired</message></error>'));
       n++; if(!staticKey) valid = 'RT-' + n;
+      if(crCert) validCert = '-----BEGIN-----\r\nK' + n + '\r\n-----END-----\r\n';
       return res(soap(action, '<request_ref>x</request_ref><response_ref>y</response_ref><jwt>JWT-' + n + '</jwt><expiration>' +
         (expFmt === 'dmy' ? new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric',
           hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(Date.now() + 30 * 60000)).replace(',', '')
-          : new Date(Date.now() + 30 * 60000).toISOString()) + '</expiration><refresh_token>' + (staticKey ? 'BOGUS-' + n : valid) + '</refresh_token><public_certificate>CERT-' + n + '</public_certificate>'));
+          : new Date(Date.now() + 30 * 60000).toISOString()) + '</expiration><refresh_token>' + (staticKey ? 'BOGUS-' + n : valid) + '</refresh_token><public_certificate>' + (crCert ? validCert.replace(/\r/g, '&#xD;') : 'CERT-' + n) + '</public_certificate>'));
     }
     if(!/^JWT-/.test(get('jwt'))) return res(soap(action, '<error><message>jwt invalid</message></error>'));
     if(action === 'GetClientsList') return res(soap(action, '<result>ok</result><clients><Clients><id>8</id><name>ФОП Кривошей</name></Clients></clients>'));
@@ -201,6 +205,39 @@ console.log('═══ ДВА ПРОГОНИ РАЗОМ — ОДИН ВХІД �
 }
 
 console.log('');
+console.log('═══ СЕРТИФІКАТ З «&#xD;» ═══');
+/* 08.10, справжня причина двох поломок: NovaPay віддає сертифікат із CRLF,
+   де \r — «&#xD;». Доти він зберігався буквально (466 симв. замість 425), і
+   наступний вхід відкидали. Тепер — розкодовано, і ключ крутиться далі. */
+{
+  const w1 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 21))).default;
+  const w2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 22))).default;
+  const w3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 23))).default;
+  crCert = true; valid = 'CR-KEY'; validCert = '';
+  const envC = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'CR-KEY', NOVAPAY_CERT: 'CR-CERT' });
+  const c1 = await w1.fetch(new Request('https://w.test/novapay/poll?s=sek'), envC).then(r => r.json());
+  const збережено = DB['secrets/novapay'].public_certificate.stringValue;
+  DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
+  const c2 = await w2.fetch(new Request('https://w.test/novapay/poll?s=sek'), envC).then(r => r.json());
+  DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
+  calls.length = 0;
+  const c3 = await w3.fetch(new Request('https://w.test/novapay/poll?s=sek'), envC).then(r => r.json());
+  const входи = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
+  ok(!/&#x/i.test(збережено) && /\r\n/.test(збережено), 'сертифікат з відповіді збережено розкодованим (CRLF, без «&#xD;»)', JSON.stringify(збережено));
+  ok(c1.ok && c2.ok && c3.ok && входи === 1 && DB['secrets/novapay'].static.booleanValue === false,
+    'другий і третій вхід — збереженим ключем з першої спроби, ключ крутиться далі', JSON.stringify([c1.error, c2.error, c3.error, входи]));
+  /* Уже зіпсований у базі (як 05–07.10) — чиститься при читанні. */
+  const w4 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 24))).default;
+  DB['secrets/novapay'].public_certificate = sv(validCert.replace(/\r/g, '&#xD;'));
+  DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
+  calls.length = 0;
+  const c4 = await w4.fetch(new Request('https://w.test/novapay/poll?s=sek'), envC).then(r => r.json());
+  ok(c4.ok && calls.filter(c => c.action === 'UserAuthenticationJWT').length === 1,
+    'сертифікат, збережений з «&#xD;» (як зараз у базі), — розкодовується, вхід з першої спроби', JSON.stringify([c4.error, c4.кроки]).slice(0, 300));
+  crCert = false; validCert = '';
+}
+
+console.log('');
 console.log('═══ КЛЮЧ ІЗ КАБІНЕТУ БАГАТОРАЗОВИЙ ═══');
 /* 08.10: як справжня NovaPay — ключ із кабінету живе свій строк, а ключ із
    відповіді наступного разу не приймають. Воркер має сам перейти на ключ
@@ -218,7 +255,7 @@ console.log('═══ КЛЮЧ ІЗ КАБІНЕТУ БАГАТОРАЗОВИЙ
   calls.length = 0;
   const r3 = await fs3.fetch(new Request('https://w.test/novapay/poll?s=sek'), envS).then(r => r.json());
   const входи3 = calls.filter(c => c.action === 'UserAuthenticationJWT').length;
-  ok(r1.ok && r2.ok && /пробую ключ із секрету/.test(JSON.stringify(r2.кроки)) && DB['secrets/novapay'].static.booleanValue === true,
+  ok(r1.ok && r2.ok && /пробую: ключ із секрету/.test(JSON.stringify(r2.кроки)) && DB['secrets/novapay'].static.booleanValue === true,
     'збережений ключ не прийняли — воркер сам увійшов ключем із секрету й запамʼятав це', JSON.stringify([r1.error, r2.error, r2.кроки]).slice(0, 300));
   ok(r3.ok && входи3 === 1, 'далі — одразу ключем із секрету, без зайвої відмови', 'входів: ' + входи3 + ' · ' + r3.error);
   staticKey = false;
