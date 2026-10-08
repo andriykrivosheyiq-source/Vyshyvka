@@ -7483,28 +7483,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=38e01bb3b7"></script>
-<script src="loomiq-fingerprint.js?v=38e01bb3b7"></script>
-<script src="loomiq-pricing.js?v=38e01bb3b7"></script>
+<script src="loomiq-select.js?v=2c1ac89411"></script>
+<script src="loomiq-fingerprint.js?v=2c1ac89411"></script>
+<script src="loomiq-pricing.js?v=2c1ac89411"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=38e01bb3b7"></script>
+<script src="loomiq-money-core.js?v=2c1ac89411"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=38e01bb3b7"></script>
-<script src="loomiq-bg.js?v=38e01bb3b7"></script>
-<script src="loomiq-mock.js?v=38e01bb3b7"></script>
+<script src="loomiq-design.js?v=2c1ac89411"></script>
+<script src="loomiq-bg.js?v=2c1ac89411"></script>
+<script src="loomiq-mock.js?v=2c1ac89411"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=38e01bb3b7"></script>
-<script src="loomiq-threads.js?v=38e01bb3b7"></script>
+<script src="imagetracer.js?v=2c1ac89411"></script>
+<script src="loomiq-threads.js?v=2c1ac89411"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=38e01bb3b7"></script>
+<script src="loomiq-cards.js?v=2c1ac89411"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7549,7 +7549,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '38e01bb3b7';
+var LQ_VER = '2c1ac89411';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24994,7 +24994,8 @@ function crmMarkGone(o, list){
   const now = {};
   list.forEach(m => { now[crmMsgKey(m)] = 1; });
   const gone = Array.isArray(o.crmGone) ? o.crmGone : (o.crmGone = []);
-  const було = ((crmChat[o.id] || {}).msgs || []).filter(m => m && !m.gone);
+  /* Наші записи фото (local) — не з Sitniks: їх зникнення — не видалення. */
+  const було = ((crmChat[o.id] || {}).msgs || []).filter(m => m && !m.gone && !m.local);
   const булоKeys = {};
   було.forEach(m => { булоKeys[crmMsgKey(m)] = 1; });
   const прибуло = list.filter(m => !булоKeys[crmMsgKey(m)]).length;
@@ -25103,7 +25104,7 @@ function crmNormMsgs(data, o){
     const by = own ? String(own.by || '')
       : ((mine && who.name && !peer.some(pk => byKey === pk || byKey.indexOf(pk) >= 0))
           ? who.name : '');
-    return { text: String(text), files: files, mine: mine, by: by,
+    return { text: String(text), files: files, mine: mine, by: by, ownT: own ? String(own.t || '') : '',
              /* Коли Sitniks усе ж сказав словом, що повідомлення видалене, —
                 віримо йому одразу, не чекаючи, поки воно зникне зі стрічки. */
              gone: !!(m.deleted || m.isDeleted || m.is_deleted || m.deletedAt),
@@ -25180,7 +25181,97 @@ function crmNormMsgs(data, o){
     if(!tail) o.crmTheirs = false; else o.crmSeen = '';
   }
   if((+o.crmUnread || 0) !== tail){ o.crmUnread = tail; o.crmTheirs = tail > 0; }
-  return list;
+  return crmPicsMerge(o, list);
+}
+/* ══════════ НАШІ ФОТО — У СТРІЧЦІ ОДРАЗУ (08.10) ══════════
+   Андрій: «фото надсилаються, а в діалозі не показуються, або через хвилин
+   5». Текст ставав у стрічку одразу (бульбашка «надсилаю…»), а фото — ні:
+   стрічку ми беремо з Sitniks, а власні вкладення Sitniks віддає із
+   запізненням або не віддає зовсім.
+
+   Тепер фото — так само, як текст: щойно натиснули «надіслати», воно вже
+   стоїть праворуч із позначкою «надсилаю…»; прийнято — позначка зникає.
+   Запис живе, доки Sitniks не поверне те саме повідомлення (впізнаємо за
+   номером із відповіді, або — коли номера немає — за часом і кількістю
+   фото); тоді лишається його копія, без дубля. Не поверне ніколи — наша
+   стоїть далі: надіслані (sent) зберігаються в картці (o.crmPicsOut) і
+   переживають перезавантаження. Ті, що ще летять, — лише в памʼяті: їхні
+   адреси тимчасові (blob:). */
+const crmPicsMem = {};
+const CRM_PICS_KEEP = 40, CRM_PICS_WIN = 10 * 60000;
+function crmPicsAll(o){
+  if(!o) return [];
+  const saved = Array.isArray(o.crmPicsOut) ? o.crmPicsOut : [];
+  const mem = crmPicsMem[o.id] || [];
+  return saved.concat(mem.filter(e => !saved.some(x => x.k === e.k)));
+}
+function crmPicsAdd(o, urls, state){
+  const e = { k: 'lp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+              at: new Date().toISOString().replace('T', ' ').slice(0, 16), urls: (urls || []).slice(0, 10),
+              by: myName(), state: state || 'pending', t: '',
+              /* Що вже стояло в стрічці з вкладеннями ДО натиску — це точно
+                 не наше нове фото, навіть якщо час і кількість збігаються. */
+              pre: (((crmChat[o.id] || {}).msgs) || []).filter(m => m && !m.local && (m.files || []).length)
+                     .map(crmMsgKey).slice(-20) };
+  (crmPicsMem[o.id] || (crmPicsMem[o.id] = [])).push(e);
+  if(e.state === 'sent') crmPicsKeep(o, e);
+  return e;
+}
+/* Надіслане — у картку (з адресами хмари), щоб пережило перезавантаження. */
+function crmPicsKeep(o, e){
+  const l = Array.isArray(o.crmPicsOut) ? o.crmPicsOut : (o.crmPicsOut = []);
+  const i = l.findIndex(x => x.k === e.k);
+  const rec = { k: e.k, at: e.at, urls: e.urls, by: e.by, state: 'sent', t: e.t || '', pre: (e.pre || []).slice(-20) };
+  if(i >= 0) l[i] = rec; else l.push(rec);
+  if(l.length > CRM_PICS_KEEP) o.crmPicsOut = l.slice(-CRM_PICS_KEEP);
+}
+function crmPicsDrop(o, k){
+  const m = crmPicsMem[o.id]; if(m){ const i = m.findIndex(x => x.k === k); if(i >= 0) m.splice(i, 1); }
+  if(Array.isArray(o.crmPicsOut)) o.crmPicsOut = o.crmPicsOut.filter(x => x.k !== k);
+}
+/* Злити наші записи зі стрічкою Sitniks: впізнане — прибрати (його вже
+   показує Sitniks), решту — поставити на своє місце за часом. */
+function crmPicsMerge(o, list){
+  if(!o || !Array.isArray(list)) return list;
+  const all = crmPicsAll(o);
+  if(!all.length) return list;
+  const used = {};
+  const лишити = all.filter(e => {
+    if(e.state !== 'sent') return true;          // ще летить — показуємо як є
+    const te = crmTime(e.at);
+    /* За номером — напевно. Без номера — за часом (±1 хв … +10 хв) і
+       кількістю фото: Sitniks може повернути наше без жодної ознаки, що
+       воно наше, — тоді воно й стане нашим (праворуч, з підписом). */
+    const pre = {}; (e.pre || []).forEach(k => { pre[k] = 1; });
+    const hit = list.findIndex((m, i) => !used[i] && m && !m.local && !m.gone && (m.files || []).length &&
+      ((e.t && m.ownT === e.t) ||
+       !pre[crmMsgKey(m)] && !(m.ownT && m.ownT !== e.t && m.ownT.charAt(0) === '#') &&
+       (!e.t || !list.some(x => x && x.ownT === e.t)) && te && crmTime(m.at) &&
+        crmTime(m.at) >= te - 60000 && crmTime(m.at) - te <= CRM_PICS_WIN &&
+        (m.files || []).length === (e.urls || []).length && (m.mine || !m.text)));
+    if(hit < 0) return true;
+    used[hit] = 1;
+    if(!list[hit].mine){ list[hit].mine = true; if(!list[hit].by) list[hit].by = e.by || ''; }
+    crmPicsDrop(o, e.k);
+    return false;
+  });
+  const out = list.filter(m => !(m && m.local));
+  лишити.forEach(e => {
+    const msg = { text: '', files: (e.urls || []).map(u => ({ url: u, kind: 'img' })), mine: true, by: e.by || '',
+                  at: e.state === 'pending' ? '' : e.at, pending: e.state === 'pending', local: e.k };
+    const te = crmTime(e.at);
+    const at = te ? out.findIndex(m => m && !m.local && crmTime(m.at) > te) : -1;
+    if(at >= 0) out.splice(at, 0, msg); else out.push(msg);
+  });
+  ['rawCount', 'rawKeys'].forEach(k => { if(list[k] != null) out[k] = list[k]; });
+  return out;
+}
+/* Перемалювати стрічку з нашими записами — без запиту до Sitniks. */
+function crmPicsShow(o){
+  const st = crmChat[o.id] || (crmChat[o.id] = { chatId: crmChatIdOf(o) });
+  st.msgs = crmPicsMerge(o, (st.msgs || []).filter(m => !(m && m.local)));
+  renderOrderDrawer();
+  if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin(true);
 }
 function crmNoteIn(o, n){
   if(!o || !(n >= 0) || (+o.crmIn || 0) === n) return;
@@ -25447,7 +25538,7 @@ function crmChatIdOf(o){
   const st = crmChat[o && o.id];
   return String((st && st.chatId) || (o && o.crmChatId) || '');
 }
-async function crmSendPic(o, url, blob){
+async function crmSendPic(o, url, blob, local){
   const chatId = crmChatIdOf(o);
   if(!chatId) throw new Error('розмову не привʼязано');
   const st = crmChat[o.id] || { chatId };
@@ -25489,7 +25580,14 @@ async function crmSendPic(o, url, blob){
     /* Чим упізнати цю картинку в стрічці: відповідь тримає номер
        створеного повідомлення. Адреси Cloudinary тут марні — Sitniks їх не
        переказує (див. crmOutOwn). */
-    crmOutSent(o, res);
+    const mid = crmOutSent(o, res);
+    /* Фото — у стрічку одразу, не чекаючи, поки Sitniks його поверне. */
+    const rec = (crmOutList(o) || []).slice(-1)[0];
+    const e = local || crmPicsAdd(o, urls, 'pending');
+    e.state = 'sent'; e.urls = urls.slice(0, 10); e.t = (rec && rec.t) || (mid ? '#' + mid : '');
+    e.at = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    crmPicsKeep(o, e);
+    crmPicsShow(o);
     return w.id;
   }
   console.warn('Sitniks: жоден спосіб надіслати картинку не спрацював\n' + crmPicLog.join('\n'));
@@ -29376,7 +29474,13 @@ async function chatSendPics(o, pics, text){
      коли справді надіслано. */
   chatWin.picsBusy = true;
   renderChatWin(true);
-  const back = ()=>{ chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin(); };
+  /* Фото — у стрічку одразу, як і текст: «надсилаю…» поки летить (08.10). */
+  const мій = isTg ? null : crmPicsAdd(o, pics.map(p => p.url).filter(Boolean), 'pending');
+  if(мій) crmPicsShow(o);
+  const back = ()=>{
+    if(мій){ crmPicsDrop(o, мій.k); crmPicsShow(o); }
+    chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin();
+  };
   let urls = [], blobs = [];
   try{
     for(const p of pics){
@@ -29398,7 +29502,7 @@ async function chatSendPics(o, pics, text){
     }
   }else{
     try{
-      const way = await crmSendPic(o, urls, blobs);
+      const way = await crmSendPic(o, urls, blobs, мій);
       /* Впізнати власне вкладення в стрічці за адресою не вийде: Sitniks
          забирає картинку до себе й віддає вже своєю (див. crmOutOwn).
          Адреси кладемо про запас, а справжня прикмета — номер
