@@ -231,3 +231,8 @@ GitHub Actions → «pages build and deployment»; допомагає насту
 
 ### 08.10 — фото в переписці Sitniks — одразу
 - `crmPicsAdd/Keep/Drop/Merge/Show` (loomiqadmin.html): наше фото в стрічці миттєво; `o.crmPicsOut` — надіслані (до 40); злиття з Sitniks за `ownT` (номер із відповіді) або часом+кількістю, крім `pre`. `crmSendPic(o, url, blob, local)`. Тест `tests/crm-pics.mjs`. Див. docs/BUGS.md.
+
+### 08.10 — «Готовий граф. ескіз», цех за одягом, ескіз у картці цілком
+- CHAIN: нова колонка `sketch` «Готовий граф. ескіз» (після «У графічного дизайнера»). `designStage`: здана версія → `sketch`; `client` — лише коли остання версія `sentToClient` (кнопка «Надіслати клієнту») або `clientManual === n` (менеджер перетягнув). `D.acctMove/acctCanMove` (sketch ↔ client; назад — лише якщо не надсилали з CRM); перетягування на дошці акаунта — лише ці дві колонки.
+- `prodAt`: supply `got` → `ready` (Готово до роботи) сам; `sent/part/way` → `wait`; `todo`/нема → `new`.
+- loomiq-mock.js `artBox`: ескіз у картці обрізається лише за прозорістю; `CARD_V = 5`.

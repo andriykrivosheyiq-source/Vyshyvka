@@ -444,6 +444,36 @@ ok(/колір/i.test(проПримітку.зНалаштувань || ''),
   'примітка не приходить із налаштувань: ' + проПримітку.зНалаштувань);
 
 console.log('');
+/* 08.10, Андрій: «баг підрізає ескіз» — від «èva» лишалось «va».
+   Окрема частина малюнка, притулена до краю кадру (помаранчевий лист «è»),
+   «межами виробу» вважалась пилом біля рамки й відрізалась. У рамці
+   ескізу — малюнок цілком. */
+const ескіз = await p.evaluate(async () => {
+  const c = document.createElement('canvas'); c.width = 300; c.height = 120;
+  const x = c.getContext('2d');
+  x.fillStyle = '#EEEEEE'; x.fillRect(0, 0, 300, 120);
+  x.fillStyle = '#F29B1D'; x.fillRect(0, 30, 50, 60);           // «лист» окремо, притулений до краю кадру
+  x.fillStyle = '#7AB929'; x.fillRect(80, 20, 200, 90);          // «va»
+  const art = c.toDataURL('image/png');
+  const m = document.createElement('canvas'); m.width = 200; m.height = 200;
+  m.getContext('2d').fillStyle = '#222'; m.getContext('2d').fillRect(0, 0, 200, 200);
+  const png = await window.LQMock.card({ works:[art], mocks:[m.toDataURL('image/png')], title:'Макет на узгодження',
+    desc:{ model:'Футболка', sub:'', row:[], apps:[] } });
+  const im = new Image(); await new Promise(r => { im.onload = r; im.src = png; });
+  const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+  const q = cv.getContext('2d'); q.drawImage(im, 0, 0);
+  /* Ліва половина ряду рамок — рамка ескізу. */
+  const d = q.getImageData(64, 112, Math.round((im.width - 128) / 2) - 8, 300).data;
+  let ор = 0, зел = 0;
+  for(let i = 0; i < d.length; i += 4){
+    if(d[i] > 220 && d[i+1] > 130 && d[i+1] < 175 && d[i+2] < 70) ор++;
+    if(d[i] < 150 && d[i+1] > 160 && d[i+2] < 80) зел++;
+  }
+  return { ор, зел };
+});
+console.log('  ескіз у рамці: ' + JSON.stringify(ескіз));
+ok(ескіз.ор > 2000 && ескіз.зел > 8000, 'ескіз, частина якого притулена до краю кадру, — у рамці цілком (лист на місці)', 'підрізано: ' + JSON.stringify(ескіз));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
 srv.close();
