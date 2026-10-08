@@ -115,6 +115,23 @@ const ed = () => p.evaluate(() => {
 const state = () => p.evaluate(() => (orders[0].items || [])
   .map(i => i.name + ':' + (i.kind || 'main') + (i.vgroup ? '/' + i.vgroup : '') + ':' + i.qty));
 
+console.log('═══ СКАЧУВАННЯ З РЕДАКТОРА КП ═══');
+/* 08.10: «не можу скачати з адмінки КП… там є кнопки скачати». Редактор —
+   у кадрі з sandbox, і без allow-downloads Chromium мовчки глушить кожне
+   завантаження зсередини (макет «з логотипом» / «пустий виріб»). */
+{
+  const dl = p.waitForEvent('download', { timeout: 4000 }).catch(() => null);
+  await p.evaluate(() => {
+    const w = document.querySelector('#offerEd iframe').contentWindow, d = w.document;
+    const a = d.createElement('a');
+    a.href = w.URL.createObjectURL(new w.Blob(['x'], { type:'image/png' })); a.download = 'mockup-test.png';
+    d.body.appendChild(a); a.click(); a.remove();
+  });
+  const got = await dl;
+  ok(!!got && got.suggestedFilename() === 'mockup-test.png', 'зсередини редактора КП файл справді скачується', 'завантаження заблоковано');
+}
+
+console.log('');
 console.log('═══ ЯК БУЛО ═══');
 const a0 = await ed();
 console.log('  групи: ' + JSON.stringify(a0.groups) + ' · тиражі: ' + JSON.stringify(a0.qty));
