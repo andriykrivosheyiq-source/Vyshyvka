@@ -762,6 +762,9 @@ const дост = await p.evaluate(async () => {
   out.згорнута = (document.querySelector('.dz-col[data-col="deliv"] .dz-deliv-open') || {}).textContent || '';
   document.querySelector('.dz-col[data-col="reg"] [data-do="reg-make"]').click();
   await wait(600);
+  U.setTab('acct'); U.open(o.orderId); U.render(document.getElementById('dzRoot'));
+  out.етапКурʼєр = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b')].map(b => b.className + ':' + b.textContent.replace('✓ ', '')).join('|');
+  U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
   out.курʼєр = D.prodAt(j, o); out.реєстр = реєстр.length ? реєстр[0].docs.map(d => d.ttn).join() : '';
   document.querySelector('[data-do="reg-list"]').click(); await wait(100);
   out.список = (document.querySelector('#dzRegPop') || {}).textContent || '';
@@ -780,6 +783,7 @@ const дост = await p.evaluate(async () => {
   o.npSt = { code:'103', status:'Відмова одержувача', at: new Date().toISOString() };
   U.open(o.orderId); U.render(document.getElementById('dzRoot'));
   out.відмова = D.prodAt(j, o);
+  out.етапВідмова = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b.bad')].map(b => b.textContent).join('|');
   out.кнопки = [...document.querySelectorAll('#dzPanel .dz-prod-acts [data-do]')].map(b => b.dataset.do).join();
   window.prompt = (q) => /грн/.test(q) ? '300' : 'знижка за затримку';
   document.querySelector('#dzPanel [data-do="loss-comp"]').click(); await wait(400);
@@ -809,6 +813,9 @@ ok(дост.можна === 'ship' && дост.вРеєстр === 'reg' && дос
 ok(дост.курʼєр === 'courier' && дост.реєстр === '20450000000001' && /105-0001/.test(дост.список) && дост.pdf === 'REF-1',
   'реєстр створено → «Передано курʼєру»; у списку реєстрів — номер і PDF', JSON.stringify(дост));
 ok(дост.схованіВидно && дост.згорнути && дост.сорт && дост.сортЗнято, '«Доставка ▾» показує сховане; сортування вмикається стрілочкою й знімається хрестиком', JSON.stringify(дост));
+ok(/ok:Можна відправляти\|now:Передано курʼєру\|next:В дорозі\|next:Доставлено$/.test(дост.етапКурʼєр) && /ok:Погодження/.test(дост.етапКурʼєр),
+  'в акаунта видно кожен етап: … ✓ Погодження · ✓ Можна відправляти · Передано курʼєру · В дорозі · Доставлено', дост.етапКурʼєр);
+ok(дост.етапВідмова === 'Відмова', 'відмова — червоним останнім етапом', дост.етапВідмова);
 ok(дост.відмова === 'refused' && /prod-redo/.test(дост.кнопки) && /loss-comp/.test(дост.кнопки) && /loss-full/.test(дост.кнопки),
   'на «Відмові» — Переробка, Компенсація, Повна відмова', дост.кнопки);
 ok(/comp:300/.test(дост.збитки) && /refuse:\d+/.test(дост.збитки), 'компенсація й повна відмова — у збитки', дост.збитки);
