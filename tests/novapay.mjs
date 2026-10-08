@@ -25,6 +25,9 @@ const env = {
 };
 const sv = v => ({ stringValue: v });
 const DBT = {}; let TICK = 0;
+/* Свіжий модуль щоразу: Date.now() + N колись збігався з попереднім імпортом,
+   і тест діставав воркер зі старим jwt у памʼяті — падав через раз. */
+let IMP = 0; const uniq = () => Date.now() + '-' + (++IMP);
 const DB = {};
 DB['loomiq/photos'] = { fin: { mapValue: { fields: { accounts: { arrayValue: { values: [
   { mapValue: { fields: { id: sv('np1'), bank: sv('np'), iban: sv('UA29 358710 0000673200 000000190'), name: sv('NovaPay') } } } ] } } } } } };
@@ -145,7 +148,7 @@ ok(!calls.some(c => c.action === 'UserAuthenticationJWT'), 'другий зап�
 
 console.log('');
 console.log('═══ ВОРКЕР ПЕРЕЗАПУСТИВСЯ, JWT ПРОСТРОЧЕНО ═══');
-const fresh = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 1))).default;
+const fresh = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
 DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
 calls.length = 0;
 const p3 = await fresh.fetch(new Request('https://w.test/novapay/poll?s=sek'), env).then(r => r.json());
@@ -155,7 +158,7 @@ ok(p3.ok && auth3 && /RT-1/.test(auth3.body) && /CERT-1/.test(auth3.body) && DB[
 
 console.log('');
 console.log('═══ НОВИЙ КЛЮЧ ІЗ КАБІНЕТУ ═══');
-const fresh2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 2))).default;
+const fresh2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
 valid = 'NEW-KEY';
 const env2 = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'NEW-KEY', NOVAPAY_CERT: 'NEW-CERT' });
 DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
@@ -164,7 +167,7 @@ ok(p4.ok, 'поклали в Cloudflare новий ключ — воркер п�
 
 console.log('');
 console.log('═══ ПРОТЕРМІНОВАНИЙ КЛЮЧ ═══');
-const fresh3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 3))).default;
+const fresh3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
 const env3 = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'OLD-DEAD' });
 const p5 = await fresh3.fetch(new Request('https://w.test/novapay/poll?s=sek'), env3).then(r => r.json());
 ok(!p5.ok && /Refresh token expired/.test(p5.error) && /згенеруйте новий/.test(p5.error) && /логін «andriy» \(6 симв.\), токен 8 симв./.test(p5.error) && !/OLD-DEAD/.test(p5.error),
@@ -176,7 +179,7 @@ const U = _pure.novapayUntil, T0 = Date.parse('2026-10-05T18:00:00Z');
 ok(U('05.10.2026 21:59', T0) === Date.parse('2026-10-05T18:59:00Z'), 'строк dd.mm.yyyy hh:mm читається за Києвом', 'строк: ' + new Date(U('05.10.2026 21:59', T0)).toISOString());
 ok(U('01.01.2027', T0) === T0 + 20 * 60000 && U('03.10.2026 10:00', T0) === T0 + 20 * 60000 && U('', T0) === T0 + 20 * 60000,
   'лише дата, минулий чи порожній строк — 20 хв, а не «вже протух»', 'запасний строк');
-const fresh4 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 4))).default;
+const fresh4 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
 expFmt = 'dmy'; valid = 'NEW-KEY-2';
 const env4 = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'NEW-KEY-2', NOVAPAY_CERT: 'NEW-CERT' });
 calls.length = 0;
@@ -194,8 +197,8 @@ console.log('═══ ДВА ПРОГОНИ РАЗОМ — ОДИН ВХІД �
    Доти обидва входили, і в базі міг лишитись не той ключ (07.10:
    «Refresh token does not apply to login»). Тепер другий чекає на першого. */
 {
-  const fa = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 5))).default;
-  const fb = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 6))).default;
+  const fa = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
+  const fb = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
   valid = 'PAR-KEY';
   const envP = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'PAR-KEY', NOVAPAY_CERT: 'NEW-CERT' });
   calls.length = 0;
@@ -210,9 +213,9 @@ console.log('═══ СЕРТИФІКАТ З «&#xD;» ═══');
    де \r — «&#xD;». Доти він зберігався буквально (466 симв. замість 425), і
    наступний вхід відкидали. Тепер — розкодовано, і ключ крутиться далі. */
 {
-  const w1 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 21))).default;
-  const w2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 22))).default;
-  const w3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 23))).default;
+  const w1 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
+  const w2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
+  const w3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
   crCert = true; valid = 'CR-KEY'; validCert = '';
   const envC = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'CR-KEY', NOVAPAY_CERT: 'CR-CERT' });
   const c1 = await w1.fetch(new Request('https://w.test/novapay/poll?s=sek'), envC).then(r => r.json());
@@ -227,7 +230,7 @@ console.log('═══ СЕРТИФІКАТ З «&#xD;» ═══');
   ok(c1.ok && c2.ok && c3.ok && входи === 1 && DB['secrets/novapay'].static.booleanValue === false,
     'другий і третій вхід — збереженим ключем з першої спроби, ключ крутиться далі', JSON.stringify([c1.error, c2.error, c3.error, входи]));
   /* Уже зіпсований у базі (як 05–07.10) — чиститься при читанні. */
-  const w4 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 24))).default;
+  const w4 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
   DB['secrets/novapay'].public_certificate = sv(validCert.replace(/\r/g, '&#xD;'));
   DB['secrets/novapay'].until = sv(new Date(Date.now() - 1000).toISOString());
   calls.length = 0;
@@ -243,9 +246,9 @@ console.log('═══ КЛЮЧ ІЗ КАБІНЕТУ БАГАТОРАЗОВИЙ
    відповіді наступного разу не приймають. Воркер має сам перейти на ключ
    із секрету й далі ходити тільки ним. */
 {
-  const fs1 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 11))).default;
-  const fs2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 12))).default;
-  const fs3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + (Date.now() + 13))).default;
+  const fs1 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
+  const fs2 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
+  const fs3 = (await import(path.join(ROOT, 'worker/money.js') + '?t=' + uniq())).default;
   staticKey = true; valid = 'CAB-KEY';
   const envS = Object.assign({}, env, { NOVAPAY_REFRESH_TOKEN: 'CAB-KEY', NOVAPAY_CERT: 'CAB-CERT' });
   const r1 = await fs1.fetch(new Request('https://w.test/novapay/poll?s=sek'), envS).then(r => r.json());
