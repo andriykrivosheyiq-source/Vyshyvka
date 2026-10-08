@@ -139,6 +139,14 @@ ok(await стан() === 'sketch', 'версії здані — «Готовий 
 const назад = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'new', 'test@loomiq'));
 const вручну = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'client', 'test@loomiq'));
 ok(!назад && вручну === 'client' && await стан() === 'client', 'менеджер перетягнув — «У клієнта на погодженні»; в інші колонки руками не можна', 'стан: ' + await стан());
+/* 08.10: «Ескіз узгоджено» — клієнт погодив ескіз (ще не «Погоджено» з даними). */
+const узгоджено = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'sketchok', 'test@loomiq'));
+ok(узгоджено === 'sketchok' && await стан() === 'sketchok' && !(await p.evaluate(() => __j.approvedVersion)),
+  'з «У клієнта» — у «Ескіз узгоджено»; це лише позначка, «Погоджено» ще не натиснуто', 'стан: ' + await стан());
+const історія = await p.evaluate(() => { const d = document.createElement('div'); d.innerHTML = window.LQDesign.ui.histHtml(__j, __o); return d.textContent; });
+ok(/замовлення створено/.test(історія) && /Ескіз узгоджено/.test(історія) && /здача версії · поз\. 1 · графіка · Версія 1/.test(історія),
+  'історія детальна: створення, ручні переходи, номер версії', історія.slice(0, 300));
+await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'client', 'test@loomiq'));
 const повернув = await p.evaluate(() => window.LQDesign.acctMove(__j, __o, 'sketch', 'test@loomiq'));
 ok(повернув === 'sketch' && await стан() === 'sketch', 'передумав — назад у «Готовий граф. ескіз»', 'стан: ' + await стан());
 await p.evaluate(() => { __j.units.forEach(u => { const d = window.LQDesign.dzList(u, 'graphic')[0]; d.vers[d.vers.length - 1].sentToClient = new Date().toISOString(); }); });

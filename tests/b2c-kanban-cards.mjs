@@ -222,8 +222,8 @@ console.log('   ' + JSON.stringify(geo).slice(0, 300));
 ok(new Set(geo.cols).size === 1 && geo.cols[0] === 300 && Math.max(...geo.cards) - Math.min(...geo.cards) <= 1,
   'колонки однакові й фіксовані (300 px), картки не розтягуються', 'ширини: ' + JSON.stringify(geo).slice(0, 200));
 const fr = geo.framed.filter(x => parseFloat(x) >= 1);
-ok(fr.length >= 2 && fr.some(x => /На станках/.test(x)) && fr.some(x => /Погодження/.test(x)),
-  'поточний етап — у рамці («На станках», «Погодження · фото з цеху»)', 'рамки: ' + JSON.stringify(geo.framed));
+/* 08.10, Андрій: «статуси залишаєм в середині карточки, а не назовні». */
+ok(geo.framed.length === 0, 'ланцюжка етапів на плитках немає — він у відкритій картці', 'рамки: ' + JSON.stringify(geo.framed));
 console.log('   ' + JSON.stringify(a2));
 ok(A.every(c => c.cards.every(k => k.v2)), 'усі картки менеджера — нового вигляду', 'є старі картки');
 ok(a1 && a1.img && a2 && a2.img && a4.img, 'на картці ескіз (або картинка з ТЗ, поки ескізу немає)', 'картинки немає');
@@ -236,23 +236,24 @@ ok(/12 600/.test(a2.sum) && a2.paid === 'не оплачено 6 300 ₴' && a4.
 /* 05.10: замість рисочок — етапи галочками по порядку. */
 console.log('   ланцюжок 2000002: ' + a2.chain.join(' | '));
 console.log('   ланцюжок 2000004: ' + a4.chain.join(' | '));
-ok(a2.steps === 0 && a2.chain.length === 10 && a2.chain[0] === 'now:Графіка · Оля' && a2.chain.slice(1).every(x => /^next:/.test(x)),
-  'графіка в роботі: «Графіка · Оля», далі сірим — ще девʼять етапів до «Доставлено»', 'ланцюжок: ' + a2.chain.join(' | '));
-ok(a4.chain.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | ok:✓ Одяг замовлено | ok:✓ Одяг прибув | now:На станках | next:Погодження | next:Можна відправляти | next:Передано курʼєру | next:В дорозі | next:Доставлено',
-  'кожен статус (08.10): Графіка, Вишивка, Одяг замовлено, Одяг прибув, На станках, Погодження, Можна відправляти, Передано курʼєру, В дорозі, Доставлено', 'ланцюжок: ' + a4.chain.join(' | '));
+const панель = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000104'); U.render(document.getElementById('dzRoot'));
+  const r = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b')].map(b => b.className + ':' + b.textContent.trim());
+  U.open(''); U.render(document.getElementById('dzRoot')); return r; });
+ok(a2.chain.length === 0 && a4.chain.length === 0 && панель.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | ok:✓ Одяг замовлено | ok:✓ Одяг прибув | now:На станках | next:Погодження | next:Можна відправляти | next:Передано курʼєру | next:В дорозі | next:Доставлено',
+  'кожен статус — у відкритій картці (на плитці ланцюжка немає)', 'ланцюжок у картці: ' + панель.join(' | '));
 ok(a2.who === 0 && a4.who === 0, 'кружечка з людиною немає — у кого етап, написано словами', 'кружечок лишився');
 /* 06.10: один стікер строку — найближчий; під номером, під ним гроші. */
-ok(a2.due.split('|').length === 1 && /^(лишилось|до відправки|прострочено) /.test(a2.due) && a2.dueUnder,
-  'один стікер строку під номером («' + a2.due + '»), під ним — гроші', 'стікер: ' + a2.due + ' / під номером: ' + a2.dueUnder);
-ok(a2.oneRow === true && a2.arrows === 2 && a4.oneRow === true, 'етапи — одним рядком зі стрілками ‹ › (гортати минулі й наступні)', 'рядок етапів: ' + JSON.stringify([a2.oneRow, a2.arrows, a4.oneRow]));
-ok(a2.ig && a2.igBox && a2.igBox.h <= 36 && a2.igBox.wFrac < 0.5 && a2.igBox.bottom && a2.igBox.belowChain && a2.igBox.left, 'Instagram — кнопкою внизу картки, як у B2B, а не смугою на весь низ', 'кнопка: ' + JSON.stringify(a2.igBox));
+/* 08.10: строк на плитці акаунта — лише «Термінове» / таймер / «Прострочено». */
+ok(!a2.due || /^(Термінове|Прострочено|лишилось )/.test(a2.due), 'стікер строку — таймер акаунта або нічого («' + a2.due + '»)', 'стікер: ' + a2.due);
+ok(a2.arrows === 0, 'стрілок ‹ › на плитці немає — етапи всередині картки', 'стрілки: ' + a2.arrows);
+ok(a2.ig && a2.igBox && a2.igBox.h <= 36 && a2.igBox.wFrac < 0.5 && a2.igBox.bottom && a2.igBox.left, 'Instagram — кнопкою внизу картки, як у B2B, а не смугою на весь низ', 'кнопка: ' + JSON.stringify(a2.igBox));
 if(process.env.LQ_SHOT){ await board('acct'); await p.screenshot({ path: process.env.LQ_SHOT, fullPage: false }); }
 const igClick = await p.evaluate(() => { window.__chatAsked = 0;
   const b = document.querySelector('.dz-card-ig.is-in'); const before = document.querySelectorAll('.dz-card.on').length;
   b.click(); return { opened: document.querySelectorAll('.dz-card.on').length > before }; });
 ok(!igClick.opened, 'натиск на Instagram не відкриває саму картку', 'картка відкрилась від Instagram');
 ok(!a2.state && !a4.state, 'рядка «у роботі · …» немає — хто робить, видно в рядку етапів', 'стан лишився: ' + a2.state);
-ok(a3.fix && a3.chip.indexOf('правки клієнта') >= 0, 'правки клієнта — червоним', 'правки не видно');
+ok(a3.col === 'fixes' && a3.chip.indexOf('правки клієнта') < 0, '«Правки клієнта» — колонкою, без таблетки на плитці (08.10)', JSON.stringify({ col: a3.col, chip: a3.chip }));
 ok(a5 && a5.col === 'appr', 'фото з цеху не зникає: картка в «Чекає погодження» в акаунта', 'контроль якості: ' + JSON.stringify(a5 && { col: a5.col }));
 /* 06.10: картинка — V1 першого макета (сам файл), однакова на всіх дошках до кінця. */
 const V = await p.evaluate(() => [window.__V1, window.__V3]);
@@ -263,7 +264,7 @@ console.log('═══ ДИЗАЙНЕР ═══');
 const G = await board('graphic');
 const g2 = find(G, '2000002'), g3 = find(G, '2000003');
 console.log('   ' + JSON.stringify(g2));
-ok(g2 && g2.img && !g2.what && g2.chain.length === 10, 'ескіз і етапи галочками; назви товару немає', 'дизайнер: ' + JSON.stringify(g2));
+ok(g2 && g2.img && !g2.what && g2.chain.length === 0, 'ескіз; назви товару й ланцюжка етапів на плитці немає', 'дизайнер: ' + JSON.stringify(g2));
 ok(/груди 10 × 6 см, спина 25 × 30 см/.test(g2.state) && /^v1/.test(g2.state), 'нанесення з розмірами в см і версія: ' + g2.state, 'нанесення: ' + g2.state);
 ok(!g2.sum && !g2.ig && !g2.paid, 'без суми й без клієнта', 'дизайнер бачить гроші чи клієнта');
 ok(g3 && g3.fix && g3.chip.indexOf('правка') >= 0, 'правка дизайнеру — червоним', 'правки не видно');
@@ -272,7 +273,7 @@ console.log('');
 console.log('═══ ВИШИВАЛЬНИК ═══');
 const T = await board('stitch');
 const t4 = find(T, '2000004');
-ok(t4 && t4.img && /груди 10 × 6 см/.test(t4.state) && t4.chain.length === 10, 'основний мокап, нанесення з розміром, етапи галочками', 'вишивальник: ' + JSON.stringify(t4));
+ok(t4 && t4.img && /груди 10 × 6 см/.test(t4.state) && t4.chain.length === 0, 'основний мокап, нанесення з розміром; етапи — всередині картки', 'вишивальник: ' + JSON.stringify(t4));
 
 console.log('');
 console.log('═══ ЦЕХ ═══');
@@ -280,8 +281,7 @@ const P = await board('prod');
 const p4 = find(P, '2000004');
 console.log('   ' + JSON.stringify(p4));
 ok(p4 && p4.img && !p4.what, 'основний мокап; назви товару на плитці немає', 'цех: ' + JSON.stringify(p4));
-ok(p4.chain.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | ok:✓ Одяг замовлено | ok:✓ Одяг прибув | now:На станках | next:Погодження | next:Можна відправляти | next:Передано курʼєру | next:В дорозі | next:Доставлено' && !p4.go,
-  'етапи галочками; одягу немає — без зеленого краю', 'цех: ' + p4.chain.join(' | '));
+ok(p4.chain.length === 0 && !p4.go, 'етапи — всередині картки; одягу немає — без зеленого краю', 'цех: ' + p4.chain.join(' | '));
 ok(/^одяг:/.test(p4.state), 'під виробами — лише де одяг (вишивку видно значком)', 'стан цеху: ' + p4.state);
 
 console.log('');
