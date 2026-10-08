@@ -112,6 +112,7 @@ def absolutise_images(html):
     html = html.replace('src="loomiq-pricing.js', 'src="/loomiq-pricing.js')
     html = html.replace('src="loomiq-select.js', 'src="/loomiq-select.js')
     html = html.replace('src="loomiq-fingerprint.js', 'src="/loomiq-fingerprint.js')
+    html = html.replace('src="loomiq-bg.js', 'src="/loomiq-bg.js')
     return html
 
 

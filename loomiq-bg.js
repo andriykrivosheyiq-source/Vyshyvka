@@ -67,6 +67,24 @@
     });
   }
 
+  /* ЧИ ПРИБРАВСЯ ФОН (08.10). Частка прозорих пікселів на рамці кадру вже
+     ПІСЛЯ прибирання. Логотип на білому, що внизу переходить у сірий (фото
+     аркуша), «рівним» здається, а заливка від країв лишає тло — і клієнт
+     бачить свій білий прямокутник. Мало прозорого по краях — не впорались. */
+  function edgeClear(src){
+    return img(src).then(function(im){
+      var N = 96, k = Math.min(1, N / Math.max(im.width, im.height));
+      var w = Math.max(8, Math.round(im.width * k)), h = Math.max(8, Math.round(im.height * k));
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      var x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
+      var d = x.getImageData(0, 0, w, h).data, n = 0, t = 0;
+      var take = function(xx, yy){ n++; if(d[(yy * w + xx) * 4 + 3] < 20) t++; };
+      for(var i = 0; i < w; i++){ take(i, 0); take(i, h - 1); }
+      for(var j = 1; j < h - 1; j++){ take(0, j); take(w - 1, j); }
+      return n ? t / n : 1;
+    });
+  }
+
   function load(onProgress){
     if(window.LQBgPipeline) return Promise.resolve(window.LQBgPipeline);
     if(seg) return Promise.resolve(seg);
@@ -112,6 +130,7 @@
 
   window.LQBg = {
     plain: plain,
+    edgeClear: edgeClear,
     smart: smart,
     /* Чи модель уже в памʼяті — щоб попередити про перше завантаження. */
     ready: function(){ return !!seg || !!window.LQBgPipeline; },
