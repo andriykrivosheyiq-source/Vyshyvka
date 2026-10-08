@@ -7483,28 +7483,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3a9909a402"></script>
-<script src="loomiq-fingerprint.js?v=3a9909a402"></script>
-<script src="loomiq-pricing.js?v=3a9909a402"></script>
+<script src="loomiq-select.js?v=1f858d7209"></script>
+<script src="loomiq-fingerprint.js?v=1f858d7209"></script>
+<script src="loomiq-pricing.js?v=1f858d7209"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=3a9909a402"></script>
+<script src="loomiq-money-core.js?v=1f858d7209"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3a9909a402"></script>
-<script src="loomiq-bg.js?v=3a9909a402"></script>
-<script src="loomiq-mock.js?v=3a9909a402"></script>
+<script src="loomiq-design.js?v=1f858d7209"></script>
+<script src="loomiq-bg.js?v=1f858d7209"></script>
+<script src="loomiq-mock.js?v=1f858d7209"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=3a9909a402"></script>
-<script src="loomiq-threads.js?v=3a9909a402"></script>
+<script src="imagetracer.js?v=1f858d7209"></script>
+<script src="loomiq-threads.js?v=1f858d7209"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3a9909a402"></script>
+<script src="loomiq-cards.js?v=1f858d7209"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7549,7 +7549,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3a9909a402';
+var LQ_VER = '1f858d7209';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8308,12 +8308,44 @@ function watchOrders(){
     orders = ordersSortDesc(list);
     ordersSaved = seen;
     if(спір.length) ordersClash(спір);
+    webDupesFix();
     const board = document.getElementById('view-board');
     if(board && board.style.display !== 'none') renderBoard();
   }, function(e){
     ordersWatching = false;
     console.error('orders listen failed', e);
   });
+}
+/* ДУБЛІ ЗАЯВОК, ЩО ВЖЕ ЗАВЕЛИСЬ (08.10). Дві картки з тим самим webId —
+   одна заявка, забрана двома адмінками до появи сталого id. Лишаємо ту, з
+   якою працювали (більше історії, товар, оплати, розмова); зайву прибираємо
+   лише якщо її ніхто не чіпав. Чіпали обидві — не вирішуємо за людину. */
+const webDupesDone = {};
+function webDupesUntouched(o){
+  return !((o.items || []).length || (o.payments || []).length || o.crmChatId || o.tgChatId ||
+           (o.hist || []).length > 1 || o.mgrEmail || o.offerToken);
+}
+function webDupesFix(){
+  const by = {};
+  (orders || []).forEach(o => { if(o && o.webId) (by[o.webId] = by[o.webId] || []).push(o); });
+  const зайві = [];
+  Object.keys(by).forEach(w => {
+    const l = by[w];
+    if(l.length < 2 || webDupesDone[w]) return;
+    webDupesDone[w] = 1;
+    const вага = o => (o.hist || []).length * 10 + (o.items || []).length * 5 + (o.payments || []).length * 5 +
+                      (o.crmChatId ? 3 : 0) + (/^(web|wo)-/.test(o.id) ? 1 : 0);
+    const лишити = l.slice().sort((a, b) => вага(b) - вага(a) ||
+      String(a.createdAt || '').localeCompare(String(b.createdAt || '')) ||
+      String(a.id).localeCompare(String(b.id)))[0];   // однаково в усіх вкладках — інакше кожна прибрала б «чужу»
+    l.forEach(o => { if(o !== лишити && webDupesUntouched(o)) зайві.push(o.id); });
+  });
+  if(!зайві.length) return;
+  orders = orders.filter(o => зайві.indexOf(o.id) < 0);
+  storeSet('orders', orders).then(() => {
+    console.info('прибрано дублі заявок', зайві);
+    renderBoard();
+  }).catch(e => console.warn('дублі заявок', e));
 }
 async function loadOrders(){
   const snap = await ORDERS_COL.get();
@@ -14267,13 +14299,18 @@ function watchWebLeads(){
     let added = 0;
     const pending = [];
     for(const rec of fresh){
-      if(orders.some(o => o.webId === rec.id)) continue;
+      if(orders.some(o => o.webId === rec.id || o.id === 'web-' + rec.id)) continue;
       const d = rec.data || {};
       orders.unshift({
         /* Етап беремо перший у потоці, а не зашитий 'new'. Заявка без товару
            — це звернення, а не «Нове замовлення»; до того ж етапи можна
            перейменувати, і зашитий ключ повів би картку в «Без етапу». */
-        id: cryptoId(), webId: rec.id, type:'lead', status: firstStatusKey(),
+        /* СТАЛИЙ ІДЕНТИФІКАТОР (08.10). Андрій: «заявка з сайту задвоїлась».
+           Адмінка, відкрита на двох пристроях (телефон і компʼютер), бачила
+           нову заявку одночасно — і кожна заводила свою картку з випадковим
+           id: дві картки, той самий номер. Тепер id картки — від заявки:
+           хоч скільки адмінок її заберуть, пишуть вони в ОДИН документ. */
+        id: 'web-' + rec.id, webId: rec.id, type:'lead', status: firstStatusKey(),
         orderId: makeOrderId(),
         source: 'заявка',
         site: d.site || 'main',
@@ -14346,7 +14383,7 @@ function watchWebOrders(){
     let added = 0;
     const pending = [];
     for(const rec of fresh){
-      if(orders.some(o => o.webId === rec.id)) continue;   // захист від повторного імпорту
+      if(orders.some(o => o.webId === rec.id || o.id === 'wo-' + rec.id)) continue;   // захист від повторного імпорту
       const d = rec.data || {};
       const items = (d.items || []).map(it => ({
         name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
@@ -14361,7 +14398,7 @@ function watchWebOrders(){
       const totalPrice = +d.totalPrice || items.reduce((a,i)=>a+i.price,0);
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
       orders.unshift({
-        id: cryptoId(), webId: rec.id, type:'web', status:'new',
+        id: 'wo-' + rec.id, webId: rec.id, type:'web', status:'new',   // сталий id — див. watchWebLeads
         /* Номер призначає САМЕ КАНБАН, і завжди свій.
 
            Сайт теж генерував номер — дата плюс три випадкові цифри — і слав
