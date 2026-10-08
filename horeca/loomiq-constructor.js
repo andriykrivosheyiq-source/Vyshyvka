@@ -6524,6 +6524,64 @@
          нейромережа, PhotoRoom — кнопкою «2».
        Доти на сайті працював лише простий алгоритм, і клієнт не міг
        прибрати сірувате тло з логотипа, хоч як пробував. */
+    /* Внутрішній, без PhotoRoom: рівне тло — простий, не впорався — модель. */
+    function removeBgInternal(dataUrl){
+      var B = window.LQBg;
+      var simple = function(){ return removeBgLocal(dataUrl).then(function(r){ bgCount('simple'); return r; }); };
+      if(!B) return simple();
+      var smart = function(){ return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; }); };
+      return B.plain(dataUrl).catch(function(){ return true; }).then(function(рівне){
+        if(!рівне) return smart().catch(simple);
+        return removeBgLocal(dataUrl).then(function(r){
+          return (B.edgeClear ? B.edgeClear(r) : Promise.resolve(1)).catch(function(){ return 1; }).then(function(k){
+            if(k >= 0.6){ bgCount('simple'); return r; }
+            return smart().catch(function(){ bgCount('simple'); return r; });
+          });
+        });
+      });
+    }
+    /* ВИБІР ФОНУ ПЕРЕД ЗАВАНТАЖЕННЯМ (CRM, 08.10). Андрій: «одразу кнопки —
+       видалити внутрішнім, зовнішнім, і не видаляти… і потім тільки фото».
+       Лише менеджеру: клієнту на сайті фон прибирається сам.
+       Віддає { clean, pro } або null, якщо вікно закрили (фото не додаємо). */
+    function bgAsk(src){
+      return new Promise(function(done){
+        var old = document.getElementById('pmBgAsk'); if(old) old.remove();
+        var d = document.createElement('div');
+        d.id = 'pmBgAsk'; d.className = 'pm-bgask';
+        d.innerHTML = '<div class="pm-bgask-w" role="dialog" aria-label="Прибрати фон">' +
+          '<button type="button" class="pm-bgask-x" data-bg="x" aria-label="Скасувати">×</button>' +
+          '<b>Прибрати фон?</b>' +
+          '<div class="pm-bgask-img"><img alt="" src="' + String(src).replace(/"/g, '&quot;') + '"></div>' +
+          '<div class="pm-bgask-b">' +
+            '<button type="button" data-bg="in">1 · Внутрішній<small>безкоштовно</small></button>' +
+            (bgApiUrl() ? '<button type="button" data-bg="pro">2 · PhotoRoom<small>платно, найточніше</small></button>' : '') +
+            '<button type="button" data-bg="no">Не прибирати<small>фото як є</small></button>' +
+          '</div><div class="pm-bgask-n" aria-live="polite"></div></div>';
+        document.body.appendChild(d);
+        var note = d.querySelector('.pm-bgask-n');
+        var fin = function(v){ d.remove(); done(v); };
+        d.addEventListener('click', function(e){
+          var b = e.target.closest ? e.target.closest('[data-bg]') : null;
+          if(!b || b.disabled) return;
+          var k = b.getAttribute('data-bg');
+          if(k === 'x') return fin(null);
+          if(k === 'no') return fin({ clean: null });
+          d.querySelectorAll('[data-bg]').forEach(function(x){ if(x.getAttribute('data-bg') !== 'x') x.disabled = true; });
+          if(k === 'pro'){
+            note.textContent = 'PhotoRoom прибирає фон…';
+            removeBgPro(src).then(function(c){ fin({ clean: c, pro: true }); }, function(){
+              note.textContent = 'PhotoRoom не відповів — прибираю внутрішнім…';
+              removeBgInternal(src).then(function(c){ fin({ clean: c }); }, function(){ fin({ clean: null }); });
+            });
+          } else {
+            note.textContent = (window.LQBg && window.LQBg.ready && !window.LQBg.ready())
+              ? 'Прибираю фон… перший раз довше: завантажується модель' : 'Прибираю фон…';
+            removeBgInternal(src).then(function(c){ fin({ clean: c }); }, function(){ fin({ clean: null }); });
+          }
+        });
+      });
+    }
     function removeBgForUpload(dataUrl){
       var B = window.LQBg, client = !isMgrMode();
       var simple = function(){ return removeBgLocal(dataUrl).then(function(r){ bgCount('simple'); return r; }); };
@@ -7217,6 +7275,14 @@
       var rd = new FileReader();
       rd.onload = function(ev){
         var src = ev.target.result;
+        if(isMgrMode()){
+          bgAsk(src).then(function(v){
+            if(!v) return;
+            addLogo(src, v.clean);
+            if(v.pro){ var last = currentLayers()[currentLayers().length - 1]; if(last){ last.bgPro = true; renderTabPanel(); } }
+          });
+          return;
+        }
         removeBgForUpload(src).then(function(clean){ addLogo(src, clean); })
           .catch(function(){ addLogo(src, null); });
       };
