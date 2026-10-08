@@ -12,7 +12,10 @@
  *   POST /send          — з адмінки: { idToken, caption, photos:[https://…] }.
  *                          Вхід перевіряється в Firebase — інакше це був би
  *                          відкритий ретранслятор нашим ботом.
- *   GET  /subs?s=…      — хто підписаний (для перевірки).
+ *   GET  /subs?s=…      — хто підписаний (для перевірки); заодно забирає /start.
+ *   Без вебхука (Telegram не бачить адресу) — /start забираємо getUpdates:
+ *   перед кожним надсиланням, у /subs і за розкладом (Settings → Triggers →
+ *   Cron, напр. щохвилини — необовʼязково).
  *
  * Налаштування (Cloudflare → Workers → Create → вставити цей файл):
  *   PROD_BOT_TOKEN  — секрет: токен бота з @BotFather
@@ -56,7 +59,44 @@ async function subs(env) {
   return out;
 }
 
+/* /start і /stop — одне місце, і для вебхука, і для опитування. */
+async function onMessage(env, m) {
+  if (!m || !m.chat) return;
+  const chat = String(m.chat.id), text = String(m.text || '').trim();
+  if (/^\/start/.test(text)) {
+    if (!env.SUBS) {
+      await tg(env, 'sendMessage', { chat_id: chat, text: 'Бот ще не налаштовано (немає KV SUBS). Скажіть адміністратору.' });
+    } else {
+      await env.SUBS.put('chat:' + chat, JSON.stringify({ name: (m.chat.title || [m.from && m.from.first_name, m.from && m.from.last_name].filter(Boolean).join(' ') || ''), at: new Date().toISOString() }));
+      await tg(env, 'sendMessage', { chat_id: chat, text: '✅ Підписано. Сюди приходитимуть виробничі карти, щойно замовлення стає «На станках». Відписатись — /stop' });
+    }
+  } else if (/^\/stop/.test(text)) {
+    if (env.SUBS) await env.SUBS.delete('chat:' + chat);
+    await tg(env, 'sendMessage', { chat_id: chat, text: 'Відписано. Повернутись — /start' });
+  }
+}
+/* БЕЗ ВЕБХУКА (08.10). Telegram не завжди одразу бачить нову адресу
+   *.workers.dev («Failed to resolve host»). Тоді /start забираємо самі —
+   getUpdates, з памʼяттю, до якого місця дочитали (KV offset). Кличемо
+   перед кожним надсиланням, у /subs і щохвилини за розкладом, якщо він є.
+   Коли вебхук стоїть, Telegram getUpdates не дає (409) — і не треба. */
+async function pull(env) {
+  if (!env.SUBS) return { ok: false, error: 'немає KV SUBS' };
+  const offset = +(await env.SUBS.get('offset')) || 0;
+  const r = await tg(env, 'getUpdates', { offset, timeout: 0, allowed_updates: ['message'] });
+  if (!r.ok) return { ok: false, webhook: r.error_code === 409 };
+  let last = offset - 1, n = 0;
+  for (const up of r.result || []) {
+    last = Math.max(last, up.update_id);
+    if (up.message) { await onMessage(env, up.message); n++; }
+  }
+  if (last >= offset) await env.SUBS.put('offset', String(last + 1));
+  return { ok: true, нових: n };
+}
+
 export default {
+  async scheduled(event, env, ctx) { ctx.waitUntil(pull(env).catch(() => null)); },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
@@ -70,11 +110,17 @@ export default {
       if (!secretOk) return json({ ok: false, error: 'Немає доступу' }, 403);
       const r = await tg(env, 'setWebhook', { url: url.origin + '/tg', secret_token: env.HOOK_SECRET,
                                               allowed_updates: ['message'] });
-      return json({ ok: !!r.ok, telegram: r, kv: !!env.SUBS });
+      if (r.ok) return json({ ok: true, telegram: r, kv: !!env.SUBS });
+      /* Вебхук не став — працюємо опитуванням: /start заберемо самі. */
+      await tg(env, 'deleteWebhook', {});
+      const p = await pull(env);
+      return json({ ok: !!(p.ok && env.SUBS), режим: 'без вебхука — /start забираємо самі', вебхук: r.description || '',
+                    kv: !!env.SUBS, підписано: (await subs(env)).length });
     }
     if (url.pathname === '/subs') {
       if (!secretOk) return json({ ok: false, error: 'Немає доступу' }, 403);
-      return json({ ok: true, chats: await subs(env) });
+      const p = await pull(env).catch(() => null);
+      return json({ ok: true, опитування: p, chats: await subs(env) });
     }
 
     // Вебхук Telegram: підписка цеху
@@ -82,20 +128,7 @@ export default {
       if (request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.HOOK_SECRET)
         return new Response('forbidden', { status: 403 });
       const up = await request.json().catch(() => null);
-      const m = up && up.message;
-      if (!m || !m.chat) return new Response('ok');
-      const chat = String(m.chat.id), text = String(m.text || '').trim();
-      if (/^\/start/.test(text)) {
-        if (!env.SUBS) {
-          await tg(env, 'sendMessage', { chat_id: chat, text: 'Бот ще не налаштовано (немає KV SUBS). Скажіть адміністратору.' });
-        } else {
-          await env.SUBS.put('chat:' + chat, JSON.stringify({ name: (m.chat.title || [m.from && m.from.first_name, m.from && m.from.last_name].filter(Boolean).join(' ') || ''), at: new Date().toISOString() }));
-          await tg(env, 'sendMessage', { chat_id: chat, text: '✅ Підписано. Сюди приходитимуть виробничі карти, щойно замовлення стає «На станках». Відписатись — /stop' });
-        }
-      } else if (/^\/stop/.test(text)) {
-        if (env.SUBS) await env.SUBS.delete('chat:' + chat);
-        await tg(env, 'sendMessage', { chat_id: chat, text: 'Відписано. Повернутись — /start' });
-      }
+      await onMessage(env, up && up.message);
       return new Response('ok');
     }
 
@@ -113,6 +146,7 @@ export default {
         .map(String).filter(u => /^https:\/\/[a-z0-9.-]+\/\S+$/i.test(u)).slice(0, 10);
       const caption = String(body.caption || '').slice(0, 900);
       if (!photos.length) return json({ ok: false, error: 'no-photos' }, 400, h);
+      await pull(env).catch(() => null);
       const chats = await subs(env);
       if (!chats.length) return json({ ok: false, error: 'Ніхто не підписаний — у боті цеху треба натиснути /start' }, 200, h);
       let sent = 0;
