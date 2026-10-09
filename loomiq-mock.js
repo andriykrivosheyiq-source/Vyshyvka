@@ -531,6 +531,8 @@
                 (w.threads ? '<i class="mko-wk-t" title="Адаптовано під нитки">🧵' + w.threads.length + '</i>' : '') +
                 '</button>' +
                 (треба ? '<button type="button" class="mko-wk-a" data-mko-adapt="' + i + '">Під нитки</button>' : '') +
+                (opt.placeOnly ? '' : '<button type="button" class="mko-wk-x" data-mko-wdel="' + i +
+                  '" title="Прибрати картинку зовсім — з виробу й зі здачі" aria-label="Прибрати картинку">×</button>') +
                 '</span>';
             }).join('') +
             (opt.placeOnly ? '' :
@@ -815,6 +817,25 @@
       /* Закриваємо кліком по тлі, лише якщо й натиснули на тлі: відпустити
          мишу за вікном посеред тягання — не «закрий усе». */
       if((t === el && натискНаФоні) || (t.closest && t.closest('[data-mko-x]'))) return прибрати();
+      /* ЗАЙВУ КАРТИНКУ — ГЕТЬ ЦІЛКОМ (Андрій, 09.10): завантажив не ту,
+         поклав іншу, «ту видалив, а вона залишилась і відправилась». × на
+         виробі знімав лише нанесення, а сама картинка лишалась у списку робіт
+         і їхала у версію та в аркуш клієнту. Тепер × на картинці прибирає її
+         звідусіль: зі списку й з усіх сторін виробу. */
+      var wdel = t.closest && t.closest('[data-mko-wdel]');
+      if(wdel){
+        var di = +wdel.getAttribute('data-mko-wdel');
+        if(!works[di]) return;
+        works.splice(di, 1);
+        арт.splice(di, 1);
+        Object.keys(places).forEach(function(k){
+          places[k] = places[k].filter(function(pl){ return pl.work !== di; });
+          places[k].forEach(function(pl){ if(pl.work > di) pl.work--; });
+        });
+        обране = -1;
+        drag = null;
+        return малюй();
+      }
       var rm = t.closest && t.closest('[data-mko-rm]');
       if(rm){
         places[бік].splice(+rm.getAttribute('data-mko-rm'), 1);
@@ -927,6 +948,12 @@
             'Розкладка у вікні лишилась; спробуйте ще раз або перезавантажте роботу.');
         }
       }
+      /* У здачу — лише картинки, що лежать на виробі. Знята з виробу
+         (× на нанесенні) і забута в списку не має їхати клієнту. */
+      var вжиті = [], номер = {};
+      Object.keys(places).forEach(function(k){ places[k].forEach(function(pl){
+        if(номер[pl.work] === undefined && works[pl.work]){ номер[pl.work] = вжиті.length; вжиті.push(works[pl.work]); }
+      }); });
       btn.disabled = true; btn.textContent = 'Збираю…';
       try{
         var out = [];
@@ -957,7 +984,7 @@
             x.drawImage(a, p.box.x * cv.width - w / 2, p.box.y * cv.height, w, w * ar);
             var m = measure(zS, p.box, ar, asp);
             var r1 = function(v){ return Math.round(v * 10) / 10; };
-            мірки.push({ work:p.work, name:(works[p.work] || {}).name || '',
+            мірки.push({ work: номер[p.work], name:(works[p.work] || {}).name || '',
                          x:p.box.x, y:p.box.y, w:p.box.w, ar: ar, ref:'top',
                          wCm: m ? r1(m.wCm) : 0,
                          hCm: m ? r1(m.hCm) : 0,
@@ -971,7 +998,7 @@
         }
         /* Розмітку тут більше не пишемо: вона одна — в «Областях нанесення». */
         прибрати();
-        opt.onDone({ works: works, sides: out, size: opt.size || '',
+        opt.onDone({ works: вжиті, sides: out, size: opt.size || '',
                      нанесень: c.нанесень, робіт: c.робіт });
       }catch(e){
         console.error(e);
