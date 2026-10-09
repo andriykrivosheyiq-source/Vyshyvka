@@ -9301,6 +9301,30 @@
         });
       });
     }
+    /* ВИСОТИ ВИРОБУ ПО РОЗМІРАХ — для таблиці «Нанесення по розмірах» у КП
+       (Андрій, 09.10). Сітка та сама, з якої конструктор бере масштаб: своя
+       з адмінки або типова; колонка — за підписом «довжина/висота», інакше
+       перша (A). База — розмір і висота з «Областей нанесення». */
+    window.__lqSizeHeights = function(gid){
+      var rows = effectiveChart(gid) || [];
+      var cols = ((window.SITE_CONTENT.sizechartCols || {})[gid]) || [];
+      var key = ((Array.isArray(cols) ? cols : []).filter(function(c){
+        return c && /довжин|висот/i.test(String(c.label || '')); })[0] || {}).key || 'A';
+      var ki = ['A','B','C','D'].indexOf(key);
+      var out = [];
+      rows.forEach(function(r){
+        var size = Array.isArray(r) ? r[0] : (r && (r.size || (r.c && r.c[0])));
+        var v = Array.isArray(r) ? r[ki + 1] : (r && r[key] != null ? r[key] : (r && r.c ? r.c[ki + 1] : 0));
+        var h = parseFloat(String(v == null ? '' : v).replace(',', '.')) || 0;
+        size = String(size == null ? '' : size).trim();
+        if(size && h > 0) out.push({ size: size, hCm: h });
+      });
+      var pa = ((window.SITE_CONTENT || {}).printAreas || {})[gid] || {};
+      var baseSize = String(pa.scaleSize || 'M');
+      var baseRow = out.filter(function(r){ return r.size.toUpperCase() === baseSize.toUpperCase(); })[0];
+      var baseH = (+pa.heightCm > 0) ? +pa.heightCm : (baseRow ? baseRow.hCm : 0);
+      return { baseSize: baseRow ? baseRow.size : baseSize, baseH: baseH, rows: out };
+    };
     window.__editProduct = function(cfg, editIdx, prints){
       pm.colorId = cfg.colorId;
       pm.printId = cfg.printId;
