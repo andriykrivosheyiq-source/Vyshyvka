@@ -3904,6 +3904,12 @@
     background:rgba(255,255,255,.92);border-radius:6px;padding:0 3px;color:#0F2034;}
   .mko-wk-a{all:unset;cursor:pointer;font-size:10.5px;font-weight:700;color:#B91C1C;}
   .mko-wk-a:hover{text-decoration:underline;}
+  /* × на самій картинці — прибрати зайву зовсім (з виробу й зі здачі). */
+  .mko-wk-w{position:relative;}
+  .mko-wk-x{all:unset;position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+    background:#fff;border:1px solid var(--line);color:#B91C1C;font-size:14px;font-weight:800;line-height:18px;
+    text-align:center;cursor:pointer;box-shadow:0 1px 3px rgba(15,32,52,.18);z-index:2;}
+  .mko-wk-x:hover{background:#FEE2E2;border-color:#F87171;}
   /* Вікно «Під нитки». */
   /* Над вікном здачі роботи (z-index 400): адаптацію відкривають саме з нього. */
   .dz-pick.dz-th{z-index:450;}
@@ -7486,28 +7492,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=dd840ef0aa"></script>
-<script src="loomiq-fingerprint.js?v=dd840ef0aa"></script>
-<script src="loomiq-pricing.js?v=dd840ef0aa"></script>
+<script src="loomiq-select.js?v=577015d89a"></script>
+<script src="loomiq-fingerprint.js?v=577015d89a"></script>
+<script src="loomiq-pricing.js?v=577015d89a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=dd840ef0aa"></script>
+<script src="loomiq-money-core.js?v=577015d89a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=dd840ef0aa"></script>
-<script src="loomiq-bg.js?v=dd840ef0aa"></script>
-<script src="loomiq-mock.js?v=dd840ef0aa"></script>
+<script src="loomiq-design.js?v=577015d89a"></script>
+<script src="loomiq-bg.js?v=577015d89a"></script>
+<script src="loomiq-mock.js?v=577015d89a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=dd840ef0aa"></script>
-<script src="loomiq-threads.js?v=dd840ef0aa"></script>
+<script src="imagetracer.js?v=577015d89a"></script>
+<script src="loomiq-threads.js?v=577015d89a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=dd840ef0aa"></script>
+<script src="loomiq-cards.js?v=577015d89a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7552,7 +7558,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'dd840ef0aa';
+var LQ_VER = '577015d89a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -12071,7 +12077,11 @@ const B2C_NOTE_OLD = 'Колір виробу на екрані може від�
    прийняти замовлення» — тобто ніч тут не привід, а частина рішення.
    Зупиняють його тільки відмічені вихідні, і тільки в дизайнерів. */
 const B2C_TERMS = {
-  graphic: { label:'Графічний дизайнер', hint:'від передачі ТЗ до зданого макета', h:24 },
+  /* Андрій, 09.10: 4 год на нове від «Беру», 12 — на правки; ніч 00:00–08:00
+     годинник не рахує. Нові ключі навмисно: стара «доба» (graphic / dzHours)
+     лежить у збережених налаштуваннях і інакше перебила б нові числа. */
+  dzNew:   { label:'Графічний · нове замовлення', hint:'від того, як дизайнер натиснув «Беру», до зданого макета; ніч 00:00–08:00 не рахується', h:4 },
+  dzFix:   { label:'Графічний · правки', hint:'від повернення на правку до зданої версії; ніч 00:00–08:00 не рахується', h:12 },
   stitch:  { label:'Вишивальний дизайнер', hint:'від погодження ескіза до оцифровки', h:24 },
   acct:    { label:'Акаунт-менеджер', hint:'від приходу замовлення до передачі у виробництво', h:48 },
   supply:  { label:'Закупівля', hint:'від того, як закупник узяв, до закритої закупівлі', h:48 },
@@ -12084,10 +12094,6 @@ function b2cTerms(){
   Object.keys(B2C_TERMS).forEach(k => {
     out[k] = (+t[k] > 0) ? Math.round(+t[k]) : B2C_TERMS[k].h;
   });
-  /* Строк графіки колись стояв окремим полем `dzHours`, і в робочих
-     акаунтах він там і лежить. Поважаємо його: людина це число вводила. */
-  const старий = +((contentData.b2c || {}).dzHours);
-  if(!(+t.graphic > 0) && старий > 0) out.graphic = Math.round(старий);
   return out;
 }
 /* ── ГРАФІК ДИЗАЙНЕРА ────────────────────────────────────────────────────
@@ -12144,7 +12150,8 @@ function b2cCfg(){
            /* Скільки замовлень дизайнер може тримати в роботі одночасно.
               Нуль — без обмеження: доки число не поставили, черга працює
               вільно, як Андрій і просив спершу. */
-           dzLimit: (+c.dzLimit > 0) ? Math.round(+c.dzLimit) : 0,
+           /* Графічному — 5 за замовчуванням (Андрій, 09.10). */
+           dzLimit: (+c.dzLimit > 0) ? Math.round(+c.dzLimit) : 5,
            /* Те саме для вишивальних — окремим числом (Андрій). */
            stitchLimit: (+c.stitchLimit > 0) ? Math.round(+c.stitchLimit) : 0,
            /* Примітка на картці макета. Порожньої не буває: якщо її не
@@ -12222,7 +12229,7 @@ function paintB2cTerms(){
   /* Обмеження черги — поруч зі строками: і те, і те про те, скільки роботи
      людина тримає в руках. */
   `<label class="b2c-term">
-      <span class="b2c-term-t"><b>Одночасно в роботі · графічний</b><i>скільки замовлень графічний дизайнер може взяти з черги, поки не здасть попередні на перевірку; порожньо — без обмеження</i></span>
+      <span class="b2c-term-t"><b>Одночасно в роботі · графічний</b><i>скільки взятих замовлень графічний дизайнер може тримати одночасно; поки є правки — нове не бере зовсім; порожньо — 5</i></span>
       <input type="number" min="0" max="50" step="1" id="b2c-dzlimit"
              placeholder="—" value="${b2cCfg().dzLimit || ''}">
       <span class="b2c-term-h">зам.</span>
@@ -12338,7 +12345,7 @@ function retailCost(gid){
                   threads: (своя && нитки.length) ? нитки : null,
                   terms: Object.keys(terms).length ? terms : null,
                   dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
-                  dzHours: terms.graphic || null,
+                  dzHours: terms.dzNew || null,
                   note: note || null, cardTitle: cardTitle || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
@@ -31034,7 +31041,8 @@ function openDesign(){
     /* Скільки годин дизайнеру на макет. Свій годинник, не строк замовлення:
        клієнту ми обіцяємо посилку, а дизайнеру треба знати, чи встигає він
        сьогодні. */
-    dzHours: () => b2cTerms().graphic,
+    dzHours: () => b2cTerms().dzNew,
+    dzFixHours: () => b2cTerms().dzFix,
     /* Строки решти етапів — тим самим шляхом: відділ питає, робоче місце
        відповідає. Свого джерела в нього немає й бути не повинно. */
     terms: () => b2cTerms(),

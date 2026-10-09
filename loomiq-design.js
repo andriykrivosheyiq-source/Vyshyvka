@@ -759,7 +759,15 @@
      намалюватись. Стелю ставимо навмисно: графік, у якому відмічено все
      підряд вихідними, не має підвішувати браузер назавжди. */
   var OFF_MAX = 400;
-  function addWorkHours(from, hours, who){
+  /* НІЧ НЕ РАХУЄТЬСЯ (Андрій, 09.10): «виключити з таймера час ночі» — з
+     00:00 до 08:00 годинник графічного дизайнера стоїть. `night` — година,
+     до якої триває ніч; не передали — ночі немає, усе як доти (етапи
+     акаунта, закупівлі, цеху й вишивальні рахуються рівно). */
+  var NIGHT_TILL = 8;
+  function dayFrom(t, night){
+    return dayStart(t).getTime() + (+night > 0 ? +night : 0) * 3600000;
+  }
+  function addWorkHours(from, hours, who, night){
     var лишилось = Math.max(1, +hours || DZ_HOURS) * 3600000;
     var t = new Date(from);
     var кроків = 0;
@@ -768,6 +776,7 @@
         t = dayStart(t.getTime() + 86400000);
         continue;
       }
+      if(t.getTime() < dayFrom(t, night)) t = new Date(dayFrom(t, night));
       var кінець = dayStart(t).getTime() + 86400000;
       var вільно = кінець - t.getTime();
       if(вільно >= лишилось) return t.getTime() + лишилось;
@@ -778,19 +787,49 @@
   }
   /* Скільки РОБОЧОГО часу між двома мітками. Вихідні не рахуються: у них
      годинник стоїть, а не тікає повільніше. */
-  function workMs(from, to, who){
+  function workMs(from, to, who, night){
     if(to <= from) return to - from;
     var сума = 0;
     var t = new Date(from);
     var кроків = 0;
     while(t.getTime() < to && кроків++ < OFF_MAX){
       var кінець = Math.min(dayStart(t).getTime() + 86400000, to);
-      if(!offDay(who, t)) сума += кінець - t.getTime();
+      var поч = Math.max(t.getTime(), dayFrom(t, night));
+      if(!offDay(who, t) && кінець > поч) сума += кінець - поч;
       t = new Date(кінець);
     }
     return сума;
   }
-  function dzDue(d, hours){
+  /* ГРАФІЧНИЙ: 4 ГОДИНИ НА НОВЕ, 12 — НА ПРАВКИ (Андрій, 09.10).
+
+     Нове рахується від миті, коли дизайнер УЗЯВ роботу («4 години від
+     моменту, коли дизайнер взяв роботу»): до «Беру» годинника немає.
+     Правки — від повернення менеджером: це вже взята робота, і чекати
+     другого «беру» на неї нема чого. Нова передача (інша людина, черга)
+     починає коло наново — знову з «Беру». Здача версії коло закриває. */
+  function dzRound(d){
+    var r = { from:'', fix:false };
+    if(!d || !d.sentAt) return r;
+    var взяв = false;
+    (d.thread || []).forEach(function(m){
+      var k = m && m.kind;
+      if(k === 'sent' || k === 'queue'){ r.from = ''; r.fix = false; взяв = false; }
+      else if(k === 'take'){ взяв = true; if(!r.fix) r.from = m.at || r.from; }
+      else if(k === 'ver'){ взяв = true; r.from = ''; r.fix = false; }
+      else if(k === 'fix' && взяв && msgRole(m, d) === 'acct'){ r.from = m.at || r.from; r.fix = true; }
+    });
+    /* Старі картки без подій — від того, що є. */
+    if(d.status === 'revision') r.fix = true;
+    if(!r.from && (d.status === 'work' || d.status === 'revision')) r.from = d.takenAt || d.sentAt;
+    return r;
+  }
+  function dzDue(d, hours, opt){
+    if(opt){
+      var r = dzRound(d);
+      var t0 = r.from ? new Date(r.from).getTime() : NaN;
+      if(isNaN(t0)) return 0;
+      return addWorkHours(t0, r.fix ? (+opt.fix || hours) : hours, d && d.who, opt.night);
+    }
     var f = dzFrom(d);
     if(!f) return 0;
     var t = new Date(f).getTime();
@@ -800,17 +839,17 @@
   /* Скільки лишилось — у хвилинах. Відʼємне означає «прострочено на».
      Затверджене й здане більше не тікає: строк стосується роботи, яка
      триває, а не тієї, що вже в менеджера. */
-  function dzLeft(d, hours){
+  function dzLeft(d, hours, opt){
     if(!d || !d.sentAt) return null;
     if(d.status === 'approved' || d.status === 'review') return null;
-    var due = dzDue(d, hours);
+    var due = dzDue(d, hours, opt);
     if(!due) return null;
     /* У вихідний лічильник стоїть на місці: між «зараз» і строком
        рахуємо тільки робочий час. Прострочення ж — реальне: якщо строк
        уже позаду, глибину його ховати нема за чим. */
     var зараз = Date.now();
     if(due <= зараз) return Math.round((due - зараз) / 60000);
-    return Math.round(workMs(зараз, due, d && d.who) / 60000);
+    return Math.round(workMs(зараз, due, d && d.who, opt && opt.night) / 60000);
   }
   /* ── ВЗЯВ / НЕ БЕРУ ─────────────────────────────────────────────────────
 
@@ -2292,7 +2331,7 @@
     stockApply: stockApply, stockSplit: stockSplit,
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    DZ_HOURS: DZ_HOURS,
+    DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
     offDay: offDay, setDayOff: setDayOff,
@@ -5811,23 +5850,50 @@
     }catch(e){ return 0; }
   }
   function dzHours(){
-    try{ return (host().dzHours && host().dzHours()) || D.DZ_HOURS; }
-    catch(e){ return D.DZ_HOURS; }
+    try{ return (host().dzHours && host().dzHours()) || D.DZ_NEW_H; }
+    catch(e){ return D.DZ_NEW_H; }
+  }
+  function dzFixHours(){
+    try{ return (host().dzFixHours && host().dzFixHours()) || D.DZ_FIX_H; }
+    catch(e){ return D.DZ_FIX_H; }
+  }
+  /* Строк дизайнера одним викликом. Графічному — 4 год на нове від «Беру»,
+     12 на правки, ніч 00–08 не рахується; вишивальному — як доти. */
+  function dzLeftK(d, kind){
+    if(kind === 'stitch') return D.dzLeft(d, kindHours('stitch'));
+    return D.dzLeft(d, dzHours(), { fix: dzFixHours(), night: D.NIGHT_TILL });
   }
   /* Скільки замовлень дизайнер зараз тримає в роботі: передані йому, ще
      не здані на перевірку й не затверджені. За цим числом і працює ліміт
      «одночасно в роботі» з налаштувань. */
-  function busyOrders(m, kind){
+  function busyOrders(m, kind, onlyFix){
     if(!m) return 0;
     var k = kind === 'stitch' ? 'stitch' : 'graphic';
     return U.pairs().filter(function(p){
       return U.unitsOf(p.job).some(function(u){
         return D.dzList(u, k).some(function(d){
-          return d.who === m && d.sentAt &&
-            (d.status === 'sent' || d.status === 'work' || d.status === 'revision');
+          if(d.who !== m || !d.sentAt) return false;
+          /* Правки — і ті, що ще в колонці, і ті, за які вже сів. */
+          if(onlyFix) return d.status === 'revision' || (d.status === 'work' && D.dzRound(d).fix);
+          /* Графічному «в роботі» — лише взяте: передане, але ще не взяте
+             (не натиснув «Беру»), руки йому не займає. */
+          return d.status === 'work' || d.status === 'revision' ||
+            (k === 'stitch' && d.status === 'sent');
         });
       });
     }).length;
+  }
+  /* ЧИ МОЖНА ВЗЯТИ НОВЕ (Андрій, 09.10): «не беруть нові замовлення, поки в
+     колонці правки, і в роботі не більше 5». Повертає причину відмови або ''. */
+  function takeBlock(m, kind){
+    if(kind === 'stitch') return '';
+    var правок = busyOrders(m, 'graphic', true);
+    if(правок) return 'Спершу закрийте правки (' + правок + ') — нове візьмете після них';
+    var ліміт = +((host().dzLimit && host().dzLimit()) || 0) || 5;
+    var тримаю = busyOrders(m, 'graphic');
+    if(тримаю >= ліміт) return 'У вас уже ' + тримаю + ' в роботі (можна ' + ліміт +
+                               ') — здайте щось, щоб узяти нове';
+    return '';
   }
   /* Мої дизайни в цьому замовленні — рівно ті, що передані мені. */
   function myDz(job, kind, m){
@@ -5875,7 +5941,6 @@
     var всіГ = buys();
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
-    var год = kindHours(kind);
     return U.pairs().map(function(p){
       var mine = myDz(p.job, kind, only ? m : '');
       if(!mine.length) return null;
@@ -5884,7 +5949,7 @@
          горить, а не по середньому. */
       var лишок = null;
       mine.forEach(function(x){
-        var l = D.dzLeft(x.d, год);
+        var l = dzLeftK(x.d, kind);
         if(l === null) return;
         if(лишок === null || l < лишок) лишок = l;
       });
@@ -5905,7 +5970,10 @@
       var хто = (mine.filter(function(x){ return x.d.who; })[0] || {}).d;
       return { id: p.o.orderId, step: крок, v2: true,
         pic: cardPic(p.job),
-        chain: stageMarks(p.job, p.o, всіГ),
+        /* ДЕ ЗАРАЗ ЗАМОВЛЕННЯ — НЕ ДИЗАЙНЕРУ (Андрій, 09.10: «в граф
+           дизайнера забрати статуси де замовлення»). Його справа — свій
+           макет і свій строк; у вишивального етапи лишаються. */
+        chain: kind === 'stitch' ? stageMarks(p.job, p.o, всіГ) : [],
         /* Виріб і колір тканини — вишивальнику колір важить для ниток. */
         what: [u0.name || '', String(u0.color || '').toLowerCase()].filter(Boolean).join(' · ') +
               (+u0.qty ? ' · ' + u0.qty + ' шт' : ''),
@@ -6161,7 +6229,7 @@
      ЗАРАЗ, а не за добу, коли строк уже вийшов і ніхто нічого не малював.
      ══════════════════════════════════════════════════════════════════════ */
   function dzLeftTxt(d, kind){
-    var l = D.dzLeft(d, kindHours(kind));
+    var l = dzLeftK(d, kind);
     if(l === null) return '';
     return l < 0 ? ('прострочено на ' + U.hm(-l)) : ('лишилось ' + U.hm(l));
   }
@@ -6362,12 +6430,17 @@
       (m.sideCm ? ' · від центру ' + (m.sideCm > 0 ? '+' : '−') + мсм(Math.abs(m.sideCm)) : '') +
       (m.size ? ' · на ' + m.size : '');
   }
+  /* Чому зараз не візьмеш — одразу під «Беру», а не після натискання. */
+  function takeNoteHtml(m, kind){
+    var t = (m && kind !== 'stitch') ? takeBlock(m, 'graphic') : '';
+    return t ? '<div class="dz-miss dz-take-no">' + esc(t) + '</div>' : '';
+  }
   function dzWorkHtml(x, i, kind){
     kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var u = x.u, d = x.d;
     var key = esc(u.id) + '|' + kind + '|' + D.dzList(u, kind).indexOf(d);
     var g = U.catItem(u.gid);
-    var l = D.dzLeft(d, kindHours(kind));
+    var l = dzLeftK(d, kind);
     var м = (host().me && host().me()) || '';
     var нових = D.dzUnseen(d, м, kind, kind);
     return '<div class="dz-w' + (d.status === 'revision' ? ' is-fix' : '') + '">' +
@@ -6451,10 +6524,12 @@
           ? '<div class="dz-w-take is-q">' +
               '<span class="dz-w-q">У черзі відділу — бере той, хто перший натисне</span>' +
               '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
+              takeNoteHtml(м, kind) +
             '</div>'
           : d.status === 'sent'
           ? '<div class="dz-w-take">' +
               '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
+              takeNoteHtml(м, kind) +
             '</div>'
           : (kind === 'stitch' ? stitchHandHtml(key) : handHtml(u, d, key)))) +
       /* НАДІСЛАНІ ВЕРСІЇ — ОДРАЗУ ПІД ЗДАЧЕЮ.
@@ -6488,7 +6563,7 @@
     var st = dzStep(mine);
     var лишок = null;
     mine.forEach(function(x){
-      var l = D.dzLeft(x.d, kindHours(kind));
+      var l = dzLeftK(x.d, kind);
       if(l === null) return;
       if(лишок === null || l < лишок) лишок = l;
     });
@@ -9468,6 +9543,12 @@
          буває завантажена або хвора, і мовчазне «висить добу» коштує
          дорожче за чесне «віддайте іншому». */
       if(what === 'dz-take'){
+        /* Нове (з черги чи передане мені) — лише коли руки вільні. Правку
+           брати можна завжди: це те, що й треба робити першим. */
+        if(dk === 'graphic' && dd.status !== 'revision' && (D.dzInQueue(dd) || dd.status === 'sent')){
+          var заважає = takeBlock(m, 'graphic');
+          if(заважає) return say(заважає);
+        }
         if(D.dzInQueue(dd) || (dd.pool && dd.who && dd.who !== m)){
           var ліміт = +((dk === 'stitch'
             ? (host().stitchLimit && host().stitchLimit())

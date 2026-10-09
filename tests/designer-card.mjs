@@ -61,7 +61,7 @@ const CONTENT = {
          { email:'mgr@loomiq',  name:'Володимир', role:'owner' }],
   /* Годин на макет — своє число, не типове: перевіряємо, що годинник
      справді бере його з налаштувань, а не з константи в коді. */
-  b2c: { dzHours: 8 }
+  b2c: { terms: { dzNew: 8, dzFix: 12 } }
 };
 const ORDERS = [
   { id:'1', orderId:'2000101', type:'client', dir:'b2c',
@@ -178,12 +178,27 @@ ok(!чужe.роль && !чужe.перемикач,
 
 console.log('\n═══ СВІЙ ГОДИННИК, А НЕ ДАТА ЗАМОВЛЕННЯ ═══');
 /* «До 14 жовтня» сьогодні не рухає нікого. «Лишилось 5 год» рухає. */
+/* Андрій, 09.10: строк — «від моменту, коли дизайнер взяв роботу». До
+   «Беру» годинника немає; після — числом із налаштувань. */
+const доБеру = await p.evaluate(() => {
+  const к = document.querySelector('.dz-card-w');
+  return ((к.querySelector('.dz-c-stk') || {}).textContent || '').trim();
+});
+ok(!доБеру, 'до «Беру» годинник не йде', 'годинник іде ще до «Беру»: ' + доБеру);
 const строк = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const d = D.dzList(window.LQDesign.ui.pairs()[0].job.units[0], 'graphic')[0];
+  D.dzTake(d, 'test@loomiq');
+  window.LQDesign.ui.render(document.getElementById('dzRoot'));
   const к = document.querySelector('.dz-card-w');
   /* Годинник етапу має свій клас: обіцянка клієнту й внутрішній строк —
      різні речі, і однаковими на вигляд вони читались як один. */
   const т = (к.querySelector('.dz-c-stk') || {}).textContent || '';
-  return { напис: т.trim(), датаЗамовлення: /14\.10/.test(к.textContent) };
+  const res = { напис: т.trim(), датаЗамовлення: /14\.10/.test(к.textContent) };
+  /* Назад у «Нові»: далі перевіряємо саме не взяте. */
+  d.status = 'sent'; delete d.takenAt; d.thread = d.thread.filter(m => m.kind !== 'take');
+  window.LQDesign.ui.render(document.getElementById('dzRoot'));
+  return res;
 });
 console.log('  ' + JSON.stringify(строк));
 ok(/лишилось/.test(строк.напис),
