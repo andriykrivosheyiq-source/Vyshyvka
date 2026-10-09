@@ -6881,6 +6881,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <select id="pa-size" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;margin-bottom:10px;"></select>
               <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Реальна висота виробу, см (можна змінити вручну)</label>
               <input id="pa-height" type="number" min="1" step="0.5" style="width:100%;font-family:inherit;font-size:15px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;">
+              <!-- Ширина виробу базового розміру (09.10): мірка товару в см поруч із
+                   висотою. Розміри нанесення по розмірах рахуються від висоти. -->
+              <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin:10px 0 4px;">Реальна ширина виробу, см (можна змінити вручну)</label>
+              <input id="pa-width" type="number" min="1" step="0.5" style="width:100%;font-family:inherit;font-size:15px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;">
             </div>
             <div class="pa-area" id="pa-area"></div>
             <div class="pa-places-box">
@@ -7492,28 +7496,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=577015d89a"></script>
-<script src="loomiq-fingerprint.js?v=577015d89a"></script>
-<script src="loomiq-pricing.js?v=577015d89a"></script>
+<script src="loomiq-select.js?v=ff2fdbe084"></script>
+<script src="loomiq-fingerprint.js?v=ff2fdbe084"></script>
+<script src="loomiq-pricing.js?v=ff2fdbe084"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=577015d89a"></script>
+<script src="loomiq-money-core.js?v=ff2fdbe084"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=577015d89a"></script>
-<script src="loomiq-bg.js?v=577015d89a"></script>
-<script src="loomiq-mock.js?v=577015d89a"></script>
+<script src="loomiq-design.js?v=ff2fdbe084"></script>
+<script src="loomiq-bg.js?v=ff2fdbe084"></script>
+<script src="loomiq-mock.js?v=ff2fdbe084"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=577015d89a"></script>
-<script src="loomiq-threads.js?v=577015d89a"></script>
+<script src="imagetracer.js?v=ff2fdbe084"></script>
+<script src="loomiq-threads.js?v=ff2fdbe084"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=577015d89a"></script>
+<script src="loomiq-cards.js?v=ff2fdbe084"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7558,7 +7562,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '577015d89a';
+var LQ_VER = 'ff2fdbe084';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -16164,7 +16168,17 @@ function offerMgrCalc(o){
       const cost  = Math.round(+it.cost  || 0);
       const box = { rows: offerCalcRows(it, o), qty: +it.qty || 0, price,
                     name: itemName(it),
-                    meta: [it.color, it.print, it.sizes].filter(Boolean).join(' · ') };
+                    meta: [it.color, it.print, it.sizes].filter(Boolean).join(' · '),
+                    /* Для «Нанесення по розмірах» (09.10): розміри нанесень,
+                       відступи й кількість по розмірах. Лише у вікно редактора —
+                       у документ клієнта не йде. */
+                    place: {
+                      gid: (it.config && it.config.garmentId) || it.garmentId || '',
+                      qty: Object.assign({}, (it.config && it.config.qty) || {}),
+                      prints: (it.prints || []).map(p => ({
+                        side: p.side || '', sideLabel: p.sideLabel || '', technique: p.technique || '',
+                        widthMm: +p.widthMm || 0, heightMm: +p.heightMm || 0,
+                        mark: p.mark ? { topMm: p.mark.topMm, centerMm: p.mark.centerMm } : null })) } };
       if(out.cost){
         box.cost = cost;
         box.margin = price - cost;
@@ -33993,6 +34007,7 @@ function kbDraw(){
   function paSideLabel(s){ return PA_SIDE_LABELS[s]||s; }
   function paChart(){ return (typeof currentScRows==='function') ? currentScRows() : [{size:'M',A:68,B:52}]; }
   function cmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68}; return (+r.A||68); }
+  function wForSize(sz){ return garmentWidthCm(paId, sz) || 0; }
   function defaultSize(){ const rows=paChart(); const m=rows.find(x=>String(x.size).toUpperCase()==='M'); return m?m.size:((rows[Math.floor(rows.length/2)]||{size:''}).size); }
   function firstColorId(){ const c=effectiveColors(paId); return (c[0]||{}).id; }
   function isFirstColor(){ return paColorId===firstColorId(); }
@@ -34019,20 +34034,22 @@ function kbDraw(){
   function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k]));
     const o={ base:cfgTo(s.base), colors }; o.places=placesFrom(s.places); return o; }
   function sidePlaces(){ const sd=data[paSide]; if(!sd) return []; sd.places=sd.places||[]; return sd.places; }
-  function toStore(d){ const out={ scaleSize:d.scaleSize, heightCm:d.heightCm }; Object.keys(d).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&d[k]) out[k]=sideTo(d[k]); }); return out; }
+  const PA_META = ['scaleSize','heightCm','widthCm'];
+  function toStore(d){ const out={ scaleSize:d.scaleSize, heightCm:d.heightCm }; if(d.widthCm>0) out.widthCm=d.widthCm; Object.keys(d).forEach(k=>{ if(PA_META.indexOf(k)<0&&d[k]) out[k]=sideTo(d[k]); }); return out; }
 
   function loadData(){
     let all=(contentData.printAreas||{})[paId];
     all = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),heightCm:0};
-    data = { scaleSize:all.scaleSize, heightCm:all.heightCm };
+    data = { scaleSize:all.scaleSize, heightCm:all.heightCm, widthCm:+all.widthCm||0 };
     const g=photoCfg(paId); const sides=(g&&g.views&&g.views.length)?g.views.slice():['front','back'];
     // усі сторони виробу (перед/зад + бокові) + будь-які вже збережені сторони
-    Object.keys(all).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&sides.indexOf(k)<0) sides.push(k); });
+    Object.keys(all).forEach(k=>{ if(PA_META.indexOf(k)<0&&sides.indexOf(k)<0) sides.push(k); });
     sides.forEach(s=>{ data[s]=sideFrom(migrateSide(all[s])); });
     if(!data.front) data.front=newSideCfg();
     if(!data.back) data.back=newSideCfg();   // перед і зад доступні одразу
     if(!data.scaleSize) data.scaleSize=defaultSize();
     if(!(data.heightCm>0)) data.heightCm=cmForSize(data.scaleSize);
+    if(!(data.widthCm>0)) data.widthCm=wForSize(data.scaleSize);
   }
   function loadSlotColor(){
     const cfg=effCfg()||newSideCfg().base;
@@ -34086,8 +34103,10 @@ function kbDraw(){
     cbox.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>{ saveWork(); paColorId=b.dataset.cid; loadSlotColor(); renderShell(); });
     const sizeSel=el('pa-size');
     sizeSel.innerHTML=paChart().map(r=>`<option value="${escA(r.size)}"${r.size===paSize?' selected':''}>${escA(r.size)} — ${r.A} см</option>`).join('');
-    sizeSel.onchange=()=>{ paSize=sizeSel.value; data.scaleSize=paSize; data.heightCm=cmForSize(paSize); el('pa-height').value=data.heightCm; renderArea(); };
+    sizeSel.onchange=()=>{ paSize=sizeSel.value; data.scaleSize=paSize; data.heightCm=cmForSize(paSize); el('pa-height').value=data.heightCm;
+      data.widthCm=wForSize(paSize); el('pa-width').value=data.widthCm||''; renderArea(); };
     const hEl=el('pa-height'); hEl.value=data.heightCm; hEl.oninput=()=>{ const v=parseFloat(hEl.value); data.heightCm=(v>0)?v:0; renderArea(); };
+    const wEl=el('pa-width'); if(wEl){ wEl.value=data.widthCm||''; wEl.oninput=()=>{ const v=parseFloat(wEl.value); data.widthCm=(v>0)?v:0; }; }
     const cdef=el('pa-color-default');
     if(cdef){ cdef.style.display=isFirstColor()?'none':''; cdef.onclick=()=>{ if(!confirm('Прирівняти цей колір до дефолтного (першого)?'))return; if(data[paSide]&&data[paSide].colors) delete data[paSide].colors[paColorId]; loadSlotColor(); renderShell(); }; }
     const key=paId+'-'+paColorId+'-'+paSide;

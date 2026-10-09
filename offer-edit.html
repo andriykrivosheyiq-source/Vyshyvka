@@ -752,6 +752,32 @@
   .list-f .dg button{flex:1;font:inherit;font-size:11px;font-weight:600;color:#64748B;
       padding:5px 8px;border-radius:7px;border:1px solid #E2E8F0;background:#fff;cursor:pointer;}
   .list-f .dg button:hover{color:#0F172A;border-color:#94A3B8;}
+  .list-f .dg button.sz-open{color:#1D4ED8;border-color:#BFDBFE;background:#EFF6FF;}
+  .list-f .dg button.sz-open:hover{color:#1E3A8A;border-color:#60A5FA;}
+  /* Вікно «Нанесення по розмірах». */
+  .sz-wrap{position:fixed;inset:0;z-index:600;background:rgba(15,23,42,.45);display:flex;
+    align-items:center;justify-content:center;padding:16px;}
+  .sz-box{background:#fff;border-radius:14px;width:min(860px,100%);max-height:calc(100vh - 32px);
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(15,23,42,.25);}
+  .sz-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #E2E8F0;}
+  .sz-h b{flex:1;font-size:15px;color:#0F172A;}
+  .sz-h button{font:inherit;font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;
+    border:1px solid #E2E8F0;background:#fff;color:#334155;cursor:pointer;}
+  .sz-h button:hover{border-color:#94A3B8;color:#0F172A;}
+  .sz-h .sz-x{border:none;font-size:20px;line-height:1;padding:2px 6px;color:#64748B;}
+  .sz-b{overflow:auto;padding:12px 16px 16px;font-size:12.5px;color:#334155;}
+  .sz-how{font-size:11.5px;color:#64748B;line-height:1.45;margin:0 0 12px;}
+  .sz-it{margin:0 0 16px;}
+  .sz-it-t{font-weight:800;color:#0F172A;font-size:13.5px;margin:0 0 4px;}
+  .sz-pr{margin:8px 0 2px;font-weight:700;color:#1E293B;}
+  .sz-pr i{font-style:normal;font-weight:500;color:#64748B;}
+  .sz-t{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;}
+  .sz-t th,.sz-t td{border-bottom:1px solid #EEF2F7;padding:5px 8px;text-align:left;white-space:nowrap;}
+  .sz-t th{font-size:11px;font-weight:700;color:#64748B;background:#F8FAFC;}
+  .sz-t tr.is-base td{background:#EEF6FF;font-weight:700;}
+  .sz-t tr.is-ord td:first-child b{color:#0F7A3D;}
+  .sz-t td.is-over{color:#B91C1C;font-weight:700;}
+  .sz-no{color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;margin:4px 0;}
   .list-f b{display:block; font-size:18px; font-weight:800; letter-spacing:-.3px;
     color:#1B2536; margin-top:2px; font-variant-numeric:tabular-nums;}
   .list-f span{display:block; font-size:11.5px; color:#8A93A3; margin-top:2px;}
@@ -1056,6 +1082,9 @@
            варіантів, а сума — вилка. Файл збирає адмінка: у цього кадру
            немає ні моделі цін, ні самого замовлення. -->
       <span class="dg"><button type="button" data-dg="file">Зберегти прорахунок</button><button type="button" data-dg="copy">Скопіювати</button></span>
+      <!-- НАНЕСЕННЯ ПО РОЗМІРАХ (09.10): макет зроблено на базовому розмірі
+           (M), а на S і 2XL вишивка має бути іншою — пропорційно висоті виробу. -->
+      <span class="dg"><button type="button" id="szOpen" class="sz-open">📐 Нанесення по розмірах</button></span>
     </div>
   </aside>
   <main class="work" id="paneWork">
@@ -1102,25 +1131,25 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=577015d89a',
+    ['loomiq-select.js?v=ff2fdbe084',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=577015d89a'].forEach(function(src){
+     'loomiq-cards.js?v=ff2fdbe084'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=577015d89a';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=577015d89a';
-  var CTOR_JS   = 'loomiq-constructor.js?v=577015d89a';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=ff2fdbe084';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=ff2fdbe084';
+  var CTOR_JS   = 'loomiq-constructor.js?v=ff2fdbe084';
   /* Внутрішнє прибирання фону (нейромережа в браузері, 07.10): без нього
      конструктор КП різав би лише швидким алгоритмом. Не завантажився —
      не біда, конструктор працює й без нього. */
-  var CTOR_BG   = 'loomiq-bg.js?v=577015d89a';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=577015d89a';
+  var CTOR_BG   = 'loomiq-bg.js?v=ff2fdbe084';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=ff2fdbe084';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1413,6 +1442,161 @@
       });
     });
   }
+  /* ══════════ НАНЕСЕННЯ ПО РОЗМІРАХ (Андрій, 09.10) ══════════
+
+     Макет у КП робиться на базовому розмірі — тому, що стоїть у «Областях
+     нанесення» (зазвичай M). На S чи 2XL та сама вишивка виглядає інакше,
+     тож для виробництва рахуємо її під кожен розмір ПРОПОРЦІЙНО ВИСОТІ
+     ВИРОБУ: розмір на стільки-то відсотків довший за базовий — на стільки ж
+     більші ширина, висота, відступ від горловини й відступ від центру.
+     Округлення — до 0,5 см. Вишивка понад 44 × 29 см — червоним. */
+  var SZ_MAX = { w: 44, h: 29 };
+  function szHalf(cm){ return Math.round(cm * 2) / 2; }
+  function szCm(v){ return String(szHalf(v)).replace('.', ','); }
+  function szSigned(v){
+    var r = szHalf(v);
+    return r === 0 ? 'по центру' : (r > 0 ? '+' : '−') + String(Math.abs(r)).replace('.', ',');
+  }
+  function szPct(k){
+    var p = Math.round((k - 1) * 1000) / 10;
+    return p === 0 ? 'база' : (p > 0 ? '+' : '−') + String(Math.abs(p)).replace('.', ',') + ' %';
+  }
+  function szEmbro(pr){ return /вишив|embro/i.test(String((pr && pr.technique) || '')); }
+  /* Чиста арифметика — окремо від екрана, щоб її можна було перевірити. */
+  /* `pl` = { name, qty:{розмір: шт}, prints:[{ sideLabel, technique, widthMm,
+     heightMm, mark:{ topMm, centerMm } }] }; `sc` = { baseSize, baseH, rows:[{ size, hCm }] }. */
+  function sizeTable(pl, sc){
+    var q = (pl && pl.qty) || {};
+    var prints = ((pl && pl.prints) || []).filter(function(p){ return p && +p.widthMm > 0; });
+    var ord = {};
+    Object.keys(q).forEach(function(k){ if(+q[k] > 0) ord[String(k).trim().toUpperCase()] = +q[k]; });
+    var out = { name: (pl && pl.name) || 'Позиція', prints: [], why: '' };
+    if(!prints.length){ out.why = 'нанесень у позиції немає'; return out; }
+    if(!sc || !(sc.baseH > 0) || !(sc.rows || []).length){
+      out.why = 'у товару немає розмірної сітки з висотою виробу — додайте її в адмінці'; return out; }
+    out.baseSize = sc.baseSize; out.baseH = sc.baseH;
+    out.prints = prints.map(function(pr){
+      var mk = pr.mark || {};
+      return {
+        label: pr.sideLabel || pr.side || 'нанесення', technique: pr.technique || '',
+        rows: sc.rows.map(function(r){
+          var k = r.hCm / sc.baseH;
+          var w = (+pr.widthMm || 0) / 10 * k, h = (+pr.heightMm || 0) / 10 * k;
+          var over = szEmbro(pr) && (szHalf(w) > SZ_MAX.w || szHalf(h) > SZ_MAX.h);
+          return { size: r.size, hCm: r.hCm, k: k, wCm: szHalf(w), hCmP: szHalf(h),
+                   topCm: mk.topMm != null ? szHalf(+mk.topMm / 10 * k) : null,
+                   centerCm: mk.centerMm != null ? szHalf(+mk.centerMm / 10 * k) : null,
+                   base: r.size.toUpperCase() === String(sc.baseSize).toUpperCase(),
+                   qty: ord[r.size.toUpperCase()] || 0, over: over };
+        })
+      };
+    });
+    return out;
+  }
+  window.__lqSizeTable = sizeTable;
+  function sizeTables(){
+    var list = [], m = (OFFER && OFFER.mgr) || {};
+    [['main', 'items'], ['variant', 'vars'], ['reco', 'reco']].forEach(function(kk){
+      itemsOf(kk[0]).forEach(function(it, i){
+        var box = (m[kk[1]] || {})[i] || {};
+        var pl = Object.assign({ gid: it.garmentId || '', qty: {}, prints: it.sides || [] }, box.place || {});
+        pl.name = it.name || box.name || 'Позиція';
+        var sc = null;
+        try{ sc = window.__lqSizeHeights ? window.__lqSizeHeights(pl.gid) : null; }catch(e){ sc = null; }
+        var t = sizeTable(pl, sc);
+        if(!window.__lqSizeHeights && t.why) t.why = 'конструктор ще завантажується — відкрийте це вікно за мить';
+        list.push(t);
+      });
+    });
+    return list;
+  }
+  function sizeText(list){
+    var L = [];
+    list.forEach(function(t){
+      L.push(t.name);
+      if(t.why){ L.push('  ' + t.why); L.push(''); return; }
+      t.prints.forEach(function(pr){
+        L.push('  ' + pr.label + (pr.technique ? ' · ' + pr.technique : '') + ' (база ' + t.baseSize + ', висота виробу ' + t.baseH + ' см)');
+        L.push('  Розмір\tВисота виробу\t%\tШирина × висота, см\tВід горловини, см\tВід центру, см\tК-сть');
+        pr.rows.forEach(function(r){
+          L.push('  ' + r.size + '\t' + r.hCm + '\t' + szPct(r.k) + '\t' + szCm(r.wCm) + ' × ' + szCm(r.hCmP) +
+                 (r.over ? ' (понад ' + SZ_MAX.w + ' × ' + SZ_MAX.h + ')' : '') + '\t' +
+                 (r.topCm != null ? szCm(r.topCm) : '—') + '\t' + (r.centerCm != null ? szSigned(r.centerCm) : '—') +
+                 '\t' + (r.qty || ''));
+        });
+      });
+      L.push('');
+    });
+    return L.join('\n');
+  }
+  function sizeHtml(list){
+    if(!list.length) return '<div class="sz-no">У КП ще немає позицій.</div>';
+    return list.map(function(t){
+      return '<div class="sz-it"><div class="sz-it-t">' + esc(t.name) + '</div>' +
+        (t.why ? '<div class="sz-no">' + esc(t.why) + '</div>' :
+        t.prints.map(function(pr){
+          return '<div class="sz-pr">' + esc(pr.label) + (pr.technique ? ' <i>· ' + esc(pr.technique) + '</i>' : '') +
+              ' <i>· база ' + esc(t.baseSize) + ', виріб ' + esc(String(t.baseH).replace('.', ',')) + ' см</i></div>' +
+            '<table class="sz-t"><thead><tr><th>Розмір</th><th>Висота виробу</th><th>%</th>' +
+              '<th>Ширина × висота</th><th>Від горловини</th><th>Від центру</th><th>К-сть</th></tr></thead><tbody>' +
+            pr.rows.map(function(r){
+              return '<tr class="' + (r.base ? 'is-base' : '') + (r.qty ? ' is-ord' : '') + '">' +
+                '<td><b>' + esc(r.size) + '</b></td>' +
+                '<td>' + esc(String(r.hCm).replace('.', ',')) + ' см</td>' +
+                '<td>' + esc(szPct(r.k)) + '</td>' +
+                '<td' + (r.over ? ' class="is-over" title="Більше за максимум вишивки ' + SZ_MAX.w + ' × ' + SZ_MAX.h + ' см"' : '') + '>' +
+                  esc(szCm(r.wCm) + ' × ' + szCm(r.hCmP)) + ' см' + (r.over ? ' ⚠' : '') + '</td>' +
+                '<td>' + (r.topCm != null ? esc(szCm(r.topCm)) + ' см' : '—') + '</td>' +
+                '<td>' + (r.centerCm != null ? esc(szSigned(r.centerCm)) + (szHalf(r.centerCm) ? ' см' : '') : '—') + '</td>' +
+                '<td>' + (r.qty ? r.qty + ' шт' : '') + '</td></tr>';
+            }).join('') + '</tbody></table>';
+        }).join('')) + '</div>';
+    }).join('');
+  }
+  function sizeOpen(){
+    var old = document.querySelector('.sz-wrap');
+    if(old) old.remove();
+    var list = sizeTables();
+    var d = document.createElement('div');
+    d.className = 'sz-wrap';
+    d.innerHTML = '<div class="sz-box" role="dialog" aria-label="Нанесення по розмірах">' +
+      '<div class="sz-h"><b>📐 Нанесення по розмірах</b>' +
+        '<button type="button" data-sz="copy">Скопіювати</button>' +
+        '<button type="button" data-sz="file">Скачати</button>' +
+        '<button type="button" class="sz-x" data-sz="x" aria-label="Закрити">×</button></div>' +
+      '<div class="sz-b"><p class="sz-how">Макет зроблено на базовому розмірі. Під кожен розмір нанесення ' +
+        'збільшується чи зменшується на стільки ж відсотків, на скільки виріб довший чи коротший за базовий: ' +
+        'ширина, висота, відступ від горловини й від центру (+ праворуч, − ліворуч). Округлено до 0,5 см. ' +
+        'Зеленим — розміри, що є в замовленні; червоним — вишивка понад ' + SZ_MAX.w + ' × ' + SZ_MAX.h + ' см.</p>' +
+        sizeHtml(list) + '</div></div>';
+    document.body.appendChild(d);
+    var close = function(){ d.remove(); };
+    d.addEventListener('click', function(e){
+      if(e.target === d) return close();
+      var b = e.target.closest && e.target.closest('[data-sz]');
+      if(!b) return;
+      var how = b.dataset.sz;
+      if(how === 'x') return close();
+      var txt = sizeText(list);
+      if(how === 'copy'){
+        var done = function(){ b.textContent = 'Скопійовано ✓'; };
+        try{ navigator.clipboard.writeText(txt).then(done, function(){ fallbackCopy(txt); done(); }); }
+        catch(err){ fallbackCopy(txt); done(); }
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([txt], { type:'text/plain;charset=utf-8' }));
+      a.download = 'нанесення-по-розмірах.txt';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+    });
+  }
+  function fallbackCopy(txt){
+    var ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    ta.remove();
+  }
   function renderList(){
     var box = document.getElementById('listBody');
     if(!OFFER){ box.innerHTML = ''; return; }
@@ -1503,9 +1687,11 @@
         pickItem(p[0], +p[1]);
       });
     });
-    document.querySelectorAll('.list-f .dg button').forEach(function(b){
+    document.querySelectorAll('.list-f .dg button[data-dg]').forEach(function(b){
       b.onclick = function(){ send({ act:'calcDump', how: b.dataset.dg }); };
     });
+    var szb = document.getElementById('szOpen');
+    if(szb) szb.onclick = sizeOpen;
     var fx = document.getElementById('fpFix');
     if(fx) fx.addEventListener('click', function(){
       fx.disabled = true;
