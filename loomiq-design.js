@@ -3506,14 +3506,14 @@
     }
     var t = [];
     var н = function(b, k, n){ return b + (n > 1 ? '_' + (k + 1) : ''); };
-    p.work.forEach(function(f, k){
-      t.push(tileHtml(f, н(nm.base, k, p.work.length), 'робота')); });
+    /* ЛИШЕ ОРИГІНАЛ, МОКАП І КАРТКА (Андрій, 13.10: «робота і SVG під нитки
+       не потрібна» — прибрати в усіх). Немає оригіналу (старі версії, готовий
+       дизайн, робота без адаптації) — оригіналом і є сама робота. */
+    var ориг = (p.orig || []).length ? p.orig : p.work;
     p.mock.forEach(function(f, k){
       t.push(tileHtml(f, н(nm.mock, k, p.mock.length), 'мокап')); });
-    (p.svg || []).forEach(function(f, k){
-      t.push(tileHtml(f, н(nm.base + '_нитки', k, p.svg.length) + '.svg', 'SVG під нитки')); });
-    (p.orig || []).forEach(function(f, k){
-      t.push(tileHtml(f, н(nm.base + '_оригінал', k, p.orig.length), 'оригінал')); });
+    ориг.forEach(function(f, k){
+      t.push(tileHtml(f, н(nm.base + '_оригінал', k, ориг.length), 'оригінал')); });
     if(p.sheet) t.push(tileHtml(p.sheet, nm.base + '_картка', 'картка'));
     p.shot.forEach(function(f, k){
       t.push(tileHtml(f, н(nm.base + '_wilcom', k, p.shot.length), 'скрін Wilcom')); });
@@ -6064,16 +6064,18 @@
       });
     }).length;
   }
-  /* ЧИ МОЖНА ВЗЯТИ НОВЕ (Андрій, 09.10): «не беруть нові замовлення, поки в
-     колонці правки, і в роботі не більше 5». Повертає причину відмови або ''. */
+  /* ЧИ МОЖНА ВЗЯТИ НОВЕ. Андрій, 13.10: «в сумі в роботі і в правці було 5
+     максимум… якщо 4 — ще 5-те можна взяти, 6 вже ні». Правки окремо не
+     блокують — лише разом із роботою, проти ліміту. Повертає причину або ''. */
   function takeBlock(m, kind){
     if(kind === 'stitch') return '';
-    var правок = busyOrders(m, 'graphic', true);
-    if(правок) return 'Спершу закрийте правки (' + правок + ') — нове візьмете після них';
     var ліміт = +((host().dzLimit && host().dzLimit()) || 0) || 5;
     var тримаю = busyOrders(m, 'graphic');
-    if(тримаю >= ліміт) return 'У вас уже ' + тримаю + ' в роботі (можна ' + ліміт +
-                               ') — здайте щось, щоб узяти нове';
+    if(тримаю >= ліміт){
+      var правок = busyOrders(m, 'graphic', true);
+      return 'У вас уже ' + тримаю + ' (в роботі ' + (тримаю - правок) + ', у правках ' + правок +
+             '; можна ' + ліміт + ') — здайте щось, щоб узяти нове';
+    }
     return '';
   }
   /* Мої дизайни в цьому замовленні — рівно ті, що передані мені. */
@@ -6983,7 +6985,7 @@
       gr.forEach(function(d, i){
         var v = verOkOf(d);
         if(!v){ if(D.dzReal(d)) бракує.push('ескіз' + (gr.length > 1 ? ' ' + (i + 1) : '') + ' не погоджено'); return; }
-        плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'graphic', i, v.n), { only: ['work', 'mock'], bare: true }));
+        плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'graphic', i, v.n), { only: ['orig', 'work', 'mock'], bare: true }));
         if(verThreads(v).length) нитки = нитки.concat(verThreads(v));
         var дз = gr.length > 1 ? ' · дизайн ' + (i + 1) : '';
         кнопки.push('<button type="button" class="dz-b" data-do="prod-view" data-u="' + esc(u.id) + '" data-g="' + i +

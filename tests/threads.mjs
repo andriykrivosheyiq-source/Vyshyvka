@@ -188,8 +188,8 @@ ok(версія.ролі === 'mock,orig,svg,work' && версія.нитки >= 
   'у версії: адаптована робота, оригінал, SVG під нитки, мокап і перелік ниток', 'версія: ' + JSON.stringify(версія));
 await p.evaluate(() => { const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); });
 const плитки = await p.evaluate(() => [...document.querySelectorAll('.dz-panel .dz-ch-m.is-ver .dz-tile-l')].map(x => x.textContent));
-ok(плитки.indexOf('SVG під нитки') >= 0 && плитки.indexOf('оригінал') >= 0 && плитки[0] === 'робота',
-  'у розмові: робота (адаптована), мокап, SVG під нитки, оригінал', 'плитки: ' + JSON.stringify(плитки));
+ok(плитки.join() === 'мокап,оригінал',
+  'у розмові лише мокап і оригінал — «робота» й SVG під нитки не показуються (13.10), хоч у версії лежать', 'плитки: ' + JSON.stringify(плитки));
 
 console.log('');
 console.log('═══ 4. БЕЗ АДАПТАЦІЇ НЕ ЗДАЄМО ═══');

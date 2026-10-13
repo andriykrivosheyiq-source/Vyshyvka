@@ -141,7 +141,7 @@ ok(коло.правка.стан === 'revision' && коло.правка.кол
   'повернули на правку — 12 годин', 'правка: ' + JSON.stringify(коло.правка));
 
 console.log('');
-console.log('═══ 3. ПОКИ Є ПРАВКИ — НОВЕ НЕ БЕРУТЬ; У РОБОТІ НЕ БІЛЬШЕ 5 ═══');
+console.log('═══ 3. У РОБОТІ Й ПРАВКАХ РАЗОМ — НЕ БІЛЬШЕ 5 ═══');
 await p.evaluate(() => {
   document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
   document.getElementById('view-design').style.display = 'block';
@@ -174,44 +174,38 @@ const open = async id => {
   await p.waitForTimeout(500);
 };
 await open('2000102');
-const правки = await p.evaluate(async () => {
-  const D = window.LQDesign;
-  const q = D.dzList(__j2.units[0], 'graphic')[0];
-  const підказка = ((document.querySelector('.dz-take-no') || {}).textContent || '').trim();
-  document.querySelector('[data-do="dz-take"]').click();
-  await new Promise(r => setTimeout(r, 600));
-  return { хто: q.who, підказка };
-});
-console.log('  ' + JSON.stringify(правки));
-ok(правки.хто === '' && /правки/i.test(правки.підказка), 'є правка — нове з черги не береться, і під «Беру» сказано чому',
-  'взяв нове попри правку: ' + JSON.stringify(правки));
-
+/* 13.10, Андрій: «в сумі в роботі і в правці 5 максимум… якщо 4 — ще 5-те
+   можна взяти, 6 вже ні». Правка окремо не блокує. */
 const ліміт = await p.evaluate(async () => {
   const D = window.LQDesign, U = window.LQDesign.ui;
-  /* Правку здав — тепер руки вільні. */
-  __fx.status = 'review';
-  D.dzVer(__fx, 'test@loomiq', [{ name:'b.png', url:'u2', role:'work' }], '', null, 'graphic');
   const типово = U.host.dzLimit();
-  contentData.b2c = Object.assign({}, contentData.b2c, { dzLimit: 1 });
-  /* Одне вже в роботі — друге з лімітом 1 не взяти. */
-  const w = D.dzNew(); D.dzAttach(w, 'test@loomiq', 'mgr@loomiq'); D.dzSend(w, 'mgr@loomiq'); D.dzTake(w, 'test@loomiq');
-  D.dzList(__j3.units[0], 'graphic').push(w);
+  const беру = async id => {
+    document.querySelector('[data-open="' + id + '"]').click();
+    await new Promise(r => setTimeout(r, 400));
+    const під = ((document.querySelector('.dz-take-no') || {}).textContent || '').trim();
+    document.querySelector('[data-do="dz-take"]').click();
+    await new Promise(r => setTimeout(r, 600));
+    return під;
+  };
+  const q2 = D.dzList(__j2.units[0], 'graphic')[0], q3 = D.dzList(__j3.units[0], 'graphic')[0];
+  contentData.b2c = Object.assign({}, contentData.b2c, { dzLimit: 2 });
+  /* 1 правка + 0 в роботі = 1 < 2 — бере. */
+  const під2 = await беру('2000102');
+  const з2 = q2.who;
+  /* 1 правка + 1 в роботі = 2 — третє не бере. */
   U.render(document.getElementById('dzRoot'));
-  document.querySelector('[data-open="2000102"]').click();
-  await new Promise(r => setTimeout(r, 400));
-  document.querySelector('[data-do="dz-take"]').click();
-  await new Promise(r => setTimeout(r, 600));
-  const q = D.dzList(__j2.units[0], 'graphic')[0];
-  const заЛіміту = q.who;
+  const під3 = await беру('2000103');
+  const з3 = q3.who;
   contentData.b2c.dzLimit = 5;
-  document.querySelector('[data-do="dz-take"]').click();
-  await new Promise(r => setTimeout(r, 600));
-  return { типово, заЛіміту, вільно: q.who };
+  U.render(document.getElementById('dzRoot'));
+  await беру('2000103');
+  return { типово, під2, з2, під3, з3, вільно: q3.who };
 });
 console.log('  ' + JSON.stringify(ліміт));
-ok(ліміт.типово === 5, 'за замовчуванням у роботі можна тримати 5', 'типовий ліміт: ' + ліміт.типово);
-ok(ліміт.заЛіміту === '' && ліміт.вільно === 'test@loomiq', 'понад ліміт не бере, у межах — бере',
-  'ліміт: ' + JSON.stringify(ліміт));
+ok(ліміт.типово === 5, 'за замовчуванням разом у роботі й правках — 5', 'типовий ліміт: ' + ліміт.типово);
+ok(ліміт.з2 === 'test@loomiq' && !ліміт.під2, 'є правка, але разом менше ліміту — нове береться', JSON.stringify(ліміт));
+ok(ліміт.з3 === '' && /у правках 1/.test(ліміт.під3), 'правка + робота = ліміт — нове не береться, під «Беру» сказано, скільки в роботі й у правках', JSON.stringify(ліміт));
+ok(ліміт.вільно === 'test@loomiq', 'ліміт більший — бере', JSON.stringify(ліміт));
 
 console.log('');
 console.log('═══ 4. ЗАЙВА КАРТИНКА — ГЕТЬ ЦІЛКОМ ═══');
