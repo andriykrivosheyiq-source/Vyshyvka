@@ -557,9 +557,9 @@ const цехЕкран = await p.evaluate(() => ({
   картка: [...document.querySelectorAll('.dz-panel .dz-tile-l')].some(x => x.textContent === 'картка'),
   чат: !!document.querySelector('.dz-panel [data-prodsay="prod"]') }));
 console.log('  ' + JSON.stringify(цехЕкран));
-ok(цехЕкран.ряд.length === 2 && /робота/.test(цехЕкран.ряд[1]) && /мокап/.test(цехЕкран.ряд[1]) &&
+ok(цехЕкран.ряд.length === 2 && /оригінал/.test(цехЕкран.ряд[1]) && !/робота/.test(цехЕкран.ряд[1]) && /мокап/.test(цехЕкран.ряд[1]) &&
    /скрін Wilcom/.test(цехЕкран.ряд[1]) && /файл для машини/.test(цехЕкран.ряд[1]) && !цехЕкран.картка && цехЕкран.чат,
-  'у цеху — файли одним рядком (робота, мокап, скрін Wilcom, файл для машини), без картки для клієнта, і переписка',
+  'у цеху — файли одним рядком (мокап, оригінал, скрін Wilcom, файл для машини), без «роботи» й без картки для клієнта, і переписка',
   'цех: ' + JSON.stringify(цехЕкран));
 await p.evaluate(async () => { document.querySelector('[data-prodsay="prod"]').value = 'Нитки чорні є?';
   await window.LQDesign.ui.act('prod-say', document.getElementById('dzRoot'), { as:'prod' }); });

@@ -193,7 +193,7 @@ const картка = await p.evaluate(() => ({
   беру: document.querySelectorAll('.dz-panel [data-do="dz-take"]').length,
   відмова: !!document.querySelector('.dz-panel [data-do="dz-no"]') }));
 console.log('  ' + JSON.stringify(картка));
-ok(картка.тз.join() === 'робота,мокап,картка', 'у ТЗ — погоджений ескіз: робота, мокап, картка', 'ТЗ: ' + JSON.stringify(картка.тз));
+ok(картка.тз.join() === 'мокап,оригінал,картка', 'у ТЗ — погоджений ескіз: мокап, оригінал, картка (без «роботи», 13.10)', 'ТЗ: ' + JSON.stringify(картка.тз));
 ok(картка.беру === 2 && !картка.відмова, 'на кожній позиції «Беру в роботу», відмовитись не можна', 'кнопки: ' + JSON.stringify(картка));
 /* Ліміт вишивальних — окремий: 1 одночасно. */
 await p.evaluate(() => { contentData.b2c = Object.assign({}, contentData.b2c, { stitchLimit: 1, dzLimit: 0 }); });
