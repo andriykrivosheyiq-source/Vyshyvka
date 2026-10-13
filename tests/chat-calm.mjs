@@ -293,18 +293,25 @@ const збій = await p.evaluate(async (відп) => {
   inp.dispatchEvent(new Event('input', { bubbles:true }));
   document.querySelector('[data-cw-go]').click();
   await new Promise(r => setTimeout(r, 700));
+  const невд = document.querySelector('#chatWin .od-crm-msg.ob-failed');
   const res = {
     уПолі: (document.querySelector('#chatWin .cw-inp') || {}).value || '',
+    червоне: невд ? невд.textContent : '',
+    повтор: !!(невд && невд.querySelector('[data-ob-retry]')),
     привид: !!document.querySelector('#chatWin .od-crm-msg.pending'),
     кнопка: !!(document.querySelector('[data-cw-go]') || {}).disabled
   };
+  /* Прибрати червоне — щоб не заважало наступним перевіркам. */
+  const пр = невд && невд.querySelector('[data-ob-drop]'); if(пр) пр.click();
   window.crmFetch = був;
   return res;
 }, ВІДПОВІДЬ);
-console.log('   у полі: «' + збій.уПолі.replace(/\n/g, ' ⏎ ') + '»');
-ok(збій.уПолі.indexOf('Третій абзац') >= 0,
-  'написане повернулось у поле цілим — правити є що',
-  'лист зник разом із відмовою сервера: «' + збій.уПолі + '»');
+console.log('   червоне: «' + збій.червоне.replace(/\s+/g, ' ').slice(0, 120) + '»');
+/* 14.10: як у Telegram — не вийшло, лишається червоним у стрічці з
+   «Повторити», а не повертається в поле (два місця з тим самим текстом). */
+ok(збій.червоне.indexOf('Третій абзац') >= 0 && /не надіслано/.test(збій.червоне) && збій.повтор,
+  'написане лишилось у стрічці червоним «не надіслано» з «Повторити» — нічого не загубилось',
+  'лист зник разом із відмовою сервера: «' + збій.червоне + '»');
 ok(!збій.привид,
   'і привида «надсилаю…» у стрічці не лишилось — дві відповіді на одне питання зайві',
   'у стрічці висить бульбашка, якої немає в клієнта');

@@ -1655,6 +1655,17 @@
   /* ЩЕ ЛЕТИТЬ. Бульбашка стоїть у стрічці одразу, просто приглушена: так
      видно, що система прийняла лист і працює, а не проковтнула його. */
   .od-crm-msg.pending{opacity:.62;}
+  /* Стан нашого повідомлення (14.10): ⏱ / ✓ / ✓✓ і червоне «не надіслано». */
+  .ob-t{font-weight:700;letter-spacing:-1px;}
+  .cw-else{margin:6px 0;padding:8px 10px;border-radius:10px;background:#FFF7E6;border:1px solid #F5C26B;color:#7A4B00;font-size:12.5px;line-height:1.4;}
+  .cw-else .cw-else-b{color:#7A4B00;border-color:#D99A2B;background:#fff;margin-left:6px;}
+  .ob-t.ob-2{color:#7dd3fc;}
+  .od-crm-msg.ob-failed{opacity:1;}
+  .od-crm-msg.ob-failed .od-crm-txt{outline:2px solid #F87171;outline-offset:2px;border-radius:6px;}
+  .od-crm-at.ob-fail{color:#FCA5A5 !important;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;}
+  .od-crm-msg:not(.mine) .od-crm-at.ob-fail{color:#B91C1C !important;}
+  .ob-b{font:inherit;font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;border:1px solid rgba(255,255,255,.5);
+    background:rgba(255,255,255,.12);color:#fff;cursor:pointer;}
   /* Крутилка — одна на всю переписку: і в кнопці «надіслати», і в смужці
      з фото. Без неї «надсилаємо» виглядає як застиглий напис. */
   .cw-spin{display:inline-block;width:13px;height:13px;border-radius:50%;
@@ -4601,6 +4612,10 @@
   .dz-cf-t{width:100%;box-sizing:border-box;font:inherit;font-size:13.5px;border:1px solid var(--line);
     border-radius:10px;padding:9px 11px;resize:vertical;}
   .dz-cf-f{display:flex;gap:8px;justify-content:flex-end;}
+  .dz-own-un{align-self:flex-start;margin-top:4px;font-size:11.5px;padding:4px 9px;}
+  .dz-cf-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-2px 0 8px;}
+  .dz-cf-s .dz-b{font-size:12px;}
+  .dz-cf-ok{font-style:normal;font-size:12px;color:#0F7A3D;}
   .dz-cf-f .dz-b[disabled]{opacity:.45;cursor:default;}
   /* Здати вишивку: два рядки — файл для машини й скрін з Wilcom. */
   .dz-su-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;
@@ -7563,28 +7578,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=514b1a40ea"></script>
-<script src="loomiq-fingerprint.js?v=514b1a40ea"></script>
-<script src="loomiq-pricing.js?v=514b1a40ea"></script>
+<script src="loomiq-select.js?v=b1a6c29d52"></script>
+<script src="loomiq-fingerprint.js?v=b1a6c29d52"></script>
+<script src="loomiq-pricing.js?v=b1a6c29d52"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=514b1a40ea"></script>
+<script src="loomiq-money-core.js?v=b1a6c29d52"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=514b1a40ea"></script>
-<script src="loomiq-bg.js?v=514b1a40ea"></script>
-<script src="loomiq-mock.js?v=514b1a40ea"></script>
+<script src="loomiq-design.js?v=b1a6c29d52"></script>
+<script src="loomiq-bg.js?v=b1a6c29d52"></script>
+<script src="loomiq-mock.js?v=b1a6c29d52"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=514b1a40ea"></script>
-<script src="loomiq-threads.js?v=514b1a40ea"></script>
+<script src="imagetracer.js?v=b1a6c29d52"></script>
+<script src="loomiq-threads.js?v=b1a6c29d52"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=514b1a40ea"></script>
+<script src="loomiq-cards.js?v=b1a6c29d52"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7629,7 +7644,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '514b1a40ea';
+var LQ_VER = 'b1a6c29d52';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24331,15 +24346,20 @@ function tgErrUa(j, status){
   if(j.error === 'telegram') return j.detail || 'Telegram відмовив';
   return TG_ERR_UA[j.error] || (j.error + (j.detail ? ' · ' + j.detail : ''));
 }
-async function tgSend(o, text, photo){
+async function tgSend(o, text, photo, again){
   const chat = tgChatOf(o), body = String(text || '').trim();
   const pic = String(photo || '').trim();
-  if(!chat || (!body && !pic)) return;
+  if(!chat || (!body && !pic)) return false;
   const base = tgBase();
-  if(!base){ toast('Спершу вкажіть адресу воркера Telegram'); return; }
+  if(!base){ toast('Спершу вкажіть адресу воркера Telegram'); return false; }
+  /* Текст — у чергу відправленого (14.10): доти при збої він просто
+     губився, бо поле вже очистили. Фото показує своя черга картинок. */
+  const x = body && !pic ? (again || obAdd(o, 'tg', { text: body })) : null;
+  if(x){ x.state = 'pending'; x.err = ''; obPaint(o); }
+  const невдача = msg => { if(x){ x.state = 'failed'; x.err = msg; obPaint(o); } toast('Не надіслалось: ' + msg); return false; };
   let idToken = '';
   try{ idToken = await fbAuth.currentUser.getIdToken(); }
-  catch(e){ toast('Сесія застаріла — увійдіть ще раз'); return; }
+  catch(e){ return невдача('сесія застаріла — увійдіть ще раз'); }
   try{
     const r = await fetch(base + '/send', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -24354,13 +24374,15 @@ async function tgSend(o, text, photo){
     }
     // Причину показуємо словами. Код на кшталт «not-configured» чесний, але
     // менеджеру не каже нічого — а тут кожна причина має конкретну дію.
-    if(!r.ok || !j.ok){ toast('Не надіслалось: ' + tgErrUa(j, r.status)); return; }
+    if(!r.ok || !j.ok) return невдача(tgErrUa(j, r.status));
+    if(x){ x.state = 'sent'; x.sentAt = new Date().toISOString(); obPaint(o); }
     // Стрічку не чіпаємо: воркер записав повідомлення в базу, і підписка
     // принесе його сама — інакше воно з'явилося б двічі.
     /* Хто відповів і скільки клієнт чекав — для дашборду й комунікейшн-менеджера. */
     try{ chatReplied(o, 'tg', waitingMin(o)); saveOrderMeta(o).catch(e => console.warn(e)); }catch(e){ console.warn(e); }
+    return true;
   }catch(e){
-    toast('Не надіслалось: ' + ((e && e.message) || 'немає звʼязку з воркером'));
+    return невдача((e && e.message) || 'немає звʼязку з воркером');
   }
 }
 
@@ -24409,7 +24431,19 @@ async function crmFetch(path, options){
      би на кашу, якої приймач не розбирає. */
   const isForm = (typeof FormData !== 'undefined') && (opt.body instanceof FormData);
   if(!isForm) opt.headers = Object.assign({ 'Content-Type': 'application/json' }, opt.headers || {});
-  const res = await fetch(base + path, opt);
+  /* ЛІМІТ ОЧІКУВАННЯ (14.10). Доти запит міг висіти без кінця, а кнопка —
+     разом із ним: «вони довго виснуть». 20 с — і чесне «не відповідає». */
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const мс = +opt.timeoutMs > 0 ? +opt.timeoutMs : 20000;
+  delete opt.timeoutMs;
+  if(ctrl) opt.signal = ctrl.signal;
+  const таймер = ctrl ? setTimeout(() => ctrl.abort(), мс) : null;
+  let res;
+  try{ res = await fetch(base + path, opt); }
+  catch(e){
+    if(e && e.name === 'AbortError'){ const er = new Error('Sitniks не відповідає ' + Math.round(мс / 1000) + ' с'); er.status = 0; throw er; }
+    throw e;
+  }finally{ if(таймер) clearTimeout(таймер); }
   const text = await res.text().catch(()=> '');
   if(!res.ok){
     // Текст помилки від Sitniks — єдине, що пояснює 400. Витягуємо його з
@@ -24678,8 +24712,7 @@ async function crmPickChat(o, r){
 }
 async function crmUnlink(o){
   delete o.crmChatId; delete o.crmChatName; delete o.crmNick;
-  delete crmChat[o.id];
-  crmStopPoll();
+  crmForget(o);
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
   renderOrderDrawer();
 }
@@ -25873,38 +25906,106 @@ async function crmSendPic(o, url, blob, local){
   err.log = crmPicLog;
   throw err;
 }
-async function crmSend(o, text){
+/* ══════════ ЧЕРГА ВІДПРАВЛЕНОГО — ЯК У TELEGRAM (14.10) ══════════
+
+   Андрій: «відправив — мені не показує, а клієнту прилітає… якісь
+   повідомлення надсилаються, якісь пропускаються». Причина була в тому, що
+   власна бульбашка лежала в тому самому списку, який опитування кожні 4 с
+   замінює відповіддю Sitniks. Sitniks ще не встиг повернути наше
+   повідомлення — і воно зникало з екрана (а то й ставало червоним
+   «видалено»), хоча клієнт його вже отримав.
+
+   Тепер відправлене живе окремо, у черзі, і показується ПОВЕРХ стрічки,
+   доки сервер не поверне його сам:
+     ⏱ надсилаю…   → ✓ надіслано (Sitniks прийняв) → зникає з черги, коли
+     те саме повідомлення з'явилось у переписці (там воно вже ✓✓).
+   Не вийшло — червоне «не надіслано» з «Повторити» / «Прибрати»: текст не
+   губиться ніколи. Однаково для Instagram (Sitniks) і Telegram. */
+const chatOutbox = {};      // o.id → [{ id, kind, text, files, state, at, err, pre }]
+function obNorm(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
+function obList(o){ return chatOutbox[o.id] || (chatOutbox[o.id] = []); }
+function obServer(o, kind){
+  return kind === 'tg' ? ((tgChat[o.id] || {}).msgs || []) : ((crmChat[o.id] || {}).msgs || []);
+}
+/* Скільки повідомлень із тим самим текстом уже було до натиску — за цим
+   числом і впізнаємо «наше повернулось», не плутаючи зі старим таким самим. */
+function obCount(list, t){ const n = obNorm(t); return list.filter(m => m && !m.gone && obNorm(m.text) === n).length; }
+function obAdd(o, kind, x){
+  x.id = 'ob' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  x.kind = kind; x.at = new Date().toISOString(); x.by = myName();
+  x.pre = obCount(obServer(o, kind), x.text);
+  obList(o).push(x);
+  return x;
+}
+function obPaint(o){
+  try{ renderOrderDrawer(); }catch(e){}
+  if(chatWin && chatWin.id === o.id) try{ renderChatWin(true); }catch(e){}
+}
+/* Що з черги ще показувати поверх стрічки. Повернулось у переписку —
+   прибираємо: далі воно живе як звичайне повідомлення. Надіслане, яке так і
+   не повернулось за 15 хв, теж прибираємо — Sitniks міг віддати його іншим
+   словами, а вічний «✓ надіслано» нічого вже не додає. */
+function obVisible(o, kind){
+  const l = chatOutbox[o.id];
+  if(!l || !l.length) return [];
+  const srv = obServer(o, kind);
+  const зараз = Date.now();
+  chatOutbox[o.id] = l.filter(x => {
+    if(x.kind !== kind) return true;
+    if(x.state === 'sent'){
+      if(x.text && obCount(srv, x.text) > x.pre) return false;
+      if(!x.text && x.ownT && srv.some(m => m && m.ownT === x.ownT)) return false;
+      if(зараз - Date.parse(x.sentAt || x.at) > 15 * 60000) return false;
+    }
+    return true;
+  });
+  return chatOutbox[o.id].filter(x => x.kind === kind);
+}
+async function obRetry(o, id){
+  const x = obList(o).filter(y => y.id === id)[0];
+  if(!x || x.state === 'pending') return;
+  if(x.kind === 'tg') return tgSend(o, x.text, '', x);
+  return crmSend(o, x.text, x);
+}
+function obDrop(o, id){
+  chatOutbox[o.id] = obList(o).filter(y => y.id !== id);
+  obPaint(o);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-ob-retry],[data-ob-drop]');
+  if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const o = (orders || []).find(x => x.id === b.dataset.obO);
+  if(!o) return;
+  if(b.dataset.obRetry) obRetry(o, b.dataset.obRetry);
+  else obDrop(o, b.dataset.obDrop);
+}, true);
+
+/* Картинка з лімітом часу: перебір способів Sitniks не має тягнутись без
+   кінця — 45 с, і чесне «не відповідає». */
+function crmPicTimed(o, url, blob, local){
+  return Promise.race([
+    crmSendPic(o, url, blob, local),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('Sitniks не прийняв картинку за 45 с')), 45000))
+  ]);
+}
+async function crmSend(o, text, again){
+  const t = String(text || '').trim();
+  if(!t) return false;
   const chatId = crmChatIdOf(o);
-  if(!chatId || !text.trim()) return;
+  if(!chatId){ toast('Розмову Instagram не привʼязано — надіслати нікуди'); return false; }
   const st = crmChat[o.id] || (crmChat[o.id] = { chatId });
   if(!st.chatId) st.chatId = chatId;
-  /* БУЛЬБАШКА ЗʼЯВЛЯЄТЬСЯ ОДРАЗУ, А НЕ ПІСЛЯ ВІДПОВІДІ СЕРВЕРА.
-
-     Доти власна репліка лягала в стрічку тільки після успішного POST — а
-     він триває секунду-дві, і всю цю секунду екран не відповідав нічим.
-     Так поводиться зіпсована програма, а не повільна мережа: у будь-якому
-     месенджері репліка стоїть у стрічці одразу, просто з позначкою, що
-     ще летить.
-
-     Позначку знімає відповідь сервера; якщо ж він відмовив — бульбашку
-     прибираємо зовсім, а текст повертаємо в поле. Червоний привид
-     «не надіслано» поруч із тим самим текстом у полі був би двома
-     відповідями на одне питання. */
-  const свій = { text: text.trim(), mine: true, at: '', by: myName(), pending: true };
-  if(st.msgs) st.msgs.push(свій);
-  renderOrderDrawer();
-  if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin(true);
-  const зняти = ()=>{
-    if(st.msgs){ const at = st.msgs.indexOf(свій); if(at >= 0) st.msgs.splice(at, 1); }
-  };
+  const x = again || obAdd(o, 'crm', { text: t });
+  x.state = 'pending'; x.err = '';
+  obPaint(o);
   try{
     const res = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages', {
       method: 'POST',
-      body: JSON.stringify({ text: text.trim() })
+      body: JSON.stringify({ text: t })
     });
-    свій.pending = false;
-    toast('Надіслано');
-    crmSent.add(text.trim());
+    x.state = 'sent'; x.sentAt = new Date().toISOString();
+    crmSent.add(t);
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
     /* Хто відповів і скільки клієнт чекав — до того, як кружечок згасне. */
     try{
@@ -25914,28 +26015,21 @@ async function crmSend(o, text){
     crmAnswered(o);              // відповіли — кружечок згасає
     /* Записуємо в картку, що це писали ми: Sitniks поверне це повідомлення
        без відправника, і впізнати його більше не буде чим. */
-    crmOutNote(o, text.trim());
+    crmOutNote(o, t);
     saveOrderMeta(o).catch(e => console.warn(e));
-    /* Бульбашка вже стоїть у стрічці — просто знімаємо з неї позначку «ще
-       летить». Через паузу перечитуємо з сервера: там воно вже з часом і в
-       правильному порядку, і наша копія тихо заміститься. */
-    renderOrderDrawer();
-    if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin();
+    obPaint(o);
+    /* Перечитуємо двічі: Sitniks віддає щойно надіслане не одразу. */
     setTimeout(function(){ crmPollOnce(o); }, 1200);
+    setTimeout(function(){ crmPollOnce(o); }, 5000);
+    return true;
   }catch(e){
     // 400 тут — відома невирішена проблема: Sitniks може не знати, у який
     // саме канал слати, або вікно відповіді закрите. Показуємо його текст.
-    зняти();
-    /* Текст повертаємо в поле — рівно там його й правитимуть. Лист на три
-       абзаци, який зник разом із відмовою сервера, не відновити нізвідки:
-       доти поле чистилось одразу при натиску, і при збої написане просто
-       пропадало. */
-    if(chatWin && chatWin.id === o.id)
-      chatWin.draft = (String(chatWin.draft || '').trim() ? chatWin.draft + '\n' : '') + text;
-    renderOrderDrawer();
-    if(chatWin && chatWin.id === o.id) renderChatWin();
-    toast('Не надіслалось: ' + (e.message || '') + ' · текст повернувся в поле');
+    x.state = 'failed'; x.err = (e && e.message) || 'помилка';
+    obPaint(o);
+    toast('Не надіслалось: ' + x.err + ' · «Повторити» — на самому повідомленні');
     console.warn('sitniks send', e, 'обʼєкт замовлення:', st.raw);
+    return false;
   }
 }
 
@@ -26018,7 +26112,7 @@ async function crmPollOnce(o){
    ПРАВИЛО: розмова неопрацьована, доки ОСТАННЄ СЛОВО ЗА КЛІЄНТОМ. Не «доки
    не прочитали»: прочитати й забути легко, і лічильник, який гасне від
    погляду, бреше вже за хвилину. */
-const CRM_SWEEP_MS = 60000;
+const CRM_SWEEP_MS = 20000;   // 14.10: раз на 20 с — нове від клієнта не чекає хвилину
 let crmSweepTimer = null, crmSweepBusy = false;
 /* Розмови, у яких замовлення ще немає. У розділі їх більше не показуємо —
    там лише те, що ми самі привʼязали, — але обхід їх усе одно читає: саме з
@@ -26119,7 +26213,7 @@ async function crmSweepOnce(){
          немає, а в списку розмов вона потрібна найбільше — саме такі й
          губляться. */
       if(!o){
-        if(info) crmInbox.push({ chatId:id, nick:crmNick(r) || crmName(r),
+        if(info) crmInbox.push({ chatId:id, nick:crmNick(r) || crmName(r), name: crmName(r), rawNick: crmNick(r),
                                  at:info.at, text:info.text, mine:info.mine });
         return;
       }
@@ -26147,6 +26241,7 @@ async function crmSweepOnce(){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
       renderBoard();
     }
+    crmElsewhereScan();
     chatsLive();      // список розмов живий: нове піднімається саме
   }catch(e){
     /* 429 чи тимчасовий збій — просто пропускаємо такт. Наступний буде за
@@ -26154,6 +26249,54 @@ async function crmSweepOnce(){
     if(!(e && e.status === 429)) console.warn('обхід розмов', e);
   }finally{ crmSweepBusy = false; }
 }
+/* ══════════ КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ (14.10) ══════════
+   Андрій: клієнт написав «Пап», а CRM каже «не писав 18 днів». Буває, що
+   людина пише нам з того самого профілю, але Sitniks заводить нову
+   розмову — а картка привʼязана до старої й нового не бачить. Обхід
+   розмов знає всі розмови; якщо неприв'язана розмова має те саме імʼя чи
+   нік, що й прив'язана до замовлення, і в ній свіжіше повідомлення —
+   кажемо про це в самому чаті кнопкою «Перевʼязати». */
+function crmKeyName(v){ return String(v || '').replace(/^@/, '').trim().toLowerCase(); }
+function crmElsewhereScan(){
+  const по = {};
+  /* Розмова, привʼязана до іншого замовлення, — не «інша розмова», а чуже
+     замовлення того самого клієнта. */
+  const звʼязані = new Set((orders || []).filter(o => o && o.crmChatId).map(o => String(o.crmChatId)));
+  (crmInbox || []).forEach(r => {
+    if(звʼязані.has(String(r.chatId))) return;
+    [r.rawNick, r.name].map(crmKeyName).filter(k => k.length >= 3).forEach(k => {
+      if(!по[k] || String(r.at) > String(по[k].at)) по[k] = r;
+    });
+  });
+  (orders || []).forEach(o => {
+    if(!o || !o.crmChatId){ if(o) delete o.__elsewhere; return; }
+    const k = [o.crmNick, o.crmChatName].map(crmKeyName).filter(x => x.length >= 3);
+    const r = k.map(x => по[x]).filter(Boolean).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+    if(r && r.chatId !== String(o.crmChatId) && !r.mine && String(r.at) > String(o.crmAt || ''))
+      o.__elsewhere = { chatId: r.chatId, at: r.at, text: String(r.text || '').slice(0, 80), nick: r.rawNick || '', name: r.name || '' };
+    else delete o.__elsewhere;
+  });
+}
+function crmElsewhereHtml(o){
+  const e = o && o.__elsewhere;
+  if(!e) return '';
+  return `<div class="cw-else">Клієнт пише в <b>іншу розмову</b> Sitniks${e.at ? ' · ' + escapeHtml(crmKyiv(e.at).slice(5, 16)) : ''}${
+    e.text ? ': «' + escapeHtml(e.text) + '»' : ''}. Ця картка привʼязана до старої — нового звідти тут не видно.
+    <button type="button" class="ob-b cw-else-b" data-crm-rebind="${escapeHtml(o.id)}">Перевʼязати на нову</button></div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-crm-rebind]');
+  if(!b) return;
+  const o = (orders || []).find(x => x.id === b.dataset.crmRebind);
+  if(!o || !o.__elsewhere) return;
+  const r = o.__elsewhere;
+  if(!confirm('Перевʼязати картку на нову розмову' + (r.name ? ' «' + r.name + '»' : '') + '? Стару розмову з картки знімемо.')) return;
+  delete o.__elsewhere;
+  delete crmChat[o.id];
+  await crmPickChat(o, { chatId: r.chatId, name: r.name, nick: r.nick });
+  if(chatWin && chatWin.id === o.id) renderChatWin();
+  toast('Перевʼязано — тепер видно нову розмову');
+});
 /* ══════════ СПИСОК РОЗМОВ ══════════════════════════════════════════════
    Канбан упорядкований ЗА ПРОЦЕСОМ: картка стоїть у своїй колонці, і якщо
    їх тридцять, свіже повідомлення все одно треба знайти очима. Переписка
@@ -26303,7 +26446,7 @@ function renderChats(dir){
   root.querySelectorAll('[data-chl]').forEach(b => b.addEventListener('click', async ()=>{
     const r = rows[+b.dataset.chl];
     if(!r || !r.o) return;
-    chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm', { host: chatsHostId(dir) });
+    chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm', { host: chatsHostId(dir), dir });
     renderChats(dir);
   }));
 }
@@ -28278,16 +28421,21 @@ let cwMainTop = 0;    // прокрутка дошки, поки її ховає
 /* Одна форма повідомлення на обидва джерела — інакше кожну дрібницю
    (час, підпис автора, картинку) довелось би правити у двох місцях. */
 function chatMsgs(o, kind){
+  const черга = obVisible(o, kind === 'tg' ? 'tg' : 'crm').map(x => ({
+    at: x.at, text: x.text, mine: true, kind: 'text', by: x.by, files: x.files || [],
+    pending: x.state === 'pending', ob: x.state, obId: x.id, obErr: x.err, obO: o.id }));
   if(kind === 'tg'){
     return ((tgChat[o.id] || {}).msgs || []).map(m => ({
       at: m.at, text: m.text, mine: m.mine, kind: m.kind, by: m.by, gone: !!m.gone,
-      files: m.file ? [{ url: m.file, kind: 'img' }] : []
-    }));
+      files: m.file ? [{ url: m.file, kind: 'img' }] : [], srv: true
+    })).concat(черга);
   }
   return ((crmChat[o.id] || {}).msgs || []).map(m => ({
     at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
-    pending: !!m.pending, files: m.files || []
-  }));
+    pending: !!m.pending, files: m.files || [], srv: !m.local,
+    /* Своє фото, яке Sitniks прийняв, але ще не повернув у переписку, — ✓. */
+    ob: (m.local && !m.pending) ? 'sent' : undefined
+  })).concat(черга);
 }
 /* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
    кутами — видно, що це одна репліка.
@@ -28415,7 +28563,9 @@ function chatRowsHtml(msgs){
      рядком розмови нічого не відділяє. */
   let межа = -1;
   {
+    /* Наше з черги відправленого (ще в дорозі чи не вийшло) межі не зсуває. */
     let i = list.length - 1, n = 0;
+    while(i >= 0 && list[i] && list[i].ob) i--;
     while(i >= 0 && list[i] && (list[i].gone || !list[i].mine)){
       if(!list[i].gone) n++;
       i--;
@@ -28437,11 +28587,11 @@ function chatRowsHtml(msgs){
     if(до){
       let свіже = -1;
       for(let k = межа; k < list.length; k++)
-        if(list[k] && !list[k].gone && (!list[k].at || list[k].at > до)){ свіже = k; break; }
+        if(list[k] && !list[k].gone && !list[k].ob && (!list[k].at || list[k].at > до)){ свіже = k; break; }
       межа = свіже;
     }
   }
-  const новихN = (межа >= 0) ? list.slice(межа).filter(m => m && !m.gone).length : 0;
+  const новихN = (межа >= 0) ? list.slice(межа).filter(m => m && !m.gone && !m.ob).length : 0;
   return list.map((m, i) => {
     const loc = crmKyiv(m.at);
     const day = loc.slice(0, 10);
@@ -28481,7 +28631,7 @@ function chatRowsHtml(msgs){
     const sign = (m.mine && m.by) ? String(m.by).split('@')[0] : '';
     return sep + `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}${
-        m.gone ? ' gone' : ''}${m.pending ? ' pending' : ''}">
+        m.gone ? ' gone' : ''}${m.pending ? ' pending' : ''}${m.ob === 'failed' ? ' ob-failed' : ''}">
         ${m.gone ? `<div class="od-crm-gone">Видалено ${
           m.mine ? 'нами' : 'клієнтом'} — у чаті цього більше немає</div>` : ''}
         ${crmFilesHtml(m.files)}
@@ -28492,10 +28642,18 @@ function chatRowsHtml(msgs){
              сервер), а хто його написав — відомо вже зараз. */''}
         ${/* «Надсилаю…» замість часу, поки репліка ще летить: часу в неї
              поки що немає й бути не може, а сказати щось треба. */''}
-        ${(time || sign || m.pending) ? `<div class="od-crm-at"${
+        ${/* Стан нашого повідомлення (14.10): ⏱ летить, ✓ Sitniks прийняв,
+             ✓✓ уже в переписці, червоне — не вийшло, з «Повторити». */''}
+        ${m.ob === 'failed'
+          ? `<div class="od-crm-at ob-fail">не надіслано${m.obErr ? ' · ' + escapeHtml(String(m.obErr).slice(0, 90)) : ''}
+               <button type="button" class="ob-b" data-ob-retry="${escapeHtml(m.obId)}" data-ob-o="${escapeHtml(m.obO)}">↻ Повторити</button>
+               <button type="button" class="ob-b" data-ob-drop="${escapeHtml(m.obId)}" data-ob-o="${escapeHtml(m.obO)}">Прибрати</button></div>`
+          : (time || sign || m.pending || m.ob) ? `<div class="od-crm-at"${
           full ? ` title="${escapeHtml(full)}"` : ''}>${
-          m.pending ? 'надсилаю…' + (sign ? ' · ' + escapeHtml(sign) : '')
-                    : escapeHtml([time, sign].filter(Boolean).join(' · '))}</div>` : ''}
+          m.pending ? '<span class="ob-t" title="Надсилаю…">⏱</span> надсилаю…' + (sign ? ' · ' + escapeHtml(sign) : '')
+          : m.ob === 'sent' ? escapeHtml([crmKyiv(m.at).slice(11, 16), sign].filter(Boolean).join(' · ')) + ' <span class="ob-t" title="Sitniks прийняв — чекаємо, коли з\'явиться в переписці">✓</span>'
+                    : escapeHtml([time, sign].filter(Boolean).join(' · ')) +
+                      (m.mine && m.srv && !m.gone ? ' <span class="ob-t ob-2" title="У переписці клієнта">✓✓</span>' : '')}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -28575,7 +28733,17 @@ const QR_DEFAULT = [
 ];
 function quickReplies(){
   const q = (contentData || {}).quickReplies;
-  return (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
+  const l = (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
+  /* НАПРЯМ, ЯКИЙ ЗЛЕТІВ (14.10). Редактор у налаштуваннях доти зберігав
+     заготовки без `dir`, і B2B-скрипти почали показуватись у B2C й навпаки.
+     Повертаємо його за назвою («· B2B» / «· B2C»); решту людина розкладе
+     сама в редакторі. */
+  return l.map(x => {
+    if(!x || x.dir) return x;
+    const t = String(x.t || '');
+    const d = /·\s*B2C\s*$/i.test(t) ? 'b2c' : /·\s*B2B\s*$/i.test(t) ? 'b2b' : '';
+    return d ? Object.assign({}, x, { dir: d }) : x;
+  });
 }
 /* ── ЗАГОТОВКИ РІЗНИХ НАПРЯМІВ ────────────────────────────────────────────
 
@@ -28594,8 +28762,12 @@ function qrDirOf(q){
   const d = String((q && q.dir) || '').toLowerCase();
   return (d === 'b2b' || d === 'b2c') ? d : '';
 }
+/* Напрям розмови: розділ, з якого її відкрили, інакше — замовлення. */
+function chatDirOf(o){
+  return (chatWin && o && chatWin.id === o.id && chatWin.sect) ? chatWin.sect : orderDir(o);
+}
 function quickRepliesFor(o){
-  const dir = orderDir(o);
+  const dir = chatDirOf(o);
   return quickReplies().filter(q => { const d = qrDirOf(q); return !d || d === dir; });
 }
 /* ── СКРИПТ ЗА ПОЗНАЧКОЮ ──────────────────────────────────────────────────
@@ -28626,18 +28798,45 @@ const SCRIPT_FALL = {
     ready:'Ми зробили макет, підкажіть, чи вам подобається?)'
   }
 };
-function scriptFor(o, key, vars){
+function scriptFor(o, key, vars, dir){
   const mark = SCRIPT_MARK[key] || '';
   let t = '';
   if(mark){
-    const q = quickRepliesFor(o).filter(x => String((x && x.m) || '').indexOf(mark) >= 0)[0];
+    const d0 = (dir === 'b2c' || dir === 'b2b') ? dir : chatDirOf(o);
+    const q = quickReplies().filter(x => { const d = qrDirOf(x); return !d || d === d0; })
+      .filter(x => String((x && x.m) || '').indexOf(mark) >= 0)[0];
     t = q ? String(q.m) : '';
   }
-  if(!t) t = (SCRIPT_FALL[orderDir(o)] || SCRIPT_FALL.b2b)[key] || '';
+  if(!t) t = (SCRIPT_FALL[(dir === 'b2c' || dir === 'b2b') ? dir : chatDirOf(o)] || SCRIPT_FALL.b2b)[key] || '';
   return t.replace(/\{макет\}|\{правки\}|\{готовий\}/g, '')
           .replace(/\{версія\}/g, 'v' + (((vars || {}).v) || 1))
           .replace(/\{імʼя\}|\{ім'я\}/g, String((o && (o.crmChatName || o.name)) || '').split(' ')[0] || '')
           .trim();
+}
+/* ЗБЕРЕГТИ ПРАВЛЕНИЙ ТЕКСТ У ЗАГОТОВКУ НАЗАВЖДИ (14.10). Позначку
+   ({макет}, {готовий}…) лишаємо попереду — за нею скрипт і впізнають;
+   номер версії повертаємо назад у {версія}. Своєї заготовки для цього
+   напряму немає — заводимо. */
+async function scriptSave(o, key, text, vars, dir){
+  if(!canQuick()){ toast('Правити заготовки — не ваша зона'); return false; }
+  const mark = SCRIPT_MARK[key] || '';
+  const d0 = (dir === 'b2c' || dir === 'b2b') ? dir : chatDirOf(o);
+  let t = String(text || '').trim();
+  if(!mark || !t) return false;
+  const v = vars && vars.v;
+  if(v) t = t.split('v' + v).join('{версія}');
+  const list = quickReplies().map(x => { const y = { t: x.t, m: x.m }; const d = qrDirOf(x); if(d) y.dir = d; return y; });
+  const i = list.findIndex(x => String(x.m || '').indexOf(mark) >= 0 && qrDirOf(x) === d0);
+  if(i >= 0) list[i].m = mark + ' ' + t;
+  else list.push({ t: ({ design1:'Макет готовий', design2:'Внесли правки', ready:'Готовий дизайн' })[key] + ' · ' + d0.toUpperCase(),
+                   m: mark + ' ' + t, dir: d0 });
+  try{
+    await PHOTOS_DOC.set({ quickReplies: list }, { merge:true });
+    contentData.quickReplies = list;
+    qrDraft = null;
+    toast('Заготовку збережено');
+    return true;
+  }catch(e){ console.error(e); toast('Не збереглось'); return false; }
 }
 /* СТАНДАРТНІ ЗАГОТОВКИ ДОХОДЯТЬ І ДО НАЛАШТОВАНОГО АКАУНТА.
 
@@ -28956,7 +29155,7 @@ function qrPanelHtml(o){
      розмові з приватною людиною виглядає як лист не туди. Номер у списку
      лишається ПОЧАТКОВИЙ — за ним заготовку відкривають на правку, і
      перенумерувати їх означало б редагувати не ту. */
-  const dir = orderDir(o);
+  const dir = chatDirOf(o);
   const rows = L.map((q, i)=> {
     const d = qrDirOf(q);
     if(d && d !== dir) return '';
@@ -29064,12 +29263,15 @@ function chatOpen(o, kind, opts){
      замовлення. На картку веде номер у шапці розмови — коли він справді
      знадобиться. */
   const host = opts && opts.host;
-  if(!host && drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
+  if(!host && !(opts && opts.noDrawer) && drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
   // solo — вікно відкрили з дошки, без картки. Тоді підписку на розмову й
   // позначку «прочитано» бере на себе воно саме: інакше стрічка була б
   // мертвою, а лічильник пропущених не гаснув би ніколи.
   const solo = host ? true : (drawerOrderId !== o.id);
-  chatWin = { id: o.id, kind, solo, dir: host ? orderDir(o) : null,
+  /* Розділ, звідки відкрили (14.10): «Чати B2C» — заготовки B2C, навіть
+     якщо замовлення прийшло з Канбану. Інакше — за напрямом замовлення. */
+  const розділ = (opts && (opts.dir === 'b2c' || opts.dir === 'b2b')) ? opts.dir : '';
+  chatWin = { id: o.id, kind, solo, dir: host ? (розділ || orderDir(o)) : null, sect: розділ || orderDir(o),
               draft: (kind === 'tg' ? (tgChat[o.id] || {}).draft
                                     : (crmChat[o.id] || {}).draft) || '' };
   if(solo){
@@ -29288,6 +29490,7 @@ function renderChatWin(toBottom){
       ${/* Смуга просто над полем — там, де ухвалюють рішення писати. У
            шапці стоїть лічильник, і поки час є, цього досить; коли часу
            немає, попередження мусить бути на дорозі, а не збоку. */''}
+      ${chatWin.kind === 'crm' ? crmElsewhereHtml(o) : ''}
       ${(win && win.closed) ? `<div class="cw-dead">Вікно відповіді Instagram закрите —
         клієнт не писав ${escapeHtml(crmLeftLabel(win.since))}.
         Sitniks лист прийме, а до людини він не дійде. Напишіть з іншого каналу
@@ -29693,14 +29896,14 @@ function wireChatWin(box, o, focusIn){
 
 async function chatSend(o, text){
   if(!canWrite()){ toast('Писати клієнту — не ваша зона'); return; }
-  if(chatWin.kind === 'tg') await tgSend(o, text);
-  else await crmSend(o, text);
+  const вийшло = (chatWin.kind === 'tg') ? await tgSend(o, text) : await crmSend(o, text);
   /* Перемальовуємо саме зону переписки. Доти після надсилання оновлювалась
      лише картка, і власна репліка зʼявлялась у стрічці аж за секунду —
      коли приходила відповідь сервера. Виглядало як «не надіслалось». */
   if(chatWin) renderChatWin(true);
   touchOrder(o);        // написали клієнту — картка йде нагору
   renderBoard();
+  return вийшло;
 }
 
 /* Фото: спершу в Cloudinary. Telegram забирає картинку за адресою сам, і
@@ -29782,13 +29985,14 @@ async function chatSendPics(o, pics, text){
     return;
   }
   if(isTg){
+    /* tgSend тепер чесно каже, чи вийшло (14.10) — доти помилка тут не
+       ловилась ніколи, і смужка чистилась, хоч фото не пішло. */
     for(const u of urls){
-      try{ await tgSend(o, '', u); }
-      catch(e){ console.warn('tg photo', e); back(); toast('Фото не надіслалось'); return; }
+      if(!(await tgSend(o, '', u))){ back(); return; }
     }
   }else{
     try{
-      const way = await crmSendPic(o, urls, blobs, мій);
+      const way = await crmPicTimed(o, urls, blobs, мій);
       /* Впізнати власне вкладення в стрічці за адресою не вийде: Sitniks
          забирає картинку до себе й віддає вже своєю (див. crmOutOwn).
          Адреси кладемо про запас, а справжня прикмета — номер
@@ -30575,8 +30779,9 @@ document.getElementById('tgapi-save').addEventListener('click', async ()=>{
    тож він однаковий у всіх, хто заходить в адмінку, і не губиться разом із
    браузером менеджера. */
 let qrDraft = null;
+/* Напрям тримаємо й тут (14.10) — доти цей редактор його стирав. */
 function qrList(){
-  if(!qrDraft) qrDraft = quickReplies().map(q => ({ t: q.t || '', m: q.m || '' }));
+  if(!qrDraft) qrDraft = quickReplies().map(q => ({ t: q.t || '', m: q.m || '', dir: qrDirOf(q) }));
   return qrDraft;
 }
 function renderQrList(){
@@ -30586,6 +30791,11 @@ function renderQrList(){
     <div class="qr-row" data-i="${i}">
       <input type="text" maxlength="40" placeholder="назва" value="${escapeHtml(q.t)}">
       <textarea rows="2" maxlength="900" placeholder="текст повідомлення">${escapeHtml(q.m)}</textarea>
+      <select class="qr-dir" title="Кому показувати цю заготовку">
+        <option value=""${q.dir ? '' : ' selected'}>Обом</option>
+        <option value="b2b"${q.dir === 'b2b' ? ' selected' : ''}>B2B</option>
+        <option value="b2c"${q.dir === 'b2c' ? ' selected' : ''}>B2C</option>
+      </select>
       <button class="qr-del" title="Видалити">🗑</button>
     </div>`).join('') ||
     '<div class="sub">Заготовок немає. Натисніть «+ Додати».</div>';
@@ -30593,6 +30803,7 @@ function renderQrList(){
     const i = +row.dataset.i;
     row.querySelector('input').addEventListener('input', e=> qrList()[i].t = e.target.value);
     row.querySelector('textarea').addEventListener('input', e=> qrList()[i].m = e.target.value);
+    row.querySelector('.qr-dir').addEventListener('change', e=> qrList()[i].dir = e.target.value);
     row.querySelector('.qr-del').addEventListener('click', ()=>{
       qrList().splice(i, 1); renderQrList();
     });
@@ -30603,14 +30814,16 @@ document.getElementById('qr-add').addEventListener('click', ()=>{
 });
 document.getElementById('qr-reset').addEventListener('click', ()=>{
   if(!confirm('Повернути стандартний набір заготовок?')) return;
-  qrDraft = QR_DEFAULT.map(q => ({ t:q.t, m:q.m })); renderQrList();
+  qrDraft = QR_DEFAULT.map(q => ({ t:q.t, m:q.m, dir: qrDirOf(q) })); renderQrList();
 });
 document.getElementById('qr-save').addEventListener('click', async ()=>{
-  const list = qrList().map(q => ({ t: String(q.t || '').trim(), m: String(q.m || '').trim() }))
+  const list = qrList().map(q => { const o = { t: String(q.t || '').trim(), m: String(q.m || '').trim() };
+                                     const d = qrDirOf(q); if(d) o.dir = d; return o; })
                        .filter(q => q.m);
   try{
     await PHOTOS_DOC.set({ quickReplies: list }, { merge:true });
-    qrDraft = list.map(q => ({ t:q.t, m:q.m }));
+    contentData.quickReplies = list;
+    qrDraft = list.map(q => ({ t:q.t, m:q.m, dir: qrDirOf(q) }));
     renderQrList();
     toast(list.length ? ('Збережено: ' + list.length) : 'Заготовки очищено');
   }catch(e){ console.error(e); toast('Помилка'); }
@@ -30934,6 +31147,7 @@ async function designBindChat(o, text){
 
      Зовні це виглядало як «нік не підтягується», хоча Sitniks його чесно
      віддавав, а ми самі його викидали рядком нижче. */
+  if(o.crmChatId && String(o.crmChatId) !== id) crmForget(o);
   if(who && who.nick) o.crmNick = String(who.nick).replace(/^@/, '');
   const імʼя = (who && who.name) || '';
   const підпис = імʼя || (who && who.nick) || o.crmChatName || ('чат ' + id);
@@ -30949,11 +31163,21 @@ async function designBindChat(o, text){
   toast('Розмову привʼязано: ' + crmWhoLabel(o));
   return true;
 }
+/* Відвʼязали — забуваємо й те, що памʼятала сесія (14.10): доти кеш
+   розмови лишався, і після перевʼязки повідомлення йшли в стару. */
+function crmForget(o){
+  delete crmChat[o.id];
+  delete chatOutbox[o.id];
+  delete o.__elsewhere;
+  if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm'){ try{ chatClose(); }catch(e){} }
+  try{ crmStopPoll(); }catch(e){}
+}
 function designUnbindChat(o){
   if(!o) return;
   delete o.crmChatId; delete o.crmChatName; delete o.crmNick;
+  crmForget(o);
   saveOrderMeta(o).catch(e => console.warn(e));
-  toast('Розмову відвʼязано');
+  toast('Розмову відвʼязано — можна вставити адресу іншої');
 }
 /* Нове замовлення B2C. Це звичайне замовлення — просто іншого напряму й зі
    своїм рядом номерів. Окремої сутності в напряму немає навмисно: усе, що
@@ -31273,7 +31497,8 @@ function openDesign(){
     hasIg: o => !!(o && chanHasChat(o, 'ig')),
     hasTg: o => !!(o && chanHasChat(o, 'tg')),
     canChat: () => canSeeChat(),
-    chatTg: o => { try{ chatOpen(o, 'tg'); }catch(e){ toast('Розмову відкрити не вдалось'); } },
+    chatTg: (o, opt) => { try{ chatOpen(o, 'tg', { dir:'b2c', noDrawer: !!(opt && opt.seat && opt.seat !== 'acct') }); }
+                          catch(e){ toast('Розмову відкрити не вдалось'); } },
     /* Скільки клієнт написав і ми не прочитали — те саме число, що на
        картці Канбану. Відділ малює його кружечком на Instagram. */
     clientUnread: o => { try{ return orderUnread(o) || 0; }catch(e){ return 0; } },
@@ -31388,18 +31613,37 @@ function openDesign(){
        шанс повернутись не туди. Механізм той самий, що й у чаті, — Sitniks
        приймає файл тим самим способом; різниця лише в тому, що відділу не
        треба для цього нікуди йти. */
+    /* Показ макета з картки (14.10): той самий шлях, що й у вікні чату —
+       картинка одразу в стрічці «надсилаю…», чесне «не вийшло», ліміт часу.
+       Доти помилки ковтались, і «надіслано» могло бути неправдою. */
     tellPic: async (o, url, text) => {
+      if(!crmChatIdOf(o) && tgChatOf(o)){
+        if(text && !(await tgSend(o, text))) return false;
+        return await tgSend(o, '', url);
+      }
+      if(!crmChatIdOf(o)){ toast('Розмову не привʼязано — надіслати нікуди'); return false; }
+      if(text && !(await designTell(o, text))) return false;
+      const мій = crmPicsAdd(o, [url], 'pending');
+      try{ crmPicsShow(o); }catch(e){}
       try{
-        if(text) await designTell(o, text);
-        await crmSendPic(o, url, null);
+        await crmPicTimed(o, url, null, мій);
+        crmOutNote(o, url); crmSent.add(url);
+        crmAnswered(o);
+        saveOrderMeta(o).catch(e => console.warn(e));
         return true;
-      }catch(e){ console.error('надсилання картинки', e); return false; }
+      }catch(e){
+        console.error('надсилання картинки', e);
+        crmPicsDrop(o, мій.k); try{ crmPicsShow(o); }catch(e2){}
+        toast('Картинку не прийняли: ' + ((e && e.message) || 'Sitniks відмовив'));
+        return false;
+      }
     },
     /* Заготовка повідомлення. Своя для B2B і своя для B2C — і своя для
        першого показу макета й для наступних: «подивіться, як вийшло» і
        «внесли правки» це різні листи, і слати перший удруге виглядає так,
        ніби ми забули, про що йшлося. */
-    script: (o, key, vars) => scriptFor(o, key, vars),
+    script: (o, key, vars) => scriptFor(o, key, vars, 'b2c'),
+    scriptSave: (o, key, text, vars) => scriptSave(o, key, text, vars, 'b2c'),
     /* Сказати клієнту, не виходячи з відділу. Менеджер доти мусив закрити
        розділ, знайти діалог, вставити посилання руками — і на кожному з цих
        кроків щось губилось. Канал беремо той, що вже привʼязаний до
@@ -31411,7 +31655,10 @@ function openDesign(){
        вже прочитано. */
     bind: (o, url) => designBindChat(o, url),
     unbind: o => designUnbindChat(o),
-    chat: o => { try{ chatOpen(o, 'crm'); }catch(e){ toast('Розмову відкрити не вдалось'); } },
+    /* З відділу B2C — заготовки B2C (14.10); не з дошки акаунта — без
+       картки акаунта праворуч, там уже своя панель дошки. */
+    chat: (o, opt) => { try{ chatOpen(o, 'crm', { dir:'b2c', noDrawer: !!(opt && opt.seat && opt.seat !== 'acct') }); }
+                        catch(e){ toast('Розмову відкрити не вдалось'); } },
     /* Відправка живе в картці замовлення, і створювати накладну вдруге тут
        не можна: два місця для однієї дії рано чи пізно дадуть дві накладні
        на одну посилку. Відділ показує стан і веде туди, де це роблять. */
@@ -31477,11 +31724,13 @@ function openDesign(){
 async function designTell(o, text){
   const t = String(text || '').trim();
   if(!o || !t) return false;
+  /* Розмову беремо з картки, а не лише з кешу відкритого вікна (14.10):
+     доти «Надіслати клієнту» з дизайну без відкритого в цьому сеансі чату
+     казало «каналу немає». І результат — справжній, не завжди «так». */
   try{
-    const st = crmChat[o.id];
-    if(st && st.chatId){ await crmSend(o, t); return true; }
-    if(o.tgChatId){ await tgSend(o, t); return true; }
-  }catch(e){ console.error('надсилання', e); }
+    if(crmChatIdOf(o)) return await crmSend(o, t);
+    if(tgChatOf(o)) return await tgSend(o, t);
+  }catch(e){ console.error('надсилання', e); return false; }
   try{ await navigator.clipboard.writeText(t); toast('Каналу немає — текст у буфері'); }
   catch(e){ toast('Каналу немає, і буфер недоступний'); }
   return false;
