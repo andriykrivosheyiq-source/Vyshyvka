@@ -4840,6 +4840,31 @@
      короткі. */
   .dz-pick-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;}
   .dz-pick-row .dz-pick-c{width:auto;min-width:74px;}
+  /* Готовий дизайн (13.10): перемикач, блок у позиції, вікно вибору. */
+  .dz-kind{display:inline-flex;gap:0;margin:0 0 8px;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .dz-kind-b{font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border:0;background:#fff;color:var(--ink-soft);cursor:pointer;}
+  .dz-kind-b.on{background:var(--ink);color:#fff;}
+  .dz-kind-b:disabled{opacity:.45;cursor:not-allowed;}
+  .dz-ready{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#FBFAFF;}
+  .dz-ready-h{display:flex;align-items:center;gap:10px;}
+  .dz-ready-i{all:unset;cursor:pointer;width:52px;height:52px;flex:none;border-radius:9px;background:#fff;border:1px solid var(--line);overflow:hidden;}
+  .dz-ready-i img{width:100%;height:100%;object-fit:contain;}
+  .dz-ready-t{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .dz-ready-t i{font-style:normal;font-size:12px;color:var(--ink-soft);}
+  .dz-rdp-w{width:min(980px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;}
+  .dz-rdp-w .dz-pick-h{display:flex;align-items:center;gap:10px;}
+  .dz-rdp-w .dz-pick-h .dz-x{margin-left:auto;}
+  .dz-rdp-q{font:inherit;font-size:14px;margin:0 16px 10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;}
+  .dz-rdp-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:0 16px 16px;overflow:auto;}
+  .dz-rdp-c{font:inherit;display:flex;flex-direction:column;gap:6px;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;text-align:center;}
+  .dz-rdp-c:hover{border-color:var(--accent);}
+  .dz-rdp-c span{aspect-ratio:1;background:#F2F4F7;border-radius:9px;overflow:hidden;display:flex;}
+  .dz-rdp-c img{width:100%;height:100%;object-fit:contain;}
+  .dz-rdp-c b{font-size:12.5px;}
+  .dz-rdp-look{display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 16px 16px;overflow:auto;}
+  .dz-rdp-look img{max-width:100%;max-height:52vh;object-fit:contain;background:#F2F4F7;border-radius:12px;}
+  .dz-rdp-a{display:flex;gap:8px;}
+
   .dz-pick-c{font:inherit;text-align:center;background:#fff;border:1px solid var(--line);
     border-radius:12px;padding:10px;cursor:pointer;display:flex;flex-direction:column;
     align-items:center;gap:7px;color:var(--ink);}
@@ -5241,6 +5266,29 @@
   .b2c-p-row:last-child{border-bottom:0;}
   /* Підпис колонок: два числа поспіль без підпису неминуче переплутають. */
   .b2c-p-head{display:flex;align-items:center;gap:12px;padding-bottom:6px;}
+  .rd-list{display:flex;flex-direction:column;gap:6px;}
+  .rd-c{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--line);border-radius:10px;}
+  .rd-c.is-off{opacity:.5;}
+  .rd-th{width:54px;height:54px;flex:none;border-radius:8px;background:#f2f4f7;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .rd-th img{width:100%;height:100%;object-fit:contain;}
+  .rd-t{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .rd-t i{font-style:normal;font-size:12px;color:var(--ink-soft);}
+  .rd-on{font-size:12px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;}
+  .rd-ed{margin-top:10px;padding:12px;border:1px solid var(--accent);border-radius:12px;display:flex;flex-direction:column;gap:10px;}
+  .rd-ed-r{display:flex;gap:12px;flex-wrap:wrap;}
+  .rd-ed-r label{flex:1;min-width:200px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-soft);}
+  .rd-ed-r input{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;}
+  .rd-slot{flex:1;min-width:160px;display:flex;flex-direction:column;gap:6px;font-size:12px;}
+  .rd-slot img{width:100%;max-width:160px;height:110px;object-fit:contain;background:#f2f4f7;border-radius:8px;}
+  .rd-slot i{color:var(--ink-soft);font-style:normal;}
+  .rd-f{display:flex;gap:6px;align-items:center;font-size:12.5px;}
+  .rd-f button{border:none;background:none;color:#B91C1C;cursor:pointer;font-size:15px;}
+  .rd-ed-a{display:flex;gap:8px;}
+  .b2c-p-item{position:relative;border-bottom:1px solid var(--line);padding:4px 0 6px;}
+  .b2c-p-item .b2c-p-row{border-bottom:0;padding:3px 0;}
+  .b2c-p-item.is-off .b2c-p-row{opacity:.45;}
+  .b2c-p-on{position:absolute;left:0;bottom:8px;font-size:11.5px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;cursor:pointer;}
+  .b2c-p-k{display:block;font-style:normal;font-size:11px;color:var(--ink-soft);}
   .b2c-p-head span{flex:1;}
   /* ── Фінанси: вкладки й аналітика ── */
   .fin-top{display:flex;gap:6px;margin-bottom:14px;}
@@ -6292,8 +6340,27 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           нуль означав би, що він дістався безкоштовно, і прибуток вийшов би
           завищеним рівно на вартість тканини.
         </div>
+        <!-- ДВІ ЦІНИ Й ПЕРЕМИКАЧ «У B2C» (13.10). Андрій: «індивідуальний
+             ескіз — свої ціна й собівартість, готовий ескіз — свої»; і «забрати
+             товари, щоб не вибирали в B2C» (фартухи тощо). Вимкнений товар
+             зникає лише з вибору одягу в B2C — сайт і B2B не чіпаємо. -->
         <div class="b2c-p-head"><span></span><i>ціна клієнту</i><i>собівартість</i></div>
         <div id="b2c-prices"></div>
+
+        <!-- ГОТОВІ ДИЗАЙНИ (13.10). Андрій: «базове нанесення — котик, булка,
+             Гаррі Поттер у 10 варіантах… щоб по заставці могли подивитись, чи це
+             саме той принт». Готовий дизайн не йде ні графічному, ні вишивальному:
+             вишивальні файли вже тут, і після фіксації позиція їде у виробництво.
+             Зберігається одразу, без кнопки «Зберегти» внизу. -->
+        <div class="tl-divider" style="margin-top:22px;">Готові дизайни</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Наші готові принти: заставка, за якою їх упізнають у пошуку, принт для
+          розміщення на одязі (PNG без фону) і вишивальні файли — скільки завантажено,
+          стільки й іде у виробництво. Підходять до будь-якого товару B2C.
+        </div>
+        <div id="rd-list" class="rd-list"></div>
+        <div id="rd-edit"></div>
+        <button type="button" class="pc-btn" id="rd-add" style="margin-top:8px;">+ Готовий дизайн</button>
 
         <div class="tl-divider" style="margin-top:22px;">Додаткові послуги</div>
         <div class="sub" style="margin-bottom:8px;">
@@ -7496,28 +7563,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=77e3d296db"></script>
-<script src="loomiq-fingerprint.js?v=77e3d296db"></script>
-<script src="loomiq-pricing.js?v=77e3d296db"></script>
+<script src="loomiq-select.js?v=8679857144"></script>
+<script src="loomiq-fingerprint.js?v=8679857144"></script>
+<script src="loomiq-pricing.js?v=8679857144"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=77e3d296db"></script>
+<script src="loomiq-money-core.js?v=8679857144"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=77e3d296db"></script>
-<script src="loomiq-bg.js?v=77e3d296db"></script>
-<script src="loomiq-mock.js?v=77e3d296db"></script>
+<script src="loomiq-design.js?v=8679857144"></script>
+<script src="loomiq-bg.js?v=8679857144"></script>
+<script src="loomiq-mock.js?v=8679857144"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=77e3d296db"></script>
-<script src="loomiq-threads.js?v=77e3d296db"></script>
+<script src="imagetracer.js?v=8679857144"></script>
+<script src="loomiq-threads.js?v=8679857144"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=77e3d296db"></script>
+<script src="loomiq-cards.js?v=8679857144"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7562,7 +7629,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '77e3d296db';
+var LQ_VER = '8679857144';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11463,7 +11530,8 @@ function teamWork(m){
           firstH: (старт && перша) ? Math.max(0, (new Date(перша.at) - new Date(старт)) / 36e5) : null });
       });
       (u.stitch || []).forEach(d => {
-        if(!d || !d.ok) return;
+        /* Готовий дизайн (13.10) — файли з бібліотеки, вишивальний не робив. */
+        if(!d || !d.ok || d.readyMade) return;
         const vers = (d.vers || []).filter(Boolean);
         const v = vers.filter(x => +x.n === +d.ok.ver)[0] || vers[vers.length - 1];
         const who = d.who || (v && v.by), at = (v && v.at) || d.ok.at;
@@ -12202,8 +12270,119 @@ function readThreads(){
   const rst = document.getElementById('b2c-thread-reset');
   if(rst) rst.addEventListener('click', () => { if(confirm('Повернути стандартну палітру ниток? Свої правки зникнуть після «Зберегти».')) paintThreads(threadsDefault()); });
 })();
+/* ══════════ ГОТОВІ ДИЗАЙНИ ══════════
+   { id, name, tags, pic, art:{name,url}, files:[{name,url}], off } — у
+   contentData.readyDesigns. Відділ (loomiq-design.js) бере їх через host. */
+function readyDesigns(){
+  const l = (contentData || {}).readyDesigns;
+  return Array.isArray(l) ? l.filter(x => x && x.id) : [];
+}
+let rdEditing = null;
+async function rdSave(list, msg){
+  try{
+    await PHOTOS_DOC.set({ readyDesigns: list }, { merge:true });
+    contentData.readyDesigns = list;
+    if(msg) toast(msg);
+  }catch(e){ console.error(e); toast('Не збереглось'); }
+  paintReadyDesigns();
+}
+function rdPickFile(accept, multi){
+  return new Promise(res => {
+    const i = document.createElement('input');
+    i.type = 'file'; if(accept) i.accept = accept; if(multi) i.multiple = true;
+    i.onchange = () => res(Array.from(i.files || []));
+    i.click();
+  });
+}
+async function rdUpload(f){
+  try{ return { name: f.name || 'файл', url: await uploadCloudinaryAuto(f) }; }
+  catch(e){ console.error(e); toast('Файл не завантажився: ' + ((e && e.message) || e)); return null; }
+}
+function paintReadyDesigns(){
+  const box = document.getElementById('rd-list');
+  if(!box) return;
+  const l = readyDesigns();
+  box.innerHTML = l.length ? l.map(d => `<div class="rd-c${d.off ? ' is-off' : ''}">
+      <span class="rd-th">${d.pic ? `<img src="${escapeHtml(d.pic)}" alt="">` : '—'}</span>
+      <span class="rd-t"><b>${escapeHtml(d.name || 'Без назви')}</b>
+        <i>${escapeHtml([d.tags, (d.files || []).length + ' вишив. файл(и)', d.art && d.art.url ? 'принт є' : 'принта немає'].filter(Boolean).join(' · '))}</i></span>
+      <button type="button" class="pc-btn" data-rd-ed="${escapeHtml(d.id)}">Змінити</button>
+      <label class="rd-on"><input type="checkbox" data-rd-on="${escapeHtml(d.id)}"${d.off ? '' : ' checked'}> показувати</label>
+    </div>`).join('') : '<div class="sub">Готових дизайнів ще немає.</div>';
+  const ed = document.getElementById('rd-edit');
+  if(!ed) return;
+  if(!rdEditing){ ed.innerHTML = ''; return; }
+  const d = rdEditing;
+  ed.innerHTML = `<div class="rd-ed">
+    <div class="rd-ed-r"><label>Назва<input id="rd-name" value="${escapeHtml(d.name || '')}" placeholder="Гаррі Поттер · Букля"></label>
+      <label>Пошукові слова<input id="rd-tags" value="${escapeHtml(d.tags || '')}" placeholder="гаррі поттер, сова"></label></div>
+    <div class="rd-ed-r">
+      <div class="rd-slot"><b>Заставка</b>${d.pic ? `<img src="${escapeHtml(d.pic)}" alt="">` : '<i>немає</i>'}
+        <button type="button" class="pc-btn" data-rd-up="pic">Завантажити</button></div>
+      <div class="rd-slot"><b>Принт (PNG без фону)</b>${d.art && d.art.url ? `<img src="${escapeHtml(d.art.url)}" alt="">` : '<i>немає</i>'}
+        <button type="button" class="pc-btn" data-rd-up="art">Завантажити</button></div>
+      <div class="rd-slot"><b>Вишивальні файли</b>
+        ${(d.files || []).map((f, i) => `<span class="rd-f">${escapeHtml(f.name || 'файл')} <button type="button" data-rd-fdel="${i}" title="Прибрати">×</button></span>`).join('') || '<i>немає</i>'}
+        <button type="button" class="pc-btn" data-rd-up="files">+ Файл</button></div>
+    </div>
+    <div class="rd-ed-a"><button type="button" class="pc-btn up" data-rd-save="1">Зберегти дизайн</button>
+      <button type="button" class="pc-btn" data-rd-cancel="1">Скасувати</button>
+      ${readyDesigns().some(x => x.id === d.id) ? '<button type="button" class="pc-btn reset" data-rd-del="1">Видалити</button>' : ''}</div>
+  </div>`;
+}
+document.addEventListener('click', async e => {
+  const t = e.target;
+  if(!t.closest) return;
+  if(t.id === 'rd-add'){ rdEditing = { id: 'rd' + Date.now().toString(36), name:'', tags:'', pic:'', art:null, files:[] }; return paintReadyDesigns(); }
+  const ed = t.closest('[data-rd-ed]');
+  if(ed){ const d = readyDesigns().filter(x => x.id === ed.dataset.rdEd)[0]; rdEditing = d ? JSON.parse(JSON.stringify(d)) : null; return paintReadyDesigns(); }
+  if(!rdEditing) return;
+  const keep = () => { const n = document.getElementById('rd-name'), g = document.getElementById('rd-tags');
+    if(n) rdEditing.name = n.value.trim(); if(g) rdEditing.tags = g.value.trim(); };
+  const up = t.closest('[data-rd-up]');
+  if(up){
+    keep();
+    const k = up.dataset.rdUp;
+    const fs = await rdPickFile(k === 'files' ? '' : 'image/*', k === 'files');
+    for(const f of fs){
+      const r = await rdUpload(f);
+      if(!r) continue;
+      if(k === 'pic') rdEditing.pic = r.url;
+      else if(k === 'art'){ rdEditing.art = r; if(!rdEditing.pic) rdEditing.pic = r.url; }
+      else (rdEditing.files = rdEditing.files || []).push(r);
+    }
+    return paintReadyDesigns();
+  }
+  const fd = t.closest('[data-rd-fdel]');
+  if(fd){ keep(); rdEditing.files.splice(+fd.dataset.rdFdel, 1); return paintReadyDesigns(); }
+  if(t.closest('[data-rd-cancel]')){ rdEditing = null; return paintReadyDesigns(); }
+  if(t.closest('[data-rd-del]')){
+    if(!confirm('Видалити готовий дизайн «' + (rdEditing.name || '') + '»? У вже заведених замовленнях він лишиться.')) return;
+    const id = rdEditing.id; rdEditing = null;
+    return rdSave(readyDesigns().filter(x => x.id !== id), 'Видалено');
+  }
+  if(t.closest('[data-rd-save]')){
+    keep();
+    const d = rdEditing;
+    if(!d.name) return toast('Вкажіть назву');
+    if(!d.art || !d.art.url) return toast('Завантажте принт — без нього нема чого класти на одяг');
+    if(!(d.files || []).length) return toast('Додайте хоч один вишивальний файл');
+    const l = readyDesigns().filter(x => x.id !== d.id);
+    const i = readyDesigns().findIndex(x => x.id === d.id);
+    if(i >= 0) l.splice(i, 0, d); else l.push(d);
+    rdEditing = null;
+    return rdSave(l, 'Готовий дизайн збережено');
+  }
+});
+document.addEventListener('change', e => {
+  const c = e.target.closest && e.target.closest('[data-rd-on]');
+  if(!c) return;
+  const l = readyDesigns().map(x => x.id === c.dataset.rdOn ? Object.assign({}, x, { off: !c.checked }) : x);
+  rdSave(l, c.checked ? 'Показується' : 'Сховано');
+});
 function paintB2c(){
   const c = b2cCfg();
+  try{ paintReadyDesigns(); }catch(e){ console.warn('готові дизайни', e); }
   paintExtras(c.extras);
   try{ paintThreads(); }catch(e){ console.warn('нитки', e); }
   const d = document.getElementById('b2c-days');
@@ -12268,8 +12447,12 @@ function paintB2cPrices(){
     const base = (bp[g.id] != null) ? bp[g.id]
                : (DEFAULT_SITE_PRICING.basePrices[g.id] != null ? DEFAULT_SITE_PRICING.basePrices[g.id] : '');
     const name = (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', '');
-    return `<div class="b2c-p-row">
-      <span class="b2c-p-n">${escapeHtml(name)}</span>
+    const off = !!(prod.b2cOff || {})[g.id];
+    const rr = prod.retailReady || {}, rc = prod.retailCostReady || {};
+    return `<div class="b2c-p-item${off ? ' is-off' : ''}">
+    <label class="b2c-p-on" title="Показувати цей товар у виборі одягу B2C"><input type="checkbox" data-b2c-on="${escapeHtml(g.id)}"${off ? '' : ' checked'}> у B2C</label>
+    <div class="b2c-p-row">
+      <span class="b2c-p-n">${escapeHtml(name)}<i class="b2c-p-k">індивідуальний ескіз</i></span>
       <input data-b2c-price="${escapeHtml(g.id)}" type="number" min="0" step="1"
         value="${retail[g.id] != null ? retail[g.id] : ''}"
         placeholder="${base ? ('як базова: ' + base) : 'як базова'}">
@@ -12285,15 +12468,24 @@ function paintB2cPrices(){
            поруч порожня собівартість, і це найкращий момент її згадати. */''}
       <input data-b2c-cost="${escapeHtml(g.id)}" type="number" min="0" step="1"
         value="${cost[g.id] != null ? cost[g.id] : ''}" placeholder="собівартість">
-    </div>`;
+    </div>
+    <div class="b2c-p-row is-ready">
+      <span class="b2c-p-n"><i class="b2c-p-k">готовий ескіз</i></span>
+      <input data-b2c-rprice="${escapeHtml(g.id)}" type="number" min="0" step="1"
+        value="${rr[g.id] != null ? rr[g.id] : ''}" placeholder="як індивідуальний">
+      <input data-b2c-rcost="${escapeHtml(g.id)}" type="number" min="0" step="1"
+        value="${rc[g.id] != null ? rc[g.id] : ''}" placeholder="як індивідуальний">
+    </div></div>`;
   }).join('');
 }
 /* СКІЛЬКИ КОШТУЄ ЦЕЙ ВИРІБ У РОЗДРІБ.
    Одна відповідь на всю адмінку: заповнена роздрібна ціна, а якщо її немає
    — базова, та сама, що на сайті. Порожньої відповіді тут бути не може:
    картка, у якій виріб коштує «нічого», потім їде клієнту з такою сумою. */
-function retailPrice(gid){
+function retailPrice(gid, kind){
   const prod = contentData.products || {};
+  /* Готовий ескіз — своя (нижча) ціна; не вписана — як індивідуальний. */
+  if(kind === 'ready'){ const r = (prod.retailReady || {})[gid]; if(+r > 0) return Math.round(+r); }
   const своя = (prod.retail || {})[gid];
   if(+своя > 0) return Math.round(+своя);
   const bp = (curSitePricing().basePrices) || {};
@@ -12310,6 +12502,23 @@ function readB2cPrices(){
   });
   return out;
 }
+function readB2cNum(attr){
+  const box = document.getElementById('b2c-prices');
+  const out = {};
+  if(!box) return out;
+  box.querySelectorAll('[' + attr + ']').forEach(el=>{
+    const v = Math.max(0, Math.round(parseFloat(el.value) || 0));
+    if(v > 0) out[el.getAttribute(attr)] = v;
+  });
+  return out;
+}
+function readB2cOff(){
+  const out = {};
+  document.querySelectorAll('#b2c-prices [data-b2c-on]').forEach(el => { if(!el.checked) out[el.dataset.b2cOn] = true; });
+  return out;
+}
+/* Чи показувати товар у виборі одягу B2C. */
+function b2cOn(gid){ return !((contentData.products || {}).b2cOff || {})[gid]; }
 function readB2cCosts(){
   const box = document.getElementById('b2c-prices');
   const out = {};
@@ -12324,7 +12533,8 @@ function readB2cCosts(){
    «невідомо»: нуль означав би, що виріб дістався безкоштовно, і прибуток
    вийшов би завищеним рівно на вартість тканини. Тому там, де її не
    вписали, прибуток не рахуємо зовсім і кажемо про це прямо. */
-function retailCost(gid){
+function retailCost(gid, kind){
+  if(kind === 'ready'){ const r = ((contentData.products || {}).retailCostReady || {})[gid]; if(+r > 0) return Math.round(+r); }
   const c = ((contentData.products || {}).retailCost || {})[gid];
   return (+c > 0) ? Math.round(+c) : 0;
 }
@@ -12357,19 +12567,26 @@ function retailCost(gid){
     const цін = readB2cPrices();
     const собів = readB2cCosts();
     const DEL = firebase.firestore.FieldValue.delete();
-    const retail = {}, retailCost = {};
+    const гЦін = readB2cNum('data-b2c-rprice'), гСоб = readB2cNum('data-b2c-rcost'), вимк = readB2cOff();
+    const retail = {}, retailCost = {}, retailReady = {}, retailCostReady = {}, b2cOff = {};
     allPhotoCfg().forEach(g => {
       retail[g.id] = (цін[g.id] > 0) ? цін[g.id] : DEL;
       retailCost[g.id] = (собів[g.id] > 0) ? собів[g.id] : DEL;
+      retailReady[g.id] = (гЦін[g.id] > 0) ? гЦін[g.id] : DEL;
+      retailCostReady[g.id] = (гСоб[g.id] > 0) ? гСоб[g.id] : DEL;
+      b2cOff[g.id] = вимк[g.id] ? true : DEL;
     });
     try{
-      await PHOTOS_DOC.set({ b2c, products: { retail, retailCost } }, { merge:true });
+      await PHOTOS_DOC.set({ b2c, products: { retail, retailCost, retailReady, retailCostReady, b2cOff } }, { merge:true });
       contentData.b2c = b2c;
       threadsApply();
       try{ paintThreads(); }catch(e){}
       contentData.products = contentData.products || {};
       contentData.products.retail = цін;
       contentData.products.retailCost = собів;
+      contentData.products.retailReady = гЦін;
+      contentData.products.retailCostReady = гСоб;
+      contentData.products.b2cOff = вимк;
       toast('Збережено');
     }catch(e){ console.error(e); toast('Не збереглось'); }
   });
@@ -28343,6 +28560,11 @@ const QR_DEFAULT = [
   { t:'Внесли правки · B2C', dir:'b2c',
     m:'{правки} Добрий день! Внесли правки — ось оновлений макет ({версія}). ' +
       'Подивіться, будь ласка: тепер так, як треба?' },
+  /* Готовий дизайн (13.10): Андрій — «Ми зробили макет, підкажіть, чи вам
+     подобається?)». Позначка {готовий} — іде клієнту після розміщення
+     готового дизайну, у вікні перевірки його ще можна поправити. */
+  { t:'Готовий дизайн · B2C', dir:'b2c',
+    m:'{готовий} Ми зробили макет, підкажіть, чи вам подобається?)' },
   { t:'Макет на погодження · B2B', dir:'b2b',
     m:'{макет} Надсилаємо макет на погодження ({версія}). Розміри нанесення ' +
       'вказані на самій картці.\n\nЯкщо все влаштовує — запускаємо у виробництво. ' +
@@ -28385,7 +28607,7 @@ function quickRepliesFor(o){
 
    Немає заготовки — беремо запасну. Мовчазне порожнє повідомлення тут
    гірше за просте: клієнт отримав би картинку без жодного слова. */
-const SCRIPT_MARK = { design1:'{макет}', design2:'{правки}' };
+const SCRIPT_MARK = { design1:'{макет}', design2:'{правки}', ready:'{готовий}' };
 /* Запасний текст — на випадок, коли заготовку прибрали зовсім. Свій для
    кожного напряму: приватній людині пишуть інакше, ніж компанії, і мовчазна
    підміна одного другим помітна саме клієнту. */
@@ -28394,12 +28616,14 @@ const SCRIPT_FALL = {
     design1:'Добрий день! Зробили макет — подивіться, будь ласка 🙌 Якщо все ' +
             'подобається, беремо в роботу. Якщо щось поміняти — напишіть, що саме.',
     design2:'Добрий день! Внесли правки — ось оновлений макет. Подивіться, ' +
-            'будь ласка: тепер так, як треба?'
+            'будь ласка: тепер так, як треба?',
+    ready:'Ми зробили макет, підкажіть, чи вам подобається?)'
   },
   b2b: {
     design1:'Підготували макет — подивіться, будь ласка. Якщо все добре, ' +
             'беремо в роботу; якщо щось поміняти — напишіть, що саме.',
-    design2:'Внесли правки — ось оновлений макет. Подивіться, будь ласка.'
+    design2:'Внесли правки — ось оновлений макет. Подивіться, будь ласка.',
+    ready:'Ми зробили макет, підкажіть, чи вам подобається?)'
   }
 };
 function scriptFor(o, key, vars){
@@ -28410,7 +28634,7 @@ function scriptFor(o, key, vars){
     t = q ? String(q.m) : '';
   }
   if(!t) t = (SCRIPT_FALL[orderDir(o)] || SCRIPT_FALL.b2b)[key] || '';
-  return t.replace(/\{макет\}|\{правки\}/g, '')
+  return t.replace(/\{макет\}|\{правки\}|\{готовий\}/g, '')
           .replace(/\{версія\}/g, 'v' + (((vars || {}).v) || 1))
           .replace(/\{імʼя\}|\{ім'я\}/g, String((o && (o.crmChatName || o.name)) || '').split(' ')[0] || '')
           .trim();
@@ -28433,7 +28657,7 @@ function scriptFor(o, key, vars){
    напрям» зʼявилась пізніше за саме доведення, і в акаунтах, де воно вже
    пройшло, роздрібних скриптів так і не стало — надсилання йшло запасним
    текстом, без привітання. */
-const QR_SEED = 3;
+const QR_SEED = 4;   // 4 — «Готовий дизайн · B2C» (13.10)
 let qrSeeding = false;
 async function qrSeedOnce(){
   if(qrSeeding || !canSetup() || !contentLoaded) return;
@@ -28762,7 +28986,8 @@ function qrEditHtml(q, i){
         Підставляються в мить вставки, тож посилання завжди свіже.<br>
         {макет} і {правки} — це показ макета з картки замовлення: заготовка з
         такою позначкою іде клієнту сама, коли менеджер тисне «Надіслати
-        клієнту». {версія} підставить v1, v2…</div>
+        клієнту». {готовий} — те саме для готового дизайну (після розміщення
+        принта). {версія} підставить v1, v2…</div>
       <!-- Напрям. Компанії пишуть «виставимо рахунок на ФОП»; приватній
            людині в Директ таке слати нема сенсу, і навпаки. «Обом» лишається
            за замовчуванням — усе вже написане працює, як працювало. -->
@@ -31018,6 +31243,9 @@ function openDesign(){
     sides: (gid, color) => garmentSides(gid, color),
     catalog: ()=> allPhotoCfg().map(g => ({
       id: g.id,
+      /* Вимкнений для B2C (13.10) — у вікні вибору одягу його немає; у вже
+         заведених позиціях назва й фото лишаються. */
+      off: !b2cOn(g.id),
       name: (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', ''),
       /* Фото виробу й фото кожного кольору. Відділ обирає одяг тим самим
          каталогом, що й усі: списком назв «худі базове» від «худі оверсайз»
@@ -31114,8 +31342,11 @@ function openDesign(){
        поля `totalPrice`: приватні замовлення заводяться прямо у відділі,
        без прорахунку, і те поле в них лишається порожнім. Довідник цін
        один — той, що в Налаштуваннях B2C. */
-    retail: gid => retailPrice(gid),
-    cost: gid => retailCost(gid),
+    /* Готові дизайни (налаштування B2C) — для вибору в картці. */
+    readyDesigns: () => readyDesigns().filter(d => !d.off),
+    readyDesign: id => readyDesigns().filter(d => d.id === id)[0] || null,
+    retail: (gid, kind) => retailPrice(gid, kind),
+    cost: (gid, kind) => retailCost(gid, kind),
     /* НАДХОДЖЕННЯ ДЛЯ КАРТКИ.
        Привʼязані до цього замовлення — і вільні, яких ще нікуди не
        привʼязали. Відділ не пише суму передоплати руками: він обирає
@@ -34006,7 +34237,11 @@ function kbDraw(){
   const PA_SIDE_SHORT={front:'Груди',back:'Спина',left:'Лівий бік',right:'Правий бік'};
   function paSideLabel(s){ return PA_SIDE_LABELS[s]||s; }
   function paChart(){ return (typeof currentScRows==='function') ? currentScRows() : [{size:'M',A:68,B:52}]; }
-  function cmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68}; return (+r.A||68); }
+  /* Висота — з колонки «Довжина/висота» за підписом (13.10). Доти бралась
+     перша колонка (A) завжди: у товару з переставленими колонками туди
+     потрапляла ширина, і всі сантиметри в конструкторі зсувались. */
+  function cmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68};
+    return garmentHeightCm(paId, r.size) || (+r.A||68); }
   function wForSize(sz){ return garmentWidthCm(paId, sz) || 0; }
   function defaultSize(){ const rows=paChart(); const m=rows.find(x=>String(x.size).toUpperCase()==='M'); return m?m.size:((rows[Math.floor(rows.length/2)]||{size:''}).size); }
   function firstColorId(){ const c=effectiveColors(paId); return (c[0]||{}).id; }
@@ -34102,10 +34337,10 @@ function kbDraw(){
     cbox.innerHTML=cols.map(c=>{ const own=(data[paSide]&&data[paSide].colors&&data[paSide].colors[c.id]); return `<button class="pa-col${c.id===paColorId?' active':''}" data-cid="${c.id}"><span class="sw" style="background:${escA(c.hex||'#ccc')}"></span>${escA(c.name)}${own?' <span style="color:var(--accent);font-size:10px;font-weight:700;">●</span>':''}</button>`; }).join('');
     cbox.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>{ saveWork(); paColorId=b.dataset.cid; loadSlotColor(); renderShell(); });
     const sizeSel=el('pa-size');
-    sizeSel.innerHTML=paChart().map(r=>`<option value="${escA(r.size)}"${r.size===paSize?' selected':''}>${escA(r.size)} — ${r.A} см</option>`).join('');
+    sizeSel.innerHTML=paChart().map(r=>`<option value="${escA(r.size)}"${r.size===paSize?' selected':''}>${escA(r.size)} — ${cmForSize(r.size)} см</option>`).join('');
     sizeSel.onchange=()=>{ paSize=sizeSel.value; data.scaleSize=paSize; data.heightCm=cmForSize(paSize); el('pa-height').value=data.heightCm;
-      data.widthCm=wForSize(paSize); el('pa-width').value=data.widthCm||''; renderArea(); };
-    const hEl=el('pa-height'); hEl.value=data.heightCm; hEl.oninput=()=>{ const v=parseFloat(hEl.value); data.heightCm=(v>0)?v:0; renderArea(); };
+      data.widthCm=wForSize(paSize); el('pa-width').value=data.widthCm||''; renderArea(); try{ render(); }catch(e){} };
+    const hEl=el('pa-height'); hEl.value=data.heightCm; hEl.oninput=()=>{ const v=parseFloat(hEl.value); data.heightCm=(v>0)?v:0; renderArea(); try{ render(); }catch(e){} };
     const wEl=el('pa-width'); if(wEl){ wEl.value=data.widthCm||''; wEl.oninput=()=>{ const v=parseFloat(wEl.value); data.widthCm=(v>0)?v:0; }; }
     const cdef=el('pa-color-default');
     if(cdef){ cdef.style.display=isFirstColor()?'none':''; cdef.onclick=()=>{ if(!confirm('Прирівняти цей колір до дефолтного (першого)?'))return; if(data[paSide]&&data[paSide].colors) delete data[paSide].colors[paColorId]; loadSlotColor(); renderShell(); }; }
@@ -34130,6 +34365,23 @@ function kbDraw(){
     // калібрувальні лінії висоти
     h+='<line x1="0" y1="'+yT.toFixed(1)+'" x2="'+m.w+'" y2="'+yT.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
     h+='<line x1="0" y1="'+yB.toFixed(1)+'" x2="'+m.w+'" y2="'+yB.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
+    /* ПІДПИСИ ЛІНІЙ І ЛІНІЙКА (13.10). Андрій: «26 см рівно два рази
+       влазять» — масштаб конструктора задають саме ці дві лінії: між ними
+       рівно висота виробу. Верхня — найвища точка плеча (не капюшон і не
+       комір), нижня — низ виробу. Риски кожні 10 см — щоб масштаб було видно
+       на око ще тут, а не в конструкторі. */
+    const висота=data.heightCm>0?data.heightCm:cmForSize(paSize);
+    h+='<text x="6" y="'+(yT-6).toFixed(1)+'" font-size="11" font-weight="700" fill="#0f8a63" data-pa-lbl="top">Плече — найвища точка (без капюшона й коміра)</text>';
+    h+='<text x="6" y="'+(yB+14).toFixed(1)+'" font-size="11" font-weight="700" fill="#0f8a63" data-pa-lbl="bottom">Низ виробу · між лініями '+висота+' см</text>';
+    if(висота>0 && yB>yT){
+      const pxCm=(yB-yT)/висота, x0=m.w-26;
+      h+='<line x1="'+x0+'" y1="'+yT.toFixed(1)+'" x2="'+x0+'" y2="'+yB.toFixed(1)+'" stroke="#0f8a63" stroke-width="1.5" data-pa-ruler/>';
+      for(let c=0;c<=висота+0.001;c+=5){
+        const y=yT+c*pxCm, big=Math.round(c)%10===0;
+        h+='<line x1="'+(x0-(big?9:5))+'" y1="'+y.toFixed(1)+'" x2="'+x0+'" y2="'+y.toFixed(1)+'" stroke="#0f8a63" stroke-width="1.5"'+(big?' data-pa-tick="'+c+'"':'')+'/>';
+        if(big && c>0) h+='<text x="'+(x0+4)+'" y="'+(y+4).toFixed(1)+'" font-size="10" font-weight="700" fill="#0f8a63" data-pa-rn>'+c+'</text>';
+      }
+    }
     h+='<rect x="'+(m.cx-16)+'" y="'+(yT-6)+'" width="32" height="12" rx="4" fill="#12b886" style="cursor:ns-resize;" data-cal="top"/>';
     h+='<rect x="'+(m.cx-16)+'" y="'+(yB-6)+'" width="32" height="12" rx="4" fill="#12b886" style="cursor:ns-resize;" data-cal="bottom"/>';
     // краї виробу: дві вертикальні лінії (якщо ще не виставляли — пунктиром-заготовкою)

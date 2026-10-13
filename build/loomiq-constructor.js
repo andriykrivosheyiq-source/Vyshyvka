@@ -742,6 +742,11 @@
           if(String(rows[i].size).trim().toUpperCase() === 'M'){ m = rows[i]; break; }
         }
         if(!m) m = rows[Math.floor(rows.length/2)];
+        /* Колонка довжини — за підписом (13.10), як і в «Областях нанесення»;
+           немає підпису — перша (A), як доти. */
+        var кол = ((window.SITE_CONTENT.sizechartCols || {})[pm.garmentId]) || [];
+        var kk = ((Array.isArray(кол) ? кол : []).filter(function(c){ return c && /довжин|висот/i.test(String(c.label || '')); })[0] || {}).key || 'A';
+        if(m && +m[kk] > 0) return +m[kk] * 10;
         if(m && +m.A > 0) return +m.A * 10;
       }
       // 3) малі вироби (без «довжини футболки»)

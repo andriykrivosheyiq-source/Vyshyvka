@@ -84,7 +84,7 @@ const st = () => p.evaluate(() => ({
   list: [...document.querySelectorAll('#pa-places .pa-pl')].map(r => r.textContent.replace(/\s+/g, ' ').trim()),
   add: [...document.querySelectorAll('#pa-pl-add button')].map(b => b.textContent.trim()),
   rects: document.querySelectorAll('#pa-svg [data-pl]').length,
-  labels: [...document.querySelectorAll('#pa-svg text')].map(t => t.textContent) }));
+  labels: [...document.querySelectorAll('#pa-svg text:not([data-pa-lbl]):not([data-pa-rn])')].map(t => t.textContent) }));
 let s0 = await st();
 ok(s0.rects === 0 && s0.add[0] === '+ №1', 'на початку місць немає, є «+ №1…»', 'старт: ' + JSON.stringify(s0));
 await p.click('#pa-pl-add [data-pla="1"]'); await p.waitForTimeout(100);
@@ -157,6 +157,35 @@ ok(b0 && b0.title === 'Літо для команди' && b0.tab === 'tee' && b0
 ok(/Літо для команди/.test(await p.evaluate(() => document.getElementById('kb-list').textContent)), 'банер у списку', 'списку немає');
 
 console.log('');
+console.log('');
+console.log('═══ ЛІНІЙКА І ВИСОТА З КОЛОНКИ «ДОВЖИНА» (13.10) ═══');
+/* «26 см рівно два рази влазять» — масштаб задають дві зелені лінії; тепер
+   вони підписані, між ними риски кожні 10 см, а висота виробу береться з
+   колонки «Довжина» за підписом, а не завжди з першої. */
+const лін = await p.evaluate(() => {
+  const svg = document.getElementById('pa-svg');
+  const лб = [...svg.querySelectorAll('[data-pa-lbl]')].map(t => t.textContent);
+  const т = [...svg.querySelectorAll('[data-pa-tick]')].map(l => ({ c: +l.dataset.paTick, y: +l.getAttribute('y1') }));
+  const h = +document.getElementById('pa-height').value;
+  return { лб, т, h };
+});
+console.log('  ' + JSON.stringify({ лб: лін.лб, рисок: лін.т.length, h: лін.h }));
+const крок = лін.т.length > 2 ? лін.т[1].y - лін.т[0].y : 0;
+const рівно = лін.т.every((t, i) => Math.abs((t.y - лін.т[0].y) - i * крок) < 0.6);
+ok(/Плече/.test(лін.лб[0] || '') && /Низ виробу/.test(лін.лб[1] || ''), 'лінії підписані: «Плече — найвища точка…» і «Низ виробу · між лініями N см»', JSON.stringify(лін.лб));
+ok(лін.т.length === Math.floor(лін.h / 10) + 1 && рівно && лін.т[0].c === 0, 'риски кожні 10 см, рівномірно від плеча вниз', JSON.stringify(лін.т));
+const кол = await p.evaluate(async () => {
+  contentData.sizechartCols = Object.assign({}, contentData.sizechartCols, { tee: [{ key:'A', label:'Ширина' }, { key:'B', label:'Довжина' }] });
+  contentData.sizecharts = Object.assign({}, contentData.sizecharts, { tee: [{ size:'S', A:49, B:69 }, { size:'M', A:52, B:71 }, { size:'L', A:55, B:73 }] });
+  if(contentData.printAreas && contentData.printAreas.tee) delete contentData.printAreas.tee;
+  window.__paOpen('tee');
+  await new Promise(r => setTimeout(r, 400));
+  const opt = [...document.querySelectorAll('#pa-size option')].map(o => o.textContent);
+  return { h: +document.getElementById('pa-height').value, opt };
+});
+console.log('  ' + JSON.stringify(кол));
+ok(кол.h === 71 && кол.opt.some(t => /M — 71 см/.test(t)), 'колонки переставлені (A — ширина) — висота береться з «Довжини»: M = 71 см, а не 52', JSON.stringify(кол));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'місця логотипа з номерами — у вікні зони нанесення');
 await browser.close(); srv.close();
