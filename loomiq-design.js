@@ -506,7 +506,11 @@
        («Надіслати клієнту» ставить sentToClient) або менеджер сам
        перетягнув картку (clientManual — номер версії, бо нова версія — нове
        надсилання). Інакше — «Готовий граф. ескіз». */
-    var наРозгляді = передані.filter(function(x){ return x.status === 'review'; });
+    /* Змішане замовлення (13.10): готовий дизайн уже в клієнта, а
+       індивідуальний ще малюють — картка лишається в графічного, готовий
+       чекає разом з усім замовленням. */
+    var малюють = передані.some(function(x){ return !x.readyMade && (x.status === 'sent' || x.status === 'work'); });
+    var наРозгляді = передані.filter(function(x){ return x.status === 'review' && !(x.readyMade && малюють); });
     if(наРозгляді.length){
       if(!наРозгляді.every(clientSaw)) return 'sketch';
       return наРозгляді.every(sketchOk) ? 'sketchok' : 'client';
@@ -984,6 +988,8 @@
     var out = { sent: 0, skipped: [] };
     if(!job) return out;
     jobUnits(job).forEach(function(u, i){
+      /* Готовий дизайн дизайнерам не передаємо (13.10). */
+      if(u && u.ready) return;
       var l = dzList(u, 'graphic');
       /* Менеджер уже обрав дизайнера, але ще не передав — передаємо саме
          йому. Андрій: «або назначаємо когось, або вони падають у чергу». */
@@ -1010,6 +1016,7 @@
   /* Скільки позицій ще можна передати: з ТЗ і без роботи. */
   function dzHandable(job){
     return jobUnits(job).filter(function(u){
+      if(u && u.ready) return false;
       var l = dzList(u, 'graphic');
       if(!unitFilled(job, u)) return false;
       return l.some(function(d){ return d.who && !d.sentAt; }) || !l.some(dzReal); }).length;
@@ -1429,6 +1436,15 @@
       var g = dzList(u, 'graphic').filter(dzReal);
       var d = dzNew();
       d.from = g.map(function(x){ return { i: dzList(u, 'graphic').indexOf(x), ver: (x.ok && x.ok.ver) || x.vers.length }; });
+      /* ГОТОВИЙ ДИЗАЙН (13.10): вишивальні файли вже є в бібліотеці — черги
+         вишивки немає, позиція одразу готова для цеху. В змішаному замовленні
+         картка однаково чекає індивідуальні (designStage дивиться на всі). */
+      if(u.ready && (u.ready.files || []).length){
+        l.push(d);
+        readyStitch(d, u, by);
+        n++;
+        return;
+      }
       l.push(d);
       dzQueue(d, by);
       d.auto = true;
@@ -1436,6 +1452,65 @@
       n++;
     });
     return n;
+  }
+  /* ══════════ ГОТОВИЙ ДИЗАЙН (13.10) ══════════
+     Андрій: «базове нанесення — котик, булка… вибираємо дизайн, він одразу
+     підтягує всі файли»; «пропускає черга вишивки у вишивального дизайнера і
+     йде у виробництво одразу». Дизайн з бібліотеки (налаштування B2C) лягає
+     на позицію як `u.ready`; графіку представляє запис `readyMade` без
+     дизайнера — його версії робить сам менеджер (розміщенням), а вишивка —
+     одразу погоджена версія з файлами бібліотеки. Дизайнери таких записів не
+     бачать, і в зарплату дизайнерам вони не йдуть (byAcct / readyMade). */
+  function readyAttach(u, rd){
+    if(!u || !rd) return null;
+    u.ready = { id: String(rd.id || ''), name: String(rd.name || ''), pic: String(rd.pic || ''),
+                art: rd.art && rd.art.url ? { name: String(rd.art.name || 'принт.png'), url: String(rd.art.url) } : null,
+                files: (rd.files || []).filter(function(f){ return f && f.url; })
+                         .map(function(f){ return { name: String(f.name || 'файл'), url: String(f.url) }; }),
+                at: nowIso() };
+    return u.ready;
+  }
+  /* Запис графіки для готового дизайну: створюємо, коли менеджер уперше
+     розмістив принт. Чужих (індивідуальних) записів не чіпаємо. */
+  function readyGraphic(u, by){
+    var l = dzList(u, 'graphic');
+    var d = l.filter(function(x){ return x.readyMade; })[0];
+    if(d) return d;
+    /* Порожній рядок «оберіть дизайнера» лишати нема сенсу. */
+    for(var i = l.length - 1; i >= 0; i--) if(!dzReal(l[i])) l.splice(i, 1);
+    d = dzNew();
+    d.readyMade = true;
+    d.who = ''; d.pool = false;
+    d.sentBy = String(by || ''); d.sentAt = nowIso();
+    d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'note',
+                    text: 'Готовий дизайн «' + ((u.ready && u.ready.name) || '') + '» — без графічного дизайнера',
+                    seen: [String(by || '')] });
+    l.push(d);
+    return d;
+  }
+  function readyStitch(d, u, by){
+    d.readyMade = true;
+    d.who = ''; d.pool = false;
+    d.sentBy = String(by || ''); d.sentAt = nowIso();
+    dzVer(d, by, (u.ready.files || []).map(function(f){ return { name: f.name, url: f.url, role:'machine' }; }),
+          'Готовий дизайн «' + (u.ready.name || '') + '» — файли з бібліотеки', null, 'stitch');
+    d.vers[d.vers.length - 1].byAcct = true;
+    dzOk(d, by, 'auto', d.vers.length);
+    d.thread.push({ at: nowIso(), by: String(by || ''), kind:'note',
+                    text: 'Готовий дизайн — вишивальні файли з бібліотеки, у виробництво без вишивального',
+                    seen: [String(by || '')] });
+    return d;
+  }
+  /* Позицію знову роблять індивідуальною: знімаємо готовий дизайн і його
+     записи, поки їх не погодили. Погоджене не чіпаємо — це вже робота. */
+  function readyDetach(u){
+    if(!u || !u.ready) return false;
+    var g = dzList(u, 'graphic');
+    if(g.some(function(x){ return x.readyMade && x.ok; })) return false;
+    u.graphic = g.filter(function(x){ return !x.readyMade; });
+    u.stitch = dzList(u, 'stitch').filter(function(x){ return !x.readyMade; });
+    delete u.ready;
+    return true;
   }
   function dzDecline(d, by, why){
     if(!d) return null;
@@ -2331,6 +2406,7 @@
     stockApply: stockApply, stockSplit: stockSplit,
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
+    readyAttach: readyAttach, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -3260,7 +3336,8 @@
       '<span class="dz-pick-n">' + esc(name) + '</span></button>';
   }
   function pickGarment(cur, done){
-    var list = catalog();
+    /* Вимкнені для B2C (налаштування B2C → «у B2C») не пропонуємо. */
+    var list = catalog().filter(function(g){ return !g.off || g.id === cur; });
     if(!list.length) return say('Каталог порожній — додайте товари в налаштуваннях');
     pickOpen('Який це одяг', 'Натисніть виріб — колір і розмір оберете далі',
       list.map(function(g){ return pickCard(g.id, g.name, g.pic, ''); }).join(''), done);
@@ -3991,7 +4068,7 @@
          обрізана, вони говорять про різне: він відповідає на те, що бачить,
          а не на те, що написали. Тепер обидва дивляться в один потік,
          дзеркально: своє праворуч, чуже ліворуч. */
-      dzTalkHtml(u, kind, d, i, key, ro, job) +
+      (d.readyMade ? '' : dzTalkHtml(u, kind, d, i, key, ro, job)) +
       (ro ? '' :
       /* Три дії, компактно, в один рядок: погодити, повернути, показати.
          Це вибір, а не послідовність кроків, і поставлені стовпчиком вони
@@ -4106,6 +4183,93 @@
      читалась одним поглядом. */
   function capHtml(t){
     return '<div class="dz-u-cap"><span>' + esc(t) + '</span></div>';
+  }
+  /* ══════════ ІНДИВІДУАЛЬНИЙ / ГОТОВИЙ (13.10) ══════════
+     Андрій: «якщо індивідуальний — заповнюється опис і картинки; якщо
+     готовий — великий поп-ап, обираєш дизайн, він одразу підтягує всі файли».
+     Перемикач — над дизайном позиції; після погодження готового дизайну
+     зробити його індивідуальним уже не можна (це вже робота). */
+  function designKindHtml(u){
+    var гот = !!u.ready;
+    var зПогодж = гот && dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
+    var зІнд = !гот && dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; });
+    return '<div class="dz-kind">' +
+      '<button type="button" class="dz-kind-b' + (гот ? '' : ' on') + '" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
+        (зПогодж ? ' disabled title="Готовий дизайн уже погоджено"' : '') + '>Індивідуальний</button>' +
+      '<button type="button" class="dz-kind-b' + (гот ? ' on' : '') + '" data-do="u-ready-pick" data-u="' + esc(u.id) + '"' +
+        (зІнд ? ' disabled title="Позицію вже передали графічному дизайнеру"' : '') + '>Готовий дизайн</button>' +
+    '</div>';
+  }
+  function readyHtml(job, u, ro, opt){
+    var r = u.ready || {};
+    var gl = dzList(u, 'graphic');
+    var gi = -1;
+    gl.forEach(function(x, i){ if(x.readyMade) gi = i; });
+    var d = gi >= 0 ? gl[gi] : null;
+    var key = esc(u.id) + '|graphic|' + gi;
+    var st = dzList(u, 'stitch').filter(function(x){ return x.readyMade; })[0];
+    return '<div class="dz-ready">' +
+      '<div class="dz-ready-h">' +
+        (r.pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(r.pic) + '"><img src="' + esc(r.pic) + '" alt=""></button>' : '') +
+        '<span class="dz-ready-t"><b>Готовий дизайн · ' + esc(r.name || '') + '</b>' +
+          '<i>' + (r.files || []).length + ' вишив. файл(и) · без графічного й вишивального дизайнера</i></span>' +
+        ((!ro && !(d && d.ok)) ? '<button type="button" class="dz-b" data-do="u-ready-pick" data-u="' + esc(u.id) + '">Змінити</button>' : '') +
+      '</div>' +
+      (!d || !(d.vers || []).length
+        ? (ro ? '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>'
+            : !u.gid ? '<div class="dz-miss">Спершу оберіть одяг — принт кладемо на нього.</div>'
+            : '<button type="button" class="dz-b pri wide" data-do="u-ready-place" data-u="' + esc(u.id) + '">◱ Розмістити на одязі</button>')
+        : dzCardHtml(u, 'graphic', d, gi, job, opt && opt.o, key, ro)) +
+      (st ? '<div class="dz-miss is-calm">Вишивка — файли з бібліотеки, позиція йде у виробництво.</div>'
+          : (D.graphicOk(u) && !D.clothOk(u) && !ro)
+          ? '<div class="dz-miss dz-need">Ескіз погоджено — підтвердіть одяг' +
+            (D.unitMissing(u).length ? ' (не заповнено: <b>' + esc(D.unitMissing(u).join(', ')) + '</b>)' : '') +
+            '.<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) + '">Підтвердити одяг</button></div>'
+          : '') +
+    '</div>';
+  }
+  /* ВІКНО ГОТОВИХ ДИЗАЙНІВ: заставки, пошук, перегляд великим. */
+  function readyPickOpen(done){
+    var all = [];
+    try{ all = (host.readyDesigns && host.readyDesigns()) || []; }catch(e){}
+    if(!all.length) return say('Готових дизайнів ще немає — додайте їх у Налаштуваннях B2C');
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-rdp';
+    var q = '', look = null;
+    var paint = function(){
+      var t = q.trim().toLowerCase();
+      var l = all.filter(function(d){ return !t || (String(d.name || '') + ' ' + String(d.tags || '')).toLowerCase().indexOf(t) >= 0; });
+      el.innerHTML = '<div class="dz-pick-w dz-rdp-w">' +
+        '<div class="dz-pick-h"><b>Готовий дизайн</b><i>Натисніть заставку — подивитись великим</i>' +
+          '<button type="button" class="dz-x" data-rdp-x>×</button></div>' +
+        '<input class="dz-rdp-q" type="search" placeholder="Пошук: назва чи слово (наприклад, гаррі)" value="' + esc(q) + '">' +
+        (look
+          ? '<div class="dz-rdp-look"><img src="' + esc((look.art && look.art.url) || look.pic) + '" alt="">' +
+              (look.pic && look.art && look.art.url && look.pic !== look.art.url ? '<img src="' + esc(look.pic) + '" alt="">' : '') +
+              '<b>' + esc(look.name || '') + '</b>' +
+              '<div class="dz-rdp-a"><button type="button" class="dz-b" data-rdp-back>← До списку</button>' +
+              '<button type="button" class="dz-b pri" data-rdp-ok="' + esc(look.id) + '">Обрати цей дизайн</button></div></div>'
+          : '<div class="dz-rdp-g">' + (l.length ? l.map(function(d){
+              return '<button type="button" class="dz-rdp-c" data-rdp-look="' + esc(d.id) + '">' +
+                '<span><img src="' + esc(d.pic || (d.art && d.art.url) || '') + '" alt="" loading="lazy"></span>' +
+                '<b>' + esc(d.name || '') + '</b></button>'; }).join('')
+              : '<div class="dz-miss is-calm">Нічого не знайдено.</div>') + '</div>') +
+      '</div>';
+      var inp = el.querySelector('.dz-rdp-q');
+      if(inp){ inp.oninput = function(){ q = inp.value; var pos = inp.selectionStart; paint(); var n = el.querySelector('.dz-rdp-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } }; }
+    };
+    el.addEventListener('click', function(e){
+      var t = e.target;
+      if(t === el || (t.closest && t.closest('[data-rdp-x]'))){ el.remove(); return; }
+      var lk = t.closest && t.closest('[data-rdp-look]');
+      if(lk){ look = all.filter(function(d){ return d.id === lk.getAttribute('data-rdp-look'); })[0] || null; return paint(); }
+      if(t.closest && t.closest('[data-rdp-back]')){ look = null; return paint(); }
+      var ok = t.closest && t.closest('[data-rdp-ok]');
+      if(ok){ var d = all.filter(function(x){ return x.id === ok.getAttribute('data-rdp-ok'); })[0]; el.remove(); if(d) done(d); }
+    });
+    document.body.appendChild(el);
+    paint();
+    var f = el.querySelector('.dz-rdp-q'); if(f) f.focus();
   }
   function unitHtml(job, u, n, opt){
     opt = opt || {};
@@ -4244,6 +4408,10 @@
       '</div>' +
       /* ── ДИЗАЙН: хто малює й що вже намальовано ── */
       capHtml('Дизайн') +
+      /* Індивідуальний чи готовий (13.10). Дизайнер свою половину бачить як
+         раніше — перемикача в нього немає. */
+      ((ro || only) ? '' : designKindHtml(u)) +
+      (u.ready && !only ? readyHtml(job, u, ro, opt) :
       /* Яку половину тримаємо відкритою. Дизайнеру показують лише його
          половину (`only`) — там вибору немає й смужки теж. */
       (function(бік){ return '<div class="dz-u-dz' + (only ? ' one'
@@ -4294,7 +4462,7 @@
                   : '<div class="dz-miss is-calm">Чекає: ' + esc(sketchWait(u)) + '.</div>')) +
 
         '</div>') +
-      '</div>'; })(only || sideOf(u)) +
+      '</div>'; })(only || sideOf(u))) +
     '</div>';
   }
   /* ── КОМЕНТАР МЕНЕДЖЕРА Й ТЕРМІНОВІСТЬ ───────────────────────────────
@@ -4756,19 +4924,22 @@
 
      Рядок за рядком, а не одним числом: коли сума виглядає не так, питання
      завжди «а за що саме», і відповідь мусить бути тут же. */
-  function retailOf(gid){
-    try{ return Math.max(0, Math.round((host.retail && host.retail(gid)) || 0)); }
+  /* `kind` — 'ready' для готового ескізу (13.10): своя, нижча ціна й своя
+     собівартість з налаштувань B2C; не вписані — як індивідуальний. */
+  function retailOf(gid, kind){
+    try{ return Math.max(0, Math.round((host.retail && host.retail(gid, kind)) || 0)); }
     catch(e){ return 0; }
   }
-  function costOf(gid){
-    try{ return Math.max(0, Math.round((host.cost && host.cost(gid)) || 0)); }
+  function costOf(gid, kind){
+    try{ return Math.max(0, Math.round((host.cost && host.cost(gid, kind)) || 0)); }
     catch(e){ return 0; }
   }
   function sumRows(job){
     return unitsOf(job).map(function(u){
       var g = catItem(u.gid);
-      var ціна = retailOf(u.gid);
-      var соб = costOf(u.gid);
+      var вид = u.ready ? 'ready' : '';
+      var ціна = retailOf(u.gid, вид);
+      var соб = costOf(u.gid, вид);
       var к = Math.max(0, Math.round(+u.qty || 0));
       return { name: (g && g.name) || u.name || 'без виробу',
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
@@ -5201,7 +5372,7 @@
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
     orderCost: orderCost, sumRows: sumRows,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
-    unitNew: unitNew, catItem: catItem,
+    unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen, prodView: prodView,
@@ -5326,7 +5497,7 @@
       return '<option value="' + U.esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + U.esc(l) + '</option>'; };
     var paint = function(){
       var g = item();
-      var models = cat.slice();
+      var models = cat.filter(function(g){ return !g.off || g.id === st.gid; });
       if(st.gid && !g) models.unshift({ id: st.gid, name: st.name || st.gid, colors: [], sizes: [] });
       var colors = ((g && g.colors) || []).map(function(c){ return { v: String(c.name || c.id), hex: c.hex || '' }; });
       if(st.color && !colors.some(function(c){ return c.v === st.color; })) colors.unshift({ v: st.color, hex: st.colorHex });
@@ -5642,6 +5813,16 @@
     }
     var bp = ((job && job.brief && job.brief.pics) || [])[0];
     if(bp && bp.url) return bp.url;
+    /* Картинки з ТЗ самої позиції (13.10): «зараз індивідуальна позиція
+       чомусь худі, а не картинка, яку ми завантажили». Доти тут дивились
+       лише на загальні картинки замовлення, а ТЗ лежить при виробі. Готовий
+       дизайн — його заставка з бібліотеки. */
+    for(var q = 0; q < us.length; q++){
+      var rp = us[q].ready && us[q].ready.pic;
+      if(rp) return rp;
+      var up = (us[q].pics || []).filter(function(x){ return x && x.url; })[0];
+      if(up) return up.url;
+    }
     for(var k = 0; k < us.length; k++){ var ph = U.unitPhoto(us[k]); if(ph) return ph; }
     return '';
   }
@@ -5901,6 +6082,8 @@
     U.unitsOf(job).forEach(function(u){
       D.dzList(u, kind).forEach(function(d){
         if(!d.sentAt) return;
+        /* Готовий дизайн — без дизайнерів (13.10): на їхніх дошках його немає. */
+        if(d.readyMade) return;
         if(m && d.who && d.who !== m) return;
         out.push({ u: u, d: d });
       });
@@ -8841,6 +9024,8 @@
     'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
     'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'dz-hand-all':'art', 'pic-open':'', 'dz-dl':'',
+    /* Готовий дизайн (13.10) — робота менеджера зі складом, як вибір одягу. */
+    'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -9304,6 +9489,33 @@
       job.units = U.unitsOf(job).filter(function(x){ return x !== del; });
       return save(job, o, 'Прибрано');
     }
+    /* ── ГОТОВИЙ ДИЗАЙН (13.10) ──
+       Обрали дизайн → файли в позиції → одразу розміщення на одязі →
+       «Зберегти» → вікно перевірки (мокап + текст зі скрипта {готовий}) →
+       «Надіслати» → картка «У клієнта на погодженні». */
+    if(what === 'u-ready-pick'){
+      var ru = U.unitAt(job, data && data.u);
+      if(!ru) return;
+      return U.readyPickOpen(async function(rd){
+        if(ru.ready && !D.readyDetach(ru)) return say('Готовий дизайн уже погоджено — змінити не можна');
+        D.readyAttach(ru, rd);
+        await save(job, o, 'Готовий дизайн · ' + (rd.name || ''));
+        if(ru.gid) return act('dz-ready-place', root, { dz: ru.id + '|graphic|0' });
+        say('Тепер оберіть одяг — і натисніть «Розмістити на одязі»');
+      });
+    }
+    if(what === 'u-ready-off'){
+      var ou = U.unitAt(job, data && data.u);
+      if(!ou || !ou.ready) return;
+      try{ if(!window.confirm('Зробити позицію індивідуальною? Готовий дизайн «' + (ou.ready.name || '') + '» з неї знімемо.')) return; }catch(e){}
+      if(!D.readyDetach(ou)) return say('Готовий дизайн уже погоджено — змінити не можна');
+      return save(job, o, 'Позиція індивідуальна');
+    }
+    if(what === 'u-ready-place'){
+      var pl = U.unitAt(job, data && data.u);
+      if(!pl || !pl.ready) return;
+      return act('dz-ready-place', root, { dz: pl.id + '|graphic|0' });
+    }
     /* Вибір із каталогу. Вікно відкриває модуль, а записуємо ми вже
        відповідь — тому дія не зберігає нічого сама, а чекає на вибір. */
     if(what === 'u-pick-gid' || what === 'u-pick-color' || what === 'u-pick-size'){
@@ -9449,8 +9661,14 @@
        what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' || what === 'dz-art-only' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
-       what === 'dz-tell-pick' || what === 'dz-ok-pick'){
+       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place'){
       var dp = String((data && data.dz) || '').split('|');
+      /* Розміщення готового дизайну — тут, бо його збирач (workVer) живе в
+         цьому блоці; запису графіки ще може не бути, тож до пошуку `dd`. */
+      if(what === 'dz-ready-place'){
+        var rpu = U.unitAt(job, dp[0]);
+        return (rpu && rpu.ready) ? readyPlace(root, job, o, rpu) : undefined;
+      }
       var du = U.unitAt(job, dp[0]);
       var dk = dp[1] === 'stitch' ? 'stitch' : 'graphic';
       var dd = du && D.dzAt(du, dk, dp[2]);
@@ -9815,6 +10033,43 @@
       if(t && t.code && !seen[t.code]){ seen[t.code] = 1; out.push({ code: t.code, hex: t.hex }); } }); });
     return out;
   }
+  /* Розмістити готовий дизайн на одязі: те саме вікно, що в «✎ Розміщення»,
+     принт уже лежить на грудях. Зберегли — перша версія від менеджера й одразу
+     показ клієнту (через ту саму дію «Надіслати», зі скриптом {готовий}). */
+  function readyPlace(root, job, o, u){
+    var r = u.ready || {};
+    if(!r.art || !r.art.url) return say('У цього дизайну немає принта — додайте його в Налаштуваннях B2C');
+    if(!window.LQMock || !window.LQMock.openWork) return say('Вікно розміщення не завантажилось');
+    var сторони = [];
+    try{ сторони = (host().sides && host().sides(u.gid, u.color)) || []; }catch(e){}
+    if(!сторони.length) return say('У цього виробу немає фото в каталозі');
+    var m = (host().me && host().me()) || '';
+    var g = D.dzList(u, 'graphic').filter(function(x){ return x.readyMade; })[0];
+    var pv = g && g.vers[g.vers.length - 1];
+    var places = pv ? D.verSpots(pv).filter(Boolean).map(function(sp){ return { side: sp.side || '', work: 0, x: sp.x, y: sp.y, w: sp.w }; })
+                    : [{ side: сторони[0].key, work: 0, x: 0.5, y: 0.3, w: 0.26 }];
+    return window.LQMock.openWork({
+      placeOnly: true,
+      gid: u.gid, size: u.size || '', color: u.color || '',
+      name: 'Готовий дизайн «' + (r.name || '') + '» · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
+      sides: сторони, works: [{ name: r.art.name || 'принт.png', url: r.art.url, hash: 'ready:' + (r.id || '') }],
+      places: places,
+      onDone: async function(res){
+        var зб = await workVer(res, u);
+        if(!зб) return;
+        var d = D.readyGraphic(u, m);
+        var булоОк = !!d.ok;
+        D.dzVer(d, m, зб.files, 'Готовий дизайн «' + (r.name || '') + '»', зб.place, 'acct');
+        var v = d.vers[d.vers.length - 1];
+        v.byAcct = true;
+        if(булоОк){ d.ok.ver = v.n; d.status = 'approved'; }
+        await save(job, o, 'Готовий дизайн розміщено · версія ' + v.n);
+        if(булоОк) return;
+        var i = D.dzList(u, 'graphic').indexOf(d);
+        return act('dz-tell', root, { dz: u.id + '|graphic|' + i, v: v.n });
+      }
+    });
+  }
   async function workVer(res, du){
     say('Збираю мокапи…');
     /* Мокапи зібрались у браузері як data:URL. Класти їх у картку
@@ -10094,7 +10349,7 @@
            клієнт бачив, про яку саме мова. */
         var перша = !(dd.vers || []).some(function(x){ return x.sentToClient; });
         var txt = '';
-        try{ txt = (host().script && host().script(o, перша ? 'design1' : 'design2', {
+        try{ txt = (host().script && host().script(o, dd.readyMade && перша ? 'ready' : перша ? 'design1' : 'design2', {
           v: tv.n })) || ''; }catch(e){}
         /* ПІДТВЕРДЖЕННЯ: ЩО САМЕ ПІДЕ КЛІЄНТУ. Андрій: «повинно бути
            підтвердження, що саме ми надсилаємо… картинка і текст. Якщо все
