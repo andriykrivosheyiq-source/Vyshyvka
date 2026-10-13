@@ -116,7 +116,7 @@ const ЗАВЕСТИ = `(() => {
   document.getElementById('view-design').style.display = 'block';
   const U = window.LQDesign.ui, D = window.LQDesign;
   const job = designJobMake('2000101');
-  job.due = '2026-10-14';
+  job.due = '2031-12-29';
   job.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова',
     color:'Чорний', size:'M', qty:3,
     note:'Логотип менше, по центру грудей',
@@ -224,7 +224,7 @@ const кар = await p.evaluate(() => {
   return { є: !!a, скачує: !!(a && a.dataset && a.dataset.url),
            коментар: /Логотип менше/.test(document.querySelector('.dz-panel').textContent),
            мокап: !!document.querySelector('.dz-w-mock'),
-           дата: /14\.10/.test(document.querySelector('.dz-panel').textContent) };
+           дата: /29\.12/.test(document.querySelector('.dz-panel').textContent) };
 });
 console.log('  ' + JSON.stringify(кар));
 ok(кар.є && кар.скачує,
@@ -517,7 +517,7 @@ const половини = await p.evaluate(() => ({
     if(!s || !t) return false;
     return t.getBoundingClientRect().top > s.getBoundingClientRect().top;
   })(),
-  чужаДата: /обіцяне клієнту|14\.10/.test(document.querySelector('.dz-panel').textContent),
+  чужаДата: /обіцяне клієнту|29\.12/.test(document.querySelector('.dz-panel').textContent),
   свійСтрок: /лишилось|прострочено/.test(document.querySelector('.dz-panel').textContent)
 }));
 console.log('  ' + JSON.stringify(половини));

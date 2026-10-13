@@ -445,7 +445,11 @@
      дизайнів ще немає зовсім, і рішення лишається за старим полем. */
   function sketchOk(x){
     var l = (x && x.vers) || [], last = l[l.length - 1];
-    return !!(x && x.sketchOk && (!last || +x.sketchOk === +last.n));
+    if(!(x && x.sketchOk)) return false;
+    if(!last || +x.sketchOk === +last.n) return true;
+    /* Клієнт погодив НЕ останню («беремо другу», подивившись третю): це
+       теж узгоджено — доки після позначки не зʼявилось нової версії. */
+    return !!(x.sketchOkAt && !l.some(function(v){ return v && v.at && String(v.at) > String(x.sketchOkAt); }));
   }
   function clientSaw(x){
     var l = (x && x.vers) || [], last = l[l.length - 1];
@@ -455,7 +459,18 @@
   /* РУЧНЕ ПЕРЕНЕСЕННЯ НА ДОШЦІ АКАУНТА (08.10): ескіз надіслали не через
      CRM — менеджер переносить «Готовий граф. ескіз» → «У клієнта на
      погодженні» сам. Назад — лише якщо клієнту його не надсилали з CRM. */
-  var ACCT_MOVES = { sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client'] };
+  /* sketchok → stitchq — це ФІКСАЦІЯ (14.10): перенести можна, але лише
+     через вікно одягу (модель, колір, розмір, кількість) — його відкриває
+     дошка, сам acctMove цього переходу не робить. */
+  var ACCT_MOVES = { sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client', 'stitchq'] };
+  /* «✓ Погоджено» у клієнта (14.10): клієнт погодив ЕСКІЗ — позначаємо саме
+     це (Ескіз узгоджено), без вікна одягу. Фіксація — наступним кроком. */
+  function sketchOkMark(x, n, by){
+    if(!x) return null;
+    var l = x.vers || [], last = l[l.length - 1];
+    x.sketchOk = +n || (last ? last.n : 1); x.sketchOkBy = String(by || ''); x.sketchOkAt = nowIso();
+    return x;
+  }
   function acctCanMove(from, to){ return (ACCT_MOVES[from] || []).indexOf(to) >= 0; }
   function acctMove(job, o, to, by){
     var from = chainAt(job, o);
@@ -2381,6 +2396,7 @@
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, prodAt: prodAt, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
@@ -2930,10 +2946,14 @@
          й нік. Дія «написати» стоїть унизу блока замовлення, як у B2B, —
          угорі вона плуталась із прибиранням привʼязки, а потрібна саме
          тоді, коли замовлення вже прочитане. */
+      /* ВІДВʼЯЗАТИ (14.10): Андрій — «можливо помилково його вів сюди,
+         щоб можна було відвʼязати і приєднати другого». */
       if(o.crmChatId)
         return '<div class="dz-own is-on">' +
           '<div class="dz-own-who"><span>Клієнт</span><b>' +
-            esc(whoLabel(o) || ('чат ' + o.crmChatId)) + '</b></div>' +
+            esc(whoLabel(o) || ('чат ' + o.crmChatId)) + '</b>' +
+            '<button type="button" class="dz-b dz-own-un" data-do="unbind" ' +
+              'title="Знімемо розмову з картки — потім можна привʼязати іншу">🔗 Відвʼязати</button></div>' +
         '</div>';
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
@@ -4076,8 +4096,13 @@
       '<div class="dz-chk-b">' +
         (погоджено
           ? '<button class="dz-b" data-do="dz-unok" data-dz="' + key + '">Зняти</button>'
+          : (kind === 'graphic' && D.sketchOk(d))
+          ? '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
+            '" title="Фіксація: підтвердити модель, колір, розмір і кількість — далі черга вишивки й закупівля">' +
+            '✓ Фіксація</button>'
           : '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
-            '" title="Клієнт сказав «беремо» — робота йде далі й відкривається вишивка">' +
+            '" title="' + (kind === 'graphic' ? 'Клієнт погодив ескіз — «Ескіз узгоджено»; фіксація — наступним кроком'
+                                              : 'Вишивку погоджено — у виробництво') + '">' +
             '✓ Погоджено</button>') +
         /* Кнопки «Правка» більше немає: будь-яке повідомлення менеджера
            дизайнеру вже й є правкою — написав у розмові, і робота
@@ -5662,7 +5687,10 @@
   }
   /* Вікно «Надіслати клієнту?»: картка, що поїде, і текст повідомлення.
      Повертає текст (можливо, поправлений) або null, якщо передумали. */
-  function tellConfirm(url, text, title){
+  /* `save(text)` — зберегти правлений текст у заготовку назавжди (14.10):
+     Андрій — «в кожній зоні можливість підкорегувати скрипт олівцем, і він
+     назавжди зберігся». */
+  function tellConfirm(url, text, title, save){
     return new Promise(function(res){
       var w = document.createElement('div');
       w.className = 'dz-pick dz-cf';
@@ -5670,12 +5698,24 @@
         '<div class="dz-cf-h">Надіслати клієнту' + (title ? ' · ' + U.esc(title) : '') + '</div>' +
         '<img class="dz-cf-i" src="' + U.esc(url) + '" alt="">' +
         '<textarea class="dz-cf-t" rows="4">' + U.esc(text || '') + '</textarea>' +
+        (save ? '<div class="dz-cf-s"><button type="button" class="dz-b" data-cf-save ' +
+          'title="Цей текст стане заготовкою й підставлятиметься щоразу">✎ Зберегти текст у заготовку назавжди</button>' +
+          '<i class="dz-cf-ok"></i></div>' : '') +
         '<div class="dz-cf-f">' +
           '<button type="button" class="dz-b" data-cf="no">Скасувати</button>' +
           '<button type="button" class="dz-b pri" data-cf="yes">Надіслати</button>' +
         '</div></div>';
       var done = function(v){ if(w.parentNode) w.parentNode.removeChild(w); res(v); };
-      w.addEventListener('click', function(e){
+      w.addEventListener('click', async function(e){
+        var sv = e.target.closest('[data-cf-save]');
+        if(sv && save){
+          sv.disabled = true;
+          var ok = false;
+          try{ ok = await save(String(w.querySelector('.dz-cf-t').value || '')); }catch(err){ console.warn(err); }
+          sv.disabled = false;
+          var n = w.querySelector('.dz-cf-ok'); if(n) n.textContent = ok ? '✓ збережено — далі підставлятиметься цей текст' : 'не збереглось';
+          return;
+        }
         var b = e.target.closest('[data-cf]');
         if(b) return done(b.dataset.cf === 'yes' ? String(w.querySelector('.dz-cf-t').value || '') : null);
         if(e.target === w) done(null);
@@ -7563,6 +7603,7 @@
       var карти = всіКарти.filter(function(c){ return ключі.indexOf(c.step) >= 0; });
       /* ТЕРМІНОВІСТЬ (Володимир, 07.10): у «Готово до роботи» — від найближчої
          дати відправки; без дати — у кінці. Лише там, де ввімкнули. */
+      карти = byOrd(карти);
       if(PROD_SORT){
         var гот = карти.filter(function(c){ return c.step === 'ready'; });
         гот.sort(function(a, b){ return String(a.due || '9999') < String(b.due || '9999') ? -1
@@ -7572,7 +7613,49 @@
       return { steps: кроки, cards: карти };
     }
     if(seat === 'supply')  return { steps: D.SUPPLY,  cards: supplyCards() };
-    return { steps: D.CHAIN, cards: chainCards() };     // акаунт-менеджер
+    return { steps: D.CHAIN, cards: byOrd(chainCards()) };     // акаунт-менеджер
+  }
+  /* РУЧНИЙ ПОРЯДОК НА ДОШЦІ (Андрій, 13.10): «коли перетягуємо картки
+     вручну, не потрібно на початок дергатись — вони повинні залишатись на
+     своїх місцях». Картка стає туди, куди її відпустили, і там лишається.
+
+     Ключ порядку — одне число на задачі (job.boardOrd). Без нього ключ —
+     мінус час створення замовлення, тобто той самий порядок «новіші
+     згори», що й доти; тож ручні й не чіпані картки живуть в одній шкалі
+     й не перемішуються, коли зʼявляється нове замовлення. */
+  function ordKey(p){
+    var j = p.job || {};
+    if(j.boardOrd != null && isFinite(+j.boardOrd)) return +j.boardOrd;
+    return -(Date.parse((p.o && p.o.createdAt) || '') || 0);
+  }
+  function ordMap(){
+    var m = {};
+    U.pairs().forEach(function(p){ m[p.o.orderId] = ordKey(p); });
+    return m;
+  }
+  function byOrd(cards){
+    var m = ordMap();
+    return cards.map(function(c, i){ return { c: c, i: i, k: m[c.id] != null ? m[c.id] : 0 }; })
+      .sort(function(a, b){ return a.k - b.k || a.i - b.i; })
+      .map(function(x){ return x.c; });
+  }
+  /* Куди саме відпустили: між якими картками колонки. Повертає новий ключ
+     або null, коли місце не змінилось. */
+  function dropOrd(col, id, y){
+    var m = ordMap();
+    var інші = [].slice.call(col.querySelectorAll('.dz-col-b [data-open]'))
+      .filter(function(c){ return c.dataset.open !== id && m[c.dataset.open] != null; });
+    var i = 0;
+    for(; i < інші.length; i++){
+      var r = (інші[i].closest('.dz-card-w') || інші[i]).getBoundingClientRect();
+      if(y < r.top + r.height / 2) break;
+    }
+    var до = i > 0 ? m[інші[i - 1].dataset.open] : null;
+    var після = i < інші.length ? m[інші[i].dataset.open] : null;
+    if(до != null && після != null) return до === після ? до : (до + після) / 2;
+    if(після != null) return після - 60000;
+    if(до != null) return до + 60000;
+    return null;
   }
 
   /* ── АРКУШ ЗБИРАЄТЬСЯ САМ ────────────────────────────────────────────
@@ -8649,7 +8732,7 @@
           тягну = { id: c.dataset.open, from: col ? col.dataset.col : '' };
           try{ e.dataTransfer.setData('text/plain', тягну.id); e.dataTransfer.effectAllowed = 'move'; }catch(_){}
           root.querySelectorAll('.dz-board .dz-col').forEach(function(k){
-            if(можна(тягну.from, k.dataset.col)) k.classList.add('can-drop'); });
+            if(тягну.from === k.dataset.col || можна(тягну.from, k.dataset.col)) k.classList.add('can-drop'); });
         };
         w.ondragend = function(){
           тягну = null;
@@ -8658,21 +8741,30 @@
       });
       root.querySelectorAll('.dz-board .dz-col').forEach(function(k){
         k.ondragover = function(e){
-          if(тягну && можна(тягну.from, k.dataset.col)){ e.preventDefault(); k.classList.add('drop-on'); }
+          if(тягну && (тягну.from === k.dataset.col || можна(тягну.from, k.dataset.col))){ e.preventDefault(); k.classList.add('drop-on'); }
         };
         k.ondragleave = function(){ k.classList.remove('drop-on'); };
         k.ondrop = function(e){
           e.preventDefault();
           if(!тягну) return;
-          var p = U.pairOf(тягну.id), to = k.dataset.col;
+          var p = U.pairOf(тягну.id), to = k.dataset.col, from = тягну.from;
           тягну = null;
           if(!p) return;
           var me0 = (host().me && host().me()) || '';
+          var ord = dropOrd(k, p.o.orderId, e.clientY);
+          if(from === to){
+            if(ord == null || ord === ordKey(p)) return;
+            p.job.boardOrd = ord;
+            return save(p.job, p.o, '');
+          }
           if(!цех){
+            if(to === 'stitchq') return fixAll(root, p, me0);
             if(!D.acctMove(p.job, p.o, to, me0)) return say('Так перенести не можна — ескіз уже надіслано клієнту з CRM');
+            if(ord != null) p.job.boardOrd = ord;
             return save(p.job, p.o, to === 'client' ? 'У клієнта на погодженні' : to === 'sketchok' ? 'Ескіз узгоджено' : 'Готовий граф. ескіз');
           }
           if(!D.prodMove(p.job, p.o, to, me0)) return say('Так перенести не можна');
+          if(ord != null) p.job.boardOrd = ord;
           if(to === 'run') prodToTelegram(p.job, p.o, true);
           save(p.job, p.o, to === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
         };
@@ -9054,6 +9146,42 @@
     pack:'Збирати пакет у виробництво', bind:'Привʼязувати розмови',
     new:'Створювати замовлення'
   };
+  /* ЧИЯ ПАНЕЛЬ ПРАВОРУЧ, КОЛИ ВІДКРИЛИ РОЗМОВУ (14.10). Андрій: «у
+     виробництва Instagram відкриває праву панель акаунтів, хоча повинна
+     відкриватись панель саме виробництва». Не акаунт — відкриваємо картку
+     замовлення на СВОЇЙ дошці, а робоче місце не підкладає картку акаунта. */
+  function chatSeat(root, id){
+    var seat = U.tab();
+    if(seat !== 'acct' && id){ try{ U.open(String(id)); render(root); }catch(e){} }
+    return { seat: seat };
+  }
+  /* ФІКСАЦІЯ ПЕРЕТЯГУВАННЯМ «Ескіз узгоджено» → «Черга вишивки» (14.10):
+     по черзі вікно одягу на кожну позицію з узгодженим ескізом; підтвердили
+     все — погоджено, одяг зафіксовано, позиції в черзі вишивки й закупівлі. */
+  function fixAll(root, p, me0){
+    var черга = [];
+    U.unitsOf(p.job).forEach(function(u){
+      D.dzList(u, 'graphic').forEach(function(d, i){
+        if(d.sentAt && d.status === 'review' && D.sketchOk(d)) черга.push({ u: u, d: d, i: i });
+      });
+    });
+    if(!черга.length) return say('Немає узгодженого ескізу для фіксації');
+    var k = 0;
+    var далі = function(){
+      if(k >= черга.length){
+        D.dzAutoStitch(p.job, me0);
+        return save(p.job, p.o, 'Фіксація · у черзі вишивки й закупівлі');
+      }
+      var x = черга[k++];
+      var n = x.d.sketchOk || (x.d.vers.length ? x.d.vers[x.d.vers.length - 1].n : 1);
+      clothOpen(x.u, 'Фіксація · ' + U.unitNo(p.job, x.u) + ' · v' + n, function(st){
+        clothApply(x.u, st, me0);
+        D.dzOk(x.d, me0, 'client', n);
+        далі();
+      });
+    };
+    далі();
+  }
   async function act(what, root, data){
     var need = ACT_CAN[what];
     if(need && !can(need))
@@ -9094,12 +9222,12 @@
     }
     if(what === 'chat-tg' && data && data.id){
       var tp0 = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
-      if(tp0 && host().chatTg) return host().chatTg(tp0.o);
+      if(tp0 && host().chatTg) return host().chatTg(tp0.o, chatSeat(root, data.id));
       return say('Переписка недоступна');
     }
     if(what === 'chat' && data && data.id){
       var cp0 = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
-      if(cp0 && host().chat) return host().chat(cp0.o);
+      if(cp0 && host().chat) return host().chat(cp0.o, chatSeat(root, data.id));
       return say('Переписка недоступна');
     }
     /* Закупівля живе поза карткою замовлення — тож до перевірки контексту. */
@@ -9392,10 +9520,11 @@
         var cp = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
         if(cp) co = cp.o;
       }
-      if(host().chat) return host().chat(co);
+      if(host().chat) return host().chat(co, chatSeat(root, co && co.orderId));
       return say('Переписка недоступна');
     }
     if(what === 'unbind'){
+      try{ if(!window.confirm('Відвʼязати розмову від цієї картки? Потім можна вставити адресу іншої.')) return; }catch(e){}
       if(host().unbind) host().unbind(o);
       return render(document.getElementById('dzRoot'));
     }
@@ -10289,12 +10418,20 @@
         /* Погодження ескізу — разом із підтвердженням одягу. */
         var погодити = function(n){
           if(дія !== 'dz-ok' || dk !== 'graphic') return act(дія, root, { dz: dkey, v: n, how: як });
-          clothOpen(du, 'Погодити ескіз · v' + n + ' · одяг', function(st){
+          /* Крок 1 — «Ескіз узгоджено», без вікна (14.10). */
+          if(!D.sketchOk(dd)){
+            D.sketchOkMark(dd, n, m);
+            return save(job, o, 'Ескіз узгоджено · v' + n + ' — далі «Фіксація»');
+          }
+          /* Крок 2 — фіксація: одяг обовʼязково, далі черга вишивки. */
+          clothOpen(du, 'Фіксація · v' + n + ' · одяг', function(st){
             clothApply(du, st, m);
             act('dz-ok', root, { dz: dkey, v: n, how: як });
           });
         };
         if(vs.length === 1) return погодити(vs[0].n);
+        /* Фіксація — тієї версії, яку клієнт уже погодив: питати вдруге нема про що. */
+        if(дія === 'dz-ok' && dk === 'graphic' && D.sketchOk(dd)) return погодити(+dd.sketchOk);
         return U.pickOpen(
           дія === 'dz-ok' ? (dk === 'stitch' ? 'Яку версію вишивки погоджуєте' : 'Яку версію погодив клієнт')
                           : 'Яку версію надіслати',
@@ -10356,7 +10493,9 @@
         /* ПІДТВЕРДЖЕННЯ: ЩО САМЕ ПІДЕ КЛІЄНТУ. Андрій: «повинно бути
            підтвердження, що саме ми надсилаємо… картинка і текст. Якщо все
            правильно — надсилаємо». Текст можна поправити тут же. */
-        var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n);
+        var ключСкр = dd.readyMade && перша ? 'ready' : перша ? 'design1' : 'design2';
+        var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n,
+          host().scriptSave ? function(t){ return host().scriptSave(o, ключСкр, t, { v: tv.n }); } : null);
         if(остаточно === null) return;
         txt = остаточно;
         say('Надсилаю…');
