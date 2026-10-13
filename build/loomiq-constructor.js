@@ -6520,12 +6520,54 @@
          нейромережа, PhotoRoom — кнопкою «2».
        Доти на сайті працював лише простий алгоритм, і клієнт не міг
        прибрати сірувате тло з логотипа, хоч як пробував. */
+    /* ПАМʼЯТЬ ТЕЛЕФОНА (13.10). «Кілька разів пробувала додати логотип на
+       одяг, а потім одразу вибиває» — Safari на iPhone закривав сторінку:
+       фото з камери (12–48 Мп) оброблялось у повному розмірі кількома
+       копіями, а «1 · Внутрішній» ще й вантажив нейромережу на сотні МБ —
+       і все це всередині CRM. Тепер:
+       • кожна завантажена картинка спершу зменшується до UPLOAD_MAX по
+         довшій стороні (для вишивки й друку цього досить із запасом);
+       • на телефоні нейромережу не запускаємо — простий спосіб, а складне
+         тло — «2 · PhotoRoom». */
+    var UPLOAD_MAX = 2400;
+    function lowMem(){
+      try{
+        var ua = navigator.userAgent || '';
+        if(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return true;
+        if(/Android/i.test(ua)) return true;
+        var dm = +navigator.deviceMemory;
+        return dm > 0 && dm <= 4;
+      }catch(e){ return false; }
+    }
+    function shrinkUpload(dataUrl){
+      var s = String(dataUrl || '');
+      if(!/^data:image\//i.test(s) || /^data:image\/svg/i.test(s)) return Promise.resolve(dataUrl);
+      return loadImgEl(s).then(function(img){
+        var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+        var k = Math.min(1, UPLOAD_MAX / Math.max(W || 1, H || 1));
+        if(!(W > 0) || k >= 1) return dataUrl;
+        var cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(W * k)); cv.height = Math.max(1, Math.round(H * k));
+        var x = cv.getContext('2d');
+        x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+        x.drawImage(img, 0, 0, cv.width, cv.height);
+        /* Прозорість лишається PNG; фото з камери — JPEG, інакше рядок
+           виходить у кілька разів більшим за потрібне. */
+        var out = /^data:image\/(png|webp|gif)/i.test(s) ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', 0.92);
+        cv.width = cv.height = 0;
+        return out;
+      }).catch(function(){ return dataUrl; });
+    }
+    window.__lqShrinkUpload = shrinkUpload;
+    window.__lqLowMem = lowMem;
     /* Внутрішній, без PhotoRoom: рівне тло — простий, не впорався — модель. */
     function removeBgInternal(dataUrl){
       var B = window.LQBg;
       var simple = function(){ return removeBgLocal(dataUrl).then(function(r){ bgCount('simple'); return r; }); };
       if(!B) return simple();
-      var smart = function(){ return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; }); };
+      /* Перевірки рівного тла (96 px) дешеві — лишаються; модель — ні. */
+      var smart = lowMem() ? simple
+        : function(){ return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; }); };
       return B.plain(dataUrl).catch(function(){ return true; }).then(function(рівне){
         if(!рівне) return smart().catch(simple);
         return removeBgLocal(dataUrl).then(function(r){
@@ -6550,7 +6592,8 @@
           '<b>Прибрати фон?</b>' +
           '<div class="pm-bgask-img"><img alt="" src="' + String(src).replace(/"/g, '&quot;') + '"></div>' +
           '<div class="pm-bgask-b">' +
-            '<button type="button" data-bg="in">1 · Внутрішній<small>безкоштовно</small></button>' +
+            '<button type="button" data-bg="in">1 · Внутрішній<small>' +
+              (lowMem() ? 'безкоштовно · на телефоні — простий' : 'безкоштовно') + '</small></button>' +
             (bgApiUrl() ? '<button type="button" data-bg="pro">2 · PhotoRoom<small>платно, найточніше</small></button>' : '') +
             '<button type="button" data-bg="no">Не прибирати<small>фото як є</small></button>' +
           '</div><div class="pm-bgask-n" aria-live="polite"></div></div>';
@@ -6571,7 +6614,7 @@
               removeBgInternal(src).then(function(c){ fin({ clean: c }); }, function(){ fin({ clean: null }); });
             });
           } else {
-            note.textContent = (window.LQBg && window.LQBg.ready && !window.LQBg.ready())
+            note.textContent = (!lowMem() && window.LQBg && window.LQBg.ready && !window.LQBg.ready())
               ? 'Прибираю фон… перший раз довше: завантажується модель' : 'Прибираю фон…';
             removeBgInternal(src).then(function(c){ fin({ clean: c }); }, function(){ fin({ clean: null }); });
           }
@@ -6583,6 +6626,7 @@
       var simple = function(){ return removeBgLocal(dataUrl).then(function(r){ bgCount('simple'); return r; }); };
       var strong = function(){
         if(client) return removeBgPro(dataUrl);
+        if(lowMem()) return simple();
         return B.smart(dataUrl).then(function(r){ bgCount('smart'); return r; });
       };
       if(!B) return client ? removeBgPro(dataUrl).catch(simple) : simple();
@@ -7270,7 +7314,10 @@
       if(!f) return;
       var rd = new FileReader();
       rd.onload = function(ev){
-        var src = ev.target.result;
+        /* Спершу — до робочого розміру (13.10): фото з телефону по 12–48 Мп
+           у повному розмірі валили Safari на iPhone при створенні КП. Лише
+           в КП (режим менеджера) — сайт для клієнтів поки як був. */
+        (isMgrMode() ? shrinkUpload(ev.target.result) : Promise.resolve(ev.target.result)).then(function(src){
         if(isMgrMode()){
           bgAsk(src).then(function(v){
             if(!v) return;
@@ -7281,6 +7328,7 @@
         }
         removeBgForUpload(src).then(function(clean){ addLogo(src, clean); })
           .catch(function(){ addLogo(src, null); });
+        });
       };
       rd.readAsDataURL(f);
       e.target.value = '';
