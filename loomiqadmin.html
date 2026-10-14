@@ -7580,28 +7580,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=53f721004a"></script>
-<script src="loomiq-fingerprint.js?v=53f721004a"></script>
-<script src="loomiq-pricing.js?v=53f721004a"></script>
+<script src="loomiq-select.js?v=ee7b1d1b5d"></script>
+<script src="loomiq-fingerprint.js?v=ee7b1d1b5d"></script>
+<script src="loomiq-pricing.js?v=ee7b1d1b5d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=53f721004a"></script>
+<script src="loomiq-money-core.js?v=ee7b1d1b5d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=53f721004a"></script>
-<script src="loomiq-bg.js?v=53f721004a"></script>
-<script src="loomiq-mock.js?v=53f721004a"></script>
+<script src="loomiq-design.js?v=ee7b1d1b5d"></script>
+<script src="loomiq-bg.js?v=ee7b1d1b5d"></script>
+<script src="loomiq-mock.js?v=ee7b1d1b5d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=53f721004a"></script>
-<script src="loomiq-threads.js?v=53f721004a"></script>
+<script src="imagetracer.js?v=ee7b1d1b5d"></script>
+<script src="loomiq-threads.js?v=ee7b1d1b5d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=53f721004a"></script>
+<script src="loomiq-cards.js?v=ee7b1d1b5d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7646,7 +7646,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '53f721004a';
+var LQ_VER = 'ee7b1d1b5d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -26164,7 +26164,7 @@ async function crmPollOnce(o){
    ПРАВИЛО: розмова неопрацьована, доки ОСТАННЄ СЛОВО ЗА КЛІЄНТОМ. Не «доки
    не прочитали»: прочитати й забути легко, і лічильник, який гасне від
    погляду, бреше вже за хвилину. */
-const CRM_SWEEP_MS = 20000;   // 14.10: раз на 20 с — нове від клієнта не чекає хвилину
+const CRM_SWEEP_MS = 30000;   // 15.10: раз на 30 с — частіше Sitniks починає гальмувати й відмовляти (429)
 let crmSweepTimer = null, crmSweepBusy = false;
 /* Розмови, у яких замовлення ще немає. У розділі їх більше не показуємо —
    там лише те, що ми самі привʼязали, — але обхід їх усе одно читає: саме з
@@ -26249,6 +26249,9 @@ function crmSweepRow(r, o){
 }
 async function crmSweepOnce(){
   if(crmSweepBusy || !crmBase() || document.hidden) return;
+  /* Поки щось надсилається — не питаємо: Sitniks рахує запити, і обхід
+     у цю мить лише відбирає в картинки ліміт. */
+  if(chatWin && (chatWin.sending || chatWin.picsBusy)) return;
   const byChat = {};
   (orders || []).forEach(o => { if(o && o.crmChatId) byChat[String(o.crmChatId)] = o; });
   crmSweepBusy = true;
@@ -26488,13 +26491,23 @@ function renderChats(dir){
      разом із розміткою — разом із живою підпискою на стрічку. */
   const cw = document.getElementById('chatWin');
   const parked = cw && cw.parentNode === document.getElementById(host);
-  if(parked) (document.querySelector('.workarea') || document.body).appendChild(cw);
-  root.innerHTML = '<div class="ch2">' +
-      '<div class="ch2-list">' + chatsHtml(dir) + '</div>' +
-      '<div class="ch2-view" id="' + host + '"></div>' +
-    '</div>';
-  if(parked) chatsMount(dir);
-  else chatsViewEmpty(dir);
+  /* ОНОВЛЮЄМО ЛИШЕ СПИСОК (15.10). Доти обхід розмов кожні 20 с виймав
+     вікно переписки з розмітки й ставив назад — і клік по «➤», що припав на
+     цю мить, губився: «по Ctrl+Enter надсилає, а кнопка — ні». Вікно,
+     що вже стоїть на місці, тепер не чіпаємо взагалі. */
+  const list = root.querySelector('.ch2 > .ch2-list');
+  if(list && document.getElementById(host)){
+    list.innerHTML = chatsHtml(dir);
+    if(!parked && !document.getElementById(host).children.length) chatsViewEmpty(dir);
+  } else {
+    if(parked) (document.querySelector('.workarea') || document.body).appendChild(cw);
+    root.innerHTML = '<div class="ch2">' +
+        '<div class="ch2-list">' + chatsHtml(dir) + '</div>' +
+        '<div class="ch2-view" id="' + host + '"></div>' +
+      '</div>';
+    if(parked) chatsMount(dir);
+    else chatsViewEmpty(dir);
+  }
   root.querySelectorAll('[data-chl]').forEach(b => b.addEventListener('click', async ()=>{
     const r = rows[+b.dataset.chl];
     if(!r || !r.o) return;
@@ -29782,7 +29795,20 @@ function wireChatWin(box, o, focusIn){
   inp.addEventListener('keydown', e=>{
     if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); }
   });
-  box.querySelector('[data-cw-go]').addEventListener('click', send);
+  /* Кнопка спрацьовує на НАТИСК, а не на відпускання (15.10). Клік —
+     це натиск і відпускання на тому самому вузлі; якщо вікно
+     перемалювалось між ними (прийшло повідомлення, оновився список), клік
+     не народжувався зовсім, і кнопка «не реагувала». Натиск — одна подія,
+     його не загубиш. Фокус лишається в полі. Клавіатурний «клік»
+     (Enter/пробіл на кнопці) теж працює, але не вдруге після натиску. */
+  const goB = box.querySelector('[data-cw-go]');
+  goB.addEventListener('pointerdown', e => {
+    if(e.button !== 0) return;
+    e.preventDefault();
+    chatWin.goAt = Date.now();
+    send();
+  });
+  goB.addEventListener('click', () => { if(Date.now() - (chatWin.goAt || 0) < 1500) return; send(); });
   box.querySelector('[data-cw-qr]').addEventListener('click', ()=>{
     chatWin.qr = !chatWin.qr; renderChatWin();
   });
@@ -30026,12 +30052,15 @@ async function chatSendPics(o, pics, text){
     chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin();
   };
   let urls = [], blobs = [];
+  const t0 = Date.now(), сек = () => Math.max(1, Math.round((Date.now() - t0) / 1000));
+  let tUp = 0;
   try{
     for(const p of pics){
       const b = await chatTimed(picSendable(p.blob), 30000, 'фото не підготувалось за 30 с');
       blobs.push(b);
       urls.push(await chatTimed(uploadCloudinary(b), 90000, 'хмара не відповіла за 90 с'));
     }
+    tUp = сек();
   }
   catch(e){
     console.warn('chat photo', e);
@@ -30056,7 +30085,9 @@ async function chatSendPics(o, pics, text){
       urls.forEach(u => { crmOutNote(o, u); crmSent.add(u); });
       crmAnswered(o);            // відповіли картинкою — теж відповіли
       chatWin.note = false;
-      toast(picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : ''));
+      /* Скільки йшло й де — щоб «довго» мало число: хмара чи Sitniks. */
+      toast(picWord(urls.length) + ' надіслано за ' + сек() + ' с (хмара ' + tUp + ' с' + (way ? ', ' + way : '') + ')');
+      console.info('фото: хмара ' + tUp + ' с, разом ' + сек() + ' с\n' + (crmPicLog || []).join('\n'));
     }catch(e){
       /* НІЯКОГО ПОСИЛАННЯ ЗАМІСТЬ КАРТИНКИ. Раніше тут спрацьовував
          запасний шлях: не пройшла картинка — летіла її адреса, щоб робота
@@ -30071,8 +30102,9 @@ async function chatSendPics(o, pics, text){
       back();
       if(text) chatWin.draft = text;
       renderChatWin();
-      toast('Картинку не прийняли: ' + (e.message || 'Sitniks відмовив') +
+      toast('Картинку не прийняли за ' + сек() + ' с: ' + (e.message || 'Sitniks відмовив') +
             ' · нічого не надіслано, спробуйте ще раз');
+      console.warn('фото: хмара ' + tUp + ' с\n' + (crmPicLog || []).join('\n'));
       return;
     }
   }
