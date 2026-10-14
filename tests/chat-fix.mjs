@@ -181,7 +181,22 @@ console.log('  ' + JSON.stringify(кн));
 ok(/мишкою/.test(кн[0]), 'натиснули «➤» мишкою — пішло', JSON.stringify(кн));
 ok(/під рукою/.test(кн[1]), 'вікно перемалювалось між натиском і відпусканням — однаково пішло, один раз', JSON.stringify(кн));
 ok(await p.evaluate(() => __sent.length) === 2, 'жодного дубля', 'надіслано ' + await p.evaluate(() => __sent.length));
-await p.evaluate(() => chatClose());
+/* Два замовлення в одній розмові (як #2000043 + #1000067): у шапці номери,
+   і «➤» однаково має надсилати — доти обробник діставався номеру в шапці. */
+await p.evaluate(() => {
+  const o = orders.find(x => x.orderId === '2000101'), o2 = orders.find(x => x.orderId === '2000102');
+  o2.crmChatId = 'c1';
+  chatOpen(o, 'crm', { noDrawer: true, dir: 'b2c' });
+});
+await p.waitForTimeout(300);
+const шапка = await p.evaluate(() => document.querySelectorAll('#chatWin [data-cw-ord]').length);
+await p.click('#chatWin .cw-inp');
+await p.keyboard.type('два замовлення');
+await p.click('#chatWin button.cw-go');
+await p.waitForTimeout(400);
+const два = await p.evaluate(() => __sent.slice(-1)[0] || '');
+ok(шапка === 2 && /два замовлення/.test(два), 'розмова з двома замовленнями (номери в шапці) — «➤» надсилає', JSON.stringify({ шапка, два }));
+await p.evaluate(() => { delete orders.find(x => x.orderId === '2000102').crmChatId; chatClose(); });
 
 console.log('\n═══ 2. КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ ═══');
 const інша = await p.evaluate(() => {
