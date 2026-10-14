@@ -153,6 +153,36 @@ ok(фото.ok1.calls.length === 2 && /POST фото 90000/.test(фото.ok1.ca
 ok(фото.після.draft === 'підпис' && фото.після.pics === 1 && !фото.після.calls && !фото.після.busy,
   'фото не завантажилось — нічого не пішло, підпис у полі, фото в смужці, кнопка жива', JSON.stringify(фото.після));
 
+console.log('\n═══ 1в. КНОПКА «➤» МИШКОЮ — НАВІТЬ ЯКЩО ВІКНО ПЕРЕМАЛЮВАЛОСЬ ПІД РУКОЮ ═══');
+/* Андрій, 15.10: «по Ctrl+Enter надсилає, а кнопка — ні». Клік губився,
+   коли між натиском і відпусканням вікно перемальовувалось. */
+await p.evaluate(() => {
+  const o = orders.find(x => x.orderId === '2000101');
+  window.__sent = [];
+  window.crmFetch = async (path, opt) => { if(opt && opt.method === 'POST') __sent.push(String(opt.body || '')); return { data: [] }; };
+  crmChat[o.id] = { chatId:'c1', msgs: [] };
+  chatOpen(o, 'crm', { noDrawer: true, dir: 'b2c' });
+});
+await p.waitForTimeout(400);
+const кн = [];
+for(const [слово, як] of [['мишкою', 'клік'], ['під рукою', 'перемалювалось']]){
+  await p.click('#chatWin .cw-inp');
+  await p.keyboard.type(слово);
+  const b = await p.$('#chatWin [data-cw-go]');
+  const r = await b.boundingBox();
+  await p.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  await p.mouse.down();
+  if(як === 'перемалювалось') await p.evaluate(() => { renderChatWin(); try{ chatsLive(); }catch(e){} });
+  await p.mouse.up();
+  await p.waitForTimeout(400);
+  кн.push(await p.evaluate(() => __sent.slice(-1)[0] || ''));
+}
+console.log('  ' + JSON.stringify(кн));
+ok(/мишкою/.test(кн[0]), 'натиснули «➤» мишкою — пішло', JSON.stringify(кн));
+ok(/під рукою/.test(кн[1]), 'вікно перемалювалось між натиском і відпусканням — однаково пішло, один раз', JSON.stringify(кн));
+ok(await p.evaluate(() => __sent.length) === 2, 'жодного дубля', 'надіслано ' + await p.evaluate(() => __sent.length));
+await p.evaluate(() => chatClose());
+
 console.log('\n═══ 2. КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ ═══');
 const інша = await p.evaluate(() => {
   const o = orders.find(x => x.orderId === '2000101');
