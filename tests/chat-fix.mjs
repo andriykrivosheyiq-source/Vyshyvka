@@ -127,6 +127,32 @@ ok(відпр.після.стан === 'sent' && відпр.після.скіль
 ok(відпр.видно1 === 1 && відпр.видно2 === 0,
   '✓ видно, доки переписка не повернула його; повернула — стоїть як звичайне (✓✓)', JSON.stringify(відпр));
 
+console.log('\n═══ 1б. ФОТО З ПІДПИСОМ (15.10: «не працює надсилання фото») ═══');
+const фото = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '2000101');
+  crmChat[o.id] = { chatId:'c1', msgs: [] };
+  chatOutbox[o.id] = [];
+  chatWin = { id: o.id, kind:'crm', solo:true, sect:'b2c', draft:'' };
+  const calls = [];
+  window.picSendable = async b => b;
+  window.uploadCloudinary = async () => 'https://c/ulk.png';
+  window.crmFetch = async (path, opt) => { calls.push({ path, method: (opt || {}).method || 'GET', t: (opt || {}).timeoutMs || 0,
+    body: typeof (opt || {}).body === 'string' ? opt.body : 'form' }); return { id: 'm' + calls.length }; };
+  await chatSendPics(o, [{ url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=', blob: new Blob(['x'], { type:'image/png' }) }], 'ooo');
+  const ok1 = { calls: calls.map(c => c.method + ' ' + (/ooo/.test(c.body) ? 'текст' : 'фото') + ' ' + c.t) };
+  /* Хмара впала — підпис повертається в поле, фото — у смужку. */
+  window.uploadCloudinary = async () => { throw new Error('мережа'); };
+  calls.length = 0;
+  chatWin.draft = '';
+  await chatSendPics(o, [{ url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=', blob: new Blob(['x'], { type:'image/png' }) }], 'підпис');
+  return { ok1, після: { draft: chatWin.draft, pics: (chatWin.pics || []).length, calls: calls.length, busy: !!chatWin.picsBusy } };
+});
+console.log('  ' + JSON.stringify(фото));
+ok(фото.ok1.calls.length === 2 && /POST фото 90000/.test(фото.ok1.calls[0]) && /POST текст/.test(фото.ok1.calls[1]),
+  'спершу фото (ліміт 90 с — файл важкий), під ним підпис', JSON.stringify(фото.ok1));
+ok(фото.після.draft === 'підпис' && фото.після.pics === 1 && !фото.після.calls && !фото.після.busy,
+  'фото не завантажилось — нічого не пішло, підпис у полі, фото в смужці, кнопка жива', JSON.stringify(фото.після));
+
 console.log('\n═══ 2. КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ ═══');
 const інша = await p.evaluate(() => {
   const o = orders.find(x => x.orderId === '2000101');

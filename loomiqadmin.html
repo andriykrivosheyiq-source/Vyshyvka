@@ -7580,28 +7580,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=6fef9ed4cd"></script>
-<script src="loomiq-fingerprint.js?v=6fef9ed4cd"></script>
-<script src="loomiq-pricing.js?v=6fef9ed4cd"></script>
+<script src="loomiq-select.js?v=53f721004a"></script>
+<script src="loomiq-fingerprint.js?v=53f721004a"></script>
+<script src="loomiq-pricing.js?v=53f721004a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=6fef9ed4cd"></script>
+<script src="loomiq-money-core.js?v=53f721004a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=6fef9ed4cd"></script>
-<script src="loomiq-bg.js?v=6fef9ed4cd"></script>
-<script src="loomiq-mock.js?v=6fef9ed4cd"></script>
+<script src="loomiq-design.js?v=53f721004a"></script>
+<script src="loomiq-bg.js?v=53f721004a"></script>
+<script src="loomiq-mock.js?v=53f721004a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=6fef9ed4cd"></script>
-<script src="loomiq-threads.js?v=6fef9ed4cd"></script>
+<script src="imagetracer.js?v=53f721004a"></script>
+<script src="loomiq-threads.js?v=53f721004a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=6fef9ed4cd"></script>
+<script src="loomiq-cards.js?v=53f721004a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7646,7 +7646,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '6fef9ed4cd';
+var LQ_VER = '53f721004a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24466,7 +24466,8 @@ async function crmFetch(path, options){
   /* ЛІМІТ ОЧІКУВАННЯ (14.10). Доти запит міг висіти без кінця, а кнопка —
      разом із ним: «вони довго виснуть». 20 с — і чесне «не відповідає». */
   const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  const мс = +opt.timeoutMs > 0 ? +opt.timeoutMs : 20000;
+  /* Читання — 20 с; відправка — 45 с: Sitniks на POST відповідає довше. */
+  const мс = +opt.timeoutMs > 0 ? +opt.timeoutMs : (opt.method && opt.method !== 'GET' ? 45000 : 20000);
   delete opt.timeoutMs;
   if(ctrl) opt.signal = ctrl.signal;
   const таймер = ctrl ? setTimeout(() => ctrl.abort(), мс) : null;
@@ -25836,7 +25837,7 @@ function crmPicTry(way, chatId, urls, blobs){
   const id = encodeURIComponent(chatId);
   if(way.json)
     return crmFetch('/chats/' + id + '/messages',
-      { method:'POST', body: JSON.stringify(way.json(urls)) });
+      { method:'POST', body: JSON.stringify(way.json(urls)), timeoutMs: 90000 });
   const fd = new FormData();
   blobs.forEach((b, i) => {
     // Імʼя файлу за його справжнім типом: частина приймачів дивиться саме на
@@ -25845,7 +25846,9 @@ function crmPicTry(way, chatId, urls, blobs){
     const ext = /webp/.test(ty) ? 'webp' : /png/.test(ty) ? 'png' : 'jpg';
     fd.append(way.form, b, 'kartka-' + (i + 1) + '.' + ext);
   });
-  return crmFetch(way.path(id), { method:'POST', body: fd });
+  /* Файл у Sitniks іде довго — ліміт 20 с, як для тексту, обривав саме
+     вдалі відправки (15.10: «не працює надсилання фото»). */
+  return crmFetch(way.path(id), { method:'POST', body: fd, timeoutMs: 90000 });
 }
 let crmPicLog = [];
 const crmWait = ms => new Promise(r => setTimeout(r, ms));
@@ -25904,6 +25907,15 @@ async function crmSendPic(o, url, blob, local){
         /* 429 — це не «спосіб не годиться», а «зачасто питаємо». Чекаємо
            довше й пробуємо ЦЕЙ САМИЙ спосіб ще раз; не допоміг і вдруге —
            зупиняємо перебір увесь, бо далі однаково відмовлятиме кожен. */
+        /* Не відповів / обірвався звʼязок — Sitniks міг картинку вже
+           прийняти. Перебирати інші способи тоді не можна: клієнт отримав
+           би її двічі. Кажемо чесно й зупиняємось. */
+        if(e && !e.status){
+          crmPicLog.push(w.id + ' → ' + (e.message || 'немає відповіді'));
+          const stop = new Error((e.message || 'Sitniks не відповів') + ' — перевірте переписку, перш ніж надсилати ще раз');
+          stop.log = crmPicLog; stop.status = 0;
+          throw stop;
+        }
         if(e && e.status === 429){
           if(attempt === 0){ await crmWait(CRM_PIC_COOL); continue; }
           crmPicLog.push(w.id + ' → Sitniks обмежив частоту запитів');
@@ -25984,6 +25996,9 @@ function obVisible(o, kind){
   const зараз = Date.now();
   chatOutbox[o.id] = l.filter(x => {
     if(x.kind !== kind) return true;
+    /* «Не відповів» ще не значить «не дійшло»: зʼявилось у переписці —
+       значить дійшло, і червоне з «Повторити» знімаємо (інакше дубль). */
+    if(x.state === 'failed' && x.text && obCount(srv, x.text) > x.pre) return false;
     if(x.state === 'sent'){
       if(x.text && obCount(srv, x.text) > x.pre) return false;
       if(!x.text && x.ownT && srv.some(m => m && m.ownT === x.ownT)) return false;
@@ -26014,12 +26029,17 @@ document.addEventListener('click', e => {
 }, true);
 
 /* Картинка з лімітом часу: перебір способів Sitniks не має тягнутись без
-   кінця — 45 с, і чесне «не відповідає». */
+   кінця. Один запит — до 90 с (файл важкий), увесь перебір — до 3 хв. */
 function crmPicTimed(o, url, blob, local){
   return Promise.race([
     crmSendPic(o, url, blob, local),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('Sitniks не прийняв картинку за 45 с')), 45000))
+    new Promise((_, rej) => setTimeout(() => rej(new Error('Sitniks не відповів за 3 хв — перевірте переписку')), 180000))
   ]);
+}
+/* Завантаження в хмару теж із лімітом: без нього смужка «надсилаємо»
+   висіла вічно, а кнопка мовчки не реагувала. */
+function chatTimed(p, ms, what){
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what)), ms))]);
 }
 async function crmSend(o, text, again){
   const t = String(text || '').trim();
@@ -29724,7 +29744,8 @@ function wireChatWin(box, o, focusIn){
   const send = ()=>{
     const t = inp.value.trim();
     const pics = chatPics();
-    if(chatWin.picsBusy || chatWin.sending) return;
+    /* Мовчазний натиск — найгірше (15.10: «не працює надсилання»). */
+    if(chatWin.picsBusy || chatWin.sending) return toast('Ще надсилається попереднє — секунду');
     // Мовчазна кнопка — найгірше: людина тисне й не розуміє, що не так.
     if(!t && !pics.length) return toast('Напишіть повідомлення або додайте фото');
     // Половину пачки надіслати гірше, ніж зачекати секунду.
@@ -29741,6 +29762,8 @@ function wireChatWin(box, o, focusIn){
         'Усе одно надіслати?')) return;
     inp.value = ''; chatWin.draft = ''; grow();
     chatWin.sending = true;
+    /* Фото — спершу, підпис — під ними (Андрій). Фото не пройшло — підпис
+       не губиться: повертається в поле разом із картинками в смужку. */
     const go = pics.length ? chatSendPics(o, pics, t) : chatSend(o, t);
     Promise.resolve(go).catch(e => console.warn('відправка', e)).then(()=>{
       chatWin.sending = false;
@@ -30005,22 +30028,23 @@ async function chatSendPics(o, pics, text){
   let urls = [], blobs = [];
   try{
     for(const p of pics){
-      const b = await picSendable(p.blob);
+      const b = await chatTimed(picSendable(p.blob), 30000, 'фото не підготувалось за 30 с');
       blobs.push(b);
-      urls.push(await uploadCloudinary(b));
+      urls.push(await chatTimed(uploadCloudinary(b), 90000, 'хмара не відповіла за 90 с'));
     }
   }
   catch(e){
     console.warn('chat photo', e);
     back();
-    toast('Фото не завантажилось — спробуйте ще раз');
+    if(text){ chatWin.draft = text; renderChatWin(); }   // підпис не губимо
+    toast('Фото не завантажилось' + (e && e.message ? ': ' + e.message : '') + ' — спробуйте ще раз');
     return;
   }
   if(isTg){
     /* tgSend тепер чесно каже, чи вийшло (14.10) — доти помилка тут не
        ловилась ніколи, і смужка чистилась, хоч фото не пішло. */
     for(const u of urls){
-      if(!(await tgSend(o, '', u))){ back(); return; }
+      if(!(await tgSend(o, '', u))){ back(); if(text){ chatWin.draft = text; renderChatWin(); } return; }
     }
   }else{
     try{
@@ -30045,7 +30069,7 @@ async function chatSendPics(o, pics, text){
          інакше. Половина відправки гірша за жодної. */
       console.warn('Sitniks photo', e);
       back();
-      chatWin.draft = text || chatWin.draft || '';
+      if(text) chatWin.draft = text;
       renderChatWin();
       toast('Картинку не прийняли: ' + (e.message || 'Sitniks відмовив') +
             ' · нічого не надіслано, спробуйте ще раз');
