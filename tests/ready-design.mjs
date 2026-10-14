@@ -52,6 +52,8 @@ const CONTENT = {
   readyDesigns: [
     { id:'rd1', name:'Гаррі Поттер · Букля', tags:'гаррі сова', pic:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
       art:{ name:'букля.png', url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=' },
+      arts:[{ name:'букля.png', url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=' }, { name:'букля-мала.png', url:'https://f/b2.png' }],
+      extras:[{ name:'палітра.png', url:'https://f/pal.png' }, { name:'схема.pdf', url:'https://f/s.pdf' }],
       files:[{ name:'букля.dst', url:'https://f/1.dst' }, { name:'букля-мала.dst', url:'https://f/2.dst' }] },
     { id:'rd2', name:'Котик', tags:'кіт', pic:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
       art:{ name:'кіт.png', url:'data:image/gif;base64,R0lGODlhAQABAAAAACw=' }, files:[{ name:'кіт.dst', url:'https://f/3.dst' }] },
@@ -150,11 +152,32 @@ const налашт = await p.evaluate(() => {
   paintB2c();
   return { on: document.querySelectorAll('#b2c-prices [data-b2c-on]').length, rp: document.querySelectorAll('#b2c-prices [data-b2c-rprice]').length,
            rd: document.querySelectorAll('#rd-list .rd-c').length, add: !!document.getElementById('rd-add'),
+           опис: (document.querySelector('#rd-list .rd-c i') || {}).textContent || '',
            apronOff: !(document.querySelector('[data-b2c-on="cap"]') || {}).checked };
 });
 console.log('  ' + JSON.stringify(налашт));
 ok(налашт.on > 3 && налашт.rp === налашт.on && налашт.rd === 3 && налашт.add && налашт.apronOff,
   'налаштування: біля кожного товару «у B2C» і ціна готового ескізу; бібліотека — 3 дизайни, кнопка «+ Готовий дизайн»', JSON.stringify(налашт));
+const ред = await p.evaluate(async () => {
+  document.querySelector('[data-rd-ed="rd1"]').click();
+  await new Promise(r => setTimeout(r, 100));
+  const слоти = [...document.querySelectorAll('#rd-edit .rd-slot b')].map(b => b.textContent);
+  const к = k => document.querySelectorAll('#rd-edit [data-rd-fdel^="' + k + ':"]').length;
+  const до = { arts: к('arts'), files: к('files'), extras: к('extras') };
+  document.querySelector('#rd-edit [data-rd-fdel="extras:1"]').click();
+  await new Promise(r => setTimeout(r, 100));
+  const після = к('extras');
+  document.querySelector('#rd-edit [data-rd-cancel]').click();
+  /* Старий запис з одним `art` читається як один принт. */
+  const старий = rdArts({ art: { name:'a.png', url:'u' } }).length;
+  return { слоти, до, після, старий };
+});
+console.log('  ' + JSON.stringify(ред));
+ok(/Принти/.test(ред.слоти.join()) && /Додатково для виробництва/.test(ред.слоти.join()) &&
+   ред.до.arts === 2 && ред.до.files === 2 && ред.до.extras === 2 && ред.після === 1 && ред.старий === 1,
+  'у редакторі дизайну — кілька принтів, кілька вишивальних і «Додатково для виробництва» (палітра…), кожен прибирається окремо',
+  JSON.stringify(ред));
+ok(/принтів: 2/.test(налашт.опис) && /додатково: 2/.test(налашт.опис), 'у списку видно, скільки чого прикріплено: ' + налашт.опис, налашт.опис);
 
 console.log('');
 console.log('═══ 2. ВИБІР ГОТОВОГО ДИЗАЙНУ ═══');
@@ -272,7 +295,11 @@ const шлях = await p.evaluate(() => {
   стани.push(D.chainAt(__j1, __o1));
   const st = D.dzList(u, 'stitch')[0];
   const html = U.unitsHtml(__j1, { o: __o1 });
-  return { стани, st: st && { ready: st.readyMade, ok: !!st.ok, machine: D.verParts(st.vers[0]).machine.map(f => f.name), who: st.who },
+  const цех = U.verTilesHtml(st.vers[0], 'x', { only: ['shot', 'machine', 'extra'] });
+  return { стани, st: st && { ready: st.readyMade, ok: !!st.ok, machine: D.verParts(st.vers[0]).machine.map(f => f.name), who: st.who,
+             extra: D.verParts(st.vers[0]).extra.map(f => f.name),
+             цехПринт: (цех.match(/dz-tile-l">принт без фону/g) || []).length, цехДод: (цех.match(/dz-tile-l">для виробництва/g) || []).length },
+           принти: (u.ready.arts || []).length, дод: (u.ready.extras || []).length,
            ready: !!u.ready && u.ready.files.length, розмова: /data-dzsay=/.test(html), без: /без графічного й вишивального/.test(html) };
 });
 console.log('  ' + JSON.stringify(шлях));
@@ -281,6 +308,10 @@ ok(шлях.стани.join() === 'new,sketch,client,sketchok,prod',
   'Нове → (розмістили) Готовий ескіз → (надіслали) У клієнта → Ескіз узгоджено → (фіксація) одразу Виробництво', шлях.стани.join(' → '));
 ok(шлях.st && шлях.st.ready && шлях.st.ok && шлях.st.machine.join() === 'букля.dst,букля-мала.dst' && !шлях.st.who,
   'вишивка — без вишивального: погоджена версія з файлами бібліотеки', JSON.stringify(шлях.st));
+ok(шлях.принти === 2 && шлях.дод === 2 && шлях.st.extra.join() === 'букля.png,букля-мала.png,палітра.png,схема.pdf',
+  'кілька принтів без фону й додаткове (палітра, схема) — разом із вишивальними у версії для цеху', JSON.stringify(шлях));
+ok(шлях.st.цехПринт === 2 && шлях.st.цехДод === 2,
+  'у цеху — плитки «принт без фону» ×2 і «для виробництва» ×2 зі скачуванням', JSON.stringify(шлях.st));
 ok(!шлях.розмова && шлях.без, 'у картці готового дизайну немає розмови з дизайнером', JSON.stringify(шлях));
 const сума = await p.evaluate(() => window.LQDesign.ui.orderSum(__o1, __j1));
 ok(сума === 900, 'ціна позиції — за готовим ескізом: 2 × 450 = 900', 'сума ' + сума);

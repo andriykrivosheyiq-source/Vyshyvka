@@ -1476,12 +1476,23 @@
      дизайнера — його версії робить сам менеджер (розміщенням), а вишивка —
      одразу погоджена версія з файлами бібліотеки. Дизайнери таких записів не
      бачать, і в зарплату дизайнерам вони не йдуть (byAcct / readyMade). */
+  /* Принтів без фону може бути кілька (14.10); старі записи мають один `art`. */
+  function readyArts(rd){
+    var l = (rd && Array.isArray(rd.arts) && rd.arts.length) ? rd.arts : (rd && rd.art ? [rd.art] : []);
+    return l.filter(function(f){ return f && f.url; });
+  }
+  function readyFiles(l, nm){
+    return (l || []).filter(function(f){ return f && f.url; })
+      .map(function(f){ return { name: String(f.name || nm), url: String(f.url) }; });
+  }
   function readyAttach(u, rd){
     if(!u || !rd) return null;
+    var arts = readyFiles(readyArts(rd), 'принт.png');
     u.ready = { id: String(rd.id || ''), name: String(rd.name || ''), pic: String(rd.pic || ''),
-                art: rd.art && rd.art.url ? { name: String(rd.art.name || 'принт.png'), url: String(rd.art.url) } : null,
-                files: (rd.files || []).filter(function(f){ return f && f.url; })
-                         .map(function(f){ return { name: String(f.name || 'файл'), url: String(f.url) }; }),
+                art: arts[0] || null, arts: arts,
+                files: readyFiles(rd.files, 'файл'),
+                /* Додатково для виробництва: палітра, схема, примітки-картинки. */
+                extras: readyFiles(rd.extras, 'файл'),
                 at: nowIso() };
     return u.ready;
   }
@@ -1507,7 +1518,9 @@
     d.readyMade = true;
     d.who = ''; d.pool = false;
     d.sentBy = String(by || ''); d.sentAt = nowIso();
-    dzVer(d, by, (u.ready.files || []).map(function(f){ return { name: f.name, url: f.url, role:'machine' }; }),
+    dzVer(d, by, (u.ready.files || []).map(function(f){ return { name: f.name, url: f.url, role:'machine' }; })
+      .concat(readyArts(u.ready).map(function(f){ return { name: f.name, url: f.url, role:'extra', kind:'print' }; }))
+      .concat((u.ready.extras || []).map(function(f){ return { name: f.name, url: f.url, role:'extra' }; })),
           'Готовий дизайн «' + (u.ready.name || '') + '» — файли з бібліотеки', null, 'stitch');
     d.vers[d.vers.length - 1].byAcct = true;
     dzOk(d, by, 'auto', d.vers.length);
@@ -1583,6 +1596,7 @@
       .map(function(f){
         var x = { name:String(f.name || ''), url:String(f.url) };
         if(f.role) x.role = String(f.role);
+        if(f.kind) x.kind = String(f.kind);
         if(f.hash) x.hash = String(f.hash);
         return x; });
     d.vers.push({ n: n, at: nowIso(), by: String(by || ''),
@@ -1610,11 +1624,14 @@
   function verParts(v){
     var fs = (v && v.files) || [];
     var хеш = fs.some(function(f){ return f && f.hash; });
-    var out = { work: [], mock: [], sheet: null, shot: [], machine: [], orig: [], svg: [] };
+    var out = { work: [], mock: [], sheet: null, shot: [], machine: [], orig: [], svg: [], extra: [] };
     fs.forEach(function(f, i){
       if(!f || !f.url) return;
       /* Вишивка: файл для машини (DST/EMB) і скрін дизайну з Wilcom. */
       if(f.role === 'machine'){ out.machine.push(f); return; }
+      /* Додаткове для цеху (готовий дизайн, 14.10): принти без фону,
+         палітра ниток, схема — усе, що прикріпили в бібліотеці. */
+      if(f.role === 'extra'){ out.extra.push(f); return; }
       if(f.role === 'shot'){ out.shot.push(f); return; }
       /* Під нитки: оригінал до адаптації і SVG з тими самими нитками. */
       if(f.role === 'orig'){ out.orig.push(f); return; }
@@ -2422,7 +2439,7 @@
     stockApply: stockApply, stockSplit: stockSplit,
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
+    readyAttach: readyAttach, readyArts: readyArts, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -3522,7 +3539,8 @@
       p = { work: o.indexOf('work') >= 0 ? p.work : [], mock: o.indexOf('mock') >= 0 ? p.mock : [],
             sheet: o.indexOf('sheet') >= 0 ? p.sheet : null,
             shot: o.indexOf('shot') >= 0 ? p.shot : [], machine: o.indexOf('machine') >= 0 ? p.machine : [],
-            orig: o.indexOf('orig') >= 0 ? p.orig : [], svg: o.indexOf('svg') >= 0 ? p.svg : [] };
+            orig: o.indexOf('orig') >= 0 ? p.orig : [], svg: o.indexOf('svg') >= 0 ? p.svg : [],
+            extra: o.indexOf('extra') >= 0 ? p.extra : [] };
     }
     var t = [];
     var н = function(b, k, n){ return b + (n > 1 ? '_' + (k + 1) : ''); };
@@ -3548,6 +3566,17 @@
         'data-url="' + esc(f.url) + '" data-name="' + esc(nmF) +
         '" title="Скачати ' + esc(nmF) + '"><b>' + esc(ext) + '</b><i>⤓</i></button>' +
         '<i class="dz-tile-l">файл для машини</i></span>');
+    });
+    /* Додаткове для цеху: картинка — плиткою, решта — файлом зі скачуванням. */
+    (p.extra || []).forEach(function(f, k){
+      var підп = f.kind === 'print' ? 'принт без фону' : 'для виробництва';
+      var nmX = н(nm.base + (f.kind === 'print' ? '_принт' : '_дод'), k, p.extra.length);
+      if(/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(String(f.name || f.url))) return t.push(tileHtml(f, nmX, підп));
+      var ext = (String(f.name || '').match(/\.(\w+)$/) || ['', 'файл'])[1];
+      t.push('<span class="dz-tile"><button type="button" class="dz-tile-i dz-tile-f" data-do="dz-dl" ' +
+        'data-url="' + esc(f.url) + '" data-name="' + esc(nmX + '.' + ext.toLowerCase()) +
+        '" title="Скачати ' + esc(f.name || nmX) + '"><b>' + esc(ext.toUpperCase().slice(0, 5)) + '</b><i>⤓</i></button>' +
+        '<i class="dz-tile-l">' + esc(підп) + '</i></span>');
     });
     if(opt.bare) return t.join('');
     return '<span class="dz-tiles">' + t.join('') + '</span>';
@@ -7036,7 +7065,7 @@
       st.forEach(function(d, i){
         var v = verOkOf(d);
         if(!v){ бракує.push('вишивка' + (st.length > 1 ? ' ' + (i + 1) : '') + ' ще не здана'); return; }
-        плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'stitch', i, v.n), { only: ['shot', 'machine'], bare: true }));
+        плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'stitch', i, v.n), { only: ['shot', 'machine', 'extra'], bare: true }));
       });
       return '<div class="dz-prod-u">' +
         '<div class="dz-prod-h"><b>' + esc(no) + '</b>' +
@@ -10169,7 +10198,8 @@
      показ клієнту (через ту саму дію «Надіслати», зі скриптом {готовий}). */
   function readyPlace(root, job, o, u){
     var r = u.ready || {};
-    if(!r.art || !r.art.url) return say('У цього дизайну немає принта — додайте його в Налаштуваннях B2C');
+    var принти = D.readyArts(r);
+    if(!принти.length) return say('У цього дизайну немає принта — додайте його в Налаштуваннях B2C');
     if(!window.LQMock || !window.LQMock.openWork) return say('Вікно розміщення не завантажилось');
     var сторони = [];
     try{ сторони = (host().sides && host().sides(u.gid, u.color)) || []; }catch(e){}
@@ -10183,7 +10213,8 @@
       placeOnly: true,
       gid: u.gid, size: u.size || '', color: u.color || '',
       name: 'Готовий дизайн «' + (r.name || '') + '» · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
-      sides: сторони, works: [{ name: r.art.name || 'принт.png', url: r.art.url, hash: 'ready:' + (r.id || '') }],
+      sides: сторони, works: принти.map(function(f, k){
+        return { name: f.name || 'принт.png', url: f.url, hash: 'ready:' + (r.id || '') + (k ? ':' + k : '') }; }),
       places: places,
       onDone: async function(res){
         var зб = await workVer(res, u);

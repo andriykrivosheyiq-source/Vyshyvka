@@ -5298,6 +5298,8 @@
   .rd-slot i{color:var(--ink-soft);font-style:normal;}
   .rd-f{display:flex;gap:6px;align-items:center;font-size:12.5px;}
   .rd-f button{border:none;background:none;color:#B91C1C;cursor:pointer;font-size:15px;}
+  .rd-f img{width:36px !important;height:36px !important;max-width:36px;object-fit:contain;border-radius:6px;flex:none;}
+  .rd-slot small{color:var(--ink-soft);font-size:11.5px;margin-top:-4px;}
   .rd-ed-a{display:flex;gap:8px;}
   .b2c-p-item{position:relative;border-bottom:1px solid var(--line);padding:4px 0 6px;}
   .b2c-p-item .b2c-p-row{border-bottom:0;padding:3px 0;}
@@ -7578,28 +7580,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b1a6c29d52"></script>
-<script src="loomiq-fingerprint.js?v=b1a6c29d52"></script>
-<script src="loomiq-pricing.js?v=b1a6c29d52"></script>
+<script src="loomiq-select.js?v=a2bfa4df84"></script>
+<script src="loomiq-fingerprint.js?v=a2bfa4df84"></script>
+<script src="loomiq-pricing.js?v=a2bfa4df84"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=b1a6c29d52"></script>
+<script src="loomiq-money-core.js?v=a2bfa4df84"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b1a6c29d52"></script>
-<script src="loomiq-bg.js?v=b1a6c29d52"></script>
-<script src="loomiq-mock.js?v=b1a6c29d52"></script>
+<script src="loomiq-design.js?v=a2bfa4df84"></script>
+<script src="loomiq-bg.js?v=a2bfa4df84"></script>
+<script src="loomiq-mock.js?v=a2bfa4df84"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=b1a6c29d52"></script>
-<script src="loomiq-threads.js?v=b1a6c29d52"></script>
+<script src="imagetracer.js?v=a2bfa4df84"></script>
+<script src="loomiq-threads.js?v=a2bfa4df84"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b1a6c29d52"></script>
+<script src="loomiq-cards.js?v=a2bfa4df84"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7644,7 +7646,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b1a6c29d52';
+var LQ_VER = 'a2bfa4df84';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -12286,8 +12288,20 @@ function readThreads(){
   if(rst) rst.addEventListener('click', () => { if(confirm('Повернути стандартну палітру ниток? Свої правки зникнуть після «Зберегти».')) paintThreads(threadsDefault()); });
 })();
 /* ══════════ ГОТОВІ ДИЗАЙНИ ══════════
-   { id, name, tags, pic, art:{name,url}, files:[{name,url}], off } — у
-   contentData.readyDesigns. Відділ (loomiq-design.js) бере їх через host. */
+   { id, name, tags, pic, arts:[{name,url}] (art = перший, для старих
+   записів), files:[{name,url}], extras:[{name,url}], off } — у
+   contentData.readyDesigns. Відділ (loomiq-design.js) бере їх через host.
+
+   14.10, Андрій: «щоб можна було, коли налаштовуємо, одразу всі файли
+   прикріпити: вишивальних декілька, принтів без фону декілька, і ще
+   додаткова інформація, типу палітри, — теж декілька». */
+function rdArts(d){
+  const l = (d && Array.isArray(d.arts) && d.arts.length) ? d.arts : (d && d.art ? [d.art] : []);
+  return l.filter(f => f && f.url);
+}
+function rdFilesHtml(l, key, img){
+  return (l || []).map((f, i) => `<span class="rd-f">${img && f.url ? `<img src="${escapeHtml(f.url)}" alt="">` : ''}${escapeHtml(f.name || 'файл')} <button type="button" data-rd-fdel="${key}:${i}" title="Прибрати">×</button></span>`).join('') || '<i>немає</i>';
+}
 function readyDesigns(){
   const l = (contentData || {}).readyDesigns;
   return Array.isArray(l) ? l.filter(x => x && x.id) : [];
@@ -12320,7 +12334,8 @@ function paintReadyDesigns(){
   box.innerHTML = l.length ? l.map(d => `<div class="rd-c${d.off ? ' is-off' : ''}">
       <span class="rd-th">${d.pic ? `<img src="${escapeHtml(d.pic)}" alt="">` : '—'}</span>
       <span class="rd-t"><b>${escapeHtml(d.name || 'Без назви')}</b>
-        <i>${escapeHtml([d.tags, (d.files || []).length + ' вишив. файл(и)', d.art && d.art.url ? 'принт є' : 'принта немає'].filter(Boolean).join(' · '))}</i></span>
+        <i>${escapeHtml([d.tags, (d.files || []).length + ' вишив. файл(и)', rdArts(d).length ? 'принтів: ' + rdArts(d).length : 'принта немає',
+          (d.extras || []).length ? 'додатково: ' + d.extras.length : ''].filter(Boolean).join(' · '))}</i></span>
       <button type="button" class="pc-btn" data-rd-ed="${escapeHtml(d.id)}">Змінити</button>
       <label class="rd-on"><input type="checkbox" data-rd-on="${escapeHtml(d.id)}"${d.off ? '' : ' checked'}> показувати</label>
     </div>`).join('') : '<div class="sub">Готових дизайнів ще немає.</div>';
@@ -12334,11 +12349,15 @@ function paintReadyDesigns(){
     <div class="rd-ed-r">
       <div class="rd-slot"><b>Заставка</b>${d.pic ? `<img src="${escapeHtml(d.pic)}" alt="">` : '<i>немає</i>'}
         <button type="button" class="pc-btn" data-rd-up="pic">Завантажити</button></div>
-      <div class="rd-slot"><b>Принт (PNG без фону)</b>${d.art && d.art.url ? `<img src="${escapeHtml(d.art.url)}" alt="">` : '<i>немає</i>'}
-        <button type="button" class="pc-btn" data-rd-up="art">Завантажити</button></div>
+      <div class="rd-slot"><b>Принти (PNG без фону)</b>
+        ${rdFilesHtml(rdArts(d), 'arts', true)}
+        <button type="button" class="pc-btn" data-rd-up="arts">+ Принт</button></div>
       <div class="rd-slot"><b>Вишивальні файли</b>
-        ${(d.files || []).map((f, i) => `<span class="rd-f">${escapeHtml(f.name || 'файл')} <button type="button" data-rd-fdel="${i}" title="Прибрати">×</button></span>`).join('') || '<i>немає</i>'}
+        ${rdFilesHtml(d.files, 'files')}
         <button type="button" class="pc-btn" data-rd-up="files">+ Файл</button></div>
+      <div class="rd-slot"><b>Додатково для виробництва</b><small>палітра ниток, схема, примітки</small>
+        ${rdFilesHtml(d.extras, 'extras', true)}
+        <button type="button" class="pc-btn" data-rd-up="extras">+ Файл</button></div>
     </div>
     <div class="rd-ed-a"><button type="button" class="pc-btn up" data-rd-save="1">Зберегти дизайн</button>
       <button type="button" class="pc-btn" data-rd-cancel="1">Скасувати</button>
@@ -12348,9 +12367,14 @@ function paintReadyDesigns(){
 document.addEventListener('click', async e => {
   const t = e.target;
   if(!t.closest) return;
-  if(t.id === 'rd-add'){ rdEditing = { id: 'rd' + Date.now().toString(36), name:'', tags:'', pic:'', art:null, files:[] }; return paintReadyDesigns(); }
+  if(t.id === 'rd-add'){ rdEditing = { id: 'rd' + Date.now().toString(36), name:'', tags:'', pic:'', art:null, arts:[], files:[], extras:[] }; return paintReadyDesigns(); }
   const ed = t.closest('[data-rd-ed]');
-  if(ed){ const d = readyDesigns().filter(x => x.id === ed.dataset.rdEd)[0]; rdEditing = d ? JSON.parse(JSON.stringify(d)) : null; return paintReadyDesigns(); }
+  if(ed){
+    const d = readyDesigns().filter(x => x.id === ed.dataset.rdEd)[0];
+    rdEditing = d ? JSON.parse(JSON.stringify(d)) : null;
+    if(rdEditing){ rdEditing.arts = rdArts(rdEditing); rdEditing.extras = rdEditing.extras || []; rdEditing.files = rdEditing.files || []; }
+    return paintReadyDesigns();
+  }
   if(!rdEditing) return;
   const keep = () => { const n = document.getElementById('rd-name'), g = document.getElementById('rd-tags');
     if(n) rdEditing.name = n.value.trim(); if(g) rdEditing.tags = g.value.trim(); };
@@ -12358,18 +12382,25 @@ document.addEventListener('click', async e => {
   if(up){
     keep();
     const k = up.dataset.rdUp;
-    const fs = await rdPickFile(k === 'files' ? '' : 'image/*', k === 'files');
+    const fs = await rdPickFile(k === 'pic' || k === 'arts' ? 'image/*' : '', k !== 'pic');
     for(const f of fs){
       const r = await rdUpload(f);
       if(!r) continue;
       if(k === 'pic') rdEditing.pic = r.url;
-      else if(k === 'art'){ rdEditing.art = r; if(!rdEditing.pic) rdEditing.pic = r.url; }
-      else (rdEditing.files = rdEditing.files || []).push(r);
+      else if(k === 'arts'){ (rdEditing.arts = rdEditing.arts || []).push(r); if(!rdEditing.pic) rdEditing.pic = r.url; }
+      else (rdEditing[k] = rdEditing[k] || []).push(r);
     }
+    rdEditing.art = (rdEditing.arts || [])[0] || null;
     return paintReadyDesigns();
   }
   const fd = t.closest('[data-rd-fdel]');
-  if(fd){ keep(); rdEditing.files.splice(+fd.dataset.rdFdel, 1); return paintReadyDesigns(); }
+  if(fd){
+    keep();
+    const [k, i] = String(fd.dataset.rdFdel).split(':');
+    (rdEditing[k] || []).splice(+i, 1);
+    rdEditing.art = (rdEditing.arts || [])[0] || null;
+    return paintReadyDesigns();
+  }
   if(t.closest('[data-rd-cancel]')){ rdEditing = null; return paintReadyDesigns(); }
   if(t.closest('[data-rd-del]')){
     if(!confirm('Видалити готовий дизайн «' + (rdEditing.name || '') + '»? У вже заведених замовленнях він лишиться.')) return;
@@ -12380,7 +12411,8 @@ document.addEventListener('click', async e => {
     keep();
     const d = rdEditing;
     if(!d.name) return toast('Вкажіть назву');
-    if(!d.art || !d.art.url) return toast('Завантажте принт — без нього нема чого класти на одяг');
+    d.arts = rdArts(d); d.art = d.arts[0] || null;
+    if(!d.art) return toast('Завантажте принт — без нього нема чого класти на одяг');
     if(!(d.files || []).length) return toast('Додайте хоч один вишивальний файл');
     const l = readyDesigns().filter(x => x.id !== d.id);
     const i = readyDesigns().findIndex(x => x.id === d.id);
