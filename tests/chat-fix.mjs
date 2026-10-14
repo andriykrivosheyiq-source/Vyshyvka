@@ -257,6 +257,44 @@ ok(фікс.можна && фікс.вікно && фікс.одяг.join() === 't
 ok(фікс.підтв && фікс.ok && фікс.стан === 'approved' && фікс.колонка === 'stitchq',
   'підтвердили — одяг зафіксовано, ескіз погоджено, картка в «Черзі вишивки»', JSON.stringify(фікс));
 
+console.log('\n═══ 7. КАРТКА СТОЇТЬ ЗА НАЙВІДСТАЛІШОЮ ПОЗИЦІЄЮ ═══');
+const відст = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui, m = 'test@loomiq';
+  const j = designJobMake('2000103'), o = orders.find(x => x.orderId === '2000103');
+  const нова = () => {
+    const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1 });
+    const d = D.dzNew(); D.dzAttach(d, m, m); D.dzSend(d, m); D.dzTake(d, m);
+    D.dzVer(d, m, [{ name:'м.png', url:'x' }], ''); d.status = 'review'; d.vers[0].sentToClient = true;
+    D.dzList(u, 'graphic').push(d); return u;
+  };
+  j.units = [нова(), нова(), нова()];
+  const g = k => D.dzList(j.units[k], 'graphic')[0];
+  const стіч = () => j.units.map(u => D.dzList(u, 'stitch').length).join('');
+  const кроки = [];
+  /* Дві позиції погоджено й зафіксовано, третя ще в клієнта. */
+  [0, 1].forEach(k => { D.sketchOkMark(g(k), 1, m); D.dzOk(g(k), m, 'client', 1); D.clothConfirm(j.units[k], m); });
+  D.dzAutoStitch(j, m);
+  кроки.push(D.chainAt(j, o) + ':' + стіч());
+  /* Третю узгодили, але ще не зафіксували. */
+  D.sketchOkMark(g(2), 1, m);
+  D.dzAutoStitch(j, m);
+  кроки.push(D.chainAt(j, o) + ':' + стіч());
+  /* Зафіксували — уся картка разом у «Черзі вишивки». */
+  D.dzOk(g(2), m, 'client', 1); D.clothConfirm(j.units[2], m);
+  D.dzAutoStitch(j, m);
+  кроки.push(D.chainAt(j, o) + ':' + стіч());
+  /* Вишивальний узяв одну — картка в «Черзі», поки інші не взяли. */
+  const s0 = D.dzList(j.units[0], 'stitch')[0]; D.dzTake(s0, 'emb@loomiq');
+  кроки.push(D.chainAt(j, o));
+  /* Правки клієнта по одній — гучніші за все. */
+  return кроки;
+});
+console.log('  ' + відст.join(' → '));
+ok(відст[0] === 'client:000', 'дві позиції погоджено, одна в клієнта — картка «У клієнта», у вишивку не пішов ніхто', відст[0]);
+ok(відст[1] === 'sketchok:000', 'третю узгодили — «Ескіз узгоджено», вишивки ще немає: чекаємо фіксації', відст[1]);
+ok(відст[2] === 'stitchq:111', 'зафіксували — усі три позиції разом у «Черзі вишивки»', відст[2]);
+ok(відст[3] === 'stitchq', 'вишивальний узяв одну — картка чекає в «Черзі», поки не візьмуть усі', відст[3]);
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();

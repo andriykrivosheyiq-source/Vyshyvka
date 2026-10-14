@@ -157,7 +157,7 @@ const безОдягу = await p.evaluate(async () => {
            підпис: ((document.querySelector('.dz-panel .dz-hand-all i') || {}).textContent || '') };
 });
 ok(!безОдягу.самЗберіг, 'саме збереження в чергу не ставить', 'стало в чергу без кнопки');
-ok(безОдягу.живе && безОдягу.черга && /Передано дизайнерам/.test(безОдягу.підпис),
+ok(безОдягу.живе && безОдягу.черга && /Передано в роботу/.test(безОдягу.підпис),
   '«Зберегти й передати дизайнерам»: позиція лише з картинкою, без виробу — у черзі графічного відділу',
   'не стала в чергу: ' + JSON.stringify(безОдягу));
 await p.evaluate(() => { const D = window.LQDesign; D.dzClaim(D.dzList(__j3.units[0], 'graphic')[0], 'test@loomiq');
@@ -229,7 +229,9 @@ const вікноОдягу = await p.evaluate(() => ({ поля: [...document.qu
 ok(вікноОдягу.поля.join() === 'tee,Чорний,L,3' && вікноОдягу.живе, 'вікно одягу: модель, колір, розмір, кількість — підставлені', 'вікно: ' + JSON.stringify(вікноОдягу));
 await p.evaluate(() => document.querySelector('.dz-cl [data-cl-go]').click());
 await p.waitForTimeout(400);
-ok(JSON.stringify(await стіч()) === '[0,1]', 'підтвердили — позиція у вишивці', 'вишивка: ' + JSON.stringify(await стіч()));
+/* УСІ РАЗОМ (14.10): одна позиція зафіксована, друга ще ні — вишивка не
+   стартує ні для кого, картка чекає відсталу. */
+ok(JSON.stringify(await стіч()) === '[0,0]', 'підтвердили одну — у вишивку ще не пішло: чекаємо другу, щоб усі разом', 'вишивка: ' + JSON.stringify(await стіч()));
 /* Перша: бракує даних — «Підтвердити» не живе. */
 await p.evaluate(() => document.querySelector('.dz-panel [data-do="u-cloth"]').click());
 await p.waitForTimeout(200);
@@ -242,7 +244,7 @@ await p.evaluate(async () => {
   await window.LQDesign.ui.save(__j, __o, '');
 });
 await p.waitForTimeout(300);
-ok(JSON.stringify(await стіч()) === '[1,1]', 'заповнили й підтвердили — позиція сама стала в чергу вишивки', 'вишивка: ' + JSON.stringify(await стіч()));
+ok(JSON.stringify(await стіч()) === '[1,1]', 'заповнили й підтвердили другу — обидві позиції разом стали в чергу вишивки', 'вишивка: ' + JSON.stringify(await стіч()));
 /* Порожній рядок дизайну не тримає погодження, напис — про ескіз. */
 const напис = await p.evaluate(() => { const D = window.LQDesign, U = D.ui;
   const u = U.unitNew(); u.graphic = [D.dzNew()];

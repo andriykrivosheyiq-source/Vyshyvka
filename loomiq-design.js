@@ -497,6 +497,35 @@
     }
     return chainAt(job, o) === to ? to : null;
   }
+  /* КАРТКА СТОЇТЬ ТАМ, ДЕ НАЙВІДСТАЛІША ПОЗИЦІЯ (Андрій, 14.10).
+
+     «Якщо якась одна позиція зависає на якомусь статусі — уся картка висить
+     на цьому статусі. Дві вже погоджені, одна ще в графічного — картка в
+     графічного, поки не погодять усі; тоді тягнемо далі всі разом, щоб не
+     плутатись». Тож етап рахується по кожній позиції окремо, а картка бере
+     найменший. Виняток — правки клієнта: вони найгучніші, де б не стояло
+     решта. */
+  var STAGE_RANK = { new: 0, design: 1, sketch: 2, client: 3, sketchok: 4, stitchq: 5, stitch: 6, prod: 7 };
+  function unitStage(u){
+    var графіка = dzList(u, 'graphic').filter(dzReal), вишивка = dzList(u, 'stitch').filter(dzReal);
+    /* Позиція без жодного дизайну етапу не має — інакше старе замовлення з
+       зайвим рядком одягу відкотилось би в «Нове». Передають тепер лише
+       цілим замовленням, тож нової такої позиції посеред роботи не буде. */
+    if(!графіка.length && !вишивка.length) return '';
+    if(вишивка.length){
+      var вРоботі = вишивка.filter(function(x){ return x.status !== 'approved'; });
+      if(!вРоботі.length) return 'prod';
+      return вРоботі.every(function(x){ return !x.sentAt || dzInQueue(x); }) ? 'stitchq' : 'stitch';
+    }
+    var передані = графіка.filter(function(x){ return x.sentAt && !dzInQueue(x); });
+    if(!передані.length) return 'new';
+    if(передані.length < графіка.length) return 'design';
+    if(передані.some(function(x){ return x.status !== 'review' && x.status !== 'approved'; })) return 'design';
+    if(передані.every(function(x){ return x.status === 'approved'; })) return 'stitchq';
+    var наРозгляді = передані.filter(function(x){ return x.status === 'review'; });
+    if(!наРозгляді.every(clientSaw)) return 'sketch';
+    return наРозгляді.every(sketchOk) ? 'sketchok' : 'client';
+  }
   function designStage(job){
     var графіка = [], вишивка = [];
     jobUnits(job).forEach(function(u){
@@ -506,38 +535,13 @@
     if(!графіка.length && !вишивка.length) return '';
     /* Клієнт написав правки — це найважливіше, що зараз є на замовленні,
        хай би де воно стояло доти. */
-    /* Правка вишивальному — це робота вишивки, а не «правки клієнта». */
-    if(графіка.some(function(x){
-      return x.sentAt && x.status === 'revision'; })) return 'fixes';
-    /* Вишивка йде: хтось узяв — «У вишивального», ще ніхто — «Черга вишивки». */
-    var вРоботі = вишивка.filter(function(x){ return x.sentAt && x.status !== 'approved'; });
-    if(вРоботі.length)
-      return вРоботі.every(function(x){ return dzInQueue(x); }) ? 'stitchq' : 'stitch';
-    /* У черзі відділу ще ніхто не працює — замовлення лишається «Новим»,
-       а в «У графічного дизайнера» переходить само, щойно хтось узяв. */
-    var передані = графіка.filter(function(x){ return x.sentAt && !dzInQueue(x); });
-    if(!передані.length) return 'new';
-    /* Здано на розгляд: «У клієнта» — лише коли ескіз йому НАДІСЛАЛИ
-       («Надіслати клієнту» ставить sentToClient) або менеджер сам
-       перетягнув картку (clientManual — номер версії, бо нова версія — нове
-       надсилання). Інакше — «Готовий граф. ескіз». */
-    /* Змішане замовлення (13.10): готовий дизайн уже в клієнта, а
-       індивідуальний ще малюють — картка лишається в графічного, готовий
-       чекає разом з усім замовленням. */
-    var малюють = передані.some(function(x){ return !x.readyMade && (x.status === 'sent' || x.status === 'work'); });
-    var наРозгляді = передані.filter(function(x){ return x.status === 'review' && !(x.readyMade && малюють); });
-    if(наРозгляді.length){
-      if(!наРозгляді.every(clientSaw)) return 'sketch';
-      return наРозгляді.every(sketchOk) ? 'sketchok' : 'client';
-    }
-    /* Ескіз погоджено. У виробництво — коли погоджено ВСІ вишивальні дизайни
-       замовлення (Андрій: усі B2C-позиції йдуть через вишивку); поки
-       вишивку ще не завели — це черга вишивки. */
-    if(передані.every(function(x){ return x.status === 'approved'; })){
-      if(!вишивка.length) return 'stitchq';
-      return вишивка.every(function(x){ return x.status === 'approved'; }) ? 'prod' : 'stitch';
-    }
-    return 'design';
+    if(графіка.some(function(x){ return x.sentAt && x.status === 'revision'; })) return 'fixes';
+    var min = null;
+    jobUnits(job).forEach(function(u){
+      var st = unitStage(u);
+      if(st && (min == null || STAGE_RANK[st] < STAGE_RANK[min])) min = st;
+    });
+    return min || 'design';
   }
   /* Хто зараз тримає замовлення. Питання «а чиє це» має мати відповідь у
      кожній колонці — інакше воно щодня ставиться вголос. */
@@ -999,9 +1003,26 @@
      Передаються позиції з картинкою або коментарем, у яких ще немає
      роботи. Без ТЗ — не передаються, і кнопка каже, які саме. Де менеджер
      уже обрав людину сам, його вибір не перебиваємо. */
+  /* Чого бракує, щоб передати замовлення в роботу ЦІЛИМ (14.10): позиції без
+     ТЗ (ні картинки, ні коментаря) — номерами. Одяг остаточно — при фіксації. */
+  function handMissing(job){
+    var out = [];
+    jobUnits(job).forEach(function(u, i){
+      if(!u) return;
+      if(u.ready) return;
+      if(dzList(u, 'graphic').some(function(d){ return dzReal(d) && d.sentAt; })) return;
+      if(!unitFilled(job, u)) out.push(i + 1);
+    });
+    return out;
+  }
   function dzHandOver(job, o, by){
     var out = { sent: 0, skipped: [] };
     if(!job) return out;
+    /* ЗАМОВЛЕННЯ ЙДЕ В РОБОТУ ЛИШЕ ЦІЛИМ (Андрій, 14.10): «коли вже повністю
+       все замовлення укомплектоване — Зберегти, і воно переноситься далі».
+       Бракує хоч у одній позиції — не передаємо нічого й кажемо, де. */
+    var бракує = handMissing(job);
+    if(бракує.length){ out.skipped = бракує; out.blocked = true; return out; }
     jobUnits(job).forEach(function(u, i){
       /* Готовий дизайн дизайнерам не передаємо (13.10). */
       if(u && u.ready) return;
@@ -1443,6 +1464,11 @@
   }
   function dzAutoStitch(job, by){
     var n = 0;
+    /* УСІ РАЗОМ (14.10): поки хоч одну позицію не погоджено й не
+       зафіксовано, вишивка не стартує ні для кого — інакше половина
+       замовлення вже в роботі, а картка ще висить у графіці. */
+    var всі = jobUnits(job).filter(function(u){ return u && (u.ready || dzList(u, 'graphic').some(dzReal)); });
+    if(!всі.length || !всі.every(function(u){ return graphicDone(u) && clothOk(u); })) return 0;
     jobUnits(job).forEach(function(u){
       if(!graphicDone(u)) return;
       if(!clothOk(u)) return;
@@ -2438,6 +2464,7 @@
     stockK: stockK, stockFind: stockFind, stockQty: stockQty, stockValue: stockValue,
     stockApply: stockApply, stockSplit: stockSplit,
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
+    handMissing: handMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     readyAttach: readyAttach, readyArts: readyArts, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
@@ -4879,16 +4906,18 @@
   /* «ЗБЕРЕГТИ Й ПЕРЕДАТИ ДИЗАЙНЕРАМ» — праворуч від «Додати одяг».
      Нічого передавати (усе вже в роботі або без ТЗ) — кнопка спить, а
      під нею сказано, що вже передано й чого бракує. */
+  /* «ЗБЕРЕГТИ» (14.10): замовлення укомплектоване цілком — одним натиском
+     у роботу. Чогось бракує — кнопка спить і каже, в якій позиції. */
   function handOverHtml(job){
     var можна = D.dzHandable(job);
-    var без = [];
-    unitsOf(job).forEach(function(u, i){
-      if(!dzList(u, 'graphic').some(D.dzReal) && !D.unitFilled(job, u)) без.push(i + 1); });
+    var без = D.handMissing(job);
     return '<span class="dz-hand-all">' +
-      '<button class="dz-b pri" data-do="dz-hand-all"' + (можна ? '' : ' disabled') + '>' +
-        'Зберегти й передати дизайнерам' + (можна > 1 ? ' · ' + можна : '') + '</button>' +
-      (job.handedAt ? '<i>Передано дизайнерам · ' + esc(dt(job.handedAt)) + '</i>' : '') +
-      (без.length ? '<i class="is-bad">Позиція ' + без.join(', ') + ' — немає картинки чи коментаря, не передається</i>' : '') +
+      '<button class="dz-b pri" data-do="dz-hand-all"' + (можна && !без.length ? '' : ' disabled') +
+        ' title="Передати все замовлення в роботу разом">' +
+        'Зберегти й передати в роботу' + (можна > 1 ? ' · ' + можна : '') + '</button>' +
+      (job.handedAt ? '<i>Передано в роботу · ' + esc(dt(job.handedAt)) + '</i>' : '') +
+      (без.length ? '<i class="is-bad">Позиція ' + без.join(', ') + ' — немає картинки чи коментаря; ' +
+                    'замовлення йде в роботу лише цілим</i>' : '') +
     '</span>';
   }
 
@@ -9772,10 +9801,10 @@
       });
       var ho = D.dzHandOver(job, o, m);
       if(!ho.sent)
-        return say(ho.skipped.length ? 'Нічого не передано: позиція ' + ho.skipped.join(', ') +
-                                       ' без картинки чи коментаря' : 'Передавати нічого — усе вже в роботі');
-      return save(job, o, 'Передано дизайнерам · ' + ho.sent + ' ' + (ho.sent === 1 ? 'позиція' : 'позицій') +
-        (ho.skipped.length ? ' · позиція ' + ho.skipped.join(', ') + ' без ТЗ лишилась' : ''));
+        return say(ho.skipped.length ? 'Не передано: позиція ' + ho.skipped.join(', ') +
+                                       ' без картинки чи коментаря — замовлення йде в роботу лише цілим'
+                                     : 'Передавати нічого — усе вже в роботі');
+      return save(job, o, 'Передано в роботу · ' + ho.sent + ' ' + (ho.sent === 1 ? 'позиція' : 'позицій'));
     }
     if(what === 'u-cloth'){
       var cu = U.unitAt(job, data && data.u);
