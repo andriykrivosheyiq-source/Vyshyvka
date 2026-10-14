@@ -198,6 +198,33 @@ const два = await p.evaluate(() => __sent.slice(-1)[0] || '');
 ok(шапка === 2 && /два замовлення/.test(два), 'розмова з двома замовленнями (номери в шапці) — «➤» надсилає', JSON.stringify({ шапка, два }));
 await p.evaluate(() => { delete orders.find(x => x.orderId === '2000102').crmChatId; chatClose(); });
 
+console.log('\n═══ 1г. КАРТИНКА — ПЕРЕВІРЕНИМ СПОСОБОМ, ПОЗНАЧКИ СКРИПТІВ КЛІЄНТУ НЕ ЙДУТЬ ═══');
+const спосіб = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '2000101');
+  crmChat[o.id] = { chatId:'c1', msgs: [] };
+  /* «Поганий» спосіб, запамʼятований 14.10, не має братись першим. */
+  contentData.crmPicWay = 'files';
+  const тіла = [];
+  window.crmFetch = async (path, opt) => { if(opt && opt.method === 'POST') тіла.push(String(opt.body || '')); return { id: 'm' + тіла.length }; };
+  const way = await crmSendPic(o, ['https://res.cloudinary.com/x/a.png'], [], null);
+  /* Перевірений відмовив прямо — запасний спрацював, але НЕ запамʼятався. */
+  тіла.length = 0;
+  let раз = 0;
+  window.crmFetch = async (path, opt) => { if(opt && opt.method === 'POST'){ тіла.push(String(opt.body || ''));
+    if(раз++ < 2){ const e = new Error('HTTP 400'); e.status = 400; throw e; } } return { id: 'x' }; };
+  const way2 = await crmSendPic(o, ['https://res.cloudinary.com/x/a.png'], [], null);
+  window.crmFetch = async (path, opt) => { if(opt && opt.method === 'POST') тіла.push(String(opt.body || '')); return { id: 'y' }; };
+  тіла.length = 0;
+  await crmSend(o, '{макет} Зробили макет — подивіться');
+  const заготовка = qrFill('{макет} Привіт, {імʼя}!\n{правки} ще рядок', o);
+  return { way, way2, запамʼятав: contentData.crmPicWay, текст: тіла[0] || '', заготовка };
+});
+console.log('  ' + JSON.stringify(спосіб));
+ok(спосіб.way === 'attach-url', 'фото йде перевіреним способом attach-url, хоч запамʼятано інший', JSON.stringify(спосіб));
+ok(спосіб.way2 !== 'attach-url' && спосіб.запамʼятав === 'files', 'запасний спосіб не запамʼятовується — наступне фото знову піде перевіреним', JSON.stringify(спосіб));
+ok(!/\{макет\}/.test(спосіб.текст) && /Зробили макет/.test(спосіб.текст), 'позначка {макет} клієнту не йде', спосіб.текст);
+ok(!/\{макет\}|\{правки\}/.test(спосіб.заготовка) && /Привіт, Асія!/.test(спосіб.заготовка), 'заготовка в полі — без службових позначок', спосіб.заготовка);
+
 console.log('\n═══ 2. КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ ═══');
 const інша = await p.evaluate(() => {
   const o = orders.find(x => x.orderId === '2000101');
