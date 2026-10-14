@@ -7580,28 +7580,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e571e43fd3"></script>
-<script src="loomiq-fingerprint.js?v=e571e43fd3"></script>
-<script src="loomiq-pricing.js?v=e571e43fd3"></script>
+<script src="loomiq-select.js?v=f2eff807ba"></script>
+<script src="loomiq-fingerprint.js?v=f2eff807ba"></script>
+<script src="loomiq-pricing.js?v=f2eff807ba"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=e571e43fd3"></script>
+<script src="loomiq-money-core.js?v=f2eff807ba"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e571e43fd3"></script>
-<script src="loomiq-bg.js?v=e571e43fd3"></script>
-<script src="loomiq-mock.js?v=e571e43fd3"></script>
+<script src="loomiq-design.js?v=f2eff807ba"></script>
+<script src="loomiq-bg.js?v=f2eff807ba"></script>
+<script src="loomiq-mock.js?v=f2eff807ba"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e571e43fd3"></script>
-<script src="loomiq-threads.js?v=e571e43fd3"></script>
+<script src="imagetracer.js?v=f2eff807ba"></script>
+<script src="loomiq-threads.js?v=f2eff807ba"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e571e43fd3"></script>
+<script src="loomiq-cards.js?v=f2eff807ba"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7646,7 +7646,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e571e43fd3';
+var LQ_VER = 'f2eff807ba';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24379,7 +24379,7 @@ function tgErrUa(j, status){
   return TG_ERR_UA[j.error] || (j.error + (j.detail ? ' · ' + j.detail : ''));
 }
 async function tgSend(o, text, photo, again){
-  const chat = tgChatOf(o), body = String(text || '').trim();
+  const chat = tgChatOf(o), body = scriptMarksOff(text).trim();
   const pic = String(photo || '').trim();
   if(!chat || (!body && !pic)) return false;
   const base = tgBase();
@@ -25890,10 +25890,16 @@ async function crmSendPic(o, url, blob, local){
   const st = crmChat[o.id] || { chatId };
   const urls = crmPicList(url), blobs = crmPicList(blob);
   if(!urls.length) throw new Error('немає що надсилати');
-  const known = String((contentData || {}).crmPicWay || '');
+  /* ПЕРЕВІРЕНИЙ СПОСІБ — ЗАВЖДИ ПЕРШИМ (15.10). Доти першим ішов
+     «запамʼятований», а запамʼятовувався будь-який, що відповів 200. 14.10
+     ліміт 20 с обірвав `attach-url`, перебір дійшов до способу, який Sitniks
+     ПРИЙМАЄ, але в Instagram не передає, — і він запамʼятався: фото йшли з
+     ✓, а клієнт їх не бачив. Тепер `attach-url` першим завжди, а запамʼятати
+     інший не можна. */
+  const known = 'attach-url';
   let ways = CRM_PIC_WAYS.filter(w => w.many || urls.length === 1);
   const k = ways.findIndex(w => w.id === known);
-  if(k > 0){ ways = ways.slice(); ways.unshift(ways.splice(k, 1)[0]); }  // відомий спосіб — першим
+  if(k > 0){ ways = ways.slice(); ways.unshift(ways.splice(k, 1)[0]); }
   crmPicLog = [];
   for(let i = 0; i < ways.length; i++){
     const w = ways[i];
@@ -25928,10 +25934,8 @@ async function crmSendPic(o, url, blob, local){
     }
     if(!ok) continue;
     crmPicLog.push(w.id + ' → ПРИЙНЯВ');
-    if(w.id !== known){
-      contentData.crmPicWay = w.id;
-      try{ await PHOTOS_DOC.set({ crmPicWay: w.id }, { merge:true }); }catch(e){ console.warn(e); }
-    }
+    /* Не той, що перевірений, — у журнал, але НЕ запамʼятовуємо. */
+    if(w.id !== known) console.warn('Sitniks: фото прийняв запасний спосіб ' + w.id + ' — перевірте, чи дійшло клієнту');
     /* Чим упізнати цю картинку в стрічці: відповідь тримає номер
        створеного повідомлення. Адреси Cloudinary тут марні — Sitniks їх не
        переказує (див. crmOutOwn). */
@@ -26042,7 +26046,7 @@ function chatTimed(p, ms, what){
   return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what)), ms))]);
 }
 async function crmSend(o, text, again){
-  const t = String(text || '').trim();
+  const t = scriptMarksOff(text).trim();
   if(!t) return false;
   const chatId = crmChatIdOf(o);
   if(!chatId){ toast('Розмову Instagram не привʼязано — надіслати нікуди'); return false; }
@@ -29283,9 +29287,14 @@ async function qrStore(list){
      інакше здається, що збереження не спрацювало. */
   contentData.quickReplies = clean;
 }
+/* Службові позначки скриптів ({макет}, {правки}, {готовий}) клієнту не
+   йдуть ніколи (15.10: клієнт отримав «{макет} Зробили макет…»). */
+function scriptMarksOff(t){
+  return String(t || '').replace(/\{макет\}|\{правки\}|\{готовий\}/g, '').replace(/^[ \t]+/, '').replace(/\n[ \t]+/g, '\n');
+}
 function qrFill(text, o){
   const first = String(o.name || '').trim().split(/\s+/)[0] || '';
-  return String(text || '')
+  return scriptMarksOff(text)
     .replace(/\{імʼя\}|\{ім'я\}|\{імя\}/g, first)
     .replace(/\{бренд\}/g, brandSnap(o.brand).name)
     .replace(/\{номер\}/g, o.orderId || '')
