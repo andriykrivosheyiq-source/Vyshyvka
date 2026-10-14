@@ -6457,7 +6457,12 @@
         U.foldHtml('amber', '📦', 'Відправка', U.shipSub(o), U.shipBody(p)) +
         /* Історія — в самому низу. Її читають не щодня, але коли читають —
            читають усю, і місце їй саме там, де вона нікому не заважає. */
-        U.foldHtml('gray', '🕘', 'Історія', U.histSub(job, o), U.histHtml(job, o)) +
+        U.foldHtml('gray', '🕘', 'Історія', U.histSub(job, o), U.histHtml(job, o) +
+          /* ВИДАЛИТИ — лише власнику (Андрій, 15.10), унизу історії: дія
+             рідкісна й остаточна, і місце їй там, де випадково не натиснеш. */
+          (((U.host.role && U.host.role()) === 'owner' && host().deleteOrder)
+            ? '<div class="dz-del-row"><button type="button" class="dz-b dz-del" data-do="order-del" ' +
+              'title="Видалити замовлення назавжди — лише власник">🗑 Видалити замовлення</button></div>' : '')) +
       '</div>' +
       /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
          У картці десяток блоків, і кнопка в кінці означає «догортайте до
@@ -9580,6 +9585,10 @@
       }
       if(host().chat) return host().chat(co, chatSeat(root, co && co.orderId));
       return say('Переписка недоступна');
+    }
+    if(what === 'order-del'){
+      if(host().deleteOrder) await host().deleteOrder(o);
+      return;
     }
     if(what === 'unbind'){
       try{ if(!window.confirm('Відвʼязати розмову від цієї картки? Потім можна вставити адресу іншої.')) return; }catch(e){}

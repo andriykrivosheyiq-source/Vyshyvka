@@ -393,6 +393,49 @@ ok(відст[1] === 'sketchok:000', 'третю узгодили — «Ескі
 ok(відст[2] === 'stitchq:111', 'зафіксували — усі три позиції разом у «Черзі вишивки»', відст[2]);
 ok(відст[3] === 'stitchq', 'вишивальний узяв одну — картка чекає в «Черзі», поки не візьмуть усі', відст[3]);
 
+console.log('\n═══ 8. ВИДАЛИТИ ЗАМОВЛЕННЯ B2C — ЛИШЕ ВЛАСНИК, УНИЗУ ІСТОРІЇ ═══');
+const вид = await p.evaluate(async () => {
+  const U = window.LQDesign.ui;
+  window.confirm = () => true;
+  const кнопка = () => !!document.querySelector('#dzRoot [data-do="order-del"]');
+  const відкрий = id => { U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+    const c = document.querySelector('#dzRoot [data-open="' + id + '"]'); if(c) c.click();
+    /* Історія згорнута — розгортаємо: кнопка внизу її вмісту. */
+    const h = document.querySelector('#dzRoot [data-fold="Історія"]');
+    if(h && !h.closest('.open')) h.click(); };
+  відкрий('2000104');
+  const власник = кнопка();
+  const позиція = (() => { const b = document.querySelector('#dzRoot [data-do="order-del"]');
+    const f = b && b.closest('.dz-z'); return f ? f.textContent.slice(0, 40) : ''; })();
+  /* Менеджер — кнопки немає, і навіть прямий виклик відмовляє. */
+  contentData.team = [{ email:'test@loomiq', name:'Оля', role:'manager' }, { email:'boss@loomiq', name:'Андрій', role:'owner' }];
+  відкрий('2000104');
+  const менеджер = кнопка();
+  await U.host.deleteOrder(orders.find(x => x.orderId === '2000104'));
+  const лишилось1 = !!orders.find(x => x.orderId === '2000104');
+  contentData.team = [{ email:'test@loomiq', name:'Оля', role:'owner' }];
+  /* З оплатою — не видаляється. */
+  const o4 = orders.find(x => x.orderId === '2000104');
+  o4.payments = [{ payId:'p1', sum: 500, at:'2026-10-14' }];
+  await U.host.deleteOrder(o4);
+  const лишилось2 = !!orders.find(x => x.orderId === '2000104');
+  o4.payments = [];
+  відкрий('2000104');
+  const кн3 = document.querySelector('#dzRoot [data-do="order-del"]');
+  if(!кн3) return { власник, позиція, менеджер, лишилось1, лишилось2, роль: myRole(), err: 'немає кнопки після повернення ролі' };
+  кн3.click();
+  await new Promise(r => setTimeout(r, 600));
+  return { власник, позиція, менеджер, лишилось1, лишилось2, після: !!orders.find(x => x.orderId === '2000104'), job: !!designJobs['2000104'] };
+});
+console.log('  ' + JSON.stringify(вид));
+ok(вид.власник && /Історія/.test(вид.позиція), 'власник бачить «🗑 Видалити замовлення» унизу Історії', JSON.stringify(вид));
+ok(!вид.менеджер && вид.лишилось1, 'менеджер кнопки не бачить, і видалити не може навіть напряму', JSON.stringify(вид));
+ok(вид.лишилось2, 'замовлення з привʼязаною оплатою не видаляється — гроші не губляться', JSON.stringify(вид));
+ok(!вид.після && !вид.job, 'власник видалив — немає ні замовлення, ні роботи відділу', JSON.stringify(вид));
+const зел = await p.evaluate(() => { const b = document.createElement('button'); b.className = 'fin-chip is-chk-go'; document.body.appendChild(b);
+  const c = getComputedStyle(b); const r = { bg: c.backgroundColor, color: c.color }; b.remove(); return r; });
+ok(зел.bg === 'rgb(27, 107, 58)' && зел.color === 'rgb(255, 255, 255)', 'у Фінансах «✓ Підтвердити» — суцільна зелена кнопка з білим текстом', JSON.stringify(зел));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
