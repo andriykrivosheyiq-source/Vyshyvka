@@ -225,6 +225,31 @@ ok(спосіб.way2 !== 'attach-url' && спосіб.запамʼятав === '
 ok(!/\{макет\}/.test(спосіб.текст) && /Зробили макет/.test(спосіб.текст), 'позначка {макет} клієнту не йде', спосіб.текст);
 ok(!/\{макет\}|\{правки\}/.test(спосіб.заготовка) && /Привіт, Асія!/.test(спосіб.заготовка), 'заготовка в полі — без службових позначок', спосіб.заготовка);
 
+console.log('\n═══ 1д. ПАЧКА КАРТОК, ЩО ПОВЕРНУЛАСЬ ПООДИНЦІ, — НЕ ДВІЧІ ═══');
+/* Андрій, 15.10 (#1000119): три картки «Варіанти…» стояли двічі — зверху
+   з ✓✓ (від Sitniks), знизу з ✓ (наш запис). Ми шлемо пачку одним
+   повідомленням, а Sitniks віддає її трьома. */
+const пачка = await p.evaluate(() => {
+  const o = orders.find(x => x.orderId === '2000102');
+  delete o.crmPicsOut; crmChat[o.id] = { chatId:'cP', msgs: [] };
+  const e = crmPicsAdd(o, ['https://c/1.png', 'https://c/2.png', 'https://c/3.png'], 'pending');
+  e.state = 'sent'; e.t = '#999'; crmPicsKeep(o, e);
+  const t0 = new Date(Date.now() - 60000);
+  const at = s => new Date(t0.getTime() + s * 1000).toISOString().replace('T', ' ').slice(0, 19);
+  const list = [
+    { id:'s1', text:'', files:[{ url:'https://sx/a.png', kind:'img' }], mine:true, at: at(20) },
+    { id:'s2', text:'', files:[{ url:'https://sx/b.png', kind:'img' }], mine:true, at: at(21) },
+    { id:'s3', text:'', files:[{ url:'https://sx/c.png', kind:'img' }], mine:true, at: at(22) },
+    { id:'s4', text:'Добрий день. Підготувала для вас прорахунок', files:[], mine:true, at: at(25) }
+  ];
+  const out = crmPicsMerge(o, list);
+  return { картинок: out.filter(m => (m.files || []).length).length, наших: out.filter(m => m.local).length,
+           записів: crmPicsAll(o).length };
+});
+console.log('  ' + JSON.stringify(пачка));
+ok(пачка.картинок === 3 && !пачка.наших && !пачка.записів,
+  'Sitniks повернув пачку з трьох картинок трьома повідомленнями — у стрічці три, без дублів з ✓', JSON.stringify(пачка));
+
 console.log('\n═══ 2. КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ ═══');
 const інша = await p.evaluate(() => {
   const o = orders.find(x => x.orderId === '2000101');
