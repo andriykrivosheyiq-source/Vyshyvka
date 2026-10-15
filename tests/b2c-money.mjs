@@ -219,6 +219,22 @@ ok(фікс.сума0 === фікс.сума1 && фікс.підказка === 70
 ok(фікс.нова === 700 && фікс.готова === 450, 'нова позиція — за новим прайсом; перемкнули вид — зафіксовано заново', JSON.stringify(фікс));
 ok(фікс.кількість === 600 && фікс.оновили === 700, 'кількість ціни не міняє; «Оновити до поточного прайсу» — перераховує', JSON.stringify(фікс));
 
+console.log('\n═══ КАРТКА НА ДОШЦІ = ЗОНА «ГРОШІ» ═══');
+const дошка = await p.evaluate(async () => {
+  const U = window.LQDesign.ui;
+  __o1.totalPrice = 2570;            // застаріле, як у #2000058
+  const гроші = U.netSum(__o1, __j1);
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const картка = (document.querySelector('#dzRoot [data-open="2000101"]').closest('.dz-card-w') || document.querySelector('#dzRoot [data-open="2000101"]')).textContent;
+  await priceLockAll();
+  return { гроші, картка, total: __o1.totalPrice };
+});
+console.log('  ' + JSON.stringify(дошка));
+const грн = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+ok(дошка.картка.indexOf(грн(дошка.гроші)) >= 0 && дошка.картка.indexOf('2 570') < 0,
+  'картка на дошці показує ту саму суму, що зона «Гроші»', JSON.stringify(дошка));
+ok(дошка.total === дошка.гроші, 'і в замовлення (грошове ядро) записано ту саму суму', JSON.stringify(дошка));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
