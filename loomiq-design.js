@@ -1522,6 +1522,51 @@
                 at: nowIso() };
     return u.ready;
   }
+  /* ══════════ ПОВТОРНИЙ ДИЗАЙН (15.10) ══════════
+     Андрій: дизайн, який ми вже робили, — «одразу завантажуємо DST-шки,
+     прозорі принти, розміщення, одобрення, якщо одобрили — одразу у
+     виробництво». Та сама дорога, що в готового (u.ready, записи readyMade,
+     ціна «готовий ескіз»), лише файли не з бібліотеки, а свої для замовлення:
+     завантажені руками або взяті з минулого замовлення. */
+  function repeatAttach(u, from){
+    if(!u) return null;
+    var f = from || {};
+    var arts = readyFiles(f.arts, 'принт.png');
+    u.ready = { id: 'repeat', repeat: true, name: 'Повторний' + (f.fromNo ? ' · з ' + f.fromNo : ''),
+                pic: (arts[0] && arts[0].url) || '', art: arts[0] || null, arts: arts,
+                files: readyFiles(f.files, 'файл'), extras: readyFiles(f.extras, 'файл'),
+                from: f.fromNo ? { orderId: String(f.fromId || ''), no: String(f.fromNo), unit: +f.fromUnit || 0 } : null,
+                at: nowIso() };
+    return u.ready;
+  }
+  /* Файли, які лишило по собі минуле замовлення: з погоджених версій —
+     принт (оригінал або робота), вишивальні DST і додаткове для цеху. */
+  function pastFiles(u){
+    var out = { arts: [], files: [], extras: [] };
+    var seen = {};
+    var add = function(l, f, role){ if(!f || !f.url || seen[f.url]) return; seen[f.url] = 1;
+      out[l].push({ name: String(f.name || ''), url: String(f.url) }); };
+    if(u && u.ready){
+      readyArts(u.ready).forEach(function(f){ add('arts', f); });
+      (u.ready.files || []).forEach(function(f){ add('files', f); });
+      (u.ready.extras || []).forEach(function(f){ add('extras', f); });
+    }
+    dzList(u, 'graphic').forEach(function(d){
+      var v = d.ok && d.vers.filter(function(x){ return +x.n === +d.ok.ver; })[0];
+      if(!v || d.readyMade) return;
+      var p = verParts(v);
+      ((p.orig || []).length ? p.orig : p.work).forEach(function(f){ add('arts', f); });
+    });
+    dzList(u, 'stitch').forEach(function(d){
+      var v = d.ok && (d.vers.filter(function(x){ return +x.n === +d.ok.ver; })[0] || d.vers[d.vers.length - 1]);
+      if(!v) return;
+      var p = verParts(v);
+      p.machine.forEach(function(f){ add('files', f); });
+      (p.extra || []).forEach(function(f){ add(f.kind === 'print' ? 'arts' : 'extras', f); });
+      p.shot.forEach(function(f){ add('extras', f); });
+    });
+    return out;
+  }
   /* Запис графіки для готового дизайну: створюємо, коли менеджер уперше
      розмістив принт. Чужих (індивідуальних) записів не чіпаємо. */
   function readyGraphic(u, by){
@@ -2466,7 +2511,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, readyArts: readyArts, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
+    readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -4271,14 +4316,42 @@
      Перемикач — над дизайном позиції; після погодження готового дизайну
      зробити його індивідуальним уже не можна (це вже робота). */
   function designKindHtml(u){
-    var гот = !!u.ready;
-    var зПогодж = гот && dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
-    var зІнд = !гот && dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; });
+    var пов = !!(u.ready && u.ready.repeat);
+    var гот = !!u.ready && !пов;
+    var зПогодж = !!u.ready && dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
+    var зІнд = !u.ready && dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; });
+    var закр = зПогодж ? ' disabled title="Дизайн уже погоджено"' : зІнд ? ' disabled title="Позицію вже передали графічному дизайнеру"' : '';
     return '<div class="dz-kind">' +
-      '<button type="button" class="dz-kind-b' + (гот ? '' : ' on') + '" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
-        (зПогодж ? ' disabled title="Готовий дизайн уже погоджено"' : '') + '>Індивідуальний</button>' +
+      '<button type="button" class="dz-kind-b' + (u.ready ? '' : ' on') + '" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
+        (зПогодж ? ' disabled title="Дизайн уже погоджено"' : '') + '>Індивідуальний</button>' +
       '<button type="button" class="dz-kind-b' + (гот ? ' on' : '') + '" data-do="u-ready-pick" data-u="' + esc(u.id) + '"' +
-        (зІнд ? ' disabled title="Позицію вже передали графічному дизайнеру"' : '') + '>Готовий дизайн</button>' +
+        (гот ? '' : закр) + '>Готовий дизайн</button>' +
+      '<button type="button" class="dz-kind-b' + (пов ? ' on' : '') + '" data-do="u-repeat" data-u="' + esc(u.id) + '"' +
+        (пов ? '' : закр) + ' title="Дизайн, який ми вже робили: свої DST і принти — без дизайнерів">Повторний</button>' +
+    '</div>';
+  }
+  /* Файли «Повторного»: три списки з «+» і «×». Після вишивки (позиція в
+     цеху) — лише читаються. */
+  function repeatFilesHtml(u, ro){
+    var r = u.ready || {};
+    var лок = ro || D.dzList(u, 'stitch').length > 0;
+    var список = function(k, назва, підк, img){
+      var l = k === 'arts' ? D.readyArts(r) : (r[k] || []);
+      return '<div class="dz-rep-s"><b>' + esc(назва) + '</b>' + (підк ? '<small>' + esc(підк) + '</small>' : '') +
+        '<div class="dz-rep-l">' + (l.length ? l.map(function(f, i){
+          return '<span class="dz-rep-f">' +
+            (img ? '<img src="' + esc(f.url) + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+            '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name || 'файл') + '</a>' +
+            (лок ? '' : '<button type="button" data-do="u-rep-del" data-u="' + esc(u.id) + '" data-k="' + k + '" data-i="' + i + '" title="Прибрати">×</button>') +
+          '</span>'; }).join('') : '<i>немає</i>') +
+        (лок ? '' : '<button type="button" class="dz-b" data-do="u-rep-up" data-u="' + esc(u.id) + '" data-k="' + k + '">+ ' + (k === 'arts' ? 'Принт' : 'Файл') + '</button>') +
+        '</div></div>';
+    };
+    return '<div class="dz-rep">' +
+      список('arts', 'Принти без фону (PNG)', '', true) +
+      список('files', 'Вишивальні (DST)', '', false) +
+      список('extras', 'Додатково для виробництва', 'палітра, схема, примітки', true) +
+      (лок ? '' : '<button type="button" class="dz-b" data-do="u-rep-past" data-u="' + esc(u.id) + '">⤓ З минулого замовлення</button>') +
     '</div>';
   }
   function readyHtml(job, u, ro, opt){
@@ -4289,16 +4362,20 @@
     var d = gi >= 0 ? gl[gi] : null;
     var key = esc(u.id) + '|graphic|' + gi;
     var st = dzList(u, 'stitch').filter(function(x){ return x.readyMade; })[0];
-    return '<div class="dz-ready">' +
+    var пов = !!r.repeat;
+    var готовіФайли = D.readyArts(r).length && (r.files || []).length;
+    return '<div class="dz-ready' + (пов ? ' is-rep' : '') + '">' +
       '<div class="dz-ready-h">' +
         (r.pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(r.pic) + '"><img src="' + esc(r.pic) + '" alt=""></button>' : '') +
-        '<span class="dz-ready-t"><b>Готовий дизайн · ' + esc(r.name || '') + '</b>' +
+        '<span class="dz-ready-t"><b>' + (пов ? esc(r.name || 'Повторний') : 'Готовий дизайн · ' + esc(r.name || '')) + '</b>' +
           '<i>' + (r.files || []).length + ' вишив. файл(и) · без графічного й вишивального дизайнера</i></span>' +
-        ((!ro && !(d && d.ok)) ? '<button type="button" class="dz-b" data-do="u-ready-pick" data-u="' + esc(u.id) + '">Змінити</button>' : '') +
+        ((!ro && !пов && !(d && d.ok)) ? '<button type="button" class="dz-b" data-do="u-ready-pick" data-u="' + esc(u.id) + '">Змінити</button>' : '') +
       '</div>' +
+      (пов ? repeatFilesHtml(u, ro) : '') +
       (!d || !(d.vers || []).length
         ? (ro ? '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>'
             : !u.gid ? '<div class="dz-miss">Спершу оберіть одяг — принт кладемо на нього.</div>'
+            : (пов && !готовіФайли) ? '<div class="dz-miss">Додайте хоч один принт і один DST — тоді можна розміщати.</div>'
             : '<button type="button" class="dz-b pri wide" data-do="u-ready-place" data-u="' + esc(u.id) + '">◱ Розмістити на одязі</button>')
         : dzCardHtml(u, 'graphic', d, gi, job, opt && opt.o, key, ro)) +
       (st ? '<div class="dz-miss is-calm">Вишивка — файли з бібліотеки, позиція йде у виробництво.</div>'
@@ -4308,6 +4385,80 @@
             '.<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) + '">Підтвердити одяг</button></div>'
           : '') +
     '</div>';
+  }
+  /* ВІКНО «З МИНУЛОГО ЗАМОВЛЕННЯ» (15.10). Завершені замовлення — ті, що вже
+     дійшли до виробництва чи далі: їхні файли остаточні. Перемикач «Цей
+     клієнт / Усі замовлення» і пошук за номером, імʼям, ніком чи телефоном. */
+  var PAST_DONE = { prod: 1, appr: 1, ready: 1, shipped: 1 };
+  function pastSame(a, b){
+    if(!a || !b) return false;
+    var tel = function(x){ return String(x || '').replace(/\D/g, '').slice(-9); };
+    var low = function(x){ return String(x || '').replace(/^@/, '').trim().toLowerCase(); };
+    return !!((a.crmChatId && String(a.crmChatId) === String(b.crmChatId)) ||
+      (tel(a.phone).length === 9 && tel(a.phone) === tel(b.phone)) ||
+      (low(a.crmNick) && low(a.crmNick) === low(b.crmNick)) ||
+      (low(a.name).length > 3 && low(a.name) === low(b.name)));
+  }
+  function pastPickOpen(cur, done){
+    var всі = pairs().filter(function(p){
+      if(!p.o || (cur && p.o.orderId === cur.orderId)) return false;
+      if(!PAST_DONE[D.chainAt(p.job, p.o)]) return false;
+      return unitsOf(p.job).some(function(u){ var f = D.pastFiles(u); return f.files.length || f.arts.length; });
+    });
+    var свій = всі.some(function(p){ return pastSame(p.o, cur); });
+    var mode = свій ? 'mine' : 'all', q = '';
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-past';
+    var paint = function(){
+      var t = q.trim().toLowerCase();
+      var l = всі.filter(function(p){
+        if(mode === 'mine' && !pastSame(p.o, cur)) return false;
+        if(!t) return true;
+        return [jobNo(p.job), p.o.orderId, p.o.name, p.o.crmNick, p.o.crmChatName, p.o.phone, p.o.instagram]
+          .join(' ').toLowerCase().indexOf(t) >= 0;
+      });
+      el.innerHTML = '<div class="dz-pick-w dz-past-w">' +
+        '<div class="dz-pick-h"><b>З минулого замовлення</b><i>Оберіть позицію — її DST, принти й додаткові файли перейдуть сюди</i>' +
+          '<button type="button" class="dz-x" data-past-x>×</button></div>' +
+        '<div class="dz-past-m"><button type="button" class="dz-kind-b' + (mode === 'mine' ? ' on' : '') + '" data-past-m="mine">Цей клієнт</button>' +
+          '<button type="button" class="dz-kind-b' + (mode === 'all' ? ' on' : '') + '" data-past-m="all">Усі замовлення</button></div>' +
+        '<input class="dz-rdp-q dz-past-q" type="search" placeholder="Пошук: номер, імʼя, нік чи телефон" value="' + esc(q) + '">' +
+        '<div class="dz-past-l">' + (l.length ? l.map(function(p){
+          var oi = всі.indexOf(p);
+          return '<div class="dz-past-o"><div class="dz-past-oh"><b>' + esc(jobNo(p.job)) + '</b><span>' +
+              esc([p.o.name || p.o.crmChatName, p.o.crmNick ? '@' + String(p.o.crmNick).replace(/^@/, '') : ''].filter(Boolean).join(' · ')) + '</span></div>' +
+            unitsOf(p.job).map(function(u, ui){
+              var f = D.pastFiles(u);
+              if(!f.files.length && !f.arts.length) return '';
+              var g = catItem(u.gid);
+              return '<button type="button" class="dz-past-u" data-past="' + oi + ':' + ui + '">' +
+                (f.arts[0] ? '<img src="' + esc(f.arts[0].url) + '" alt="" loading="lazy" onerror="this.style.opacity=0">' : '<span class="dz-past-n">—</span>') +
+                '<span><b>' + esc([(g && g.name) || u.name, u.color].filter(Boolean).join(' · ') || ('позиція ' + (ui + 1))) + '</b>' +
+                '<i>' + f.files.length + ' DST · ' + f.arts.length + ' принт(и)' + (f.extras.length ? ' · ' + f.extras.length + ' додатк.' : '') + '</i></span></button>';
+            }).join('') + '</div>';
+        }).join('') : '<div class="dz-miss is-calm">' + (всі.length
+            ? (mode === 'mine' ? 'У цього клієнта завершених замовлень немає — перемкніть на «Усі замовлення».' : 'Нічого не знайдено.')
+            : 'Завершених замовлень з готовими файлами ще немає.') + '</div>') + '</div>' +
+      '</div>';
+      var qi = el.querySelector('.dz-past-q');
+      qi.oninput = function(){ q = qi.value; var pos = qi.selectionStart; paint(); var n = el.querySelector('.dz-past-q'); n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} };
+    };
+    el.addEventListener('click', function(e){
+      var x = e.target.closest('[data-past-x]');
+      if(x || e.target === el){ el.remove(); return; }
+      var m = e.target.closest('[data-past-m]');
+      if(m){ mode = m.dataset.pastM; paint(); return; }
+      var b = e.target.closest('[data-past]');
+      if(b){
+        var ab = b.dataset.past.split(':'), p = всі[+ab[0]], u = p && unitsOf(p.job)[+ab[1]];
+        if(!u) return;
+        el.remove();
+        done({ o: p.o, job: p.job, u: u, i: +ab[1], no: jobNo(p.job) });
+      }
+    });
+    paint();
+    document.body.appendChild(el);
+    return el;
   }
   /* ВІКНО ГОТОВИХ ДИЗАЙНІВ: заставки, пошук, перегляд великим. */
   function readyPickOpen(done){
@@ -5455,7 +5606,7 @@
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
     orderCost: orderCost, sumRows: sumRows,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
-    unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen,
+    unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen, prodView: prodView,
@@ -9183,6 +9334,7 @@
     'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'dz-hand-all':'art', 'pic-open':'', 'dz-dl':'',
     /* Готовий дизайн (13.10) — робота менеджера зі складом, як вибір одягу. */
     'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art',
+    'u-repeat':'art', 'u-rep-up':'art', 'u-rep-del':'art', 'u-rep-past':'art',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -9702,10 +9854,48 @@
         say('Тепер оберіть одяг — і натисніть «Розмістити на одязі»');
       });
     }
+    /* ── ПОВТОРНИЙ ДИЗАЙН (15.10) ── */
+    if(what === 'u-repeat'){
+      var rpu = U.unitAt(job, data && data.u);
+      if(!rpu || (rpu.ready && rpu.ready.repeat)) return;
+      if(rpu.ready){
+        try{ if(!window.confirm('Зробити позицію повторною? Готовий дизайн «' + (rpu.ready.name || '') + '» з неї знімемо.')) return; }catch(e){}
+        if(!D.readyDetach(rpu)) return say('Дизайн уже погоджено — змінити не можна');
+      }
+      D.repeatAttach(rpu);
+      return save(job, o, 'Повторний дизайн — додайте DST і принти або візьміть з минулого замовлення');
+    }
+    if(what === 'u-rep-up' || what === 'u-rep-del'){
+      var reu = U.unitAt(job, data && data.u), k = data && data.k;
+      if(!reu || !reu.ready || !reu.ready.repeat || ['arts', 'files', 'extras'].indexOf(k) < 0) return;
+      if(D.dzList(reu, 'stitch').length) return say('Позиція вже у виробництві — файли не міняються');
+      var rr = reu.ready;
+      if(k === 'arts') rr.arts = D.readyArts(rr);
+      rr[k] = rr[k] || [];
+      if(what === 'u-rep-del') rr[k].splice(+data.i, 1);
+      else {
+        var nf = await uploadMany(k === 'arts' ? 'image/png,image/*' : '');
+        if(!nf.length) return;
+        nf.forEach(function(f){ rr[k].push({ name: String(f.name || 'файл'), url: String(f.url) }); });
+      }
+      rr.art = (rr.arts || [])[0] || null; rr.pic = (rr.art && rr.art.url) || '';
+      return save(job, o, what === 'u-rep-del' ? 'Файл прибрано' : 'Файли додано');
+    }
+    if(what === 'u-rep-past'){
+      var rpp = U.unitAt(job, data && data.u);
+      if(!rpp || !rpp.ready || !rpp.ready.repeat) return;
+      return U.pastPickOpen(o, function(src){
+        var f = D.pastFiles(src.u);
+        if(!f.arts.length && !f.files.length) return say('У цій позиції немає готових файлів');
+        D.repeatAttach(rpp, { arts: f.arts, files: f.files, extras: f.extras,
+          fromNo: src.no, fromId: src.o.orderId, fromUnit: src.i + 1 });
+        save(job, o, 'Файли взято з ' + src.no + ' · ' + f.files.length + ' DST, ' + f.arts.length + ' принт(и)');
+      });
+    }
     if(what === 'u-ready-off'){
       var ou = U.unitAt(job, data && data.u);
       if(!ou || !ou.ready) return;
-      try{ if(!window.confirm('Зробити позицію індивідуальною? Готовий дизайн «' + (ou.ready.name || '') + '» з неї знімемо.')) return; }catch(e){}
+      try{ if(!window.confirm('Зробити позицію індивідуальною? ' + (ou.ready.repeat ? 'Повторний дизайн' : 'Готовий дизайн «' + (ou.ready.name || '') + '»') + ' з неї знімемо.')) return; }catch(e){}
       if(!D.readyDetach(ou)) return say('Готовий дизайн уже погоджено — змінити не можна');
       return save(job, o, 'Позиція індивідуальна');
     }
@@ -10250,7 +10440,7 @@
     return window.LQMock.openWork({
       placeOnly: true,
       gid: u.gid, size: u.size || '', color: u.color || '',
-      name: 'Готовий дизайн «' + (r.name || '') + '» · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
+      name: (r.repeat ? (r.name || 'Повторний') : 'Готовий дизайн «' + (r.name || '') + '»') + ' · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
       sides: сторони, works: принти.map(function(f, k){
         return { name: f.name || 'принт.png', url: f.url, hash: 'ready:' + (r.id || '') + (k ? ':' + k : '') }; }),
       places: places,
