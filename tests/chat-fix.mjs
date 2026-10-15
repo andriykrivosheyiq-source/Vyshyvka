@@ -393,6 +393,58 @@ ok(відст[1] === 'sketchok:000', 'третю узгодили — «Ескі
 ok(відст[2] === 'stitchq:111', 'зафіксували — усі три позиції разом у «Черзі вишивки»', відст[2]);
 ok(відст[3] === 'stitchq', 'вишивальний узяв одну — картка чекає в «Черзі», поки не візьмуть усі', відст[3]);
 
+console.log('\n═══ 7б. НЕПРОЧИТАНЕ ГОРИТЬ, ПОКИ НЕ НАТИСНУЛИ 👁 АБО НЕ ВІДПОВІЛИ ═══');
+const непр = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '2000103');
+  const мить = хв => new Date(Date.now() - хв * 60000).toISOString().replace('T', ' ').slice(0, 16);
+  o.crmChatId = 'c3'; o.crmSeen = ''; o.crmUnread = 1; o.crmTheirs = true;
+  crmChat[o.id] = { chatId:'c3', msgs: [{ text:'Розробили макет', mine:true, at: мить(30) }, { text:'Так, супер', mine:false, at: мить(5) }] };
+  window.crmFetch = async () => ({ id:'r1' });
+  chatOpen(o, 'crm', { noDrawer: true, dir: 'b2c' });
+  await new Promise(r => setTimeout(r, 300));
+  const відкрив = chatWaiting(o, 'crm');
+  /* На картці канбану — теж «1». */
+  const U = window.LQDesign.ui; U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const картка = ((document.querySelector('#dzRoot [data-open="2000103"]') || {}).closest
+    ? (document.querySelector('#dzRoot [data-open="2000103"]').closest('.dz-card-w') || document.querySelector('#dzRoot [data-open="2000103"]')).textContent : '');
+  /* Відповіли — гасне саме. */
+  await crmSend(o, 'Дякуємо!');
+  const відповіли = chatWaiting(o, 'crm');
+  /* Такт опитування: нашої відповіді Sitniks ще не повернув — кружечок не вертається. */
+  crmChat[o.id].msgs = crmNormMsgs([
+    { id:'a', text:'Розробили макет', createdAt: мить(30).replace(' ', 'T') + ':00Z' },
+    { id:'b', text:'Так, супер', createdAt: мить(5).replace(' ', 'T') + ':00Z' }], o);
+  const такт = chatWaiting(o, 'crm');
+  /* Клієнт написав ще — знову горить. */
+  crmChat[o.id].msgs = crmNormMsgs([
+    { id:'a', text:'Розробили макет', createdAt: мить(30).replace(' ', 'T') + ':00Z' },
+    { id:'b', text:'Так, супер', createdAt: мить(5).replace(' ', 'T') + ':00Z' },
+    { id:'c', text:'А коли буде?', createdAt: new Date().toISOString() }], o);
+  const знову = chatWaiting(o, 'crm');
+  chatClose();
+  /* Telegram: відкрили картку — горить; відповіли — гасне. */
+  const t = orders.find(x => x.orderId === '2000104') || orders.find(x => x.orderId === '2000102');
+  t.webId = 'tg:777'; t.tgAt = мить(1); t.tgWrote = 3; t.tgSeen = мить(60); t.tgSeenWrote = 2; t.tgLast = 'Добрий день';
+  try{ openOrderDrawer(t); }catch(e){}
+  await new Promise(r => setTimeout(r, 200));
+  const тгВідкрив = tgUnread(t);
+  try{ closeOrderDrawer(); }catch(e){}
+  contentData.bgApi = Object.assign({}, contentData.bgApi || {}, { tgUrl: 'https://tg.test' });
+  window.fbAuth = window.fbAuth || {};
+  fbAuth.currentUser = { getIdToken: async () => 'x', email: 'test@loomiq' };
+  const f0 = window.fetch;
+  window.fetch = async (u, opt) => /tg\.test/.test(String(u)) ? new Response(JSON.stringify({ ok: true }), { status: 200 }) : f0(u, opt);
+  const тгВідповів = await tgSend(t, 'Так');
+  window.fetch = f0;
+  return { відкрив, картка, відповіли, такт, знову, тгВідкрив, тгВідповів, тгПісля: tgUnread(t) };
+});
+console.log('  ' + JSON.stringify(непр));
+ok(непр.відкрив, 'відкрили розмову — непрочитане лишається (гасить лише 👁 або відповідь)', JSON.stringify(непр));
+ok(/1/.test(непр.картка), 'на картці канбану — «1» від клієнта', непр.картка);
+ok(!непр.відповіли && !непр.такт, 'відповіли — гасне саме, і такт опитування його не повертає', JSON.stringify(непр));
+ok(непр.знову, 'клієнт написав ще — знову горить', JSON.stringify(непр));
+ok(непр.тгВідкрив && непр.тгВідповів && !непр.тгПісля, 'Telegram так само: відкрили — горить, відповіли — гасне', JSON.stringify(непр));
+
 console.log('\n═══ 8. ВИДАЛИТИ ЗАМОВЛЕННЯ B2C — ЛИШЕ ВЛАСНИК, УНИЗУ ІСТОРІЇ ═══');
 const вид = await p.evaluate(async () => {
   const U = window.LQDesign.ui;
