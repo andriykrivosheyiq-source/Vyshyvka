@@ -5171,12 +5171,32 @@
     try{ return Math.max(0, Math.round((host.cost && host.cost(gid, kind)) || 0)); }
     catch(e){ return 0; }
   }
+  /* ЦІНА ФІКСУЄТЬСЯ В КАРТЦІ (Андрій, 15.10): «створили картку — продаємо
+     за тими цінами, що зафіксувались; нові картки — за новими цінами;
+     собівартість так само». Ціну й собівартість записуємо в позицію, коли
+     обрали виріб і вид дизайну; змінили виріб чи вид — фіксуємо заново за
+     прайсом на цю мить. Кількість і колір ціни не міняють. */
+  function priceLock(u, force){
+    if(!u || !u.gid) return false;
+    var вид = u.ready ? 'ready' : '';
+    if(!force && u.priceAt && u.priceGid === u.gid && (u.priceKind || '') === вид) return false;
+    u.price = retailOf(u.gid, вид); u.cost = costOf(u.gid, вид);
+    u.priceGid = u.gid; u.priceKind = вид; u.priceAt = new Date().toISOString();
+    return true;
+  }
+  function priceLockJob(job, force){
+    var n = 0;
+    unitsOf(job).forEach(function(u){ if(priceLock(u, force)) n++; });
+    return n;
+  }
   function sumRows(job){
     return unitsOf(job).map(function(u){
       var g = catItem(u.gid);
       var вид = u.ready ? 'ready' : '';
-      var ціна = retailOf(u.gid, вид);
-      var соб = costOf(u.gid, вид);
+      var зафікс = !!(u.priceAt && u.priceGid === u.gid && (u.priceKind || '') === вид);
+      var прайс = retailOf(u.gid, вид), прайсС = costOf(u.gid, вид);
+      var ціна = зафікс ? Math.max(0, Math.round(+u.price || 0)) : прайс;
+      var соб = зафікс ? Math.max(0, Math.round(+u.cost || 0)) : прайсС;
       var к = Math.max(0, Math.round(+u.qty || 0));
       /* Вид дизайну — у назві рядка (15.10): «Футболка базова · повторний». */
       var дизайн = !u.ready ? 'індивідуальний' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
@@ -5184,6 +5204,7 @@
          кажемо про це, щоб не дивувались сумі. */
       var запас = !!(u.ready && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
       return { name: (g && g.name) || u.name || 'без виробу', design: дизайн, fallback: запас,
+               lockedAt: зафікс ? u.priceAt : '', nowPrice: (зафікс && прайс !== ціна) ? прайс : 0,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
                cost: соб, costSum: соб * к,
                нема: !!u.gid && !ціна };
@@ -5294,10 +5315,16 @@
             return '<div class="dz-sum-r' + (r.нема ? ' no' : '') + '">' +
               '<span>' + esc(r.name) + (r.color ? ' · ' + esc(r.color) : '') +
                 (r.design ? ' · <em class="dz-sum-k">' + esc(r.design) + '</em>' : '') + '</span>' +
-              '<i>' + r.qty + ' × ' + esc(грн(r.price)) + '</i>' +
+              '<i>' + r.qty + ' × ' + esc(грн(r.price)) +
+                (r.lockedAt ? '<small class="dz-sum-lk" title="Ціна зафіксована в картці">ціна від ' + esc(dt(r.lockedAt).slice(0, 5)) +
+                  (r.nowPrice ? ' · зараз у прайсі ' + esc(грн(r.nowPrice)) : '') + '</small>' : '') + '</i>' +
               '<b>' + esc(грн(r.sum)) + '</b>' +
             '</div>';
           }).join('') +
+          (rows.some(function(r){ return r.nowPrice; })
+            ? '<button type="button" class="dz-b dz-price-up" data-do="price-refresh" ' +
+              'title="Перерахувати позиції за цінами з налаштувань на сьогодні">↻ Оновити до поточного прайсу</button>'
+            : '') +
           (rows.some(function(r){ return r.fallback; })
             ? '<div class="dz-miss">Для виробу ще не вписано ціни «готовий ескіз» — для готового й повторного ' +
               'дизайну взято індивідуальну. Впишіть її в Налаштуваннях B2C → Ціни виробів.</div>'
@@ -5634,7 +5661,7 @@
     moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum, paidOf: paidOf,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
-    orderCost: orderCost, sumRows: sumRows,
+    orderCost: orderCost, sumRows: sumRows, priceLock: priceLock, priceLockJob: priceLockJob,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
@@ -5972,6 +5999,7 @@
   }
   function save(job, o, msg){
     job.updatedAt = new Date().toISOString();
+    try{ U.priceLockJob(job); }catch(e){ console.warn('ціна', e); }
     try{ D.dzAutoQueue(job, o, (host().me && host().me()) || ''); }
     catch(e){ console.warn('черга відділу', e); }
     var p = host().save ? host().save(job, o) : Promise.resolve();
@@ -9782,6 +9810,11 @@
       }
       if(host().chat) return host().chat(co, chatSeat(root, co && co.orderId));
       return say('Переписка недоступна');
+    }
+    if(what === 'price-refresh'){
+      try{ if(!window.confirm('Перерахувати позиції за цінами з налаштувань на сьогодні? Сума замовлення зміниться.')) return; }catch(e){}
+      U.priceLockJob(job, true);
+      return save(job, o, 'Ціни оновлено до поточного прайсу');
     }
     if(what === 'order-del'){
       if(host().deleteOrder) await host().deleteOrder(o);

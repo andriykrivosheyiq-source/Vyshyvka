@@ -183,6 +183,42 @@ ok(r.pct.disc === 45 && r.pct.total === 405, 'знижка 10 % → 45 ₴, до
 ok(r.запас, 'ціни «готовий ескіз» для виробу немає — сказано, що взято індивідуальну', 'попередження немає');
 ok(r.t1 === 'prepay' && r.t2 === 'final', 'перший платіж — передоплата, наступні — доплата', JSON.stringify([r.t1, r.t2]));
 
+console.log('\n═══ ЦІНА ФІКСУЄТЬСЯ В КАРТЦІ ═══');
+const фікс = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const pr = contentData.products;
+  pr.retail.tee = 600; pr.retailReady.tee = 450; pr.retailCost.tee = 300;
+  /* Стара картка без зафіксованої ціни — фіксує поточну одразу. */
+  const j = __j2; j.units.forEach(u => { delete u.priceAt; });
+  await priceLockAll();
+  const заф = j.units.map(u => u.price + '/' + u.cost).join();
+  const сума0 = U.orderSum(__o2, j);
+  /* Прайс подорожчав — стара картка не змінилась. */
+  pr.retail.tee = 700; pr.retailCost.tee = 350;
+  const сума1 = U.orderSum(__o2, j);
+  const підказка = U.sumRows(j)[0].nowPrice;
+  /* Нова позиція в старій картці — за новим прайсом. */
+  const nu = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Білий', size:'M', qty:1 });
+  j.units.push(nu); U.priceLockJob(j);
+  const нова = nu.price;
+  /* Перемкнули на готовий — фіксується за готовим. */
+  D.repeatAttach(nu, {}); U.priceLockJob(j);
+  const готова = nu.price;
+  /* Кількість ціни не міняє. */
+  j.units[0].qty = 5; U.priceLockJob(j);
+  const кількість = j.units[0].price;
+  /* «Оновити до поточного прайсу». */
+  U.priceLockJob(j, true);
+  const оновили = j.units[0].price;
+  pr.retail.tee = 600; pr.retailCost.tee = 300;
+  return { заф, сума0, сума1, підказка, нова, готова, кількість, оновили };
+});
+console.log('  ' + JSON.stringify(фікс));
+ok(/600\/300/.test(фікс.заф), 'наявні картки зафіксували поточні ціну й собівартість', фікс.заф);
+ok(фікс.сума0 === фікс.сума1 && фікс.підказка === 700, 'прайс змінили — стара картка за старою ціною, поруч «зараз у прайсі 700»', JSON.stringify(фікс));
+ok(фікс.нова === 700 && фікс.готова === 450, 'нова позиція — за новим прайсом; перемкнули вид — зафіксовано заново', JSON.stringify(фікс));
+ok(фікс.кількість === 600 && фікс.оновили === 700, 'кількість ціни не міняє; «Оновити до поточного прайсу» — перераховує', JSON.stringify(фікс));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
