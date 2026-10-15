@@ -6716,6 +6716,12 @@
     function openCropper(url){
       return new Promise(function(resolve){
         var ov = document.getElementById('pmCropModal');
+        /* ВІКНО — ПОВЕРХ УСЬОГО ЕКРАНА (15.10). У редакторі КП конструктор
+           живе в панелі, і «fixed» усередині неї рахувався від панелі, а не від
+           екрана: вікно виходило вище за видиму частину, низ картинки й кнопки
+           «Обрізати / Скасувати» опинялись за краєм. Переносимо вікно просто
+           в body — тоді воно рівно на весь екран. */
+        if(ov && ov.parentNode !== document.body) document.body.appendChild(ov);
         var img = document.getElementById('pmCropImg');
         var rect = document.getElementById('pmCropRect');
         var info = document.getElementById('pmCropInfo');
