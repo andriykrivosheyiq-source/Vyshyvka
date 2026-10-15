@@ -4309,6 +4309,23 @@
      Тепер дві названі частини: підпис каже, що нижче, лінія показує, де
      це починається. Дві дрібні речі — але саме їх бракувало, щоб позиція
      читалась одним поглядом. */
+  /* ДОДАТКОВІ ПОСЛУГИ ПОЗИЦІЇ (15.10). Андрій: «збільшення розміру до 18 см
+     як приклад» — не товар, а доповнення до конкретного виробу. Ціна й
+     собівартість — разово (треба двічі — додають двічі) і фіксуються в
+     позиції в мить додавання. Назву бачать усі, хто працює з позицією;
+     ціну — лише в «Гроші». */
+  function servicesHtml(u, ro, opt){
+    var l = (u && u.services) || [];
+    if(ro || (opt && opt.noServices)){
+      return l.length ? '<div class="dz-u-svc is-ro">' + l.map(function(x){
+        return '<span class="dz-svc">+ ' + esc(x.name) + '</span>'; }).join('') + '</div>' : '';
+    }
+    return '<div class="dz-u-svc">' + l.map(function(x, i){
+        return '<span class="dz-svc">+ ' + esc(x.name) +
+          '<button type="button" data-do="u-svc-del" data-u="' + esc(u.id) + '" data-i="' + i + '" title="Прибрати послугу">×</button></span>';
+      }).join('') +
+      '<button type="button" class="dz-svc-add" data-do="u-svc-add" data-u="' + esc(u.id) + '">+ Послуга</button></div>';
+  }
   function capHtml(t){
     return '<div class="dz-u-cap"><span>' + esc(t) + '</span></div>';
   }
@@ -4580,6 +4597,7 @@
             'title="Прибрати цей одяг">🗑</button>' +
         '</span>' +
       '</div>') +
+      servicesHtml(u, ro, opt) +
       /* Коментар іде ПЕРЕД картинками: спершу словами, що треба, потім
          показ. Підпису над полем немає навмисно — слово «Коментар» уже
          стоїть усередині, і другий раз його писати нема чого. */
@@ -5203,12 +5221,16 @@
       /* Ціни «готовий ескіз» для виробу не вписано — береться індивідуальна;
          кажемо про це, щоб не дивувались сумі. */
       var запас = !!(u.ready && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
-      return { name: (g && g.name) || u.name || 'без виробу', design: дизайн, fallback: запас,
+      return [{ name: (g && g.name) || u.name || 'без виробу', design: дизайн, fallback: запас,
                lockedAt: зафікс ? u.priceAt : '', nowPrice: (зафікс && прайс !== ціна) ? прайс : 0,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
                cost: соб, costSum: соб * к,
-               нема: !!u.gid && !ціна };
-    });
+               нема: !!u.gid && !ціна }].concat(((u.services) || []).map(function(x){
+        var ц = Math.max(0, Math.round(+x.price || 0)), с = Math.max(0, Math.round(+x.cost || 0));
+        return { name: '+ ' + (x.name || 'послуга'), service: true, qty: 1, price: ц, sum: ц,
+                 cost: с, costSum: с, costKnown: x.cost != null, нема: false };
+      }));
+    }).reduce(function(a, l){ return a.concat(l); }, []);
   }
   /* Собівартість замовлення. Порожня собівартість виробу — це «невідомо», а
      не нуль: нуль означав би, що виріб дістався безкоштовно, і прибуток
@@ -5219,10 +5241,11 @@
     var сума = 0, повна = true;
     rows.forEach(function(r){
       if(!r.qty) return;
+      if(r.service){ сума += r.costSum; return; }      // послуга без собівартості — 0, а не «невідомо»
       if(!r.cost){ повна = false; return; }
       сума += r.costSum;
     });
-    return { sum: сума, full: повна && rows.some(function(r){ return r.qty; }) };
+    return { sum: сума, full: повна && rows.some(function(r){ return r.qty && !r.service; }) };
   }
   function orderSum(o, job){
     var з = sumRows(job).reduce(function(a, r){ return a + r.sum; }, 0);
@@ -5320,6 +5343,7 @@
     return '<div class="dz-money">' +
       (rows.length
         ? '<div class="dz-sum">' + rows.map(function(r){
+            if(r.service) return '<div class="dz-sum-r is-svc"><span>' + esc(r.name) + '</span><i>послуга</i><b>' + esc(грн(r.sum)) + '</b></div>';
             return '<div class="dz-sum-r' + (r.нема ? ' no' : '') + '">' +
               '<span>' + esc(r.name) + (r.color ? ' · ' + esc(r.color) : '') +
                 (r.design ? ' · <em class="dz-sum-k">' + esc(r.design) + '</em>' : '') + '</span>' +
@@ -6990,6 +7014,9 @@
         (kind === 'stitch' ? stitchBriefHtml(u, d, x.job) : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                   esc(u.note) + '</div>' : '') +
+        /* Додаткові послуги позиції — без цін (15.10). */
+        ((u.services || []).length ? '<div class="dz-w-note"><i>Додаткові послуги</i>' +
+          u.services.map(function(sv){ return esc(sv.name); }).join(' · ') + '</div>' : '') +
       /* Картинки зі СКАЧУВАННЯМ просто з мініатюри. Дизайнеру потрібен не
          перегляд, а файл у себе на машині: доти шлях до нього був
          «відкрити — правою кнопкою — зберегти як», тричі за кожен
@@ -7323,6 +7350,9 @@
           '<span>' + esc([(g && g.name) || u.name, u.color, u.size,
                           ((+u.qty || 0) ? (+u.qty) + ' шт' : '')].filter(Boolean).join(' · ')) + '</span>' +
           clothHtml(o, u) + '</div>' +
+        /* Послуги позиції — цех теж має знати (15.10: «бачать і дизайнер»). */
+        ((u.services || []).length ? '<div class="dz-u-svc is-ro">' + u.services.map(function(x){
+          return '<span class="dz-svc">+ ' + esc(x.name) + '</span>'; }).join('') + '</div>' : '') +
         (плитки.length ? '<span class="dz-tiles dz-prod-row">' + плитки.join('') + '</span>' : '') +
         threadsHtml(нитки) +
         (бракує.length ? '<div class="dz-miss is-calm">' + esc(бракує.join(' · ')) + '</div>' : '') +
@@ -9409,7 +9439,7 @@
     'order-new':'new',
     'take':'art', 'start':'art', 'ver-new':'art', 'ver-file':'art',
     'ver-prev':'art', 'to-review':'art', 'u-add':'art', 'u-dup':'art',
-    'u-del':'art', 'dz-add':'art', 'dz-del':'art',
+    'u-del':'art', 'dz-add':'art', 'dz-del':'art', 'u-svc-add':'art', 'u-svc-del':'art', 'price-refresh':'art',
     'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
     'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'dz-hand-all':'art', 'pic-open':'', 'dz-dl':'',
@@ -9818,6 +9848,30 @@
       }
       if(host().chat) return host().chat(co, chatSeat(root, co && co.orderId));
       return say('Переписка недоступна');
+    }
+    if(what === 'u-svc-add'){
+      var su = U.unitAt(job, data && data.u);
+      if(!su) return;
+      var всі = (host().services && host().services()) || [];
+      if(!всі.length) return say('Послуг ще немає — додайте їх у Налаштуваннях B2C → Додаткові послуги');
+      return U.pickOpen('Додаткова послуга', 'Ціна — разово, фіксується в картці зараз',
+        всі.map(function(x, i){
+          return '<button type="button" class="dz-pick-c is-pay" data-pick="' + i + '">' +
+            '<span class="dz-pick-n"><b>' + esc(x.name) + '</b><i>' + esc(money(+x.price || 0)) + '</i></span></button>';
+        }).join(''),
+        function(i){
+          var x = всі[+i]; if(!x) return;
+          (su.services = su.services || []).push({ id: String(x.id || ''), name: String(x.name), price: Math.max(0, Math.round(+x.price || 0)),
+            cost: Math.max(0, Math.round(+x.cost || 0)), at: new Date().toISOString(), by: m });
+          save(job, o, 'Послуга «' + x.name + '» додана');
+        });
+    }
+    if(what === 'u-svc-del'){
+      var sd = U.unitAt(job, data && data.u);
+      if(!sd || !sd.services) return;
+      var x0 = sd.services[+data.i];
+      sd.services.splice(+data.i, 1);
+      return save(job, o, x0 ? 'Послугу «' + x0.name + '» прибрано' : '');
     }
     if(what === 'price-refresh'){
       try{ if(!window.confirm('Перерахувати позиції за цінами з налаштувань на сьогодні? Сума замовлення зміниться.')) return; }catch(e){}

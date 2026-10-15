@@ -235,6 +235,39 @@ ok(дошка.картка.indexOf(грн(дошка.гроші)) >= 0 && дош
   'картка на дошці показує ту саму суму, що зона «Гроші»', JSON.stringify(дошка));
 ok(дошка.total === дошка.гроші, 'і в замовлення (грошове ядро) записано ту саму суму', JSON.stringify(дошка));
 
+console.log('\n═══ ДОДАТКОВІ ПОСЛУГИ ПОЗИЦІЇ ═══');
+const пос = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  contentData.b2c = Object.assign({}, contentData.b2c || {}, { extras: [{ id:'sv1', name:'Збільшення до 18 см', price: 200, cost: 50 }] });
+  delete __o1.discount;          // знижка з попереднього розділу рахувалась би й від послуги
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  document.querySelector('#dzRoot [data-open="2000101"]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const u = __j1.units[0];
+  const до = U.netSum(__o1, __j1), собДо = U.orderCost(__j1).sum;
+  const додай = async () => { await U.act('u-svc-add', document.getElementById('dzRoot'), { u: u.id });
+    await new Promise(r => setTimeout(r, 150)); document.querySelector('.dz-pick [data-pick="0"]').click(); await new Promise(r => setTimeout(r, 300)); };
+  await додай();
+  const раз = { n: (u.services || []).length, сума: U.netSum(__o1, __j1), total: __o1.totalPrice, соб: U.orderCost(__j1).sum };
+  /* Прайс послуги змінили — у картці лишається 200. */
+  contentData.b2c.extras[0].price = 300;
+  await додай();
+  const два = { ціни: u.services.map(x => x.price).join(), сума: U.netSum(__o1, __j1) };
+  const рядки = U.sumRows(__j1).filter(r => r.service).map(r => r.name + ':' + r.sum);
+  await U.act('u-svc-del', document.getElementById('dzRoot'), { u: u.id, i: 1 });
+  const після = { n: u.services.length, сума: U.netSum(__o1, __j1), total: __o1.totalPrice };
+  /* Дизайнер бачить назву, але не ціну. */
+  const ro = U.unitsHtml(__j1, { ro: true });
+  return { до, собДо, раз, два, рядки, після, roНазва: /Збільшення до 18 см/.test(ro), roЦіна: /200\s*₴/.test(ro) };
+});
+console.log('  ' + JSON.stringify(пос));
+ok(пос.раз.n === 1 && пос.раз.сума === пос.до + 200 && пос.раз.total === пос.раз.сума && пос.раз.соб === пос.собДо + 50,
+  '«+ Послуга» — +200 ₴ до суми (і в замовлення для грошового ядра), +50 ₴ собівартості', JSON.stringify(пос.раз));
+ok(пос.два.ціни === '200,300' && пос.два.сума === пос.до + 500, 'ціна фіксується в мить додавання; двічі — додали двічі', JSON.stringify(пос.два));
+ok(пос.рядки.length === 2 && /\+ Збільшення до 18 см/.test(пос.рядки[0]), 'у «Гроші» — рядком під позицією', JSON.stringify(пос.рядки));
+ok(пос.після.n === 1 && пос.після.сума === пос.до + 200 && пос.після.total === пос.після.сума, '«×» прибирає послугу — сума повертається', JSON.stringify(пос.після));
+ok(пос.roНазва && !пос.roЦіна, 'дизайнер бачить послугу в позиції, без ціни', JSON.stringify(пос));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
