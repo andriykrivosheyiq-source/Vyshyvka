@@ -131,5 +131,21 @@ ok(M.ttnsOf({ ttn: '20 4500 0000 0001', ttnHist: [{ ttn: '20450000000002' }, { t
 ok(M.BANK_SRC.join() === 'mono,privat,np,novapay' && M.COD_DAYS === 2, 'банківські джерела й 2 дні — як домовлено', 'константи змінено');
 
 console.log('');
+console.log('═══ 7. ЗНИЖКА (15.10) ═══');
+ok(M.discountOf({ discount: { v: 10, kind: 'pct' } }, 1000) === 100 && M.discountOf({ discount: { v: 150 } }, 1000) === 150,
+  'знижка відсотком і гривнями', 'знижка рахується не так');
+ok(M.discountOf({ discount: { v: 5000 } }, 1000) === 1000 && M.discountOf({ discount: { v: 300, kind: 'pct' } }, 1000) === 1000 &&
+   M.discountOf({ discount: { v: -50 } }, 1000) === 0 && M.discountOf({}, 1000) === 0,
+  'не більша за суму й не відʼємна', 'знижка вийшла за межі');
+{
+  const o = { orderId: 'Z1', grossPrice: 2000, discountSum: 1000, totalPrice: 1000, payments: [] };
+  const a = M.audit([o], [], { now: Date.now(), np: {}, accs: [] });
+  ok(a.some(x => x.kind === 'discount' && x.orderId === 'Z1'), 'знижка від половини суми — пункт у Звірці', 'велику знижку Звірка не бачить');
+  ok(M.due(o, []) === 1000, 'до оплати — від суми після знижки', 'due не врахував знижку');
+  const o2 = { orderId: 'Z2', grossPrice: 2000, discountSum: 100, totalPrice: 1900, payments: [] };
+  ok(!M.audit([o2], [], { now: Date.now(), np: {}, accs: [] }).some(x => x.kind === 'discount'), 'звичайна знижка — без тривоги', 'тривога на малу знижку');
+}
+
+console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);
