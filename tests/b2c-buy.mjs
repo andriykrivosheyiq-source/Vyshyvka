@@ -197,8 +197,8 @@ ok(await p.evaluate(() => !!document.querySelector('.dz-panel [data-do="dz-work"
 
 console.log('');
 console.log('═══ 1. ПОГОДЖЕННЯ ЕСКІЗУ = ПІДТВЕРДЖЕННЯ ОДЯГУ ═══');
-ok(await p.evaluate(() => window.LQDesign.ui.unitNew().qty) === '',
-  'нова позиція — без кількості: нічого не підставляємо', 'кількість у новій позиції не порожня');
+ok(await p.evaluate(() => window.LQDesign.ui.unitNew().qty) === 1,
+  'нова позиція — кількість 1 за замовчуванням (15.10)', 'кількість у новій позиції не 1');
 await p.evaluate(async () => {
   const U = window.LQDesign.ui;
   U.setTab('acct'); U.open('2000201'); U.render(document.getElementById('dzRoot'));
@@ -219,7 +219,7 @@ const червоне = await p.evaluate(() => {
            кнопок: document.querySelectorAll('.dz-panel [data-do="u-cloth"]').length };
 });
 console.log('  ' + JSON.stringify(червоне));
-ok(/підтвердіть одяг/.test(червоне.блок) && /колір, розмір, кількість/.test(червоне.блок) && червоне.поля === 3 && червоне.кнопок === 2,
+ok(/підтвердіть одяг/.test(червоне.блок) && /колір, розмір/.test(червоне.блок) && червоне.поля === 2 && червоне.кнопок === 2,
   'у позиції — «підтвердіть одяг», чого бракує, порожні поля червоні, кнопка «Підтвердити одяг»', 'позиція: ' + JSON.stringify(червоне));
 /* Друга позиція: дані є — вікно з підставленими, підтвердили. */
 await p.evaluate(() => document.querySelectorAll('.dz-panel [data-do="u-cloth"]')[1].click());

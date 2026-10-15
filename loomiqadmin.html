@@ -4613,6 +4613,17 @@
     border-radius:10px;padding:9px 11px;resize:vertical;}
   .dz-cf-f{display:flex;gap:8px;justify-content:flex-end;}
   .dz-own-un{align-self:flex-start;margin-top:4px;font-size:11.5px;padding:4px 9px;}
+  /* 15.10: нік і «Відвʼязати» — одним рядком, кнопка праворуч. */
+  .dz-own-who.is-row{flex-direction:row;align-items:center;gap:10px;}
+  .dz-own-who.is-row>b{flex:1;min-width:0;}
+  .dz-own-who.is-row .dz-own-un{align-self:center;margin:0 0 0 auto;flex:none;}
+  /* Гроші: вид дизайну в рядку, знижка, «До оплати». */
+  .dz-sum-k{font-style:normal;color:var(--ink-soft);font-size:11.5px;}
+  .dz-disc{align-items:center;}
+  .dz-disc-f{display:inline-flex;gap:4px;margin-left:auto;margin-right:8px;}
+  .dz-disc-f input{width:80px;font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;text-align:right;}
+  .dz-disc-f select{font:inherit;font-size:13px;padding:3px 4px;border:1px solid var(--line);border-radius:7px;background:#fff;}
+  .dz-money-r.is-total b{font-size:16px;}
   .dz-cf-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-2px 0 8px;}
   .dz-cf-s .dz-b{font-size:12px;}
   .dz-cf-ok{font-style:normal;font-size:12px;color:#0F7A3D;}
@@ -7607,28 +7618,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=56310c1bc4"></script>
-<script src="loomiq-fingerprint.js?v=56310c1bc4"></script>
-<script src="loomiq-pricing.js?v=56310c1bc4"></script>
+<script src="loomiq-select.js?v=47192eab67"></script>
+<script src="loomiq-fingerprint.js?v=47192eab67"></script>
+<script src="loomiq-pricing.js?v=47192eab67"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=56310c1bc4"></script>
+<script src="loomiq-money-core.js?v=47192eab67"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=56310c1bc4"></script>
-<script src="loomiq-bg.js?v=56310c1bc4"></script>
-<script src="loomiq-mock.js?v=56310c1bc4"></script>
+<script src="loomiq-design.js?v=47192eab67"></script>
+<script src="loomiq-bg.js?v=47192eab67"></script>
+<script src="loomiq-mock.js?v=47192eab67"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=56310c1bc4"></script>
-<script src="loomiq-threads.js?v=56310c1bc4"></script>
+<script src="imagetracer.js?v=47192eab67"></script>
+<script src="loomiq-threads.js?v=47192eab67"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=56310c1bc4"></script>
+<script src="loomiq-cards.js?v=47192eab67"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7673,7 +7684,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '56310c1bc4';
+var LQ_VER = '47192eab67';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -31497,6 +31508,14 @@ function b2cSumWrite(job, o){
     соб = U.orderCost(job) || соб;
   }catch(e){ console.warn('сума B2C', e); return false; }
   let змінилось = false;
+  /* ЗНИЖКА (15.10): у totalPrice — сума ДО ОПЛАТИ, тобто після знижки; від
+     неї рахує все грошове ядро (залишок, контроль оплати, Звірка). Вартість
+     до знижки — grossPrice, сама знижка — discountSum. */
+  const брутто = сума;
+  const знижка = (window.LQMoney && LQMoney.discountOf) ? LQMoney.discountOf(o, брутто) : 0;
+  сума = Math.max(0, брутто - знижка);
+  if(Math.round(+o.grossPrice || 0) !== брутто){ o.grossPrice = брутто; змінилось = true; }
+  if(Math.round(+o.discountSum || 0) !== знижка){ o.discountSum = знижка; змінилось = true; }
   if(Math.round(+o.totalPrice || 0) !== сума){ o.totalPrice = сума; змінилось = true; }
   /* Собівартість пишемо тільки повну. Часткова гірша за порожню: вона
      виглядає як відповідь і дає прибуток, більший за справжній. */
@@ -31509,6 +31528,10 @@ function b2cSumWrite(job, o){
     змінилось = true;
   }
   return змінилось;
+}
+function payNextTag(o){
+  const id = String((o && o.orderId) || '');
+  return (payments || []).some(p => id && String(p.orderId || '') === id) ? 'final' : 'prepay';
 }
 async function designSave(job, o){
   if(!job || !job.orderId) return;
@@ -31742,7 +31765,7 @@ function openDesign(){
     payments: o => {
       const id = String((o && o.orderId) || '');
       const рядок = p => ({ id: p.id, amount: Math.round(+p.amount || 0),
-        at: payDate(p.at), acc: finAccName(p.acc), tag: p.tag || 'prepay',
+        at: payDate(p.at), acc: finAccName(p.acc), tag: p.tag || 'prepay', tagSet: !!p.tag,
         desc: [p.counter, p.desc].filter(Boolean).join(' · ') });
       return {
         linked: (payments || []).filter(p => id && String(p.orderId || '') === id)
@@ -31754,12 +31777,16 @@ function openDesign(){
       };
     },
     /* Вибір платежу — те саме вікно рядків із пошуком, що й у B2B. */
+    /* Перший привʼязаний — передоплата, наступні — доплата (15.10); підпис
+       міняється в самому рядку. */
     payPick: (o, done) => payPickOpen(o, async p => {
-      await payLinkSet(p, String((o && o.orderId) || ''), 'prepay');
+      await payLinkSet(p, String((o && o.orderId) || ''), payNextTag(o));
       if(done) done();
     }),
     payLink: (o, id) => { const p = (payments || []).filter(x => x.id === id)[0];
-      return p ? payLinkSet(p, String((o && o.orderId) || ''), 'prepay') : Promise.reject(new Error('Платежу немає')); },
+      return p ? payLinkSet(p, String((o && o.orderId) || ''), payNextTag(o)) : Promise.reject(new Error('Платежу немає')); },
+    retailExact: (gid, kind) => { const pr = contentData.products || {};
+      return kind === 'ready' ? +((pr.retailReady || {})[gid]) > 0 : +((pr.retail || {})[gid]) > 0; },
     payUnlink: id => { const p = (payments || []).filter(x => x.id === id)[0];
       return p ? payLinkSet(p, '', null) : PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }); },
     payTag: (id, tag) => PAY_COL.doc(id).set({ tag: tag || null }, { merge:true }),

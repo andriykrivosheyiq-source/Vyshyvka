@@ -96,6 +96,16 @@
     var sum = rows.reduce(function(a, x){ return a + (x.counted ? x.sum : 0); }, 0);
     return { sum: sum, rows: rows };
   }
+  /* ЗНИЖКА ЗАМОВЛЕННЯ (15.10, Андрій: «знижка в двох форматах — гривнями
+     або відсотком»). o.discount = { v, kind:'uah'|'pct' }. Не більша за саму
+     суму й не відʼємна. Сума до оплати = вартість − знижка; саме її B2C пише
+     в o.totalPrice, тож due / state / Звірка рахують уже від неї. */
+  function discountOf(o, gross){
+    var d = o && o.discount, g = Math.max(0, r(gross));
+    if(!d || !(+d.v > 0)) return 0;
+    var v = d.kind === 'pct' ? g * Math.min(100, +d.v) / 100 : +d.v;
+    return Math.max(0, Math.min(g, r(v)));
+  }
   function due(o, pays, total){
     var t = total == null ? (+(o && o.totalPrice) || 0) : (+total || 0);
     return Math.max(0, r(t - paid(o, pays).sum));
@@ -191,6 +201,12 @@
               '. Клієнт переплатить ' + грн(r(o.ttnCod) - лишилось) + ' — змініть суму в кабінеті НП.' });
       }
 
+      /* Велика знижка — щоб її бачили: так гроші й «губляться» з поля зору. */
+      var зн = r(o.discountSum), бр = r(o.grossPrice);
+      if(зн > 0 && бр > 0 && зн * 2 >= бр)
+        out.push({ kind:'discount', sev:'amber', orderId:oid, sum:зн,
+          text: 'Знижка ' + грн(зн) + ' — половина й більше від суми ' + грн(бр) + '. Перевірте, що так і домовлялись.' });
+
       if(total > 0 && pd.sum > total + 1)
         out.push({ kind:'overpay', sev:'amber', orderId:oid, sum:pd.sum - total,
           text: 'Переплата ' + грн(pd.sum - total) + ': сплачено ' + грн(pd.sum) + ' при сумі ' + грн(total) + '.' });
@@ -255,7 +271,7 @@
   function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || '') ; }
 
   var api = { BANK_SRC:BANK_SRC, COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
-              paid:paid, due:due, state:state, linkCheck:linkCheck, codFor:codFor, audit:audit,
+              paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, audit:audit,
               ttnsOf:ttnsOf, ttnOf:ttnOf, isBank:isBank, keyOf:keyOf };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LQMoney = api;

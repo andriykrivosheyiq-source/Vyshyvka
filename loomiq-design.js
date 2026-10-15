@@ -3039,7 +3039,9 @@
          щоб можна було відвʼязати і приєднати другого». */
       if(o.crmChatId)
         return '<div class="dz-own is-on">' +
-          '<div class="dz-own-who"><span>Клієнт</span><b>' +
+          /* Без другого «Клієнт» (зона й так так підписана), «Відвʼязати» —
+             праворуч у тому ж рядку (Андрій, 15.10). */
+          '<div class="dz-own-who is-row"><b>' +
             esc(whoLabel(o) || ('чат ' + o.crmChatId)) + '</b>' +
             '<button type="button" class="dz-b dz-own-un" data-do="unbind" ' +
               'title="Знімемо розмову з картки — потім можна привʼязати іншу">🔗 Відвʼязати</button></div>' +
@@ -3095,7 +3097,7 @@
      половину чужої роботи. */
   function unitNew(){
     return { id: 'u' + Date.now() + Math.random().toString(36).slice(2, 6),
-             gid:'', name:'', color:'', size:'', qty:'',
+             gid:'', name:'', color:'', size:'', qty:1,     // 15.10: за замовчуванням 1, менше не буває
              /* Картинки до САМОГО ТИПУ ОДЯГУ, окремо від картинок
                 замовлення. У замовленні буває два різні стилі, і референси
                 до них різні: спільна купа зверху змушує дизайнера гадати,
@@ -4513,7 +4515,8 @@
        нічого не додають, а місце й увагу забирають обидва. */
     return '<div class="dz-u">' +
       /* ── ЩО ШИЄМО: виріб, коментар, референси ── */
-      '<div class="dz-u-spec">' + capHtml('Що шиємо') +
+      /* «Що шиємо» прибрано (15.10): і так видно, що це ми шиємо. */
+      '<div class="dz-u-spec">' +
       /* Шапка позиції: номер, назва й дії — усе в один рядок. Праворуч від
          номера стояла порожнеча на пів картки, а назва виробу читалась лише
          з кнопки вибору нижче. Тепер вона тут, де її й шукають. */
@@ -4564,9 +4567,9 @@
           '" data-do="u-pick-size" data-u="' + esc(u.id) + '"' +
           (u.gid ? '' : ' disabled') + '>' +
           esc(u.size || 'Розмір') + '</button>' +
-        /* Кількість без підстановки: порожнє поле — це «ще не вказали». */
-        '<input class="dz-qty' + need(+u.qty > 0) + '" type="number" min="1" title="Кількість" ' +
-          'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + ((+u.qty || 0) > 0 ? +u.qty : '') + '">';
+        /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10). */
+        '<input class="dz-qty" type="number" min="1" step="1" title="Кількість" ' +
+          'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">';
         })() +
         /* Дії — у кінці того самого рядка. Значками, а не словами: вони
            дрібні, повторювані й самі себе пояснюють. */
@@ -5175,7 +5178,12 @@
       var ціна = retailOf(u.gid, вид);
       var соб = costOf(u.gid, вид);
       var к = Math.max(0, Math.round(+u.qty || 0));
-      return { name: (g && g.name) || u.name || 'без виробу',
+      /* Вид дизайну — у назві рядка (15.10): «Футболка базова · повторний». */
+      var дизайн = !u.ready ? 'індивідуальний' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
+      /* Ціни «готовий ескіз» для виробу не вписано — береться індивідуальна;
+         кажемо про це, щоб не дивувались сумі. */
+      var запас = !!(u.ready && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
+      return { name: (g && g.name) || u.name || 'без виробу', design: дизайн, fallback: запас,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
                cost: соб, costSum: соб * к,
                нема: !!u.gid && !ціна };
@@ -5205,6 +5213,10 @@
     try{ зХоста = (host.orderSum && host.orderSum(o)) || 0; }catch(e){}
     return зХоста || +((o || {}).totalPrice) || 0;
   }
+  /* Знижка й сума до оплати (15.10). Рахує грошове ядро (LQMoney.discountOf). */
+  function discOf(o, gross){
+    try{ return (window.LQMoney && LQMoney.discountOf) ? LQMoney.discountOf(o, gross) : 0; }catch(e){ return 0; }
+  }
   function paidOf(o){
     try{ return Math.max(0, Math.round((host.paid && host.paid(o)) || 0)); }
     catch(e){ return 0; }
@@ -5212,6 +5224,7 @@
   function moneySub(o, job){
     var сума = orderSum(o, job);
     if(!сума) return 'суми ще немає';
+    сума = Math.max(0, сума - discOf(o, сума));
     var пре = paidOf(o) || Math.max(0, Math.round(+((o || {}).prepaid) || 0));
     var лишок = Math.max(0, сума - пре);
     return грн(сума) + (пре ? ' · лишилось ' + грн(лишок) : '');
@@ -5238,7 +5251,9 @@
     var свої = w.linked || [], вільні = w.free || [];
     return '<div class="dz-pay">' +
       (свої.length
-        ? свої.map(function(p){
+        ? свої.map(function(p, i){
+            /* Без підпису: перший — передоплата, далі — доплата (15.10). */
+            if(!p.tagSet) p.tag = i === 0 ? 'prepay' : 'final';
             return '<div class="dz-pay-r">' +
               '<b>' + esc(грн(p.amount)) + '</b>' +
               '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + '</span>' +
@@ -5253,7 +5268,7 @@
           }).join('')
         : '<div class="dz-miss">Платежів до цього замовлення ще не привʼязано.</div>') +
       (вільні.length
-        ? '<button class="dz-b pri" data-do="pay-pick">+ Привʼязати платіж' +
+        ? '<button class="dz-b pri" data-do="pay-pick">+ Привʼязати ' + (свої.length ? 'доплату' : 'платіж') +
           ' <i>· вільних ' + вільні.length + '</i></button>'
         : '<div class="dz-miss">Непривʼязаних надходжень у Фінансах немає. ' +
           'Платіж зʼявиться там сам, коли підключимо банк, — або його можна ' +
@@ -5270,16 +5285,23 @@
        платежем. */
     var рукою = Math.max(0, Math.round(+((o || {}).prepaid) || 0));
     var внесено = пре + (пре ? 0 : рукою);
-    var лишок = Math.max(0, сума - внесено);
+    var зн = discOf(o, сума), дОпл = Math.max(0, сума - зн);
+    var лишок = Math.max(0, дОпл - внесено);
+    var d = (o && o.discount) || {};
     return '<div class="dz-money">' +
       (rows.length
         ? '<div class="dz-sum">' + rows.map(function(r){
             return '<div class="dz-sum-r' + (r.нема ? ' no' : '') + '">' +
-              '<span>' + esc(r.name) + (r.color ? ' · ' + esc(r.color) : '') + '</span>' +
+              '<span>' + esc(r.name) + (r.color ? ' · ' + esc(r.color) : '') +
+                (r.design ? ' · <em class="dz-sum-k">' + esc(r.design) + '</em>' : '') + '</span>' +
               '<i>' + r.qty + ' × ' + esc(грн(r.price)) + '</i>' +
               '<b>' + esc(грн(r.sum)) + '</b>' +
             '</div>';
           }).join('') +
+          (rows.some(function(r){ return r.fallback; })
+            ? '<div class="dz-miss">Для виробу ще не вписано ціни «готовий ескіз» — для готового й повторного ' +
+              'дизайну взято індивідуальну. Впишіть її в Налаштуваннях B2C → Ціни виробів.</div>'
+            : '') +
           (rows.some(function(r){ return r.нема; })
             ? '<div class="dz-miss">Для виділених виробів роздрібної ціни ще ' +
               'немає. Заповніть її в Налаштуваннях B2C — і сума порахується сама.</div>'
@@ -5288,6 +5310,14 @@
         : '') +
       '<div class="dz-money-r"><span>Разом за замовлення</span><b>' +
         esc(грн(сума)) + '</b></div>' +
+      /* ЗНИЖКА — гривнями або відсотком (Андрій, 15.10). */
+      '<div class="dz-money-r dz-disc"><span>Знижка</span>' +
+        '<span class="dz-disc-f"><input type="number" min="0" step="1" data-disc placeholder="0" value="' +
+          (+d.v > 0 ? esc(String(+d.v)) : '') + '">' +
+        '<select data-disc-k><option value="uah"' + (d.kind !== 'pct' ? ' selected' : '') + '>₴</option>' +
+          '<option value="pct"' + (d.kind === 'pct' ? ' selected' : '') + '>%</option></select></span>' +
+        '<b>' + (зн ? '−' + esc(грн(зн)) : '—') + '</b></div>' +
+      (зн ? '<div class="dz-money-r is-total"><span>До оплати</span><b>' + esc(грн(дОпл)) + '</b></div>' : '') +
       (рукою && !пре
         ? '<div class="dz-money-r"><span>Внесено (вписано руками)</span><b>' +
           esc(грн(рукою)) + '</b></div>'
@@ -9039,7 +9069,8 @@
         var pp = String(el.dataset.uf).split('|');
         var u = U.unitAt(c.job, pp[0]); if(!u) return;
         var f = pp[1];
-        if(f === 'qty') u.qty = (+el.value > 0) ? Math.round(+el.value) : '';
+        /* Кількість — щонайменше 1 (15.10): порожнє чи 0 стає 1. */
+        if(f === 'qty'){ u.qty = (+el.value >= 1) ? Math.round(+el.value) : 1; el.value = u.qty; }
         else u[f] = el.value;
         /* Змінили виріб — колір і розмір від старого тут ні до чого:
            у нового вони свої, і лишити чужі означає везти у виробництво
@@ -9191,6 +9222,20 @@
     /* Чим є цей платіж. Підпис — половина сенсу привʼязки: 3000 ₴ за новим
        замовленням і 3000 ₴ доплати за старим це різні речі, і без підпису
        сума лягає в картку без значення. */
+    /* Знижка: число й ₴/% — пишемо в замовлення, суму до оплати перераховує
+       збереження (робоче місце, через грошове ядро). */
+    root.querySelectorAll('[data-disc],[data-disc-k]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c || !c.o) return;
+        var box = el.closest('.dz-disc') || root;
+        var v = Math.max(0, +((box.querySelector('[data-disc]') || {}).value) || 0);
+        var k = ((box.querySelector('[data-disc-k]') || {}).value) === 'pct' ? 'pct' : 'uah';
+        if(k === 'pct' && v > 100) v = 100;
+        if(v > 0) c.o.discount = { v: Math.round(v * 100) / 100, kind: k, by: (host().me && host().me()) || '', at: new Date().toISOString() };
+        else delete c.o.discount;
+        save(c.job, c.o, v > 0 ? 'Знижку записано' : 'Знижку прибрано');
+      };
+    });
     root.querySelectorAll('[data-payt]').forEach(function(el){
       el.onchange = function(){
         var c = ctx(); if(!c || !host().payTag) return;
