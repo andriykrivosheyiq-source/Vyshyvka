@@ -5238,6 +5238,14 @@
   function discOf(o, gross){
     try{ return (window.LQMoney && LQMoney.discountOf) ? LQMoney.discountOf(o, gross) : 0; }catch(e){ return 0; }
   }
+  /* Сума до оплати — та сама, що в зоні «Гроші»: позиції за зафіксованими
+     цінами мінус знижка. Картка на дошці бере її ж (15.10: на картці 2 570,
+     у «Гроші» 1 790 — бо картка читала застарілий totalPrice). */
+  function netSum(o, job){
+    var з = sumRows(job).reduce(function(a, r){ return a + r.sum; }, 0);
+    if(!з) return 0;
+    return Math.max(0, з - discOf(o, з));
+  }
   function paidOf(o){
     try{ return Math.max(0, Math.round((host.paid && host.paid(o)) || 0)); }
     catch(e){ return 0; }
@@ -5661,7 +5669,7 @@
     moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum, paidOf: paidOf,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
-    orderCost: orderCost, sumRows: sumRows, priceLock: priceLock, priceLockJob: priceLockJob,
+    orderCost: orderCost, sumRows: sumRows, netSum: netSum, priceLock: priceLock, priceLockJob: priceLockJob,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
@@ -6037,7 +6045,7 @@
       var col = D.chainAt(p.job, p.o);
       var open = D.taskOpen(p.job).length;
       var mk = cardMarks(p.job, m);
-      var сума = jobSum(p.o), оплачено = U.paidOf ? U.paidOf(p.o) : 0;
+      var сума = (U.netSum && U.netSum(p.o, p.job)) || jobSum(p.o), оплачено = U.paidOf ? U.paidOf(p.o) : 0;
       var хто = holderOf(p.job);
       var at = CHAIN_STEP[col] != null ? CHAIN_STEP[col] : 0;
       /* Контроль якості своєї колонки в менеджера не має — доти таке
@@ -6071,7 +6079,7 @@
         /* Число й готовий напис разом: рахує його шар панелі, а малює шар
            дошки — і лізти одному в помічники іншого означає рано чи пізно
            отримати «money is not defined» рівно там, де його не видно. */
-        sum: jobSum(p.o), sumTxt: money(jobSum(p.o)),
+        sum: сума, sumTxt: money(сума),
         due: '',
         chat: hasChat(p.o),
         /* Пропущене від клієнта — кружечком на кнопці Instagram, від
