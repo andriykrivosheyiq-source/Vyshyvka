@@ -577,7 +577,7 @@ console.log('═══ 6в. КАРТКА «МАКЕТ НА УЗГОДЖЕННЯ�
 const картки = await p.evaluate(async (PNGURL) => {
   const h = async d => { const png = await window.LQMock.card(d); const im = new Image();
     await new Promise(r => { im.onload = r; im.src = png; }); return im.height; };
-  const base = { title:'Макет на узгодження', no:'#1-1', nums:[['Модель','Футболка'],['Колір','Чорний']],
+  const base = { title:'Макет на погодження', no:'#1-1', nums:[['Модель','Футболка'],['Колір','Чорний']],
                  specs:[{ label:'Матеріал', value:'100% бавовна' }], note:'Колір на екрані може відрізнятись.' };
   return { один: await h(Object.assign({ mocks:[PNGURL], works:[PNGURL] }, base)),
            три: await h(Object.assign({ mocks:[PNGURL, PNGURL, PNGURL], works:[PNGURL, PNGURL, PNGURL] }, base)) };

@@ -6506,10 +6506,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
         <div class="tl-divider" style="margin-top:22px;">Заголовок картки макета</div>
         <div class="sub" style="margin-bottom:8px;">
-          Великим зверху на картці, яку надсилаємо клієнту. Порожньо — «Макет на узгодження».
+          Великим зверху на картці, яку надсилаємо клієнту. Порожньо — «Макет на погодження».
         </div>
         <input id="b2c-cardtitle" type="text" maxlength="60" style="width:100%;max-width:640px;"
-          placeholder="Макет на узгодження">
+          placeholder="Макет на погодження">
 
         <div class="tl-divider" style="margin-top:22px;">Нитки для вишивки</div>
         <div class="sub" style="margin-bottom:8px;">
@@ -7668,28 +7668,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=10032864d4"></script>
-<script src="loomiq-fingerprint.js?v=10032864d4"></script>
-<script src="loomiq-pricing.js?v=10032864d4"></script>
+<script src="loomiq-select.js?v=7923242d9e"></script>
+<script src="loomiq-fingerprint.js?v=7923242d9e"></script>
+<script src="loomiq-pricing.js?v=7923242d9e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=10032864d4"></script>
+<script src="loomiq-money-core.js?v=7923242d9e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=10032864d4"></script>
-<script src="loomiq-bg.js?v=10032864d4"></script>
-<script src="loomiq-mock.js?v=10032864d4"></script>
+<script src="loomiq-design.js?v=7923242d9e"></script>
+<script src="loomiq-bg.js?v=7923242d9e"></script>
+<script src="loomiq-mock.js?v=7923242d9e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=10032864d4"></script>
-<script src="loomiq-threads.js?v=10032864d4"></script>
+<script src="imagetracer.js?v=7923242d9e"></script>
+<script src="loomiq-threads.js?v=7923242d9e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=10032864d4"></script>
+<script src="loomiq-cards.js?v=7923242d9e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7734,7 +7734,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '10032864d4';
+var LQ_VER = '7923242d9e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -12316,7 +12316,7 @@ async function shiftSet(email, iso, off){
   try{ await PHOTOS_DOC.set({ shifts: all }, { merge:true }); }
   catch(e){ console.error('графік', e); toast('Графік не зберігся'); }
 }
-const B2C_CARD_TITLE = 'Макет на узгодження';
+const B2C_CARD_TITLE = 'Макет на погодження';
 function b2cCfg(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return { extras: Array.isArray(c.extras) ? c.extras : [],
@@ -12344,7 +12344,9 @@ function b2cCfg(){
            note: (String(c.note || '').trim() && String(c.note).trim() !== B2C_NOTE_OLD)
                    ? String(c.note).trim() : B2C_NOTE,
            /* Заголовок картки макета. Андрій ще думає над назвою — тож поле. */
-           cardTitle: String(c.cardTitle || '').trim() || B2C_CARD_TITLE,
+           /* Старий стандартний заголовок (до 16.10) — це не вибір, а давній
+              дефолт: показуємо новий. */
+           cardTitle: (String(c.cardTitle || '').trim() === 'Макет на узгодження' ? '' : String(c.cardTitle || '').trim()) || B2C_CARD_TITLE,
            /* Палітра ниток: null — стандартна з модуля підбору. */
            threads: (Array.isArray(c.threads) && c.threads.length) ? c.threads : null };
 }
@@ -14376,6 +14378,32 @@ function orderUnread(o){
 function orderWaiting(o){
   return !!(tgUnread(o) || (o && o.crmTheirs));
 }
+/* Свіжий стан розмови Telegram — у картку. true, якщо щось змінилось. */
+function tgTake(o, v){
+  const last = String(v.last || '').slice(0, 80);
+  // Поле wrote зʼявилось пізніше за саму переписку. Якщо воркер ще старий,
+  // рахуємо за підписом останнього повідомлення: він у нього вже є.
+  const wrote = (v.wrote != null) ? (+v.wrote || 0)
+              : ((last && last !== 'почав діалог') ? (+v.msgs || 1) : 0);
+  if(o.tgLast !== last || o.tgWrote !== wrote){
+    /* Клієнт написав — картка йде вгору колонки, як і після нашого
+       власного повідомлення. Доти підпис на ній оновлювався, а місце
+       лишалось те саме: нове звернення могло стояти десятим і чекати,
+       доки на нього натраплять очима.
+
+       Піднімаємо лише коли реплік СТАЛО БІЛЬШЕ і ми вже знали, скільки
+       їх було. Без цієї умови перше ж завантаження сторінки підняло б
+       усі картки одночасно — тобто не підняло б жодної. */
+    if(o.tgWrote != null && wrote > (+o.tgWrote || 0)) touchOrder(o);
+    o.tgLast = last; o.tgWrote = wrote; o.tgAt = v.lastAt || '';
+    /* Ми відповіли — лічильник з нуля: наступне число рахує лише те,
+       що клієнт напише ПІСЛЯ нашої відповіді (Андрій, 16.10). */
+    if(last.slice(0, 4) === 'Ви: ') o.tgSeenWrote = wrote;
+    /* Відкрита картка більше не гасить нове (15.10) — лише 👁 або відповідь. */
+    return true;
+  }
+  return false;
+}
 function watchTelegramLeads(){
   if(tgLeadsWatching) return;
   if(typeof fbDb === 'undefined') return;
@@ -14404,28 +14432,7 @@ function watchTelegramLeads(){
       /* Картка вже є — оновлюємо на ній підпис останнього повідомлення.
          Без цього картка назавжди лишалась би такою, якою була в мить
          створення: людина написала ще п'ять разів, а в Канбані тиша. */
-      const last = String(v.last || '').slice(0, 80);
-      // Поле wrote зʼявилось пізніше за саму переписку. Якщо воркер ще старий,
-      // рахуємо за підписом останнього повідомлення: він у нього вже є.
-      const wrote = (v.wrote != null) ? (+v.wrote || 0)
-                  : ((last && last !== 'почав діалог') ? (+v.msgs || 1) : 0);
-      if(o.tgLast !== last || o.tgWrote !== wrote){
-        /* Клієнт написав — картка йде вгору колонки, як і після нашого
-           власного повідомлення. Доти підпис на ній оновлювався, а місце
-           лишалось те саме: нове звернення могло стояти десятим і чекати,
-           доки на нього натраплять очима.
-
-           Піднімаємо лише коли реплік СТАЛО БІЛЬШЕ і ми вже знали, скільки
-           їх було. Без цієї умови перше ж завантаження сторінки підняло б
-           усі картки одночасно — тобто не підняло б жодної. */
-        if(o.tgWrote != null && wrote > (+o.tgWrote || 0)) touchOrder(o);
-        o.tgLast = last; o.tgWrote = wrote; o.tgAt = v.lastAt || '';
-        /* Ми відповіли — лічильник з нуля: наступне число рахує лише те,
-           що клієнт напише ПІСЛЯ нашої відповіді (Андрій, 16.10). */
-        if(last.slice(0, 4) === 'Ви: ') o.tgSeenWrote = wrote;
-        /* Відкрита картка більше не гасить нове (15.10) — лише 👁 або відповідь. */
-        touched = true;
-      }
+      if(tgTake(o, v)) touched = true;
     });
     if(touched){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn(e); }
@@ -25714,7 +25721,7 @@ function crmPicsMerge(o, list){
   const out = list.filter(m => !(m && m.local));
   лишити.forEach(e => {
     const msg = { text: '', files: (e.urls || []).map(u => ({ url: u, kind: 'img' })), mine: true, by: e.by || '',
-                  at: e.state === 'pending' ? '' : e.at, pending: e.state === 'pending', local: e.k };
+                  at: e.state === 'pending' ? '' : e.at, pending: e.state === 'pending', local: e.k, lt: e.t || '' };
     const te = crmTime(e.at);
     const at = te ? out.findIndex(m => m && !m.local && crmTime(m.at) > te) : -1;
     if(at >= 0) out.splice(at, 0, msg); else out.push(msg);
@@ -28632,12 +28639,23 @@ function chatMsgs(o, kind){
       files: m.file ? [{ url: m.file, kind: 'img' }] : [], srv: true
     })).concat(черга);
   }
-  return ((crmChat[o.id] || {}).msgs || []).map(m => ({
-    at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
-    pending: !!m.pending, files: m.files || [], srv: !m.local,
-    /* Своє фото, яке Sitniks прийняв, але ще не повернув у переписку, — ✓. */
-    ob: (m.local && !m.pending) ? 'sent' : undefined
-  })).concat(черга);
+  const msgs = (crmChat[o.id] || {}).msgs || [];
+  return msgs.map((m, i) => {
+    /* Своє фото, яке Sitniks прийняв, але ще не повернув у переписку, — ✓.
+       Свої вкладення Sitniks у стрічку часто не повертає ЗОВСІМ, і фото,
+       яке клієнт давно бачить у Direct, вічно стояло з одною ✓ (Андрій,
+       16.10). Доставленим вважаємо, коли Sitniks дав повідомленню номер
+       (воно є в його розмові й пішло в Instagram) або коли клієнт уже
+       написав після нього. */
+    const дійшло = !!(m.local && !m.pending &&
+      (String(m.lt || '').charAt(0) === '#' ||
+       msgs.slice(i + 1).some(x => x && !x.local && !x.mine && !x.gone)));
+    return {
+      at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
+      pending: !!m.pending, files: m.files || [], srv: !m.local || дійшло,
+      ob: (m.local && !m.pending && !дійшло) ? 'sent' : undefined
+    };
+  }).concat(черга);
 }
 /* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
    кутами — видно, що це одна репліка.

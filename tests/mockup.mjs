@@ -334,7 +334,7 @@ const безШапки = await p.evaluate(async () => {
   const мала = 'data:image/svg+xml;base64,' + btoa(
     '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect width="300" height="400" fill="#EEE8E1"/>' +
     '<rect x="90" y="120" width="120" height="160" fill="#111"/></svg>');
-  const base = { art: мала, mock: мала, title:'Макет на узгодження', no:'#2000043-1',
+  const base = { art: мала, mock: мала, title:'Макет на погодження', no:'#2000043-1',
     nums: [['Модель','Футболка базова'], ['Колір','Чорний'], ['Розмір','XL'],
            ['Кількість','1 шт'], ['Нанесення','Вишивка'], ['Розмір нанесення','10 см × 8 см']] };
   const a = await window.LQMock.card(base);
@@ -353,7 +353,7 @@ console.log('  ' + JSON.stringify(безШапки));
 ok(безШапки.контактиІгноруються, 'контактів і «Loomiq · виробництво мерчу» на картці немає', 'контакти й далі малюються');
 ok(Math.abs(безШапки.кутРамки[0] - 0xEE) < 6 && Math.abs(безШапки.кутРамки[2] - 0xE1) < 6,
   'кадр заповнює рамку до країв — у куті рамки тло самого фото', 'кут рамки: ' + безШапки.кутРамки);
-ok(безШапки.заголовок === 'Макет на узгодження', 'заголовок за замовчуванням — «Макет на узгодження» (міняється в налаштуваннях)',
+ok(безШапки.заголовок === 'Макет на погодження', 'заголовок за замовчуванням — «Макет на погодження» (міняється в налаштуваннях)',
    'заголовок: ' + безШапки.заголовок);
 
 console.log('\n═══ КАРТКА 06.10: СПЕРШУ КАРТИНКИ, ПОТІМ МОКАПИ, РАМКИ ОДНАКОВІ ═══');
@@ -362,7 +362,7 @@ const ряд = await p.evaluate(async () => {
     '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect width="300" height="400" fill="' + c + '"/></svg>');
   const лого = svg('#E4572E'), лого2 = svg('#2E57E4'), перед = svg('#EEE8E1'), зад = svg('#E1E8EE');
   const рамки = async d => {
-    const png = await window.LQMock.card(Object.assign({ title:'Макет на узгодження',
+    const png = await window.LQMock.card(Object.assign({ title:'Макет на погодження',
       nums:[['', 'Футболка базова, біла, 100% бавовна'], ['Розмір','L']], note:'Колір одягу…' }, d));
     const im = new Image(); await new Promise(r => { im.onload = r; im.src = png; });
     const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
@@ -458,7 +458,7 @@ const ескіз = await p.evaluate(async () => {
   const art = c.toDataURL('image/png');
   const m = document.createElement('canvas'); m.width = 200; m.height = 200;
   m.getContext('2d').fillStyle = '#222'; m.getContext('2d').fillRect(0, 0, 200, 200);
-  const png = await window.LQMock.card({ works:[art], mocks:[m.toDataURL('image/png')], title:'Макет на узгодження',
+  const png = await window.LQMock.card({ works:[art], mocks:[m.toDataURL('image/png')], title:'Макет на погодження',
     desc:{ model:'Футболка', sub:'', row:[], apps:[] } });
   const im = new Image(); await new Promise(r => { im.onload = r; im.src = png; });
   const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
