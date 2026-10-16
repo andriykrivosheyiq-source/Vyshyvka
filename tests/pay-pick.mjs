@@ -188,9 +188,9 @@ await p.evaluate(() => { const c = document.querySelector('[data-open="2000777"]
 await p.waitForTimeout(700);
 await p.evaluate(() => { const b = document.querySelector('[data-fold="Гроші"]'); if(b) b.click(); });
 await p.waitForTimeout(400);
-const bb = await p.evaluate(() => { const b = document.querySelector('[data-do="pay-pick"]'); return b ? b.textContent : null; });
+const bb = await p.evaluate(() => { const b = [...document.querySelectorAll('[data-do="pay-pick"]')].pop(); return b ? b.textContent : null; });
 ok(bb && /вільних 3/.test(bb), 'B2C: «' + (bb || '').trim() + '» — ті самі непідписані', 'кнопка B2C: ' + bb);
-await p.evaluate(() => document.querySelector('[data-do="pay-pick"]').click());
+await p.evaluate(() => [...document.querySelectorAll('[data-do="pay-pick"]')].pop().click());
 await p.waitForTimeout(300);
 ok((await rows()).join() === 'p2,p1,p6', 'B2C відкриває те саме вікно рядками', 'B2C рядки: ' + await rows());
 /* 16.10, Андрій: у B2C вікно стає праворуч, на місці картки, без
@@ -217,42 +217,47 @@ const c2 = await p.evaluate(() => ({ open: !!document.querySelector('.pp-w'), do
 ok(!c2.open && c2.doc === '2000777' && /1 2(50|51)/.test(c2.html), 'B2C: платіж привʼязано до замовлення, видно в зоні «Гроші»', 'B2C: ' + JSON.stringify({ open: c2.open, doc: c2.doc }));
 
 console.log('');
-console.log('═══ НОВЕ B2C — ЛИШЕ З ПЛАТЕЖЕМ ═══');
-/* 16.10, Андрій: «поки не дасте платіж, замовлення не можемо створити». */
-const скас = await p.evaluate(async () => {
-  window.__toasts = []; const t = window.toast; window.toast = function(m){ window.__toasts.push(m); return t.apply(this, arguments); };
-  const було = orders.length;
-  const pr = window.LQDesign.ui.host.newOrder();
-  await new Promise(r => setTimeout(r, 300));
-  const вікно = { є: !!document.querySelector('.pp-w'), назва: (document.querySelector('.pp-w .fin-h b') || {}).textContent || '',
-                  примітка: (document.querySelector('.pp-w .pp-note') || {}).textContent || '' };
-  document.querySelector('[data-pp-x]').click();
-  await pr;
-  return { вікно, стало: orders.length - було, тости: window.__toasts.slice() };
+console.log('═══ НОВЕ B2C: ДІАЛОГ → ПЕРЕДОПЛАТА → ТОВАР ═══');
+/* 16.10, Андрій: замовлення створюється одразу; товар додати не можна, поки
+   не привʼязали діалог і передоплату (діалог — щоб звірити чек). */
+const крок = async () => p.evaluate(() => {
+  const g = document.querySelector('#dzRoot .dz-gate, .dz-panel .dz-gate');
+  return { gate: !!g, ok: g ? [...g.querySelectorAll('.dz-gate-s')].map(x => x.classList.contains('ok')) : [],
+           додати: !!document.querySelector('.dz-panel [data-do="u-add"]'),
+           платіж: !!(g && g.querySelector('[data-do="pay-pick"]')) };
 });
-console.log('   ' + JSON.stringify(скас));
-ok(скас.вікно.є && скас.вікно.назва === 'Нове замовлення B2C' && /платіж/.test(скас.вікно.примітка),
-  '«+ Нове замовлення» спершу відкриває вибір платежу', 'вікно: ' + JSON.stringify(скас.вікно));
-ok(скас.стало === 0 && скас.тости.some(x => /Поки не привʼяжете платіж — замовлення створити не можна/.test(x)),
-  'закрили без платежу — замовлення немає, сказано чому', 'без платежу: ' + JSON.stringify(скас));
-const нове = await p.evaluate(async () => {
+const нове0 = await p.evaluate(async () => {
   const було = orders.length;
-  const pr = window.LQDesign.ui.host.newOrder();
+  await window.LQDesign.ui.host.newOrder();
+  await new Promise(r => setTimeout(r, 500));
+  const o = orders[0];
+  window.__nov = o;
+  window.LQDesign.ui.open(o.orderId); window.LQDesign.ui.render(document.getElementById('dzRoot'));
+  return { стало: orders.length - було, dir: o.dir, вікно: !!document.querySelector('.pp-w') };
+});
+const к0 = await крок();
+console.log('   ' + JSON.stringify({ нове0, к0 }));
+ok(нове0.стало === 1 && нове0.dir === 'b2c' && !нове0.вікно,
+  '«+ Нове замовлення» створює замовлення одразу, без вікна платежу', 'нове: ' + JSON.stringify(нове0));
+ok(к0.gate && !к0.додати && к0.ok.join() === 'false,false,false' && !к0.платіж,
+  'склад закритий: спершу діалог, потім передоплата, потім товар', 'крок 0: ' + JSON.stringify(к0));
+await p.evaluate(() => { __nov.crmChatId = 'c-new'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+const к1 = await крок();
+ok(к1.gate && !к1.додати && к1.ok.join() === 'true,false,false' && к1.платіж,
+  'діалог привʼязано — лишається передоплата, кнопка «Привʼязати платіж» тут же', 'крок 1: ' + JSON.stringify(к1));
+await p.evaluate(async () => {
+  document.querySelector('.dz-gate [data-do="pay-pick"]').click();
   await new Promise(r => setTimeout(r, 300));
-  const ck = document.querySelector('.pp-row[data-pp="p1"] .pp-ck'); ck.click();
+  document.querySelector('.pp-row[data-pp="p1"] .pp-ck').click();
   await new Promise(r => setTimeout(r, 50));
   document.querySelector('[data-pp-go]').click();
-  await pr; await new Promise(r => setTimeout(r, 300));
-  const o = orders[0];
-  const pay = window.__PAYS.filter(x => x.id === 'p1')[0];
-  return { стало: orders.length - було, dir: o.dir, id: o.orderId, payDoc: pay.orderId, tag: pay.tag,
-           копія: (o.payments || []).map(x => x.payId + ':' + x.sum), вікно: !!document.querySelector('.pp-w') };
+  await new Promise(r => setTimeout(r, 600));
+  window.LQDesign.ui.render(document.getElementById('dzRoot'));
 });
-console.log('   ' + JSON.stringify(нове));
-ok(нове.стало === 1 && нове.dir === 'b2c' && нове.payDoc === нове.id && нове.tag === 'prepay' &&
-   нове.копія.join() === 'p1:1500' && !нове.вікно,
-  'обрали платіж — замовлення B2C створено, і платіж уже привʼязаний як передоплата',
-  'нове: ' + JSON.stringify(нове));
+const к2 = await крок();
+const pay1 = await p.evaluate(() => ({ doc: window.__PAYS.filter(x => x.id === 'p1')[0].orderId, id: __nov.orderId }));
+ok(!к2.gate && к2.додати && pay1.doc === pay1.id,
+  'передоплату привʼязано — склад відкрився, можна додавати одяг', 'крок 2: ' + JSON.stringify({ к2, pay1 }));
 
 console.log('');
 console.log('═══ ВУЗЬКИЙ ЕКРАН ═══');

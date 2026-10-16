@@ -5119,8 +5119,38 @@
              esc(л.txt) + '</i>' : '') +
       '</button>';
   }
+  /* ПОРЯДОК B2C (16.10, Андрій): спершу діалог, потім передоплата, і лише
+     тоді — товар. Діалог потрібен, щоб звірити чек у переписці з
+     платежем; без передоплати ми замовлень не беремо. Діє, поки замовлення
+     ще не пішло в роботу: те, що вже в роботі, не зупиняємо. */
+  function b2cGate(job, o){
+    if(!(o && o.dir === 'b2c')) return null;
+    var пішло = !!(job && job.handedAt) || unitsOf(job).some(function(u){
+      return u && (u.ready || dzList(u, 'graphic').some(function(d){ return d && d.sentAt; }) ||
+                   dzList(u, 'stitch').some(function(d){ return d && (d.sentAt || d.who); })); });
+    if(пішло) return null;
+    var діалог = !!(o.crmChatId || String(o.webId || '').slice(0, 3) === 'tg:');
+    try{ if(host.hasChat) діалог = !!host.hasChat(o); }catch(e){}
+    var гроші = paidOf(o) > 0;
+    if(діалог && гроші) return null;
+    return { dialog: діалог, paid: гроші };
+  }
+  function gateHtml(g){
+    var крок = function(ok, n, txt, дія){
+      return '<div class="dz-gate-s' + (ok ? ' ok' : '') + '"><i>' + (ok ? '✓' : n) + '</i><span>' + txt + '</span>' +
+        (!ok && дія ? дія : '') + '</div>'; };
+    return '<div class="dz-gate">' +
+      '<div class="dz-gate-h">Склад відкриється після діалогу й передоплати</div>' +
+      крок(g.dialog, 1, g.dialog ? 'Діалог привʼязано' : 'Привʼяжіть діалог — вставте адресу розмови вгорі, під номером', '') +
+      крок(g.paid, 2, g.paid ? 'Передоплату привʼязано' : 'Привʼяжіть передоплату — звірте з чеком у переписці',
+        g.dialog ? '<button type="button" class="dz-b pri" data-do="pay-pick">Привʼязати платіж</button>' : '') +
+      крок(false, 3, 'Додайте одяг і дизайн', '') +
+    '</div>';
+  }
   function unitsHtml(job, opt){
     var list = unitsOf(job);
+    var g = (opt && !opt.ro) ? b2cGate(job, opt.o) : null;
+    if(g) return gateHtml(g);
     /* Заголовок пропускаємо, коли склад стоїть у зоні: зона вже підписана,
        і другий підпис того самого — це рядок, який нічого не додає. */
     return ((opt && opt.bare) ? '' : '<div class="dz-h">Склад замовлення</div>') +
@@ -5137,6 +5167,10 @@
   /* «ЗБЕРЕГТИ» (14.10): замовлення укомплектоване цілком — одним натиском
      у роботу. Чогось бракує — кнопка спить і каже, в якій позиції. */
   function handOverHtml(job, o){
+    /* «Передати дизайнеру» (16.10, варіант А): кнопка передає індивідуальні
+       позиції графічному — обраному чи в чергу. Картку вона не зберігає (та
+       зберігається сама), тож без індивідуальних позицій її немає зовсім. */
+    if(!unitsOf(job).some(function(u){ return u && !u.ready; })) return '';
     var можна = D.dzHandable(job, o);
     var без = D.handMissing(job, o);
     var чому = без.map(function(n){
@@ -5148,9 +5182,9 @@
     });
     return '<span class="dz-hand-all">' +
       '<button class="dz-b pri" data-do="dz-hand-all"' + (можна && !без.length ? '' : ' disabled') +
-        ' title="Передати все замовлення в роботу разом">' +
-        'Зберегти й передати в роботу' + (можна > 1 ? ' · ' + можна : '') + '</button>' +
-      (job.handedAt ? '<i>Передано в роботу · ' + esc(dt(job.handedAt)) + '</i>' : '') +
+        ' title="Індивідуальні позиції — графічному дизайнеру (обраному або в чергу відділу)">' +
+        'Передати дизайнеру' + (можна > 1 ? ' · ' + можна : '') + '</button>' +
+      (job.handedAt ? '<i>Передано дизайнеру · ' + esc(dt(job.handedAt)) + '</i>' : '') +
       (без.length ? '<i class="is-bad">' + esc(чому.join('; ')) + '; ' +
                     'замовлення йде в роботу лише цілим</i>' : '') +
     '</span>';
@@ -5747,7 +5781,7 @@
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, acctUrg: acctUrg, writeHtml: writeHtml,
     verTilesHtml: verTilesHtml,
-    unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden, artKindsOf: artKindsOf,
+    unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden, artKindsOf: artKindsOf, b2cGate: b2cGate,
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
        картку з них, а не малюють кожна свій варіант того самого. */

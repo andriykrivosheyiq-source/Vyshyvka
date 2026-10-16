@@ -48,15 +48,15 @@ const ORDERS = [
     /* Усе, чого дизайнер бачити НЕ має, кладемо в замовлення навмисно —
        інакше перевірка «не видно» проходила б на порожньому. */
     name:'Асія Дерещук', phone:'+380670001122', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T09:00:00.000Z',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T09:00:00.000Z',
     crmChatId:'c1', crmChatName:'Асія Дерещук', crmNick:'asia_dera',
     totalPrice: 4850, items:[] },
-  { id:'2', orderId:'2000102', type:'client', dir:'b2c', name:'Б', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] },
+  { id:'2', orderId:'2000102', type:'client', dir:'b2c', crmChatId:'c-gate', name:'Б', status:'prorahunok', site:'main',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] },
   { id:'9', orderId:'1000077', type:'client', dir:'b2b', name:'ТОВ Ромашка', status:'new', site:'main',
     payments:[], hist:[], createdAt:'2026-09-25T12:00:00.000Z', totalPrice: 9000, items:[] },
-  { id:'3', orderId:'2000103', type:'client', dir:'b2c', name:'В', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T11:00:00.000Z', totalPrice: 1000, items:[] }
+  { id:'3', orderId:'2000103', type:'client', dir:'b2c', crmChatId:'c-gate', name:'В', status:'prorahunok', site:'main',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T11:00:00.000Z', totalPrice: 1000, items:[] }
 ];
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
@@ -147,6 +147,17 @@ ok(b2c.відкрита && b2c.зони.indexOf('Клієнт') < 0 && b2c.кл�
   'картки відділу в панелі немає: ' + JSON.stringify(b2c));
 ok(!b2c.стара, 'старих B2B-блоків («Наступна дія», «Нагадування», «Макет у відділі») немає',
    'у панелі лишились блоки старої картки');
+const кнопка = await p.evaluate(() => {
+  const U = window.LQDesign.ui, o = orders.find(x => x.orderId === '2000101');
+  const інд = { units:[Object.assign(U.unitNew(), { gid:'tee', note:'лого' })] };
+  const гот = { units:[Object.assign(U.unitNew(), { gid:'tee', ready:{ id:'r1', name:'Готовий' } })] };
+  const t = h => { const d = document.createElement('div'); d.innerHTML = h; const b = d.querySelector('[data-do="dz-hand-all"]'); return b ? b.textContent.trim() : ''; };
+  return { інд: t(U.unitsHtml(інд, { bare:true, o })), гот: t(U.unitsHtml(гот, { bare:true, o })) };
+});
+console.log('  ' + JSON.stringify(кнопка));
+ok(/^Передати дизайнеру/.test(кнопка.інд) && кнопка.гот === '',
+  '«Передати дизайнеру» — лише коли є індивідуальна позиція; у готових/повторних кнопки немає',
+  'кнопка: ' + JSON.stringify(кнопка));
 ok(b2c.поруч, 'у позиції коментар ліворуч, картинки праворуч — одним рядком', 'коментар і картинки не поруч');
 ok(b2c.інстаграм, 'кнопка Instagram унизу на місці', 'смужки Instagram немає');
 ok(/^#2\d+/.test(b2c.номер), 'номер — відділу: ' + b2c.номер, 'номер: ' + b2c.номер);

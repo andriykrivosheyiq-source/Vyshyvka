@@ -62,13 +62,13 @@ const ORDERS = [
     /* Усе, чого дизайнер бачити НЕ має, кладемо в замовлення навмисно —
        інакше перевірка «не видно» проходила б на порожньому. */
     name:'Асія Дерещук', phone:'+380670001122', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T09:00:00.000Z',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T09:00:00.000Z',
     crmChatId:'c1', crmChatName:'Асія Дерещук', crmNick:'asia_dera',
     totalPrice: 4850, items:[] },
-  { id:'2', orderId:'2000102', type:'client', dir:'b2c', name:'Б', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] },
-  { id:'3', orderId:'2000103', type:'client', dir:'b2c', name:'В', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T11:00:00.000Z', totalPrice: 1000, items:[] }
+  { id:'2', orderId:'2000102', type:'client', dir:'b2c', crmChatId:'c-gate', name:'Б', status:'prorahunok', site:'main',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] },
+  { id:'3', orderId:'2000103', type:'client', dir:'b2c', crmChatId:'c-gate', name:'В', status:'prorahunok', site:'main',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T11:00:00.000Z', totalPrice: 1000, items:[] }
 ];
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');

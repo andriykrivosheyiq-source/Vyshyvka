@@ -64,7 +64,7 @@ const CONTENT = {
 };
 const ORDERS = [
   { id:'1', orderId:'2000101', type:'client', dir:'b2c', name:'Асія',
-    status:'prorahunok', site:'main', payments:[], hist:[],
+    status:'prorahunok', site:'main', payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[],
     createdAt:'2026-09-25T09:00:00.000Z', crmChatId:'c1',
     crmChatName:'Асія Дерещук', crmNick:'asia_dera', items:[] },
   { id:'2', orderId:'1000090', type:'client', name:'ТОВ Армор',

@@ -4717,6 +4717,17 @@
   .dz-miss.dz-need .dz-b{display:block;margin-top:8px;}
   /* Під складом: «Додати одяг» ліворуч, «Зберегти й передати» праворуч. */
   .dz-u-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;}
+  /* B2C: діалог → передоплата → склад (16.10). */
+  .dz-gate{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;background:#FAFBFD;
+    display:flex;flex-direction:column;gap:8px;}
+  .dz-gate-h{font-size:12.5px;font-weight:700;color:var(--ink);}
+  .dz-gate-s{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-soft);flex-wrap:wrap;}
+  .dz-gate-s>i{font-style:normal;flex:none;width:22px;height:22px;border-radius:11px;display:inline-flex;
+    align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#EEF1F5;color:var(--muted);}
+  .dz-gate-s.ok{color:#1B6B3A;}
+  .dz-gate-s.ok>i{background:#DDF3E4;color:#1B6B3A;}
+  .dz-gate-s>span{flex:1;min-width:180px;}
+  .dz-gate-s .dz-b{flex:none;}
   .dz-hand-all{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:auto;}
   .dz-hand-all .dz-b[disabled]{opacity:.45;cursor:default;}
   .dz-hand-all i{font-style:normal;font-size:11.5px;color:var(--muted);text-align:right;}
@@ -7718,28 +7729,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4a8fff3571"></script>
-<script src="loomiq-fingerprint.js?v=4a8fff3571"></script>
-<script src="loomiq-pricing.js?v=4a8fff3571"></script>
+<script src="loomiq-select.js?v=4314fc734e"></script>
+<script src="loomiq-fingerprint.js?v=4314fc734e"></script>
+<script src="loomiq-pricing.js?v=4314fc734e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=4a8fff3571"></script>
+<script src="loomiq-money-core.js?v=4314fc734e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4a8fff3571"></script>
-<script src="loomiq-bg.js?v=4a8fff3571"></script>
-<script src="loomiq-mock.js?v=4a8fff3571"></script>
+<script src="loomiq-design.js?v=4314fc734e"></script>
+<script src="loomiq-bg.js?v=4314fc734e"></script>
+<script src="loomiq-mock.js?v=4314fc734e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=4a8fff3571"></script>
-<script src="loomiq-threads.js?v=4a8fff3571"></script>
+<script src="imagetracer.js?v=4314fc734e"></script>
+<script src="loomiq-threads.js?v=4314fc734e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4a8fff3571"></script>
+<script src="loomiq-cards.js?v=4314fc734e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7784,7 +7795,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '4a8fff3571';
+var LQ_VER = '4314fc734e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -31628,35 +31639,6 @@ function designUnbindChat(o){
    своїм рядом номерів. Окремої сутності в напряму немає навмисно: усе, що
    вміє картка, чат і пошук, працює тут тим самим кодом. */
 const B2C_STATUS = 'b2c-new';
-/* НОВЕ B2C — ЛИШЕ З ПЛАТЕЖЕМ (16.10, Андрій): «поки не дасте платіж,
-   замовлення не можемо створити». Без передоплати ми замовлень не беремо.
-   Тому спершу — вибір платежу; замовлення (і номер) зʼявляється лише коли
-   платіж обрано, і платіж привʼязується до нього тим самим payLinkSet.
-   Не привʼязався — замовлення прибираємо: без платежу його не буває. */
-const B2C_NEED_PAY = 'Поки не привʼяжете платіж — замовлення створити не можна';
-function b2cNewWithPay(){
-  return new Promise(resolve => {
-    let made = null;
-    const чернетка = { dir:'b2c', orderId:'', payments:[] };
-    payPickOpen(чернетка, async p => {
-      if(!made){
-        made = await designJobNew();
-        try{ await payLinkSet(p, made.orderId, 'prepay'); }
-        catch(e){ await b2cNewDrop(made.order); made = null; throw e; }
-        return;
-      }
-      await payLinkSet(p, made.orderId, payNextTag(made.order));
-    }, { title:'Нове замовлення B2C', sub:'спершу — платіж клієнта',
-         note:'Замовлення створюється разом із привʼязаною оплатою. ' + B2C_NEED_PAY + '.',
-         onClose: n => { if(!n && !made) toast(B2C_NEED_PAY); resolve(made); } });
-  });
-}
-async function b2cNewDrop(o){
-  if(!o) return;
-  try{ if(o.orderId){ await DESIGN_COL.doc(o.orderId).delete(); delete designJobs[o.orderId]; } }catch(e){ console.warn(e); }
-  orders = orders.filter(x => x.id !== o.id);
-  try{ await storeSet('orders', orders); }catch(e){ console.warn(e); }
-}
 async function designJobNew(){
   const o = {
     id: cryptoId(), dir: 'b2c', type: 'client', status: B2C_STATUS,
@@ -32214,10 +32196,11 @@ function openDesign(){
        Форма для цього вже є в робочому місці; відділ лише відкриває її,
        а не заводить власну: дві різні форми «нового замовлення» рано чи
        пізно розійдуться полями й нумерацією. */
+    /* 16.10: замовлення створюється одразу; склад відкривається, коли
+       привʼязано діалог і передоплату (див. b2cGate у відділі). */
     newOrder: async ()=>{
-      const made = await b2cNewWithPay();
-      if(!made) return;
-      toast('Замовлення ' + made.orderId + ' заведено, платіж привʼязано');
+      const made = await designJobNew();
+      toast('Замовлення ' + made.orderId + ' заведено — привʼяжіть діалог і передоплату');
       try{
         window.LQDesign.ui.setTab('queue');
         window.LQDesign.ui.open(made.orderId);
