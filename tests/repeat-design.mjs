@@ -161,7 +161,7 @@ const вид = await p.evaluate(async () => {
   await new Promise(r => setTimeout(r, 300));
   const u = __j1.units[0];
   const h1 = U.unitsHtml(__j1, { o: __o1 });
-  return { кнопки, повт: !!(u.ready && u.ready.repeat), списки: (h1.match(/class="dz-rep-s"/g) || []).length,
+  return { кнопки, повт: !!(u.ready && u.ready.repeat), списки: (h1.match(/class="dz-rep-t[ "]/g) || []).length,
            минуле: /data-do="u-rep-past"/.test(h1), розмістити: /data-do="u-ready-place"/.test(h1), бракує: /хоч один принт і один DST/.test(h1),
            стан: window.__стан };
 });
