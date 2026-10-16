@@ -99,13 +99,13 @@ await p.waitForTimeout(3500);
 await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none'; });
 
 
-const unit = (U, extra) => Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова',
+const unit = (U, extra) => Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова',
   color:'Чорний', size:'M', qty:3 }, extra || {});
 const SETUP = `(() => {
   document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
   document.getElementById('view-design').style.display = 'block';
   const U = window.LQDesign.ui, D = window.LQDesign;
-  const u = (x) => Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова',
+  const u = (x) => Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова',
     color:'Чорний', size:'M', qty:3 }, x || {});
   const o1 = orders.find(x => x.orderId === '2000101');
   const j1 = designJobMake('2000101');
@@ -306,6 +306,26 @@ console.log('  ' + JSON.stringify(нал));
 ok(нал.є && нал.збережено === 3 && нал.хук === 3,
   'поле «Одночасно в роботі» поруч зі строками, зберігається й доходить до відділу',
   'налаштування: ' + JSON.stringify(нал));
+
+console.log('');
+console.log('═══ 8. ТИПИ ІНДИВІДУАЛЬНОГО ДИЗАЙНУ ═══');
+/* 16.10, Андрій: список у Налаштуваннях B2C, менеджер обирає тип у позиції. */
+const типи = await p.evaluate(async () => {
+  paintB2c();
+  const до = [...document.querySelectorAll('#b2c-artkinds [data-ak-name]')].map(x => x.value);
+  document.getElementById('b2c-artkind-add').click();
+  const l = document.querySelectorAll('#b2c-artkinds [data-ak-name]');
+  l[l.length - 1].value = 'Сімейний портрет';
+  l[1].value = 'Портрет людини';
+  document.getElementById('b2c-save').click();
+  await new Promise(r => setTimeout(r, 900));
+  return { до, хук: window.LQDesign.ui.host.artKinds().map(k => k.id + ':' + k.name) };
+});
+console.log('  ' + JSON.stringify(типи));
+ok(типи.до.join('|') === 'Дитячий малюнок|Портрет|Портрет улюбленця|Інше' &&
+   типи.хук[1] === 'portrait:Портрет людини' && /^ak.+:Сімейний портрет$/.test(типи.хук[4]),
+  'типи редагуються в налаштуваннях: перейменування тримає той самий id, новий тип додається',
+  'типи: ' + JSON.stringify(типи));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

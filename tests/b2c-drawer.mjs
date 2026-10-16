@@ -122,14 +122,32 @@ const b2c = await p.evaluate(async () => {
            зони: [...d.querySelectorAll('.dz-z-h b')].map(x => x.textContent.trim()),
            стара: /Наступна дія|Нагадування|Нотатка менеджера|Макет у відділі/i.test(t),
            інстаграм: !!d.querySelector('.dz-write'),
-           номер: ((d.querySelector('.dz-panel-id b') || {}).textContent || '').trim() };
+           номер: ((d.querySelector('.dz-panel-id b') || {}).textContent || '').trim(),
+           /* 16.10: клієнт — під номером у шапці, статус — праворуч від номера. */
+           /* 16.10: коментар ліворуч, картинки праворуч — одним рядком. */
+           поруч: (() => { const n = d.querySelector('.dz-u-np .dz-u-note textarea'), pc = d.querySelector('.dz-u-np .dz-u-pics');
+             if(!n || !pc) return false; const a = n.getBoundingClientRect(), b = pc.getBoundingClientRect();
+             return b.left >= a.right && Math.abs(a.top - b.top) < 4; })(),
+           клієнтУШапці: !!d.querySelector('.dz-panel-h .dz-panel-who .dz-own'),
+           статусПоруч: (() => { const b = d.querySelector('.dz-panel-l1 > b'), st = d.querySelector('.dz-panel-l1 > .dz-state');
+             if(!b || !st) return false; const r1 = b.getBoundingClientRect(), r2 = st.getBoundingClientRect();
+             return r2.left > r1.right && Math.abs((r1.top + r1.bottom) / 2 - (r2.top + r2.bottom) / 2) < 8; })() };
 });
 console.log('  ' + JSON.stringify(b2c));
-ok(b2c.відкрита && b2c.зони.indexOf('Клієнт') >= 0 && b2c.зони.indexOf('Склад і дизайн') >= 0,
-  'праворуч — картка відділу: ' + b2c.зони.join(' · '),
+if(process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
+if(process.env.SHOT2){
+  await p.evaluate(async () => { const o = orders.find(x => x.orderId === '2000101'); o.crmChatId = o.crmChatId || 'c1';
+    chatOpen(o, 'crm'); await new Promise(r => setTimeout(r, 600)); payPickOpen(o, async () => {}); });
+  await p.waitForTimeout(500);
+  await p.screenshot({ path: process.env.SHOT2 });
+  await p.evaluate(() => { document.querySelectorAll('.fin-modal').forEach(x => x.remove()); });
+}
+ok(b2c.відкрита && b2c.зони.indexOf('Клієнт') < 0 && b2c.клієнтУШапці && b2c.статусПоруч && b2c.зони.indexOf('Склад і дизайн') >= 0,
+  'праворуч — картка відділу: статус праворуч від номера, клієнт під номером, зони ' + b2c.зони.join(' · '),
   'картки відділу в панелі немає: ' + JSON.stringify(b2c));
 ok(!b2c.стара, 'старих B2B-блоків («Наступна дія», «Нагадування», «Макет у відділі») немає',
    'у панелі лишились блоки старої картки');
+ok(b2c.поруч, 'у позиції коментар ліворуч, картинки праворуч — одним рядком', 'коментар і картинки не поруч');
 ok(b2c.інстаграм, 'кнопка Instagram унизу на місці', 'смужки Instagram немає');
 ok(/^#2\d+/.test(b2c.номер), 'номер — відділу: ' + b2c.номер, 'номер: ' + b2c.номер);
 

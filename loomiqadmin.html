@@ -3628,6 +3628,17 @@
   .dz-panel-id{display:flex;flex-direction:column;align-items:flex-start;gap:5px;
     min-width:0;}
   .dz-panel-id > b{font-weight:700;}
+  /* 16.10: номер і статус — одним рядком, статус праворуч від номера. */
+  .dz-panel-l1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .dz-panel-l1 > b{font-weight:700;}
+  .dz-panel-l1 .dz-cloth{margin-left:0;}
+  /* B2C: нік і «Відвʼязати» — під номером, без рамки окремої зони. */
+  .dz-panel-who{display:block;font-size:13.5px;font-weight:400;letter-spacing:0;}
+  .dz-panel-who .dz-own{margin:0;}
+  .dz-panel-who .dz-own.is-on{border:0;padding:0;background:none;}
+  .dz-panel-who .dz-own-who.is-row .dz-own-un{margin:0;}
+  .dz-panel-who .dz-own-who>b{font-size:14.5px;}
+  .dz-panel-who .dz-own-f{min-width:260px;}
   .dz-panel-id .dz-state{display:inline-flex;align-items:center;gap:6px;}
   /* Клієнт — перший рядок тіла. Головне не «яка це задача», а «чиє це
      замовлення»: саме з цього питання починається будь-яка розмова про
@@ -4308,6 +4319,22 @@
   .dz-u-rail.is-done{background:#EDF9F3;border-color:#B7E8D2;}
   .dz-u-rail.is-done .dz-u-rail-i,.dz-u-rail.is-done .dz-u-rail-t{color:#0A6B4A;}
   .dz-u-pics{margin-top:11px;}
+  /* 16.10: коментар ліворуч, картинки праворуч (до трьох у ряд, далі вниз). */
+  .dz-u-np{display:flex;align-items:flex-start;gap:10px;margin-top:11px;}
+  .dz-u-npl{flex:1;min-width:0;}
+  .dz-u-np .dz-u-note,.dz-u-np .dz-u-pics,.dz-u-np .dz-pics{margin-top:0;}
+  .dz-u-np .dz-u-note textarea{min-height:64px;box-sizing:border-box;}
+  .dz-u-np .dz-u-pics{flex:none;max-width:206px;}
+  .dz-u-np .dz-pics{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px;}
+  .dz-u-np .dz-pic,.dz-u-np .dz-pic-add{width:64px;flex:none;}
+  /* Тип малюнка — під коментарем; не обрано — червона рамка. */
+  .dz-u-kind{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;}
+  .dz-u-kind>span,.dz-u-kind>i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--muted);flex:none;}
+  .dz-u-kind select{font:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;
+    padding:5px 8px;background:#fff;color:var(--ink);min-width:0;max-width:100%;}
+  .dz-u-kind.need select{border-color:#e11d48;box-shadow:0 0 0 2px rgba(225,29,72,.12);}
+  .dz-u-kind.is-ro{color:var(--ink);}
   .dz-u-note{display:flex;flex-direction:column;gap:3px;margin-top:11px;}
   .dz-u-note span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
     letter-spacing:.04em;font-weight:600;}
@@ -4532,6 +4559,19 @@
     .pp-ck{grid-area:ck;} .pp-at{grid-area:at;} .pp-who{grid-area:who;} .pp-sum{grid-area:sum;}
     .pp-desc{grid-area:desc;} .pp-acc{grid-area:acc;}
   }
+  /* Привʼязка праворуч, на місці картки (16.10): без затемнення решти
+     екрана — діалог ліворуч лишається живим. Рядки — у два ряди. */
+  .pp-note{font-size:13px;color:#8A4B08;background:#FFF6E5;border:1px solid #F5DDB0;border-radius:10px;
+    padding:9px 12px;margin-bottom:10px;line-height:1.45;}
+  .fin-modal.pp-side{inset:auto;position:fixed;background:none;padding:0;display:block;}
+  .fin-modal.pp-side .fin-w.pp-w{width:100%;height:100%;max-height:none;border-radius:var(--r-card) 0 0 var(--r-card);}
+  .fin-modal.pp-side .fin-b{flex:1;min-height:0;display:flex;flex-direction:column;}
+  .fin-modal.pp-side .pp-list{flex:1;max-height:none;}
+  .fin-modal.pp-side .pp-head{display:none;}
+  .fin-modal.pp-side .pp-row{grid-template-columns:22px auto 1fr auto;grid-template-areas:'ck at who sum' 'ck desc desc acc';gap:2px 10px;}
+  .fin-modal.pp-side .pp-ck{grid-area:ck;} .fin-modal.pp-side .pp-at{grid-area:at;} .fin-modal.pp-side .pp-who{grid-area:who;}
+  .fin-modal.pp-side .pp-sum{grid-area:sum;} .fin-modal.pp-side .pp-desc{grid-area:desc;} .fin-modal.pp-side .pp-acc{grid-area:acc;}
+  .fin-modal.pp-side .pp-f{flex-wrap:wrap;}
   .pay-pick{all:unset;cursor:pointer;display:block;margin:8px 0;font-size:13px;font-weight:600;color:var(--accent);}
   .pay-pick i{font-style:normal;font-weight:400;color:var(--muted);}
   .shf{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:6px;}
@@ -6477,6 +6517,16 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div id="sp-extras"></div>
         <div class="add-row-btn" id="sp-extra-add">+ Додати послугу</div>
 
+        <div class="tl-divider" style="margin-top:22px;">Типи індивідуального дизайну</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Що саме малюємо: дитячий малюнок, портрет, портрет улюбленця… Менеджер
+          обирає тип у позиції з індивідуальним дизайном — без нього позиція в
+          роботу не йде. Дизайнер бачить, що робити, аналітика — що замовляють.
+          Ціну тип не міняє.
+        </div>
+        <div id="b2c-artkinds"></div>
+        <div class="add-row-btn" id="b2c-artkind-add">+ Додати тип</div>
+
         <div class="tl-divider" style="margin-top:22px;">Термін виготовлення</div>
         <div class="sub" style="margin-bottom:8px;">
           Скільки днів іде замовлення від заповнення картки — звичайних днів,
@@ -7668,28 +7718,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7923242d9e"></script>
-<script src="loomiq-fingerprint.js?v=7923242d9e"></script>
-<script src="loomiq-pricing.js?v=7923242d9e"></script>
+<script src="loomiq-select.js?v=ac5a65a006"></script>
+<script src="loomiq-fingerprint.js?v=ac5a65a006"></script>
+<script src="loomiq-pricing.js?v=ac5a65a006"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=7923242d9e"></script>
+<script src="loomiq-money-core.js?v=ac5a65a006"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7923242d9e"></script>
-<script src="loomiq-bg.js?v=7923242d9e"></script>
-<script src="loomiq-mock.js?v=7923242d9e"></script>
+<script src="loomiq-design.js?v=ac5a65a006"></script>
+<script src="loomiq-bg.js?v=ac5a65a006"></script>
+<script src="loomiq-mock.js?v=ac5a65a006"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=7923242d9e"></script>
-<script src="loomiq-threads.js?v=7923242d9e"></script>
+<script src="imagetracer.js?v=ac5a65a006"></script>
+<script src="loomiq-threads.js?v=ac5a65a006"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=7923242d9e"></script>
+<script src="loomiq-cards.js?v=ac5a65a006"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7734,7 +7784,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '7923242d9e';
+var LQ_VER = 'ac5a65a006';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9832,6 +9882,44 @@ function paintSpTiers(tiers, key){
 
    Тут вони задаються раз, а менеджер лише обирає зі списку. Нічого, крім
    назви й ціни: ніяких коефіцієнтів і шкал — у роздрібу їх немає. */
+/* ТИПИ ІНДИВІДУАЛЬНОГО ДИЗАЙНУ (16.10). id сталий: перейменування не
+   розриває звʼязку з позиціями, де тип уже обрано. */
+const B2C_ART_KINDS = [
+  { id:'kids', name:'Дитячий малюнок' }, { id:'portrait', name:'Портрет' },
+  { id:'pet', name:'Портрет улюбленця' }, { id:'other', name:'Інше' }];
+function b2cArtKinds(){
+  const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
+  return Array.isArray(c.artKinds) ? c.artKinds.filter(k => k && k.id && k.name) : B2C_ART_KINDS;
+}
+function paintArtKinds(list){
+  const box = document.getElementById('b2c-artkinds');
+  if(!box) return;
+  box.innerHTML = (list || []).map((k, i) => `
+    <div class="b2c-ak-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+      <input data-ak-name type="text" maxlength="60" value="${escapeHtml(k.name || '')}" placeholder="назва типу"
+        style="flex:1;max-width:420px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <input data-ak-id type="hidden" value="${escapeHtml(k.id || '')}">
+      <button class="pc-btn reset" data-ak-del="${i}" style="flex:none;padding:7px 10px;" title="Прибрати зі списку — у вже заведених позиціях тип лишиться">✕</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-ak-del]').forEach(b => b.addEventListener('click', ()=>{
+    const rows = readArtKinds(); rows.splice(Number(b.dataset.akDel), 1); paintArtKinds(rows);
+  }));
+}
+function readArtKinds(){
+  const box = document.getElementById('b2c-artkinds');
+  if(!box) return [];
+  return Array.from(box.querySelectorAll('.b2c-ak-row')).map(r => ({
+    id: String((r.querySelector('[data-ak-id]') || {}).value || '') || ('ak' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    name: String(r.querySelector('[data-ak-name]').value || '').trim().slice(0, 60)
+  })).filter(x => x.name);
+}
+(function(){
+  const b = document.getElementById('b2c-artkind-add');
+  if(b) b.addEventListener('click', () => {
+    const rows = readArtKinds(); rows.push({ id:'', name:'' }); paintArtKinds(rows);
+    const l = document.querySelectorAll('#b2c-artkinds [data-ak-name]'); if(l.length) l[l.length - 1].focus();
+  });
+})();
 function paintExtras(list){
   const box = document.getElementById('sp-extras');
   if(!box) return;
@@ -12103,7 +12191,33 @@ function renderDash(){
     (d.k === 'acct' ? '<div class="tm-hint">Час відповіді рахується з відповідей, надісланих із CRM (Telegram і Instagram), ' +
       'від 02.10.2026. Комунікейшн-менеджер замовлення — той, хто першим відповів клієнту.</div>' : '') +
     (d.k === 'prod' ? '<div class="tm-hint">Вироби — замовлення, яким цех поставив «Готово» цього місяця.</div>' +
-      dashRedoHtml(m) : '');
+      dashRedoHtml(m) : '') +
+    (d.k === 'gd' || d.k === 'acct' ? dashArtKindsHtml(m) : '');
+}
+/* ТИПИ МАЛЮНКІВ (16.10, Андрій): що замовляють в індивідуальному дизайні
+   B2C — дитячі малюнки, портрети, улюбленці… Позиції замовлень, заведених
+   цього місяця. */
+function dashArtKinds(m){
+  const по = {}, назва = {};
+  b2cArtKinds().forEach(k => { назва[k.id] = k.name; });
+  (orders || []).forEach(o => {
+    if(!o || o.dir !== 'b2c' || o.status === 'cancel' || String(o.createdAt || '').slice(0, 7) !== m) return;
+    const j = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+    ((j && j.units) || []).forEach(u => {
+      if(!u || u.ready) return;
+      const k = String(u.artKind || '') || '—';
+      if(k !== '—' && !назва[k]) назва[k] = u.artKindName || k;
+      по[k] = (по[k] || 0) + 1;
+    });
+  });
+  return Object.keys(по).map(k => ({ id: k, name: k === '—' ? 'Без типу' : (назва[k] || k), n: по[k] }))
+    .sort((a, b) => b.n - a.n);
+}
+function dashArtKindsHtml(m){
+  const E = escapeHtml, l = dashArtKinds(m);
+  return '<div class="dash-artkinds"><div class="fin-l" style="margin-top:18px;">Типи малюнків B2C · ' + E(finMonthLabel(m)) + '</div>' +
+    (l.length ? '<div class="an-row">' + l.map(x => '<div class="an-c"><span>' + E(x.name) + '</span><b>' + x.n + '</b></div>').join('') + '</div>'
+              : '<div class="tm-none">Цього місяця індивідуальних позицій B2C не заводили.</div>') + '</div>';
 }
 /* АНАЛІТИКА БРАКУ (Володимир, 06.10): кожен передрук — чия провина, скільки
    штук, що сталось і фото. Джерело — `o.reprints` (записує цех кнопкою
@@ -12528,6 +12642,7 @@ function paintB2c(){
   const c = b2cCfg();
   try{ paintReadyDesigns(); }catch(e){ console.warn('готові дизайни', e); }
   paintExtras(c.extras);
+  paintArtKinds(b2cArtKinds());
   try{ paintThreads(); }catch(e){ console.warn('нитки', e); }
   const d = document.getElementById('b2c-days');
   if(d) d.value = (c.days === B2C_DAYS) ? '' : (c.days || '');
@@ -12690,7 +12805,7 @@ function retailCost(gid, kind){
     const нитки = readThreads();
     const станд = threadsDefault();
     const своя = !(нитки.length === станд.length && нитки.every((t, i) => t.code === станд[i].code && t.hex === станд[i].hex));
-    const b2c = { extras: readExtras(), days: days || null,
+    const b2c = { extras: readExtras(), artKinds: readArtKinds().length ? readArtKinds() : null, days: days || null,
                   threads: (своя && нитки.length) ? нитки : null,
                   terms: Object.keys(terms).length ? terms : null,
                   dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
@@ -20629,7 +20744,8 @@ function payMatch(p, q){
   const h = payHay(p);
   return q.split(/\s+/).every(t => h.indexOf(t) >= 0);
 }
-function payPickOpen(o, onPick){
+function payPickOpen(o, onPick, opt){
+  opt = opt || {};
   try{ watchPayments(); }catch(e){}
   const E = escapeHtml;
   const d = document.createElement('div');
@@ -20639,10 +20755,11 @@ function payPickOpen(o, onPick){
      випадковий клік нічого не привʼязував. Можна обрати кілька (клієнт
      платив частинами). */
   d.innerHTML = `<div class="fin-w pp-w">
-    <div class="fin-h"><b>Привʼязати платіж</b>
-      <span>${E(orderName ? (orderName(o) || '') : '')} · #${E(o.orderId || '')}</span>
+    <div class="fin-h"><b>${E(opt.title || 'Привʼязати платіж')}</b>
+      <span>${opt.sub != null ? E(opt.sub) : E(orderName ? (orderName(o) || '') : '') + ' · #' + E(o.orderId || '')}</span>
       <button class="dz-x" data-pp-x>×</button></div>
     <div class="fin-b">
+      ${opt.note ? '<div class="pp-note">' + E(opt.note) + '</div>' : ''}
       <input type="search" class="pp-q" placeholder="Пошук: сума, дата, час, хто, призначення, рахунок" autocomplete="off">
       <div class="pp-n"></div>
       <div class="pp-head"><span></span><span>Дата</span><span>Сума</span><span>Від кого</span><span>Призначення</span><span>Рахунок</span></div>
@@ -20651,10 +20768,28 @@ function payPickOpen(o, onPick){
         <button type="button" class="dz-b pri" data-pp-go disabled>Привʼязати</button></div>
     </div></div>`;
   document.body.appendChild(d);
+  /* ПРАВОРУЧ, НА МІСЦІ КАРТКИ (16.10, Андрій): діалог ліворуч лишається
+     відкритим і живим — чек у переписці й список платежів видно поруч.
+     Картки на екрані немає (відкрили з Фінансів) — вікно, як і було, по центру. */
+  const панель = (o && o.dir === 'b2c')
+    ? (document.querySelector('#orderDrawer.open .od-panel') ||
+       [...document.querySelectorAll('.dz-panel')].filter(x => x.getClientRects().length).pop() || null)
+    : null;
+  const стати = () => {
+    const r = панель && панель.isConnected ? панель.getBoundingClientRect() : null;
+    if(!r || r.width < 50){ d.classList.remove('pp-side'); d.removeAttribute('style'); return; }
+    d.classList.add('pp-side');
+    d.style.cssText = 'top:' + Math.round(r.top) + 'px;left:' + Math.round(r.left) + 'px;width:' +
+      Math.round(r.width) + 'px;height:' + Math.round(r.height) + 'px;';
+  };
+  стати();
+  window.addEventListener('resize', стати);
   const q = d.querySelector('.pp-q'), list = d.querySelector('.pp-list'), n = d.querySelector('.pp-n');
   const go = d.querySelector('[data-pp-go]'), sel = d.querySelector('.pp-sel');
   const обрані = {};
-  const close = () => { d.remove(); document.removeEventListener('keydown', esc, true); };
+  let привʼязано = 0;
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc, true); window.removeEventListener('resize', стати);
+    if(opt.onClose) try{ opt.onClose(привʼязано); }catch(e){ console.warn(e); } };
   const esc = e => { if(e.key === 'Escape'){ e.stopPropagation(); close(); } };
   document.addEventListener('keydown', esc, true);
   d.addEventListener('click', e => { if(e.target === d || e.target.closest('[data-pp-x]')) close(); });
@@ -20698,7 +20833,7 @@ function payPickOpen(o, onPick){
     go.disabled = true;
     let ok = 0;
     for(const p of l){
-      try{ await onPick(p); ok++; delete обрані[p.id]; }
+      try{ await onPick(p); ok++; привʼязано++; delete обрані[p.id]; }
       catch(err){ console.error(err); if(String(err && err.message) !== 'скасовано') toast('Привʼязати не вдалось: ' + ((err && err.message) || err)); }
     }
     if(ok === l.length) return close();
@@ -31464,6 +31599,35 @@ function designUnbindChat(o){
    своїм рядом номерів. Окремої сутності в напряму немає навмисно: усе, що
    вміє картка, чат і пошук, працює тут тим самим кодом. */
 const B2C_STATUS = 'b2c-new';
+/* НОВЕ B2C — ЛИШЕ З ПЛАТЕЖЕМ (16.10, Андрій): «поки не дасте платіж,
+   замовлення не можемо створити». Без передоплати ми замовлень не беремо.
+   Тому спершу — вибір платежу; замовлення (і номер) зʼявляється лише коли
+   платіж обрано, і платіж привʼязується до нього тим самим payLinkSet.
+   Не привʼязався — замовлення прибираємо: без платежу його не буває. */
+const B2C_NEED_PAY = 'Поки не привʼяжете платіж — замовлення створити не можна';
+function b2cNewWithPay(){
+  return new Promise(resolve => {
+    let made = null;
+    const чернетка = { dir:'b2c', orderId:'', payments:[] };
+    payPickOpen(чернетка, async p => {
+      if(!made){
+        made = await designJobNew();
+        try{ await payLinkSet(p, made.orderId, 'prepay'); }
+        catch(e){ await b2cNewDrop(made.order); made = null; throw e; }
+        return;
+      }
+      await payLinkSet(p, made.orderId, payNextTag(made.order));
+    }, { title:'Нове замовлення B2C', sub:'спершу — платіж клієнта',
+         note:'Замовлення створюється разом із привʼязаною оплатою. ' + B2C_NEED_PAY + '.',
+         onClose: n => { if(!n && !made) toast(B2C_NEED_PAY); resolve(made); } });
+  });
+}
+async function b2cNewDrop(o){
+  if(!o) return;
+  try{ if(o.orderId){ await DESIGN_COL.doc(o.orderId).delete(); delete designJobs[o.orderId]; } }catch(e){ console.warn(e); }
+  orders = orders.filter(x => x.id !== o.id);
+  try{ await storeSet('orders', orders); }catch(e){ console.warn(e); }
+}
 async function designJobNew(){
   const o = {
     id: cryptoId(), dir: 'b2c', type: 'client', status: B2C_STATUS,
@@ -31864,6 +32028,7 @@ function openDesign(){
     /* Роль з колонками виробництва сидить на виробничій дошці. */
     roleSeat: r => { const d = roleDef(r); return (d && Array.isArray(d.cols) && d.cols.length) ? 'prod' : ''; },
     cardTitle: () => b2cCfg().cardTitle,
+    artKinds: () => b2cArtKinds(),
     /* Наші контакти для шапки аркуша — ті самі, що в комерційній
        пропозиції. Аркуш доходить до цеху й до підрядника, і питання «а це
        від кого» має отримати відповідь на самому аркуші. */
@@ -32021,8 +32186,9 @@ function openDesign(){
        а не заводить власну: дві різні форми «нового замовлення» рано чи
        пізно розійдуться полями й нумерацією. */
     newOrder: async ()=>{
-      const made = await designJobNew();
-      toast('Замовлення ' + made.orderId + ' заведено');
+      const made = await b2cNewWithPay();
+      if(!made) return;
+      toast('Замовлення ' + made.orderId + ' заведено, платіж привʼязано');
       try{
         window.LQDesign.ui.setTab('queue');
         window.LQDesign.ui.open(made.orderId);
