@@ -108,8 +108,8 @@ await p.evaluate(() => {
   const U = window.LQDesign.ui;
   const j = designJobMake('2000101');
   j.units = [
-    Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:2, note:'Лого на груди' }),
-    Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Білий', size:'L', qty:1, note:'Лого на груди' })];
+    Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:2, note:'Лого на груди' }),
+    Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова', color:'Білий', size:'L', qty:1, note:'Лого на груди' })];
   window.__j = j; window.__o = orders.find(x => x.orderId === '2000101');
   openDesign();
   U.host.upload = async f => 'https://cdn.test/' + encodeURIComponent(f.name || 'f');

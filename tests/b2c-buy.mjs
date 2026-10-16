@@ -100,10 +100,10 @@ await p.evaluate((PNGURL) => {
      повна позиція (для закупівлі з двох замовлень). */
   const j = designJobMake('2000201');
   j.units = [
-    Object.assign(U.unitNew(), { gid:'polo', name:'Поло', color:'', size:'', note:'Лого' }),
-    Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'L', qty:3, note:'Лого' })];
+    Object.assign(U.unitNew(), { artKind:'kids', gid:'polo', name:'Поло', color:'', size:'', note:'Лого' }),
+    Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова', color:'Чорний', size:'L', qty:3, note:'Лого' })];
   const j2 = designJobMake('2000202');
-  j2.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:2, note:'Лого' })];
+  j2.units = [Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:2, note:'Лого' })];
   window.__j = j; window.__o = orders.find(x => x.orderId === '2000201');
   window.__j2 = j2; window.__o2 = orders.find(x => x.orderId === '2000202');
   openDesign();
@@ -148,15 +148,33 @@ const безОдягу = await p.evaluate(async () => {
   D.dzAutoQueue(j, o, 'test@loomiq');
   const до = (D.dzList(j.units[0], 'graphic')[0] || null);
   U.setTab('acct'); U.open('2000203'); U.render(document.getElementById('dzRoot'));
+  /* 16.10: тип малюнка обовʼязковий — без нього кнопка спить і каже чому. */
+  const кн0 = document.querySelector('.dz-panel [data-do="dz-hand-all"]');
+  const sel = document.querySelector('.dz-panel .dz-u-kind select');
+  const безТипу = { спить: !!(кн0 && кн0.disabled), чому: ((document.querySelector('.dz-panel .dz-hand-all i') || {}).textContent || ''),
+                    червоне: !!document.querySelector('.dz-panel .dz-u-kind.need'),
+                    типи: sel ? [...sel.options].map(x => x.textContent).slice(1) : [] };
+  window.__безТипу = безТипу;
+  if(sel){ sel.value = 'pet'; sel.dispatchEvent(new Event('change', { bubbles:true })); }
+  await new Promise(r => setTimeout(r, 400));
+  U.render(document.getElementById('dzRoot'));
   const кн = document.querySelector('.dz-panel [data-do="dz-hand-all"]');
   const живе = !!(кн && !кн.disabled);
   if(кн) кн.click();
   await new Promise(r => setTimeout(r, 400));
   const d = D.dzList(j.units[0], 'graphic')[0];
-  return { самЗберіг: !!(до && D.dzInQueue(до)), живе, черга: !!(d && D.dzInQueue(d)),
+  return { самЗберіг: !!(до && D.dzInQueue(до)), живе, черга: !!(d && D.dzInQueue(d)), безТипу,
+           тип: [j.units[0].artKind, j.units[0].artKindName],
            підпис: ((document.querySelector('.dz-panel .dz-hand-all i') || {}).textContent || '') };
 });
 ok(!безОдягу.самЗберіг, 'саме збереження в чергу не ставить', 'стало в чергу без кнопки');
+ok(безОдягу.безТипу.спить && /не обрано тип малюнка/.test(безОдягу.безТипу.чому) && безОдягу.безТипу.червоне,
+  'тип малюнка не обрано — «Зберегти й передати» спить, сказано чому, поле червоне',
+  'без типу: ' + JSON.stringify(безОдягу.безТипу));
+ok(безОдягу.безТипу.типи.join('|') === 'Дитячий малюнок|Портрет|Портрет улюбленця|Інше' &&
+   безОдягу.тип.join('|') === 'pet|Портрет улюбленця',
+  'типи — з налаштувань B2C; обраний тип записано в позицію разом із назвою',
+  'типи: ' + JSON.stringify(безОдягу));
 ok(безОдягу.живе && безОдягу.черга && /Передано в роботу/.test(безОдягу.підпис),
   '«Зберегти й передати дизайнерам»: позиція лише з картинкою, без виробу — у черзі графічного відділу',
   'не стала в чергу: ' + JSON.stringify(безОдягу));
@@ -166,7 +184,13 @@ await p.waitForTimeout(300);
 const здача0 = await p.evaluate(() => ({
   кнопка: !!document.querySelector('.dz-panel [data-do="dz-art-only"]'),
   вікно: !!document.querySelector('.dz-panel [data-do="dz-work"]'),
-  підказка: ((document.querySelector('.dz-panel .dz-w-send .dz-miss') || {}).textContent || '') }));
+  підказка: ((document.querySelector('.dz-panel .dz-w-send .dz-miss') || {}).textContent || ''),
+  тип: [...document.querySelectorAll('.dz-panel .dz-w-note')].map(x => x.textContent).join('|') }));
+ok(/Тип малюнка\s*Портрет улюбленця/.test(здача0.тип), 'дизайнер бачить тип малюнка в ТЗ', 'ТЗ: ' + здача0.тип);
+const дашТипи = await p.evaluate(() => { const m = new Date().toISOString().slice(0, 7);
+  return { l: dashArtKinds(m), html: dashArtKindsHtml(m) }; });
+ok(дашТипи.l.some(x => x.name === 'Портрет улюбленця' && x.n >= 1) && /Типи малюнків B2C/.test(дашТипи.html),
+  'у Дашбордах — скільки позицій якого типу замовили цього місяця', 'дашборд: ' + JSON.stringify(дашТипи.l));
 ok(здача0.кнопка && !здача0.вікно && /Виріб ще не обрано/.test(здача0.підказка),
   'дизайнер без виробу здає саму роботу — без вікна мокапу, і сказано чому', 'здача: ' + JSON.stringify(здача0));
 /* Під нитки — обовʼязково й тут. Завантаження віддає data-URL, щоб

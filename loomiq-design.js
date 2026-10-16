@@ -1005,13 +1005,19 @@
      уже обрав людину сам, його вибір не перебиваємо. */
   /* Чого бракує, щоб передати замовлення в роботу ЦІЛИМ (14.10): позиції без
      ТЗ (ні картинки, ні коментаря) — номерами. Одяг остаточно — при фіксації. */
-  function handMissing(job){
+  /* ТИП МАЛЮНКА (16.10, Андрій): індивідуальний дизайн у B2C — дитячий
+     малюнок, портрет, портрет улюбленця… Позначка для дизайнера й
+     аналітики, і без неї позиція в роботу не йде. */
+  function kindMissing(u, o){
+    return !!(o && o.dir === 'b2c' && u && !u.ready && !String(u.artKind || '').trim());
+  }
+  function handMissing(job, o){
     var out = [];
     jobUnits(job).forEach(function(u, i){
       if(!u) return;
       if(u.ready) return;
       if(dzList(u, 'graphic').some(function(d){ return dzReal(d) && d.sentAt; })) return;
-      if(!unitFilled(job, u)) out.push(i + 1);
+      if(!unitFilled(job, u) || kindMissing(u, o)) out.push(i + 1);
     });
     return out;
   }
@@ -1021,7 +1027,7 @@
     /* ЗАМОВЛЕННЯ ЙДЕ В РОБОТУ ЛИШЕ ЦІЛИМ (Андрій, 14.10): «коли вже повністю
        все замовлення укомплектоване — Зберегти, і воно переноситься далі».
        Бракує хоч у одній позиції — не передаємо нічого й кажемо, де. */
-    var бракує = handMissing(job);
+    var бракує = handMissing(job, o);
     if(бракує.length){ out.skipped = бракує; out.blocked = true; return out; }
     jobUnits(job).forEach(function(u, i){
       /* Готовий дизайн дизайнерам не передаємо (13.10). */
@@ -1050,11 +1056,11 @@
     return out;
   }
   /* Скільки позицій ще можна передати: з ТЗ і без роботи. */
-  function dzHandable(job){
+  function dzHandable(job, o){
     return jobUnits(job).filter(function(u){
       if(u && u.ready) return false;
       var l = dzList(u, 'graphic');
-      if(!unitFilled(job, u)) return false;
+      if(!unitFilled(job, u) || kindMissing(u, o)) return false;
       return l.some(function(d){ return d.who && !d.sentAt; }) || !l.some(dzReal); }).length;
   }
   /* ЕСКІЗ ПОГОДЖЕНО — ВИШИВКА СТАЄ В ЧЕРГУ САМА.
@@ -2509,7 +2515,7 @@
     stockK: stockK, stockFind: stockFind, stockQty: stockQty, stockValue: stockValue,
     stockApply: stockApply, stockSplit: stockSplit,
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
-    handMissing: handMissing, unitStage: unitStage,
+    handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
@@ -4334,6 +4340,27 @@
      готовий — великий поп-ап, обираєш дизайн, він одразу підтягує всі файли».
      Перемикач — над дизайном позиції; після погодження готового дизайну
      зробити його індивідуальним уже не можна (це вже робота). */
+  /* Тип малюнка — лише в B2C і лише в індивідуального дизайну. Список —
+     з Налаштувань B2C; вимкнений чи прибраний тип, уже обраний у позиції,
+     лишається в ній своєю назвою. */
+  function artKindsOf(){
+    try{ return (host.artKinds && host.artKinds()) || []; }catch(e){ return []; }
+  }
+  function artKindHtml(u, ro, opt){
+    var o = (opt && opt.o) || null;
+    if(!(o && o.dir === 'b2c') || u.ready) return '';
+    if(ro) return u.artKind ? '<div class="dz-u-kind is-ro"><i>Тип малюнка</i>' + esc(u.artKindName || u.artKind) + '</div>' : '';
+    var l = artKindsOf().filter(function(k){ return !k.off || k.id === u.artKind; });
+    if(u.artKind && !l.some(function(k){ return k.id === u.artKind; }))
+      l.unshift({ id: u.artKind, name: u.artKindName || u.artKind });
+    var треба = D.kindMissing(u, o);
+    return '<label class="dz-u-kind' + (треба ? ' need' : '') + '"><span>Тип малюнка</span>' +
+      '<select data-uf="' + esc(u.id) + '|artKind">' +
+        '<option value=""' + (u.artKind ? '' : ' selected') + '>— оберіть —</option>' +
+        l.map(function(k){ return '<option value="' + esc(k.id) + '"' + (k.id === u.artKind ? ' selected' : '') + '>' +
+          esc(k.name) + '</option>'; }).join('') +
+      '</select></label>';
+  }
   function designKindHtml(u){
     var пов = !!(u.ready && u.ready.repeat);
     var гот = !!u.ready && !пов;
@@ -4617,6 +4644,10 @@
         '</span>' +
       '</div>') +
       servicesHtml(u, ro, opt) +
+      /* 16.10, Андрій: коментар ліворуч, картинки праворуч — одним рядком,
+         щоб позиція була нижчою. Картинок багато — права частина росте вниз. */
+      '<div class="dz-u-np">' +
+      '<div class="dz-u-npl">' +
       /* Коментар іде ПЕРЕД картинками: спершу словами, що треба, потім
          показ. Підпису над полем немає навмисно — слово «Коментар» уже
          стоїть усередині, і другий раз його писати нема чого. */
@@ -4633,6 +4664,8 @@
         '<textarea rows="1" data-grow data-uf="' + esc(u.id) + '|note" ' +
           'placeholder="Коментар — словами клієнта">' + esc(u.note || '') +
         '</textarea></label>') +
+      artKindHtml(u, ro, opt) +
+      '</div>' +
       /* Картинки саме до цього типу одягу. У замовленні буває два різні
          стилі, і референси до них різні: спільна купа зверху змушує
          дизайнера гадати, що з неї стосується його виробу. */
@@ -4666,6 +4699,7 @@
             esc(u.id) + '" title="Додати картинку">＋</button>') +
         '</div>' +
       '</div>') +
+      '</div>' +
       /* Правка до типу одягу. Менеджер копіює сюди слова клієнта з
          переписки — і вони їдуть разом із виробом, а не лишаються в чаті,
          куди дизайнер не має доступу. */
@@ -5095,22 +5129,29 @@
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
       ((opt && opt.ro) ? '' : '<div class="dz-u-foot">' +
-        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' + handOverHtml(job) + '</div>');
+        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' + handOverHtml(job, opt && opt.o) + '</div>');
   }
   /* «ЗБЕРЕГТИ Й ПЕРЕДАТИ ДИЗАЙНЕРАМ» — праворуч від «Додати одяг».
      Нічого передавати (усе вже в роботі або без ТЗ) — кнопка спить, а
      під нею сказано, що вже передано й чого бракує. */
   /* «ЗБЕРЕГТИ» (14.10): замовлення укомплектоване цілком — одним натиском
      у роботу. Чогось бракує — кнопка спить і каже, в якій позиції. */
-  function handOverHtml(job){
-    var можна = D.dzHandable(job);
-    var без = D.handMissing(job);
+  function handOverHtml(job, o){
+    var можна = D.dzHandable(job, o);
+    var без = D.handMissing(job, o);
+    var чому = без.map(function(n){
+      var u = unitsOf(job)[n - 1];
+      var що = [];
+      if(!D.unitFilled(job, u)) що.push('немає картинки чи коментаря');
+      if(D.kindMissing(u, o)) що.push('не обрано тип малюнка');
+      return 'Позиція ' + n + ' — ' + що.join(', ');
+    });
     return '<span class="dz-hand-all">' +
       '<button class="dz-b pri" data-do="dz-hand-all"' + (можна && !без.length ? '' : ' disabled') +
         ' title="Передати все замовлення в роботу разом">' +
         'Зберегти й передати в роботу' + (можна > 1 ? ' · ' + можна : '') + '</button>' +
       (job.handedAt ? '<i>Передано в роботу · ' + esc(dt(job.handedAt)) + '</i>' : '') +
-      (без.length ? '<i class="is-bad">Позиція ' + без.join(', ') + ' — немає картинки чи коментаря; ' +
+      (без.length ? '<i class="is-bad">' + esc(чому.join('; ')) + '; ' +
                     'замовлення йде в роботу лише цілим</i>' : '') +
     '</span>';
   }
@@ -5706,7 +5747,7 @@
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, acctUrg: acctUrg, writeHtml: writeHtml,
     verTilesHtml: verTilesHtml,
-    unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden,
+    unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden, artKindsOf: artKindsOf,
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
        картку з них, а не малюють кожна свій варіант того самого. */
@@ -6680,17 +6721,23 @@
       if(пс && кол === 'prod') крок = { label: 'Виробництво · ' + пс.label, color: пс.color };
       else if(пс && D.CHAIN_OF_PROD[пк] === 'shipped') крок = { label: 'Відправлено · ' + пс.label, color: пс.color };
     }
+    /* B2C (16.10, Андрій): шапка стиснута. Номер і статус — одним рядком,
+       під ними нік і «Відвʼязати», далі етапи. Окремої зони «Клієнт»
+       немає: нік читається разом із номером. */
+    var b2c = o && o.dir === 'b2c';
     return '<div class="dz-panel-h">' +
-        '<span class="dz-panel-id"><b>' + U.jobNo(p.job) + '</b>' +
+        '<span class="dz-panel-id' + (b2c ? ' is-b2c' : '') + '">' +
+          '<span class="dz-panel-l1"><b>' + U.jobNo(p.job) + '</b>' +
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
-          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) +
+          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) + '</span>' +
+          (b2c ? '<span class="dz-panel-who">' + U.clientHtml(o, job) + '</span>' : '') +
           U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</span>' +
         clockHtml(D.stageLeft(job, o, 'acct', termHours('acct'))) +
         U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b is-zones">' +
-        U.zoneHtml('blue', '👤', 'Клієнт', '',
-          U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct')) +
+        (b2c ? U.taskBlockHtml(p, 'acct') : U.zoneHtml('blue', '👤', 'Клієнт', '',
+          U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct'))) +
         /* Склад — одразу під клієнтом: це перше, що питають про
            замовлення, і перше, що заповнюють, коли його заводять. */
         U.zoneHtml('violet', '👕', 'Склад і дизайн', U.unitsSub(job),
@@ -7039,6 +7086,9 @@
          кольором — так само, як зони в картці менеджера, де це працює. */
       U.zoneHtml('blue', '\uD83D\uDCCB', 'ТЗ', '',
         (kind === 'stitch' ? stitchBriefHtml(u, d, x.job) : '') +
+        /* Тип малюнка (16.10) — дизайнер одразу бачить, що саме робити. */
+        (u.artKind && !u.ready ? '<div class="dz-w-note"><i>Тип малюнка</i>' +
+                  esc(u.artKindName || u.artKind) + '</div>' : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                   esc(u.note) + '</div>' : '') +
         /* Додаткові послуги позиції — без цін (15.10). */
@@ -9165,6 +9215,12 @@
         /* Кількість — щонайменше 1 (15.10): порожнє чи 0 стає 1. */
         if(f === 'qty'){ u.qty = (+el.value >= 1) ? Math.round(+el.value) : 1; el.value = u.qty; }
         else u[f] = el.value;
+        /* Тип малюнка — разом із назвою: перейменують чи приберуть тип у
+           налаштуваннях, а в позиції й аналітиці лишиться те, що обрали. */
+        if(f === 'artKind'){
+          var ak = U.artKindsOf().filter(function(k){ return k.id === u.artKind; })[0];
+          u.artKindName = ak ? ak.name : '';
+        }
         /* Змінили виріб — колір і розмір від старого тут ні до чого:
            у нового вони свої, і лишити чужі означає везти у виробництво
            колір, якого в цього виробу немає. Назву підставляємо з

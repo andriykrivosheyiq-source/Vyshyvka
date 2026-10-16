@@ -193,6 +193,21 @@ ok(bb && /вільних 3/.test(bb), 'B2C: «' + (bb || '').trim() + '» — т
 await p.evaluate(() => document.querySelector('[data-do="pay-pick"]').click());
 await p.waitForTimeout(300);
 ok((await rows()).join() === 'p2,p1,p6', 'B2C відкриває те саме вікно рядками', 'B2C рядки: ' + await rows());
+/* 16.10, Андрій: у B2C вікно стає праворуч, на місці картки, без
+   затемнення — діалог ліворуч лишається відкритим. */
+const бік = await p.evaluate(() => {
+  const m = document.querySelector('.fin-modal'), w = document.querySelector('.pp-w').getBoundingClientRect();
+  const pan = [...document.querySelectorAll('.dz-panel, #orderDrawer.open .od-panel')].filter(x => x.getClientRects().length).pop();
+  const r = pan ? pan.getBoundingClientRect() : null;
+  const лівіше = document.elementFromPoint(Math.max(5, w.left - 40), Math.round(w.top + w.height / 2));
+  return { side: m.classList.contains('pp-side'), r: r && [Math.round(r.left), Math.round(r.width)], w: [Math.round(w.left), Math.round(w.width)],
+           фон: getComputedStyle(m).backgroundColor, ліворучНеВікно: !(лівіше && лівіше.closest('.fin-modal')) };
+});
+console.log('   ' + JSON.stringify(бік));
+ok(бік.side && бік.r && Math.abs(бік.r[0] - бік.w[0]) <= 2 && Math.abs(бік.r[1] - бік.w[1]) <= 2 &&
+   /rgba\(0, 0, 0, 0\)|transparent/.test(бік.фон) && бік.ліворучНеВікно,
+  'B2C: вікно привʼязки праворуч, рівно на місці картки; ліворуч нічого не затулено',
+  'B2C вікно: ' + JSON.stringify(бік));
 ok((await search('іван')).join() === 'p6', 'і пошук той самий', 'B2C пошук');
 await p.click('.pp-row[data-pp="p6"]');
 await p.click('[data-pp-go]');
@@ -200,6 +215,44 @@ await p.waitForTimeout(600);
 const c2 = await p.evaluate(() => ({ open: !!document.querySelector('.pp-w'), doc: window.__PAYS.filter(x => x.id === 'p6')[0].orderId,
   html: (document.getElementById('dzRoot') || document.body).textContent }));
 ok(!c2.open && c2.doc === '2000777' && /1 2(50|51)/.test(c2.html), 'B2C: платіж привʼязано до замовлення, видно в зоні «Гроші»', 'B2C: ' + JSON.stringify({ open: c2.open, doc: c2.doc }));
+
+console.log('');
+console.log('═══ НОВЕ B2C — ЛИШЕ З ПЛАТЕЖЕМ ═══');
+/* 16.10, Андрій: «поки не дасте платіж, замовлення не можемо створити». */
+const скас = await p.evaluate(async () => {
+  window.__toasts = []; const t = window.toast; window.toast = function(m){ window.__toasts.push(m); return t.apply(this, arguments); };
+  const було = orders.length;
+  const pr = window.LQDesign.ui.host.newOrder();
+  await new Promise(r => setTimeout(r, 300));
+  const вікно = { є: !!document.querySelector('.pp-w'), назва: (document.querySelector('.pp-w .fin-h b') || {}).textContent || '',
+                  примітка: (document.querySelector('.pp-w .pp-note') || {}).textContent || '' };
+  document.querySelector('[data-pp-x]').click();
+  await pr;
+  return { вікно, стало: orders.length - було, тости: window.__toasts.slice() };
+});
+console.log('   ' + JSON.stringify(скас));
+ok(скас.вікно.є && скас.вікно.назва === 'Нове замовлення B2C' && /платіж/.test(скас.вікно.примітка),
+  '«+ Нове замовлення» спершу відкриває вибір платежу', 'вікно: ' + JSON.stringify(скас.вікно));
+ok(скас.стало === 0 && скас.тости.some(x => /Поки не привʼяжете платіж — замовлення створити не можна/.test(x)),
+  'закрили без платежу — замовлення немає, сказано чому', 'без платежу: ' + JSON.stringify(скас));
+const нове = await p.evaluate(async () => {
+  const було = orders.length;
+  const pr = window.LQDesign.ui.host.newOrder();
+  await new Promise(r => setTimeout(r, 300));
+  const ck = document.querySelector('.pp-row[data-pp="p1"] .pp-ck'); ck.click();
+  await new Promise(r => setTimeout(r, 50));
+  document.querySelector('[data-pp-go]').click();
+  await pr; await new Promise(r => setTimeout(r, 300));
+  const o = orders[0];
+  const pay = window.__PAYS.filter(x => x.id === 'p1')[0];
+  return { стало: orders.length - було, dir: o.dir, id: o.orderId, payDoc: pay.orderId, tag: pay.tag,
+           копія: (o.payments || []).map(x => x.payId + ':' + x.sum), вікно: !!document.querySelector('.pp-w') };
+});
+console.log('   ' + JSON.stringify(нове));
+ok(нове.стало === 1 && нове.dir === 'b2c' && нове.payDoc === нове.id && нове.tag === 'prepay' &&
+   нове.копія.join() === 'p1:1500' && !нове.вікно,
+  'обрали платіж — замовлення B2C створено, і платіж уже привʼязаний як передоплата',
+  'нове: ' + JSON.stringify(нове));
 
 console.log('');
 console.log('═══ ВУЗЬКИЙ ЕКРАН ═══');
