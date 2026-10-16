@@ -245,6 +245,26 @@ ok(шлях.вишивка && /кіт\.png/.test(шлях.вишивка.дод.
 ok(шлях.купити0 === 0 && шлях.купити1 > 0, 'закупівля — лише з фіксації: до неї закупнику нічого, після — є', JSON.stringify(шлях));
 ok(шлях.сума === 900, 'ціна — як у готового дизайну: 2 × 450 = 900', 'сума ' + шлях.сума);
 
+console.log('\n═══ 4б. БЕЗ РОЗМІРУ — РОЗМІЩУЄМО ПІД M ═══');
+const розм = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const j = designJobMake('2000102');
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'', qty:1 });
+  D.repeatAttach(u, { arts:[{ name:'a.png', url:'https://f/a.png' }], files:[{ name:'a.dst', url:'https://f/a.dst' }] });
+  j.units = [u];
+  let opt = null; const було = window.LQMock.openWork;
+  window.LQMock.openWork = o => { opt = o; };
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const c = document.querySelector('#dzRoot [data-open="2000102"]'); if(c) c.click();
+  await new Promise(r => setTimeout(r, 300));
+  await U.act('u-ready-place', document.getElementById('dzRoot'), { u: u.id });
+  await new Promise(r => setTimeout(r, 300));
+  window.LQMock.openWork = було;
+  return opt ? { size: opt.size, assumed: opt.sizeAssumed } : null;
+});
+console.log('  ' + JSON.stringify(розм));
+ok(розм && розм.size === 'M' && розм.assumed, 'розмір у позиції не вказано — вікно розміщення рахує під M і каже про це', JSON.stringify(розм));
+
 console.log('\n═══ 5. ДИЗАЙНЕРИ ПОВТОРНОГО НЕ БАЧАТЬ ═══');
 const диз = await p.evaluate(() => {
   const U = window.LQDesign.ui;

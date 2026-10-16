@@ -10383,7 +10383,7 @@
         if(!сторони.length) return say('У цього виробу немає фото в каталозі');
         var чер3 = dd.draft || {};
         return window.LQMock.openWork({
-          gid: du.gid, size: du.size || '', color: du.color || '',
+          gid: du.gid, size: du.size || 'M', sizeAssumed: !du.size, color: du.color || '',
           name: [(U.catItem(du.gid) || {}).name || du.name, du.color, du.size]
                   .filter(Boolean).join(' · '),
           sides: сторони,
@@ -10455,7 +10455,7 @@
           .map(function(sp){ return { side: sp.side || '', work: sp.work, x: sp.x, y: sp.y, w: sp.w }; });
         return window.LQMock.openWork({
           placeOnly: true,
-          gid: du.gid, size: du.size || '', color: du.color || '',
+          gid: du.gid, size: du.size || 'M', sizeAssumed: !du.size, color: du.color || '',
           name: [(U.catItem(du.gid) || {}).name || du.name, du.color, du.size]
                   .filter(Boolean).join(' · '),
           sides: pside, works: pworks, places: pplaces,
@@ -10506,7 +10506,7 @@
         if(!фото) return say('У цього виробу немає фото в каталозі');
         var g0 = U.catItem(du.gid);
         return window.LQMock.open({
-          base: фото, art: чер.art.url, gid: du.gid, size: du.size || '',
+          base: фото, art: чер.art.url, gid: du.gid, size: du.size || 'M',
           name: [(g0 && g0.name) || du.name, du.color, du.size].filter(Boolean).join(' · '),
           box: (чер.mock && чер.mock.box) || null,
           onDone: async function(res){
@@ -10593,7 +10593,7 @@
                     : [{ side: сторони[0].key, work: 0, x: 0.5, y: 0.3, w: 0.26 }];
     return window.LQMock.openWork({
       placeOnly: true,
-      gid: u.gid, size: u.size || '', color: u.color || '',
+      gid: u.gid, size: u.size || 'M', sizeAssumed: !u.size, color: u.color || '',
       name: (r.repeat ? (r.name || 'Повторний') : 'Готовий дизайн «' + (r.name || '') + '»') + ' · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
       sides: сторони, works: принти.map(function(f, k){
         return { name: f.name || 'принт.png', url: f.url, hash: 'ready:' + (r.id || '') + (k ? ':' + k : '') }; }),
@@ -10697,7 +10697,7 @@
     return {
       model: (g && g.name) || u.name || '',
       sub: sub,
-      row: [['Розмір', u.size || ''], ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : '']]
+      row: [['Розмір', u.size || 'M'], ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : '']]
              .filter(function(r){ return r[1]; }),
       apps: apps
     };

@@ -84,6 +84,12 @@
     catch(e){ return 0; }
   }
 
+  /* Розмір, під який рахуємо (16.10): не вказали в позиції — рахуємо під M. */
+  function sizeNote(opt){
+    return opt && opt.sizeAssumed
+      ? 'Розмір не вказано — рахуємо під <b>' + esc(opt.size || 'M') + '</b>'
+      : 'Розмір <b>' + esc((opt && opt.size) || 'M') + '</b>';
+  }
   /* ══════════ ВІКНО ══════════ */
   function close(){
     if(W && W.off){ try{ W.off(); }catch(e){} }
@@ -211,9 +217,8 @@
         '<div class="mko-n"><span>Від горловини</span><b>' + esc(см(m.topCm)) + '</b></div>' +
         '<div class="mko-n"><span>Від центру</span><b>' +
           esc((m.sideCm >= 0 ? '' : '−') + см(Math.abs(m.sideCm))) + '</b></div>';
-      note.innerHTML = 'Рахується під розмір <b>' + esc(opt.size || '—') +
-        '</b>: ширина виробу ' + esc(см(шир)) + '. Інший розмір — інші ' +
-        'пропорції того самого файлу.';
+      /* 16.10: розмір і розмір вишивки — без розміру самого виробу (Андрій). */
+      note.innerHTML = sizeNote(opt) + ' · вишивка <b>' + esc(см(m.wCm)) + ' × ' + esc(см(m.hCm)) + '</b>';
     }
 
     /* ── Миша ── */
@@ -678,8 +683,7 @@
         '<div class="mko-n"><span>Висота</span><b>' + esc(см(m.hCm)) + '</b></div>' +
         '<div class="mko-n"><span>Від верху виробу</span><b>' + esc(см(m.topCm)) + '</b></div>' +
         (m.edgeCm != null ? '<div class="mko-n"><span>Від краю виробу</span><b>' + esc(см(m.edgeCm)) + '</b></div>' : '');
-      note.innerHTML = 'Рахується під розмір <b>' + esc(opt.size || '—') + '</b>: висота виробу ' +
-        esc(см(m.garmentH)) + (m.garmentW ? ', ширина ≈ ' + esc(см(m.garmentW)) : ', краї виробу не виставлені') + '.';
+      note.innerHTML = sizeNote(opt) + ' · вишивка <b>' + esc(см(m.wCm)) + ' × ' + esc(см(m.hCm)) + '</b>';
     }
 
     /* ── Миша, палець, перо ──
