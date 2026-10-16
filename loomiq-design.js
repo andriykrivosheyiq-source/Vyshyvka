@@ -3317,6 +3317,12 @@
       out.push({ at: r.at, by: r.by, kind: 'no', що: 'передрук', де: '', текст: String(r.note || r.reason || '').slice(0, 90) });
     });
     if(o && o.reg && o.reg.at) out.push({ at: o.reg.at, by: o.reg.by, kind: 'trk', що: 'реєстр Нової пошти', де: '', текст: o.reg.no ? '№ ' + o.reg.no : '' });
+    /* Хто натиснув 👁 у розмові (17.10) — перевірити «прочитав і не відповів». */
+    ((o && o.seenHist) || []).forEach(function(h){
+      out.push({ at: h.at, by: h.by, kind: 'seen',
+        що: h.on ? '👁 позначив розмову прочитаною' : '👁 зняв позначку «прочитано»', де: '',
+        текст: (h.ch === 'tg' ? 'Telegram' : 'Instagram') + (h.on && h.n ? ' · непрочитаних було ' + h.n : '') });
+    });
     return out;
   }
   /* Підпис складеної зони: скільки подій і коли остання. Інакше довелось

@@ -348,6 +348,57 @@ ok(дві.номер && дві.обрана,
   'до картки звідси не дістатись: ' + JSON.stringify(дві));
 
 console.log('');
+console.log('═══ РОЗМОВИ, ЯКОЇ НЕМАЄ В СПИСКУ, — ТЕЖ СТЕРЕЖЕМО (17.10) ═══');
+/* Андрій: «кружечок зʼявляється, лише коли я зайду в діалог». Список Sitniks
+   сторінковий — розмова, що в нього не потрапила, для обходу не існувала. */
+const поза = await p.evaluate(async () => {
+  try{ chatClose(); }catch(e){}
+  const o = orders[0];
+  o.crmUnread = 0; o.crmTheirs = false; o.crmSeen = ''; o.crmSeenK = ''; o.crmSeenKt = ''; o.crmSeenTs = 0;
+  window.__MSGS = [
+    { id:'z1', text:'Дякую', createdAt:'2026-10-16T10:00:00.000Z', isOutgoing:true },
+    { id:'z2', text:'А коли буде готово?', createdAt:'2026-10-16T11:00:00.000Z' },
+    { id:'z3', text:'І чи можна швидше?', createdAt:'2026-10-16T11:00:20.000Z' }];
+  window.__CHATS = [{ id:'chat-інша', lastMessage:{ text:'привіт', createdAt:'2026-10-16T11:01:00.000Z' } }];
+  await crmSweepOnce();
+  return { n: +o.crmUnread || 0, чекає: !!o.crmTheirs, остання: o.crmLast, інфо: sweepInfoTxt(),
+           рядок: !!document.querySelector('[data-sweep-info]') || true };
+});
+console.log('   ' + JSON.stringify(поза));
+ok(поза.n === 2 && поза.чекає && /швидше/.test(поза.остання),
+  'розмови немає в списку Sitniks — обхід сам дочитав переписку: кружечок 2, без заходу в діалог',
+  'поза списком: ' + JSON.stringify(поза));
+ok(/Instagram перевірено о \d\d:\d\d · розмов у списку 1/.test(поза.інфо),
+  'у «Чатах» видно, коли обхід Instagram перевіряв і скільки розмов бачив', поза.інфо);
+const сторінка = await p.evaluate(async () => {
+  const f = window.crmFetch;
+  const багато = Array.from({ length: 12 }, (_, i) => ({ id:'c' + i, lastMessage:{ text:'x', createdAt:'2026-10-16T09:00:00Z' } }));
+  window.crmFetch = async (path) => path === '/chats' ? { items: багато.slice(0, 10) }
+    : path === '/chats?perPage=100' ? { items: багато } : (/^\/chats\?/.test(path) ? { items: багато.slice(0, 10) } : f(path));
+  crmChatsWay = null; crmChatsTried = false;
+  const l = await crmChatsList();
+  const l2 = await crmChatsList();
+  window.crmFetch = f;
+  return { n: l.length, way: crmChatsWay, n2: l2.length };
+});
+ok(сторінка.n === 12 && сторінка.way === 'perPage=100' && сторінка.n2 === 12,
+  'список розмов — не лише перша сторінка: параметр розміру знайдено сам і запамʼятовано',
+  'сторінка: ' + JSON.stringify(сторінка));
+
+const око = await p.evaluate(() => {
+  const o = orders[0];
+  o.crmUnread = 2; o.crmTheirs = true;
+  chatSeenToggle(o, 'crm');
+  const h = (o.seenHist || []).slice(-1)[0] || {};
+  const job = designJobMake(o.orderId);
+  const html = window.LQDesign.ui.histHtml(job, o);
+  return { by: h.by, on: h.on, n: h.n, ch: h.ch, вІсторії: /👁 позначив розмову прочитаною/.test(html) && /непрочитаних було 2/.test(html) };
+});
+console.log('   ' + JSON.stringify(око));
+ok(око.on && око.n === 2 && око.ch === 'ig' && око.by && око.вІсторії,
+  '👁 записано в історію замовлення: хто, коли, скільки було непрочитаного', 'око: ' + JSON.stringify(око));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'дошка бачить розмови сама, а в розділі — тільки свої');

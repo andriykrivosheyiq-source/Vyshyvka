@@ -901,6 +901,7 @@
     background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;}
   .chl-row:hover{border-color:var(--ink-soft);}
   .chl-row.waits{border-left:3px solid var(--bad);}
+  .chl-sweep{font-size:11px;color:var(--muted);padding:8px 10px 4px;}
   .chl-row.free{background:var(--canvas);}
   .chl-who{font-size:13.5px;font-weight:700;color:var(--ink);overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
@@ -7782,28 +7783,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1a0d521d46"></script>
-<script src="loomiq-fingerprint.js?v=1a0d521d46"></script>
-<script src="loomiq-pricing.js?v=1a0d521d46"></script>
+<script src="loomiq-select.js?v=d7a09406c8"></script>
+<script src="loomiq-fingerprint.js?v=d7a09406c8"></script>
+<script src="loomiq-pricing.js?v=d7a09406c8"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=1a0d521d46"></script>
+<script src="loomiq-money-core.js?v=d7a09406c8"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1a0d521d46"></script>
-<script src="loomiq-bg.js?v=1a0d521d46"></script>
-<script src="loomiq-mock.js?v=1a0d521d46"></script>
+<script src="loomiq-design.js?v=d7a09406c8"></script>
+<script src="loomiq-bg.js?v=d7a09406c8"></script>
+<script src="loomiq-mock.js?v=d7a09406c8"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1a0d521d46"></script>
-<script src="loomiq-threads.js?v=1a0d521d46"></script>
+<script src="imagetracer.js?v=d7a09406c8"></script>
+<script src="loomiq-threads.js?v=d7a09406c8"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1a0d521d46"></script>
+<script src="loomiq-cards.js?v=d7a09406c8"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7848,7 +7849,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1a0d521d46';
+var LQ_VER = 'd7a09406c8';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -26656,6 +26657,60 @@ function crmSweepRow(r, o){
     : false;
   return { at, text, mine };
 }
+/* СПИСОК РОЗМОВ — НЕ ЛИШЕ ПЕРША СТОРІНКА (17.10). Sitniks віддає список
+   сторінками, і розмова, що не влізла в першу, для обходу не існувала.
+   Параметр розміру сторінки документація не каже, тож шукаємо один раз:
+   невідомий параметр Sitniks ігнорує (та сама кількість), відомий —
+   дає більше. Знайдене памʼятаємо. */
+let crmChatsWay = null;
+try{ crmChatsWay = localStorage.getItem('crmChatsWay') || null; }catch(e){}
+const CRM_CHATS_SIZE = ['limit=100', 'perPage=100', 'pageSize=100', 'per_page=100', 'take=100', 'size=100', 'count=100'];
+let crmChatsTried = false;
+async function crmChatsList(){
+  if(crmChatsWay && crmChatsWay !== '-'){
+    try{ return crmListOf(await crmFetch('/chats?' + crmChatsWay)); }
+    catch(e){ if(e && e.status === 429) throw e; crmChatsWay = null; }
+  }
+  const base = crmListOf(await crmFetch('/chats'));
+  if(crmChatsWay === '-' || crmChatsTried || base.length < 10) return base;
+  crmChatsTried = true;
+  for(const q of CRM_CHATS_SIZE){
+    try{
+      const l = crmListOf(await crmFetch('/chats?' + q));
+      if(l.length > base.length){
+        crmChatsWay = q;
+        try{ localStorage.setItem('crmChatsWay', q); }catch(e){}
+        return l;
+      }
+    }catch(e){ if(e && e.status === 429) break; }
+  }
+  crmChatsWay = '-';
+  try{ localStorage.setItem('crmChatsWay', '-'); }catch(e){}
+  return base;
+}
+const crmChecked = {};
+let crmSweepInfo = null;
+/* Живе замовлення — є сенс стерегти розмову: не закрите й не скасоване. */
+function crmSweepLive(o){
+  return !(o.status === 'done' || o.status === 'cancel' || o.status === 'archive' || o.archived);
+}
+/* Стрічку, прочитану обходом напряму, — у картку: лічильник (crmNormMsgs),
+   остання репліка й час. true — щось змінилось. */
+function crmTakeFeed(o, data){
+  const було = [+o.crmUnread || 0, o.crmAt || '', !!o.crmTheirs].join('|');
+  const msgs = crmNormMsgs(data, o) || [];
+  const живі = msgs.filter(m => m && !m.gone && !m.local && m.ts);
+  const ост = живі[живі.length - 1];
+  if(ост){
+    const at = new Date(ост.ts).toISOString();
+    if(at > String(o.crmAt || '')){
+      o.crmAt = at;
+      o.crmLast = String(ост.text || (ост.files && ост.files.length ? '📎 вкладення' : '')).slice(0, 160);
+      if(!ост.mine){ o.crmInAt = ост.at; touchOrder(o); }
+    }
+  }
+  return було !== [+o.crmUnread || 0, o.crmAt || '', !!o.crmTheirs].join('|');
+}
 async function crmSweepOnce(){
   if(crmSweepBusy || !crmBase() || document.hidden) return;
   /* Поки щось надсилається — не питаємо: Sitniks рахує запити, і обхід
@@ -26665,9 +26720,10 @@ async function crmSweepOnce(){
   (orders || []).forEach(o => { if(o && o.crmChatId) byChat[String(o.crmChatId)] = o; });
   crmSweepBusy = true;
   try{
-    const rows = crmListOf(await crmFetch('/chats'));
+    const rows = await crmChatsList();
     let touched = false;
     const recount = [];
+    const уСписку = new Set(rows.map(r => String((r && (r.chatId || r.chat_id || r.id)) || '')));
     crmInbox = [];
     rows.forEach(r => {
       const id = String((r && (r.chatId || r.chat_id || r.id)) || '');
@@ -26713,10 +26769,28 @@ async function crmSweepOnce(){
     });
     /* Не більше трьох за такт: Sitniks рахує запити. Решту дорахує
        наступний такт або відкриття розмови. */
+    let впер = false;
     for(const o of recount.slice(0, 3)){
       try{ crmNormMsgs(await crmFetch('/chats/' + encodeURIComponent(o.crmChatId) + '/messages'), o); }
-      catch(e){ if(e && e.status === 429) break; }
+      catch(e){ if(e && e.status === 429){ впер = true; break; } }
     }
+    /* СТРАХОВКА (17.10, Андрій: «кружечок зʼявляється, лише коли зайду в
+       діалог»). Розмови, яких список Sitniks не віддав (він сторінковий),
+       обхід не бачив зовсім. Тож по черзі дочитуємо переписку відкритих
+       замовлень, яких у списку не було, — по дві за такт, найдавніше
+       перевірені першими. */
+    if(!впер){
+      const черга = (orders || []).filter(o => o && o.crmChatId && !уСписку.has(String(o.crmChatId)) &&
+          !(chatWin && chatWin.id === o.id) && crmSweepLive(o))
+        .sort((a, b) => (crmChecked[a.id] || 0) - (crmChecked[b.id] || 0)).slice(0, 2);
+      for(const o of черга){
+        crmChecked[o.id] = Date.now();
+        try{ if(crmTakeFeed(o, await crmFetch('/chats/' + encodeURIComponent(o.crmChatId) + '/messages'))) touched = true; }
+        catch(e){ if(e && e.status === 429) break; }
+      }
+    }
+    crmSweepInfo = { at: new Date().toISOString(), rows: rows.length, way: crmChatsWay || '' };
+    try{ paintSweepInfo(); }catch(e){}
     if(touched){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
       renderBoard();
@@ -26866,6 +26940,17 @@ function chatsRows(dir){
      самому Instagram, доки з нього не зробили замовлення. */
   return out.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
 }
+/* Жива ознака обходу Instagram у «Чатах»: коли перевіряли й скільки розмов
+   побачили — щоб на живих даних було видно, що він ходить і бачить усі. */
+function sweepInfoTxt(){
+  const i = crmSweepInfo;
+  if(!i) return 'Instagram: ще не перевіряли';
+  return 'Instagram перевірено о ' + crmKyiv(i.at).slice(11, 16) + ' · розмов у списку ' + i.rows +
+         (i.way && i.way !== '-' ? '' : ' (перша сторінка)');
+}
+function paintSweepInfo(){
+  document.querySelectorAll('[data-sweep-info]').forEach(el => { el.textContent = sweepInfoTxt(); });
+}
 function chatsHtml(dir){
   const rows = chatsRows(dir);
   if(!rows.length)
@@ -26881,7 +26966,8 @@ function chatsHtml(dir){
       <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
-    </button>`).join('');
+    </button>`).join('') +
+    `<div class="chl-sweep" data-sweep-info>${escapeHtml(sweepInfoTxt())}</div>`;
 }
 function crmDayShort(at){
   const s = String(at || '');
@@ -29052,6 +29138,12 @@ function chatsRepaint(){
 function chatSeenToggle(o, kind){
   if(!o) return;
   const було = chatWaiting(o, kind);
+  /* ХТО НАТИСНУВ ОКО (17.10, Андрій): в історії замовлення видно, хто
+     позначив розмову прочитаною — і скільки там було непрочитаного, — щоб
+     перевірити «прочитав і не відповів». */
+  o.seenHist = (Array.isArray(o.seenHist) ? o.seenHist : []).concat([{
+    at: new Date().toISOString(), by: myEmail() || '', on: !!було, ch: kind === 'tg' ? 'tg' : 'ig',
+    n: було ? (kind === 'tg' ? (tgUnreadCount(o) || 0) : (+o.crmUnread || 0)) : 0 }]).slice(-40);
   if(kind === 'tg'){
     if(було){ o.tgSeen = o.tgAt; o.tgSeenWrote = +o.tgWrote || 0; }
     else { o.tgSeen = ''; o.tgSeenWrote = null; }
