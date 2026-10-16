@@ -3952,6 +3952,10 @@
   /* Обране нанесення обведене — решта просто лежать. Без цього незрозуміло,
      що саме зараз тягнеш і чиї сантиметри показані збоку. */
   .mko-art.on{outline:2px solid var(--accent);outline-offset:2px;z-index:2;}
+  /* 16.10: рамка — по видимому малюнку (без прозорих полів файлу). */
+  .mko-art.has-trim{outline:none;}
+  .mko-art .mko-trim{position:absolute;pointer-events:none;outline:1px dashed rgba(124,58,237,.8);}
+  .mko-art.on .mko-trim{outline:2px solid var(--accent);outline-offset:2px;}
   /* Вікно здачі: сцена фіксованої висоти, у ній рамка рівно під фото —
      роботи стоять у відсотках цієї рамки. Кут і × є в кожної роботи, але
      видно їх лише в обраної: вибір не перебудовує сцену. */
@@ -7661,28 +7665,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3c200ed555"></script>
-<script src="loomiq-fingerprint.js?v=3c200ed555"></script>
-<script src="loomiq-pricing.js?v=3c200ed555"></script>
+<script src="loomiq-select.js?v=ac1ab24d1a"></script>
+<script src="loomiq-fingerprint.js?v=ac1ab24d1a"></script>
+<script src="loomiq-pricing.js?v=ac1ab24d1a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=3c200ed555"></script>
+<script src="loomiq-money-core.js?v=ac1ab24d1a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3c200ed555"></script>
-<script src="loomiq-bg.js?v=3c200ed555"></script>
-<script src="loomiq-mock.js?v=3c200ed555"></script>
+<script src="loomiq-design.js?v=ac1ab24d1a"></script>
+<script src="loomiq-bg.js?v=ac1ab24d1a"></script>
+<script src="loomiq-mock.js?v=ac1ab24d1a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=3c200ed555"></script>
-<script src="loomiq-threads.js?v=3c200ed555"></script>
+<script src="imagetracer.js?v=ac1ab24d1a"></script>
+<script src="loomiq-threads.js?v=ac1ab24d1a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3c200ed555"></script>
+<script src="loomiq-cards.js?v=ac1ab24d1a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7727,7 +7731,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3c200ed555';
+var LQ_VER = 'ac1ab24d1a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

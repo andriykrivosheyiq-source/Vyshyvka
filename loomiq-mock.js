@@ -375,14 +375,52 @@
   function zoneOf(gid, side, color, size){
     try{ return (HOST.zone && HOST.zone(gid, side, color, size)) || null; }catch(e){ return null; }
   }
-  function measure(z, box, ar, asp){
+  /* ВИДИМІ МЕЖІ МАЛЮНКА (16.10). PNG принта часто має прозорі поля: файл
+     квадратний, а лицар — лише посередині. Міряти весь файл означало писати
+     клієнту й цеху «15,4 × 15,4 см» там, де вишито 9 × 15. Тож шукаємо межі
+     непрозорих пікселів і рахуємо по них. Частки від картинки; не вдалось
+     прочитати пікселі (чужий домен) — уся картинка. */
+  var ПОВНА = { x0: 0, y0: 0, x1: 1, y1: 1 };
+  function trimOf(im){
+    if(!im) return ПОВНА;
+    if(im.__trim) return im.__trim;
+    var t = ПОВНА;
+    try{
+      var W0 = im.naturalWidth || im.width, H0 = im.naturalHeight || im.height;
+      if(W0 > 0 && H0 > 0){
+        var k = Math.min(1, 320 / Math.max(W0, H0));
+        var w = Math.max(1, Math.round(W0 * k)), h = Math.max(1, Math.round(H0 * k));
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        var c = cv.getContext('2d'); c.drawImage(im, 0, 0, w, h);
+        var d = c.getImageData(0, 0, w, h).data;
+        var x0 = w, y0 = h, x1 = -1, y1 = -1;
+        for(var y = 0; y < h; y++) for(var x = 0; x < w; x++){
+          if(d[(y * w + x) * 4 + 3] > 16){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
+        }
+        if(x1 >= x0 && y1 >= y0){
+          t = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h };
+          /* Майже без полів — рахуємо цілу: зайва точність тут лише шум. */
+          if(t.x0 < 0.01 && t.y0 < 0.01 && t.x1 > 0.99 && t.y1 > 0.99) t = ПОВНА;
+        }
+      }
+    }catch(e){ t = ПОВНА; }
+    try{ im.__trim = t; }catch(e){}
+    return t;
+  }
+  function measure(z, box, ar, asp, tr){
     if(!z || !(z.B > z.T) || !(z.H > 0) || !(asp > 0) || !box) return null;
+    tr = tr || ПОВНА; ar = ar || 1;
     var ky = z.H / (z.B - z.T), kx = ky / asp;
-    var wCm = box.w * kx, edges = z.L != null && z.R != null && z.R > z.L;
-    return { wCm: wCm, hCm: wCm * (ar || 1),
-             topCm: (box.y - z.T) * ky,
-             edgeCm: edges ? (box.x - box.w / 2 - z.L) * kx : null,
-             sideCm: edges ? (box.x - (z.L + z.R) / 2) * kx : null,
+    var edges = z.L != null && z.R != null && z.R > z.L;
+    var wFull = box.w * kx;
+    /* Видима частина: ліва межа й верх — зі зсувом на прозорі поля. */
+    var лів = box.x - box.w / 2 + box.w * tr.x0;
+    var прав = box.x - box.w / 2 + box.w * tr.x1;
+    var верх = box.y + box.w * ar * tr.y0 / asp;
+    return { wCm: wFull * (tr.x1 - tr.x0), hCm: wFull * ar * (tr.y1 - tr.y0),
+             topCm: (верх - z.T) * ky,
+             edgeCm: edges ? (лів - z.L) * kx : null,
+             sideCm: edges ? ((лів + прав) / 2 - (z.L + z.R) / 2) * kx : null,
              garmentW: edges ? (z.R - z.L) * kx : 0, garmentH: z.H };
   }
   async function openWork(opt){
@@ -436,7 +474,7 @@
     }
     function міри(pl){
       var a = арт[pl.work];
-      return measure(zoneOf(opt.gid, бік, opt.color, opt.size), pl.box, a ? a.height / a.width : 1, aspNow());
+      return measure(zoneOf(opt.gid, бік, opt.color, opt.size), pl.box, a ? a.height / a.width : 1, aspNow(), trimOf(a));
     }
     function рахунок(){
       var нанесень = 0, хеші = {};
@@ -653,6 +691,13 @@
         node.style.top = (p.box.y * 100) + '%';
         node.style.width = (p.box.w * 100) + '%';
         node.style.aspectRatio = String(1 / арПро(p));
+        /* Рамка — по видимому малюнку, а не по прозорому квадрату файлу. */
+        var tr = trimOf(арт[p.work]);
+        var tb = node.querySelector('.mko-trim');
+        if(!tb){ tb = document.createElement('i'); tb.className = 'mko-trim'; node.appendChild(tb); }
+        tb.style.left = (tr.x0 * 100) + '%'; tb.style.top = (tr.y0 * 100) + '%';
+        tb.style.width = ((tr.x1 - tr.x0) * 100) + '%'; tb.style.height = ((tr.y1 - tr.y0) * 100) + '%';
+        node.classList.add('has-trim');
       });
       числа();
     }
@@ -986,10 +1031,13 @@
             var ar = a.height / a.width;
             var w = p.box.w * cv.width;
             x.drawImage(a, p.box.x * cv.width - w / 2, p.box.y * cv.height, w, w * ar);
-            var m = measure(zS, p.box, ar, asp);
+            var m = measure(zS, p.box, ar, asp, trimOf(a));
             var r1 = function(v){ return Math.round(v * 10) / 10; };
             мірки.push({ work: номер[p.work], name:(works[p.work] || {}).name || '',
                          x:p.box.x, y:p.box.y, w:p.box.w, ar: ar, ref:'top',
+                         /* Видимі межі малюнка — щоб і карта цеху міряла по них. */
+                         tr: (function(t){ var r4 = function(v){ return Math.round(v * 1e4) / 1e4; };
+                           return { x0: r4(t.x0), y0: r4(t.y0), x1: r4(t.x1), y1: r4(t.y1) }; })(trimOf(a)),
                          wCm: m ? r1(m.wCm) : 0,
                          hCm: m ? r1(m.hCm) : 0,
                          topCm: m ? r1(m.topCm) : 0,
@@ -1373,7 +1421,10 @@
     var iw = мокап.width, ih = мокап.height, asp = ih / iw;
     var есть = sp && +sp.w > 0 && isFinite(+sp.x) && isFinite(+sp.y);
     var ar = есть ? (+sp.ar || ((+sp.hCm && +sp.wCm) ? sp.hCm / sp.wCm : 1)) : 1;
-    var box = есть ? { l: +sp.x - sp.w / 2, t: +sp.y, w: +sp.w, h: sp.w * ar / asp } : null;
+    var spT = (sp && sp.tr) || ПОВНА;
+    /* Рамка вишивки на карті цеху — по видимому малюнку (16.10). */
+    var box = есть ? { l: +sp.x - sp.w / 2 + sp.w * spT.x0, t: +sp.y + sp.w * ar * spT.y0 / asp,
+                       w: sp.w * (spT.x1 - spT.x0), h: sp.w * ar * (spT.y1 - spT.y0) / asp } : null;
     var краї = z && z.R > z.L;
     /* Кадр — виріб із запасом під підписи, і так, щоб вишивка точно влізла. */
     var c = { l: 0, t: 0, r: 1, b: 1 };
@@ -1390,7 +1441,7 @@
     var dx = a + (w - sw * k) / 2, dy = b + (h - sh * k) / 2;
     x.drawImage(мокап, sx, sy, sw, sh, dx, dy, sw * k, sh * k);
     var P = function(fx, fy){ return [dx + (fx * iw - sx) * k, dy + (fy * ih - sy) * k]; };
-    var m = (z && box) ? measure(z, { x: +sp.x, y: +sp.y, w: +sp.w }, ar, asp) : null;
+    var m = (z && box) ? measure(z, { x: +sp.x, y: +sp.y, w: +sp.w }, ar, asp, (sp && sp.tr) || null) : null;
     var від = m || (sp ? { wCm: +sp.wCm || 0, hCm: +sp.hCm || 0, topCm: +sp.topCm || 0,
                             edgeCm: sp.edgeCm != null ? +sp.edgeCm : null } : null);
     /* Опорні лінії: верх виробу, боковий край, центральна вісь. */
@@ -1750,6 +1801,6 @@
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */
-    widthCm: widthCm, calOf: calOf, см: см, removeBg: removeBg, measure: measure, zoneOf: zoneOf
+    widthCm: widthCm, calOf: calOf, см: см, removeBg: removeBg, measure: measure, zoneOf: zoneOf, trimOf: trimOf
   };
 })();

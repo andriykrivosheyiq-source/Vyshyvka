@@ -475,6 +475,36 @@ const ескіз = await p.evaluate(async () => {
 console.log('  ескіз у рамці: ' + JSON.stringify(ескіз));
 ok(ескіз.ор > 2000 && ескіз.зел > 8000, 'ескіз, частина якого притулена до краю кадру, — у рамці цілком (лист на місці)', 'підрізано: ' + JSON.stringify(ескіз));
 
+console.log('\n═══ ПРИНТ З ПРОЗОРИМИ ПОЛЯМИ — МІРЯЄМО САМ МАЛЮНОК (16.10) ═══');
+/* Лицар у квадратному PNG: файл 400×400, малюнок — лише середня смуга
+   120×320. Доти на картці виходило «15,4 × 15,4 см». */
+const лицар = await p.evaluate(async () => {
+  const M = window.LQMock;
+  const cv = document.createElement('canvas'); cv.width = 400; cv.height = 400;
+  const c = cv.getContext('2d'); c.fillStyle = '#6b4f2a'; c.fillRect(140, 40, 120, 320);
+  const im = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = cv.toDataURL('image/png'); });
+  const tr = M.trimOf(im);
+  const z = { T: 0.1, B: 0.9, H: 70, L: 0.2, R: 0.8 };
+  const box = { x: 0.5, y: 0.3, w: 0.3 };
+  const повна = M.measure(z, box, 1, 1);
+  const мал = M.measure(z, box, 1, 1, tr);
+  /* Без полів — нічого не міняється. */
+  const cv2 = document.createElement('canvas'); cv2.width = 200; cv2.height = 100;
+  const c2 = cv2.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, 200, 100);
+  const im2 = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = cv2.toDataURL('image/png'); });
+  const tr2 = M.trimOf(im2);
+  const r1 = v => Math.round(v * 10) / 10;
+  return { tr, повна: [r1(повна.wCm), r1(повна.hCm)], мал: [r1(мал.wCm), r1(мал.hCm), r1(мал.topCm)], tr2 };
+});
+console.log('  ' + JSON.stringify(лицар));
+ok(лицар.повна[0] === лицар.повна[1] && лицар.мал[0] < лицар.мал[1] / 2,
+  'квадратний файл з вузьким малюнком — міряємо малюнок: ' + лицар.мал[0] + ' × ' + лицар.мал[1] + ' см, а не ' + лицар.повна.join(' × '),
+  'міряємо прозорий квадрат: ' + JSON.stringify(лицар));
+ok(Math.abs(лицар.мал[0] - 7.9) < 0.3 && Math.abs(лицар.мал[1] - 21) < 0.3,
+  'і сантиметри точні: ширина 30% файлу, висота 80%', JSON.stringify(лицар.мал));
+ok(лицар.tr2.x0 === 0 && лицар.tr2.x1 === 1 && лицар.tr2.y0 === 0 && лицар.tr2.y1 === 1,
+  'картинка без прозорих полів — міряється ціла, як і раніше', JSON.stringify(лицар.tr2));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
 srv.close();
