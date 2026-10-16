@@ -146,6 +146,23 @@ ok(M.discountOf({ discount: { v: 5000 } }, 1000) === 1000 && M.discountOf({ disc
   ok(!M.audit([o2], [], { now: Date.now(), np: {}, accs: [] }).some(x => x.kind === 'discount'), 'звичайна знижка — без тривоги', 'тривога на малу знижку');
 }
 
+console.log('═══ 8. РАХУНОК НЕ ОНОВЛЮВАВСЯ (17.10) ═══');
+{
+  const now = Date.parse('2026-10-17T12:00:00Z');
+  const accs = [{ id:'p1', name:'ФОП Ірина', bank:'privat' }, { id:'n1', name:'Novapay А', bank:'novapay' },
+                { id:'m1', name:'Моно', bank:'mono' }, { id:'p2', name:'Приват 2', bank:'privat' }, { id:'p3', name:'Приват 3', bank:'privat' }];
+  const bal = { p1:{ at:'2026-10-07T12:05:00Z' }, n1:{ at:'2026-10-11T20:45:00Z' }, m1:{ at:'2026-10-13T10:00:00Z' }, p2:{ at:'2026-10-17T11:55:00Z' } };
+  const a = M.audit([], [], { now, np:{}, accs, bal });
+  const k = a.filter(x => /^acc_/.test(x.kind)).map(x => x.kind + ':' + x.acc).sort().join();
+  ok(k === 'acc_stale:n1,acc_stale:p1',
+    'Приват і NovaPay без оновлення понад добу — у Звірці; Монобанк (шле сам) і свіжий — ні', 'пункти: ' + k);
+  const a2 = M.audit([], [], { now, np:{}, accs, bal, sync:{ p1:{ at:'2026-10-17T11:58:00Z', error:'Приват: token invalid' },
+                                                         p3:{ at:'2026-10-17T11:58:00Z', skip:'немає секрета PRIVAT_TOKEN_p3' } } });
+  const e = a2.filter(x => x.acc === 'p1')[0] || {}, off = a2.filter(x => x.acc === 'p3')[0] || {};
+  ok(e.kind === 'acc_err' && /token invalid/.test(e.text) && off.kind === 'acc_off',
+    'стан перевірки від сервера: помилка банку — червоним з текстом, без ключа — «не підключено»', JSON.stringify([e, off]));
+}
+
 console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);

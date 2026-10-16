@@ -192,6 +192,20 @@ ok(((po2.privat || [])[0] || {}).рухів === 3 && JSON.stringify(bb('mono3'))
   'банк не віддав залишок — рухи пишуться, а залишок лишається попереднім, не нуль',
   'без залишку: ' + JSON.stringify({ po2: po2.privat, bal: bb('mono3') }));
 
+/* СТАН ПЕРЕВІРКИ (17.10): після опитування — loomiq/bankSync по рахунку. */
+const sync = acc => { const f = DB['loomiq/bankSync'] && DB['loomiq/bankSync'][acc]; if(!f) return null;
+  const x = f.mapValue.fields; return { ok: x.ok && x.ok.booleanValue, error: (x.error || {}).stringValue || '', at: (x.at || {}).stringValue }; };
+ok(sync('mono3') && sync('mono3').at && sync('mono3').ok === true,
+  'після опитування стан перевірки рахунку записано (loomiq/bankSync): рухи прийшли — «перевірено»', 'bankSync: ' + JSON.stringify(sync('mono3')));
+privatBal = { status:'SUCCESS', balances:[ { acc:'UA111', balanceOutEq:'5123.45', dpd:'03.10.2026 00:00:00' } ] };
+const ФЕТЧ = globalThis.fetch;
+globalThis.fetch = async (u, o) => String(u).startsWith('https://acp.privatbank.ua/api/statements/transactions')
+  ? new Response(JSON.stringify({ status:'ERROR', message:'Unauthorized: token expired' })) : ФЕТЧ(u, o);
+await call('/poll?s=sek');
+globalThis.fetch = ФЕТЧ;
+ok(sync('mono3') && sync('mono3').ok === false && /token expired/.test(sync('mono3').error),
+  'Приват відмовив — у bankSync його точні слова («token expired»), CRM покаже їх на картці', 'bankSync: ' + JSON.stringify(sync('mono3')));
+
 console.log('');
 console.log('═══ НОВА ПОШТА: УСІ СТОРІНКИ НАКЛАДНИХ І ВИПЛАТА ═══');
 const npo = po2.np || {};

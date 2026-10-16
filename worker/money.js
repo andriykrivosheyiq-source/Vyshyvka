@@ -279,6 +279,24 @@ async function bankBalance(env, acc, bal, at, src) {
   return true;
 }
 
+/* СТАН ПЕРЕВІРКИ РАХУНКУ (17.10, Андрій: «чомусь рахунки не підвʼязались
+   повністю»). Помилка банку доти жила лише в журналі Cloudflare — рахунок
+   «стояв» тижнями, і в CRM цього не було видно. Тепер після кожної
+   перевірки пишемо в loomiq/bankSync по полю на рахунок: коли, чи вдало і
+   що сказав банк. Рухів і сум це не чіпає. */
+async function syncMark(env, rows) {
+  const now = new Date().toISOString(), obj = {};
+  (rows || []).forEach(r => {
+    if (!r || !r.acc || !/^[A-Za-z0-9_]+$/.test(r.acc)) return;
+    const err = String(r.error || '').slice(0, 300), skip = String(r.skip || '').slice(0, 200);
+    obj[r.acc] = { at: now, ok: !err && !skip, error: err, skip: skip, src: String(r.src || ''),
+                   n: +r.рухів || 0 };
+  });
+  if (!Object.keys(obj).length) return false;
+  await fsWrite(env, 'loomiq/bankSync', obj).catch(e => console.warn('bankSync', e && e.message));
+  return true;
+}
+
 /* Список рахунків — із самої адмінки. Заводити тут другий довідник означало б
    мати дві правди про те, скільки в нас ФОПів. */
 async function accounts(env) {
@@ -357,6 +375,7 @@ async function monoHook(env, acc, body) {
     balAfter: після
   });
   if (після != null) await bankBalance(env, acc, після, at, 'mono');
+  await syncMark(env, [{ acc, src: 'mono', рухів: 1 }]);
   return 1;
 }
 /* Сказати Монобанку, куди слати. Робиться один раз на рахунок; повторний
@@ -1227,6 +1246,9 @@ async function poll(env, opts) {
     try { out.privat.push(await privatPoll(env, a)); }
     catch (e) { out.privat.push({ acc: a.id, error: e.message }); }
   }
+  /* Рухи прийшли, а залишок — ні: це теж треба бачити (дата на картці стоїть). */
+  await syncMark(env, out.privat.map(x => Object.assign({ src: 'privat' }, x,
+    (!x.error && typeof x.залишок === 'string') ? { error: 'залишок ' + x.залишок } : {})));
   /* Накладений платіж лягає на той рахунок, який ми позначили як приймач
      виплат НП; немає такого — лишаємо порожнім, і в адмінці рух видно з
      підписом «рахунок не вказано». Вигадувати рахунок не можна: гроші
@@ -1238,9 +1260,12 @@ async function poll(env, opts) {
   if (p24.length) {
     out.privat24 = [];
     if (opts.np === false) out.privat24.push({ skip: 'за розкладом — раз на 30 хв' });
-    else for (const a of p24) {
-      try { out.privat24.push(await p24Poll(env, a)); }
-      catch (e) { out.privat24.push({ acc: a.id, error: e.message }); }
+    else {
+      for (const a of p24) {
+        try { out.privat24.push(await p24Poll(env, a)); }
+        catch (e) { out.privat24.push({ acc: a.id, error: e.message }); }
+      }
+      await syncMark(env, out.privat24.map(x => Object.assign({ src: 'privat24' }, x)));
     }
   }
   if (opts.np === false) out.np = { skip: 'за розкладом — раз на 30 хв' };
@@ -1360,6 +1385,9 @@ export default {
       .then(() => npDue((event && event.scheduledTime || Date.now()) - 15 * 60000)
         ? (NOVAPAY_TRACE = [], novapayPoll(env)
             .then(x => ({ ok: true, x }), e => ({ ok: false, error: String((e && e.message) || e) }))
+            .then(r => accounts(env).then(l => syncMark(env, l.filter(a => a.bank === 'novapay').map(a => ({
+              acc: a.id, src: 'novapay', error: r.ok ? '' : r.error,
+              skip: (r.ok && r.x && r.x.skip) ? r.x.skip : '' })))).catch(() => null).then(() => r))
             .then(r => fsWrite(env, 'loomiq/novapayLog', { json: JSON.stringify({ at: new Date().toISOString(), за_розкладом: true,
               ok: r.ok, error: r.error || '', кроки: NOVAPAY_TRACE }) }).catch(() => null))) : null)
       .catch(e => console.warn('розклад', e && e.message)));

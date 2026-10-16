@@ -282,6 +282,33 @@ await p.keyboard.press('Enter');
 await p.waitForTimeout(400);
 ok(await p.evaluate(() => /Каса/.test((document.querySelector('#fin-hist .fin-hist-h b') || {}).textContent || '')),
   'Enter на картці теж розгортає виписку', 'клавіатурою не відкрилось');
+console.log('');
+console.log('═══ СТАН ПЕРЕВІРКИ РАХУНКУ (17.10) ═══');
+/* Андрій: «рахунки не підвʼязались повністю» — Приват і NovaPay мовчали з 07.10
+   і 11.10, а в CRM це виглядало як звичайна дата. */
+const стан = await p.evaluate(() => {
+  const accs = finAccounts();
+  const pr = accs.filter(a => a.bank === 'privat')[0], mo = accs.filter(a => a.bank === 'mono')[0];
+  if(!pr || !mo) return { err: 'немає рахунків', banks: accs.map(a => a.bank).join() };
+  const now = new Date().toISOString();
+  bankSync = { [pr.id]: { at: now, ok: false, error: 'Приват: token invalid' }, [mo.id]: { at: now, ok: true, src: 'mono' } };
+  renderFin();
+  const card = id => { const c = document.querySelector('#fin-cards [data-fin-acc-open="' + id + '"]');
+    const st = c && c.querySelector('.fin-c-st'); return st ? { cls: st.className, txt: st.textContent, title: st.title } : null; };
+  const a = moneyAudit().filter(x => x.acc).map(x => x.kind + ':' + x.acc + ':' + x.text);
+  const r = { pr: card(pr.id), mo: card(mo.id), a, prId: pr.id,
+              звірка: (document.getElementById('fin-audit') || {}).textContent || '' };
+  bankSync = {}; renderFin();
+  return r;
+});
+console.log('  ' + JSON.stringify(стан).slice(0, 400));
+ok(стан.pr && /is-err/.test(стан.pr.cls) && /помилка банку/.test(стан.pr.txt) && /token invalid/.test(стан.pr.title),
+  'Приват відмовляє — на картці червоним «помилка банку», текст банку в підказці', JSON.stringify(стан.pr));
+ok(стан.mo && /is-ok/.test(стан.mo.cls) && /останній рух/.test(стан.mo.txt),
+  'Монобанк — «останній рух …» (він шле сам, тиша — не помилка)', JSON.stringify(стан.mo));
+ok(стан.a.some(x => x.indexOf('acc_err:' + стан.prId + ':') === 0 && /банк відмовляє/.test(x)) && /терміново/.test(стан.звірка),
+  'у Звірці грошей — пункт «банк відмовляє»', JSON.stringify(стан.a));
+
 await p.close();
 
 console.log('');
