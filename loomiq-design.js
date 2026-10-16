@@ -4772,6 +4772,54 @@
 
         '</div>') +
       '</div>'; })(only || sideOf(u))) +
+      ((ro || only) ? '' : variantsHtml(u, opt)) +
+    '</div>';
+  }
+  /* ══════════ ВАРІАНТИ НА КІЛЬКОХ ВИРОБАХ (16.10, Андрій) ══════════
+
+     Той самий дизайн — на кількох виробах і кольорах (до 6), щоб клієнт
+     порівняв і обрав. Картинка спершу на всіх однакова, далі кожну можна
+     замінити окремо; розміщення в кожного варіанта своє. Клієнту — одна
+     картка-сітка з номерами 1–6. Далі, при фіксації, обовʼязкове вікно
+     «Який варіант обрав клієнт?» — обраний стає виробом, кольором і
+     версією дизайну позиції, і далі (вишивальному, у цех) іде саме він. */
+  var VAR_MAX = 6;
+  function varsOf(u){ return (u && u.variants && Array.isArray(u.variants.list)) ? u.variants.list : []; }
+  function variantsHtml(u, opt){
+    var o = (opt && opt.o) || null;
+    if(!(o && o.dir === 'b2c')) return '';
+    var l = varsOf(u), uid = esc(u.id);
+    if(!l.length)
+      return '<div class="dz-var is-empty"><button type="button" class="dz-b" data-do="u-var-add" data-u="' + uid + '" ' +
+        'title="Той самий дизайн на кількох виробах і кольорах — клієнт порівняє й обере">🎨 Варіанти на кількох виробах</button></div>';
+    var pick = +((u.variants || {}).pick || 0);
+    var готові = l.filter(function(v){ return v.mock; }).length;
+    return '<div class="dz-var">' +
+      '<div class="dz-var-h"><b>Варіанти на вибір</b><i>' + l.length + ' з ' + VAR_MAX + '</i>' +
+        (pick ? '<span class="dz-var-ok">Клієнт обрав № ' + pick + '</span>' : '') + '</div>' +
+      '<div class="dz-var-g">' + l.map(function(v){
+        var g = catItem(v.gid);
+        return '<div class="dz-var-t' + (pick === v.n ? ' is-pick' : '') + '">' +
+          '<i class="dz-var-n">' + v.n + '</i>' +
+          (v.mock ? '<button type="button" class="dz-var-img" data-do="pic-open" data-url="' + esc(v.mock) + '"><img src="' + esc(v.mock) + '" alt="" loading="lazy"></button>'
+                  : '<button type="button" class="dz-var-img is-none" data-do="u-var-place" data-u="' + uid + '" data-v="' + v.n + '">Розмістити</button>') +
+          '<span class="dz-var-l">' + esc([(g && g.name) || v.name || 'виріб', v.color].filter(Boolean).join(' · ')) +
+            (v.artOwn ? ' <em title="Картинку замінено лише тут">своя картинка</em>' : '') + '</span>' +
+          '<span class="dz-var-a">' +
+            '<button type="button" class="dz-ib" data-do="u-var-place" data-u="' + uid + '" data-v="' + v.n + '" title="Розміщення">✎</button>' +
+            '<button type="button" class="dz-ib" data-do="u-var-art" data-u="' + uid + '" data-v="' + v.n + '" title="Замінити картинку лише в цьому варіанті">🖼</button>' +
+            '<button type="button" class="dz-ib dz-ib-x" data-do="u-var-del" data-u="' + uid + '" data-v="' + v.n + '" title="Прибрати варіант">×</button>' +
+          '</span>' +
+        '</div>';
+      }).join('') +
+      (l.length < VAR_MAX ? '<button type="button" class="dz-var-add" data-do="u-var-add" data-u="' + uid + '">＋<span>Варіант</span></button>' : '') +
+      '</div>' +
+      '<div class="dz-var-f">' +
+        '<button type="button" class="dz-b pri" data-do="u-var-send" data-u="' + uid + '"' +
+          (l.length >= 2 && готові === l.length ? '' : ' disabled title="Потрібно щонайменше 2 розміщені варіанти"') + '>Надіслати клієнту картку 1–' + l.length + '</button>' +
+        (u.variants.sheet ? '<button type="button" class="dz-b" data-do="pic-open" data-url="' + esc(u.variants.sheet) + '">👁 Картка</button>' : '') +
+        (l.length >= 2 ? '<button type="button" class="dz-b" data-do="u-var-pick" data-u="' + uid + '">' + (pick ? 'Змінити вибір' : 'Клієнт обрав…') + '</button>' : '') +
+      '</div>' +
     '</div>';
   }
   /* ── КОМЕНТАР МЕНЕДЖЕРА Й ТЕРМІНОВІСТЬ ───────────────────────────────
@@ -5906,6 +5954,7 @@
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, acctUrg: acctUrg, writeHtml: writeHtml,
     verTilesHtml: verTilesHtml,
     unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden, artKindsOf: artKindsOf, b2cGate: b2cGate,
+    varsOf: varsOf, VAR_MAX: VAR_MAX, variantsHtml: variantsHtml,
     dzCostOf: dzCostOf, dzCostSync: dzCostSync,
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
@@ -7316,6 +7365,11 @@
          з превʼю й файлами: доти про одну розмову було три різні списки, і
          щоб зрозуміти, на чому зупинились, їх доводилось складати в голові
          за часом. */
+      /* ВАРІАНТИ НА КІЛЬКОХ ВИРОБАХ (16.10): в індивідуальному їх робить
+         графічний дизайнер, коли є ескіз; акаунт-менеджер потім поправляє. */
+      ((kind === 'graphic' && x.o && x.o.dir === 'b2c' && !u.ready && (d.vers || []).length)
+        ? U.zoneHtml('violet', '\uD83C\uDFA8', 'Варіанти на кількох виробах', '', U.variantsHtml(u, { o: x.o }))
+        : '') +
       U.zoneHtml('green', '\uD83D\uDCAC', 'Переписка', '',
         U.dzChatHtml(u, kind, d, D.dzList(u, kind).indexOf(d),
                      { ro:true, as:kind, no: x.job ? U.unitNo(x.job, u) : '' }) +
@@ -7354,7 +7408,7 @@
         U.taskBlockHtml(p, kind) +
         (mine.length
           ? mine.map(function(x, i){
-              return dzWorkHtml(Object.assign({ job: job }, x), i, kind); }).join('')
+              return dzWorkHtml(Object.assign({ job: job, o: o }, x), i, kind); }).join('')
           : '<div class="dz-miss is-calm">Це замовлення вам не передавали.</div>') +
       '</div>';
   }
@@ -9688,6 +9742,7 @@
     /* Готовий дизайн (13.10) — робота менеджера зі складом, як вибір одягу. */
     'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art',
     'u-repeat':'art', 'u-rep-up':'art', 'u-rep-del':'art', 'u-rep-past':'art',
+    'u-var-add':'art', 'u-var-place':'art', 'u-var-art':'art', 'u-var-del':'art', 'u-var-send':'art', 'u-var-pick':'art',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -9723,6 +9778,177 @@
     if(seat !== 'acct' && id){ try{ U.open(String(id)); render(root); }catch(e){} }
     return { seat: seat };
   }
+  /* Збирач версії з вікна розміщення — один на здачу дизайнера, правку
+     менеджера, готовий дизайн і варіанти (винесено з блоку дій 16.10). */
+  function threadsUnion(works){
+    var out = [], seen = {};
+    (works || []).forEach(function(w){ (w.threads || []).forEach(function(t){
+      if(t && t.code && !seen[t.code]){ seen[t.code] = 1; out.push({ code: t.code, hex: t.hex }); } }); });
+    return out;
+  }
+  async function workVer(res, du){
+    say('Збираю мокапи…');
+    /* Мокапи зібрались у браузері як data:URL. Класти їх у картку
+       такими не можна: картка їде в базу, а там ліміт на документ. */
+    var файли = [];
+    var місця = [];
+    for(var i = 0; i < res.sides.length; i++){
+      var s = res.sides[i];
+      var up = await uploadDataUrl(s.png, 'мокап-' + s.side + '.png');
+      if(!up || !up.url){ say('Мокап не зберігся у сховищі'); return null; }
+      файли.push({ name: s.label + '.png', url: up.url, role:'mock' });
+      /* Положення в частках кадру теж лягає у версію: без нього
+         менеджер не зміг би відкрити розкладку й поправити її. */
+      s.places.forEach(function(p){
+        місця.push({ side:s.side, label:s.label, name:p.name,
+                     work:p.work, x:p.x, y:p.y, w:p.w,
+                     wCm:p.wCm, hCm:p.hCm, topCm:p.topCm, sideCm:p.sideCm,
+                     /* 16.10: пропорції файлу й видимі межі малюнка — щоб карта цеху
+                        міряла по малюнку, а не по прозорому квадрату. */
+                     ar: p.ar || null, tr: p.tr || null }); });
+    }
+    /* Робота з прибраним фоном зібралась у браузері як data-URL —
+       кладемо в сховище, як і мокапи. Особа роботи (хеш) лишається
+       від вихідного файлу: це той самий дизайн, лише без тла. */
+    for(var wi = 0; wi < (res.works || []).length; wi++){
+      var ww = res.works[wi];
+      if(!/^data:/i.test(String(ww.url || ''))) continue;
+      var wu = await uploadDataUrl(ww.url, (ww.name || 'робота').replace(/\.\w+$/, '') + '-без-фону.png');
+      if(!wu || !wu.url){ say('Робота без фону не зберіглась у сховищі'); return null; }
+      ww.url = wu.url;
+    }
+    /* Самі роботи теж кладемо у версію: вишивальному дизайнеру
+       потрібні вони, а не мокап, і клієнту йде аркуш. */
+    (res.works || []).forEach(function(w){
+      файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '', role:'work' });
+      /* Оригінал до адаптації й SVG з тими самими нитками — поруч, окремими
+         ролями: далі в роботу йде лише адаптована. */
+      if(w.orig && w.orig.url) файли.push({ name: w.orig.name || 'оригінал', url: w.orig.url, role:'orig' });
+      if(w.svg && w.svg.url) файли.push({ name: w.svg.name || 'нитки.svg', url: w.svg.url, role:'svg' });
+    });
+    return { files: файли, place: {
+      works: (res.works || []).map(function(w){
+        return { name:w.name || '', url:w.url, hash:w.hash || '', threads: w.threads || [],
+                 orig: w.orig || null, svg: w.svg || null }; }),
+      threads: threadsUnion(res.works || []),
+      spots: місця, нанесень: res.нанесень, робіт: res.робіт,
+      size: res.size || du.size || '',
+      /* Перше нанесення — те, що показують у рядку під версією:
+         одне число «на дизайн» тут неможливе, бо їх кілька. */
+      wCm: (місця[0] || {}).wCm || 0, hCm: (місця[0] || {}).hCm || 0,
+      topCm: (місця[0] || {}).topCm || 0, sideCm: (місця[0] || {}).sideCm || 0
+    } };
+  }
+  /* ── ВАРІАНТИ: допоміжне ── */
+  function varRowWithVer(u){
+    return D.dzList(u, 'graphic').filter(function(d){ return d && d.vers && d.vers.length; }).pop() || null;
+  }
+  /* Картинка, яку ставимо на всі варіанти: готовий/повторний — його принт;
+     індивідуальний — робота з останньої версії дизайнера; немає — обрати. */
+  async function varBaseArt(u){
+    if(u.variants && u.variants.art && u.variants.art.url) return u.variants.art;
+    var a = null;
+    if(u.ready) a = D.readyArts(u.ready)[0] || null;
+    else { var d = varRowWithVer(u), pv = d && d.vers[d.vers.length - 1]; a = pv ? (D.verParts(pv).work[0] || null) : null; }
+    if(!a || !a.url){
+      say('Ескізу ще немає — оберіть картинку, яку поставимо на всі варіанти');
+      var f = await uploadMany('image/*');
+      if(!f.length) return null;
+      a = { name: f[0].name || 'картинка', url: f[0].url };
+    }
+    u.variants = u.variants || { list: [] };
+    u.variants.art = { name: a.name || 'картинка', url: a.url };
+    return u.variants.art;
+  }
+  function varBasePlaces(u, сторони){
+    var keys = сторони.map(function(x){ return x.key; });
+    var d = u.ready ? D.dzList(u, 'graphic').filter(function(x){ return x.readyMade; })[0] : varRowWithVer(u);
+    var pv = d && d.vers && d.vers[d.vers.length - 1];
+    var l = pv ? D.verSpots(pv).filter(Boolean).map(function(sp){
+      return { side: keys.indexOf(sp.side) >= 0 ? sp.side : keys[0], work: 0, x: sp.x, y: sp.y, w: sp.w }; }) : [];
+    return l.length ? l : [{ side: keys[0], work: 0, x: 0.5, y: 0.3, w: 0.26 }];
+  }
+  function varPlace(root, job, o, u, v){
+    if(!window.LQMock || !window.LQMock.openWork) return say('Вікно розміщення не завантажилось');
+    var art = (v.art && v.art.url) ? v.art : ((u.variants || {}).art || null);
+    if(!art) return say('Немає картинки для варіанта');
+    var сторони = [];
+    try{ сторони = (host().sides && host().sides(v.gid, v.color)) || []; }catch(e){}
+    if(!сторони.length) return say('У цього виробу немає фото в каталозі');
+    return window.LQMock.openWork({
+      placeOnly: true,
+      gid: v.gid, size: u.size || 'M', sizeAssumed: !u.size, color: v.color || '',
+      name: 'Варіант ' + v.n + ' · ' + [(U.catItem(v.gid) || {}).name || v.name, v.color].filter(Boolean).join(' · '),
+      sides: сторони,
+      works: [{ name: art.name || 'картинка.png', url: art.url, hash: 'var:' + u.id + ':' + v.n }],
+      places: (v.places && v.places.length) ? v.places : varBasePlaces(u, сторони),
+      onDone: async function(res){
+        var зб = await workVer(res, u);
+        if(!зб) return;
+        v.files = зб.files; v.place = зб.place;
+        v.mock = (зб.files.filter(function(f){ return f.role === 'mock'; })[0] || {}).url || '';
+        v.places = (зб.place.spots || []).map(function(sp){ return { side: sp.side, work: sp.work || 0, x: sp.x, y: sp.y, w: sp.w }; });
+        delete u.variants.sheet;
+        await save(job, o, 'Варіант ' + v.n + ' розміщено');
+      }
+    });
+  }
+  function varLabel(v){
+    return [(U.catItem(v.gid) || {}).name || v.name || 'виріб', v.color].filter(Boolean).join(' · ');
+  }
+  async function varSend(job, o, u){
+    var l = U.varsOf(u);
+    if(l.length < 2 || l.some(function(v){ return !v.mock; })) return say('Розмістіть дизайн на всіх варіантах (щонайменше 2)');
+    if(!window.LQMock || !window.LQMock.variantsCard) return say('Картка варіантів не завантажилась');
+    say('Збираю картку варіантів…');
+    var png = await window.LQMock.variantsCard({
+      title: 'Варіанти на вибір', no: U.unitNo(job, u),
+      items: l.map(function(v){ return { n: v.n, img: v.mock, label: varLabel(v) }; }),
+      note: 'Напишіть номер варіанта, який подобається більше'
+    });
+    if(!png) return say('Картка варіантів не зібралась');
+    var up = await uploadDataUrl(png, 'варіанти-' + U.unitNo(job, u) + '.png');
+    if(!up || !up.url) return say('Картка не зберіглась у сховищі');
+    u.variants.sheet = up.url; u.variants.sheetAt = new Date().toISOString();
+    await save(job, o, '');
+    if(!host().tellPic) return say('Картку зібрано — надіслати звідси не вийшло, скачайте її');
+    var txt = 'Підготували кілька варіантів — напишіть, будь ласка, номер, який подобається більше:\n' +
+      l.map(function(v){ return v.n + ' — ' + varLabel(v); }).join('\n');
+    var ok = false;
+    try{ ok = await host().tellPic(o, up.url, txt); }catch(e){ console.warn('варіанти', e); }
+    return say(ok ? 'Картку варіантів 1–' + l.length + ' надіслано клієнту' : 'Картку зібрано, але не надіслано — спробуйте ще раз');
+  }
+  /* Обовʼязкове вікно «Який варіант обрав клієнт?». Закрили — нічого не
+     відбувається: без вибору позиція далі не йде. */
+  function variantChoose(u, cb){
+    var l = U.varsOf(u);
+    return U.pickOpen('Який варіант обрав клієнт?',
+      'Обраний стане виробом, кольором і версією дизайну позиції — далі йде саме він',
+      '<div class="dz-var-ch">' + l.map(function(v){
+        return '<button type="button" class="dz-pick-c dz-var-c" data-pick="' + v.n + '">' +
+          '<i class="dz-var-n">' + v.n + '</i>' +
+          (v.mock ? '<img src="' + esc(v.mock) + '" alt="">' : '<span class="dz-var-img is-none">не розміщено</span>') +
+          '<span>' + esc(varLabel(v)) + '</span></button>';
+      }).join('') + '</div>',
+      function(n){ var v = l.filter(function(x){ return x.n === +n; })[0]; if(v) cb(v); });
+  }
+  /* Обраний варіант — у позицію: виріб і колір, а його розміщення й мокап —
+     новою версією дизайну, погодженою клієнтом. Повертає номер версії. */
+  function varApply(job, u, v, by, dRow){
+    var now = new Date().toISOString();
+    u.gid = v.gid; u.name = v.name || u.name; u.color = v.color || ''; u.colorHex = v.colorHex || '';
+    var d = dRow || (u.ready ? D.readyGraphic(u, by) : varRowWithVer(u));
+    var n = 0;
+    if(d && v.files && v.files.length){
+      D.dzVer(d, by, v.files, 'Клієнт обрав варіант ' + v.n + ' · ' + varLabel(v), v.place, 'acct');
+      var nv = d.vers[d.vers.length - 1];
+      nv.byAcct = true; nv.variant = v.n;
+      n = nv.n;
+      D.sketchOkMark(d, n, by);
+    }
+    u.variants.pick = v.n; u.variants.pickAt = now; u.variants.pickBy = String(by || '');
+    return n;
+  }
   /* ФІКСАЦІЯ ПЕРЕТЯГУВАННЯМ «Ескіз узгоджено» → «Черга вишивки» (14.10):
      по черзі вікно одягу на кожну позицію з узгодженим ескізом; підтвердили
      все — погоджено, одяг зафіксовано, позиції в черзі вишивки й закупівлі. */
@@ -9741,12 +9967,18 @@
         return save(p.job, p.o, 'Фіксація · у черзі вишивки й закупівлі');
       }
       var x = черга[k++];
-      var n = x.d.sketchOk || (x.d.vers.length ? x.d.vers[x.d.vers.length - 1].n : 1);
-      clothOpen(x.u, 'Фіксація · ' + U.unitNo(p.job, x.u) + ' · v' + n, function(st){
-        clothApply(x.u, st, me0);
-        D.dzOk(x.d, me0, 'client', n);
-        далі();
-      }, p.o);
+      var фікс = function(){
+        var n = x.d.sketchOk || (x.d.vers.length ? x.d.vers[x.d.vers.length - 1].n : 1);
+        clothOpen(x.u, 'Фіксація · ' + U.unitNo(p.job, x.u) + ' · v' + n, function(st){
+          clothApply(x.u, st, me0);
+          D.dzOk(x.d, me0, 'client', n);
+          далі();
+        }, p.o);
+      };
+      /* Надсилали варіанти — спершу який обрав клієнт (16.10). */
+      if(U.varsOf(x.u).length >= 2 && !(x.u.variants || {}).pick)
+        return variantChoose(x.u, function(v){ varApply(p.job, x.u, v, me0, x.d); фікс(); });
+      фікс();
     };
     далі();
   }
@@ -10281,6 +10513,57 @@
       if(!D.readyDetach(ou)) return say('Готовий дизайн уже погоджено — змінити не можна');
       return save(job, o, 'Позиція індивідуальна');
     }
+    /* ── ВАРІАНТИ НА КІЛЬКОХ ВИРОБАХ ── */
+    if(what === 'u-var-add' || what === 'u-var-place' || what === 'u-var-art' || what === 'u-var-del' ||
+       what === 'u-var-send' || what === 'u-var-pick'){
+      var vu = U.unitAt(job, data && data.u);
+      if(!vu) return;
+      var vl = U.varsOf(vu), vn = +(data && data.v) || 0;
+      var vv = vl.filter(function(x){ return x.n === vn; })[0] || null;
+      if(what === 'u-var-add'){
+        if(vl.length >= U.VAR_MAX) return say('Варіантів щонайбільше ' + U.VAR_MAX);
+        var база = await varBaseArt(vu);
+        if(!база) return;
+        return U.pickGarment(vl.length ? '' : vu.gid, function(gid){
+          var vg = U.catItem(gid);
+          U.pickColor(gid, function(cid){
+            var c0 = ((vg && vg.colors) || []).filter(function(c){ return c.id === cid; })[0];
+            vu.variants = vu.variants || { list: [] };
+            if(!Array.isArray(vu.variants.list)) vu.variants.list = [];
+            var nv = { n: vu.variants.list.length + 1, gid: gid, name: vg ? vg.name : '',
+                       color: c0 ? (c0.name || c0.id) : '', colorHex: c0 ? (c0.hex || '') : '' };
+            vu.variants.list.push(nv);
+            delete vu.variants.sheet; delete vu.variants.pick;
+            save(job, o, 'Варіант ' + nv.n + ' додано — розмістіть дизайн').then(function(){
+              varPlace(root, job, o, vu, nv); });
+          });
+        });
+      }
+      if(what === 'u-var-place'){ if(!vv) return; return varPlace(root, job, o, vu, vv); }
+      if(what === 'u-var-art'){
+        if(!vv) return;
+        var vf = await uploadMany('image/*');
+        if(!vf.length) return;
+        vv.art = { name: vf[0].name || 'картинка', url: vf[0].url };
+        vv.artOwn = true;
+        vv.mock = ''; vv.files = null; vv.place = null;
+        delete vu.variants.sheet;
+        await save(job, o, 'Картинку замінено лише у варіанті ' + vv.n + ' — розмістіть її');
+        return varPlace(root, job, o, vu, vv);
+      }
+      if(what === 'u-var-del'){
+        if(!vv) return;
+        vu.variants.list = vl.filter(function(x){ return x !== vv; });
+        vu.variants.list.forEach(function(x, i){ x.n = i + 1; });
+        delete vu.variants.sheet; delete vu.variants.pick;
+        return save(job, o, 'Варіант прибрано');
+      }
+      if(what === 'u-var-send') return varSend(job, o, vu);
+      if(what === 'u-var-pick') return variantChoose(vu, function(x){
+        varApply(job, vu, x, m, null);
+        save(job, o, 'Клієнт обрав варіант ' + x.n + ' — виріб і колір позиції оновлено');
+      });
+    }
     if(what === 'u-ready-place'){
       var pl = U.unitAt(job, data && data.u);
       if(!pl || !pl.ready) return;
@@ -10797,12 +11080,6 @@
      результат: мокапи сторін, самі роботи й цифри розміщення. Два різні
      збирачі колись розійшлися б — і в цеху версія менеджера виглядала б
      інакше, ніж версія дизайнера. */
-  function threadsUnion(works){
-    var out = [], seen = {};
-    (works || []).forEach(function(w){ (w.threads || []).forEach(function(t){
-      if(t && t.code && !seen[t.code]){ seen[t.code] = 1; out.push({ code: t.code, hex: t.hex }); } }); });
-    return out;
-  }
   /* Розмістити готовий дизайн на одязі: те саме вікно, що в «✎ Розміщення»,
      принт уже лежить на грудях. Зберегли — перша версія від менеджера й одразу
      показ клієнту (через ту саму дію «Надіслати», зі скриптом {готовий}). */
@@ -10841,59 +11118,6 @@
         return act('dz-tell', root, { dz: u.id + '|graphic|' + i, v: v.n });
       }
     });
-  }
-  async function workVer(res, du){
-    say('Збираю мокапи…');
-    /* Мокапи зібрались у браузері як data:URL. Класти їх у картку
-       такими не можна: картка їде в базу, а там ліміт на документ. */
-    var файли = [];
-    var місця = [];
-    for(var i = 0; i < res.sides.length; i++){
-      var s = res.sides[i];
-      var up = await uploadDataUrl(s.png, 'мокап-' + s.side + '.png');
-      if(!up || !up.url){ say('Мокап не зберігся у сховищі'); return null; }
-      файли.push({ name: s.label + '.png', url: up.url, role:'mock' });
-      /* Положення в частках кадру теж лягає у версію: без нього
-         менеджер не зміг би відкрити розкладку й поправити її. */
-      s.places.forEach(function(p){
-        місця.push({ side:s.side, label:s.label, name:p.name,
-                     work:p.work, x:p.x, y:p.y, w:p.w,
-                     wCm:p.wCm, hCm:p.hCm, topCm:p.topCm, sideCm:p.sideCm,
-                     /* 16.10: пропорції файлу й видимі межі малюнка — щоб карта цеху
-                        міряла по малюнку, а не по прозорому квадрату. */
-                     ar: p.ar || null, tr: p.tr || null }); });
-    }
-    /* Робота з прибраним фоном зібралась у браузері як data-URL —
-       кладемо в сховище, як і мокапи. Особа роботи (хеш) лишається
-       від вихідного файлу: це той самий дизайн, лише без тла. */
-    for(var wi = 0; wi < (res.works || []).length; wi++){
-      var ww = res.works[wi];
-      if(!/^data:/i.test(String(ww.url || ''))) continue;
-      var wu = await uploadDataUrl(ww.url, (ww.name || 'робота').replace(/\.\w+$/, '') + '-без-фону.png');
-      if(!wu || !wu.url){ say('Робота без фону не зберіглась у сховищі'); return null; }
-      ww.url = wu.url;
-    }
-    /* Самі роботи теж кладемо у версію: вишивальному дизайнеру
-       потрібні вони, а не мокап, і клієнту йде аркуш. */
-    (res.works || []).forEach(function(w){
-      файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '', role:'work' });
-      /* Оригінал до адаптації й SVG з тими самими нитками — поруч, окремими
-         ролями: далі в роботу йде лише адаптована. */
-      if(w.orig && w.orig.url) файли.push({ name: w.orig.name || 'оригінал', url: w.orig.url, role:'orig' });
-      if(w.svg && w.svg.url) файли.push({ name: w.svg.name || 'нитки.svg', url: w.svg.url, role:'svg' });
-    });
-    return { files: файли, place: {
-      works: (res.works || []).map(function(w){
-        return { name:w.name || '', url:w.url, hash:w.hash || '', threads: w.threads || [],
-                 orig: w.orig || null, svg: w.svg || null }; }),
-      threads: threadsUnion(res.works || []),
-      spots: місця, нанесень: res.нанесень, робіт: res.робіт,
-      size: res.size || du.size || '',
-      /* Перше нанесення — те, що показують у рядку під версією:
-         одне число «на дизайн» тут неможливе, бо їх кілька. */
-      wCm: (місця[0] || {}).wCm || 0, hCm: (місця[0] || {}).hCm || 0,
-      topCm: (місця[0] || {}).topCm || 0, sideCm: (місця[0] || {}).sideCm || 0
-    } };
   }
   /* ЗІБРАТИ АРКУШ. Один збирач на два випадки — здачу версії й скачування
      на вимогу: два різні означали б, що аркуш у картці й аркуш у теці
@@ -11067,7 +11291,10 @@
             D.sketchOkMark(dd, n, m);
             return save(job, o, 'Ескіз узгоджено · v' + n + ' — далі «Фіксація»');
           }
-          /* Крок 2 — фіксація: одяг обовʼязково, далі черга вишивки. */
+          /* Крок 2 — фіксація: одяг обовʼязково, далі черга вишивки.
+             Надсилали варіанти — спершу який обрав клієнт (16.10). */
+          if(U.varsOf(du).length >= 2 && !(du.variants || {}).pick)
+            return variantChoose(du, function(v){ var n2 = varApply(job, du, v, m, dd); погодити(n2 || n); });
           clothOpen(du, 'Фіксація · v' + n + ' · одяг', function(st){
             clothApply(du, st, m);
             act('dz-ok', root, { dz: dkey, v: n, how: як });
