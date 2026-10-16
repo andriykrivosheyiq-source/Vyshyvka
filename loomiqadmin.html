@@ -7718,28 +7718,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ac5a65a006"></script>
-<script src="loomiq-fingerprint.js?v=ac5a65a006"></script>
-<script src="loomiq-pricing.js?v=ac5a65a006"></script>
+<script src="loomiq-select.js?v=4a8fff3571"></script>
+<script src="loomiq-fingerprint.js?v=4a8fff3571"></script>
+<script src="loomiq-pricing.js?v=4a8fff3571"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=ac5a65a006"></script>
+<script src="loomiq-money-core.js?v=4a8fff3571"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ac5a65a006"></script>
-<script src="loomiq-bg.js?v=ac5a65a006"></script>
-<script src="loomiq-mock.js?v=ac5a65a006"></script>
+<script src="loomiq-design.js?v=4a8fff3571"></script>
+<script src="loomiq-bg.js?v=4a8fff3571"></script>
+<script src="loomiq-mock.js?v=4a8fff3571"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=ac5a65a006"></script>
-<script src="loomiq-threads.js?v=ac5a65a006"></script>
+<script src="imagetracer.js?v=4a8fff3571"></script>
+<script src="loomiq-threads.js?v=4a8fff3571"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ac5a65a006"></script>
+<script src="loomiq-cards.js?v=4a8fff3571"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7784,7 +7784,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ac5a65a006';
+var LQ_VER = '4a8fff3571';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -25682,6 +25682,10 @@ function crmNormMsgs(data, o){
              /* Коли Sitniks усе ж сказав словом, що повідомлення видалене, —
                 віримо йому одразу, не чекаючи, поки воно зникне зі стрічки. */
              gone: !!(m.deleted || m.isDeleted || m.is_deleted || m.deletedAt),
+             /* id і точний час (до секунди) — для позначки «прочитано». Хвилини
+                було замало: клієнт, що відповів у ту саму хвилину, ховався. */
+             id: String(m.id || m._id || m.messageId || m.message_id || ''),
+             ts: at ? crmTime(String(at)) : 0,
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text || (m.files && m.files.length));
   /* Sitniks віддає найновіше першим, і розмова читалась догори ногами.
@@ -25740,22 +25744,17 @@ function crmNormMsgs(data, o){
      рахує це спостереженнями й може недорахувати (три репліки за одну
      хвилину він побачить як одну); тут же стрічка перед нами вся, тож
      переписуємо точним числом. */
-  let tail = 0;
-  for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) tail++;
-  /* Прочитане руками більше не непрочитане. Без цієї межі наступний же
-     такт опитування перерахував би хвіст і повернув кружечок — тобто
-     кнопка «прочитано» працювала б рівно до наступної секунди. */
-  const межа = crmSeenAt(o);
-  if(межа){
-    let свіжих = 0;
-    for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--)
-      if(!живі[i].at || живі[i].at > межа) свіжих++;
-    tail = свіжих;
-    /* Клієнт озвався після позначки — межа своє відслужила. */
-    if(!tail) o.crmTheirs = false; else o.crmSeen = '';
-  }
-  if((+o.crmUnread || 0) !== tail){ o.crmUnread = tail; o.crmTheirs = tail > 0; }
-  return crmPicsMerge(o, list);
+  /* Прочитане руками (👁) чи «ми відповіли» — межа, далі якої не рахуємо.
+     Позначка лишається, доки ми не відповімо: стирати її з першою ж новою
+     реплікою не можна — наступний такт порахував би й прочитане, і число
+     стрибало б 1 → 4 (16.10, «то зʼявляється, то пропадає»). */
+  /* Рахуємо ПІСЛЯ злиття з нашими фото: картинка, якої Sitniks у стрічку
+     не повертає, — теж наша відповідь, і вона закриває хвіст. */
+  const злита = crmPicsMerge(o, list);
+  const tail = crmTailOf(o, (злита || []).filter(m => m && !m.gone));
+  if((+o.crmUnread || 0) !== tail) o.crmUnread = tail;
+  o.crmTheirs = tail > 0;
+  return злита;
 }
 /* ══════════ НАШІ ФОТО — У СТРІЧЦІ ОДРАЗУ (08.10) ══════════
    Андрій: «фото надсилаються, а в діалозі не показуються, або через хвилин
@@ -26553,8 +26552,10 @@ async function crmSweepOnce(){
            показується». Тож дочитуємо стрічку й рахуємо точний хвіст. */
         if(!(chatWin && chatWin.id === o.id)) recount.push(o);
       } else {
-        /* Ми відповіли (хоч і прямо з Instagram) — лічильник обнуляється. */
-        o.crmUnread = 0; o.crmSeen = '';
+        /* Ми відповіли (хоч і прямо з Instagram) — лічильник обнуляється.
+           Стрічку теж дочитуємо: «наше» тут — здогад з одного рядка списку. */
+        o.crmUnread = 0;
+        if(!(chatWin && chatWin.id === o.id)) recount.push(o);
       }
       touched = true;
     });
@@ -26837,14 +26838,10 @@ function crmSweepStart(){
    він гаснув би від погляду, і «непрацьовано» перестало б щось означати. */
 function crmAnswered(o){
   if(!o) return;
-  o.crmUnread = 0;
-  o.crmTheirs = false;
-  /* Межа «прочитано» — по останню репліку клієнта: поки Sitniks ще не
-     повернув нашу відповідь, такт опитування інакше перерахував би хвіст
-     і на кілька секунд повернув кружечок. */
-  const st = crmChat[o.id] || {};
-  const остання = (st.msgs || []).filter(m => m && m.at).map(m => m.at).sort().pop();
-  if(остання && остання > String(o.crmSeen || '')) o.crmSeen = остання;
+  /* Межа «прочитано» — по останню репліку стрічки, а без стрічки (макет
+     надіслали з дошки) — по цю мить. Інакше наша відповідь, якої Sitniks
+     у стрічку не повертає (картинки), лишала б кружечок на місці. */
+  crmSeenMark(o);
   try{ chatsRepaint(); }catch(e){}
 }
 function crmStartPoll(o){
@@ -28826,6 +28823,46 @@ function chatWaiting(o, kind){
 /* До якої миті розмову прочитано. Усе давніше або рівне не рахується
    непрочитаним — ні в кружечку на картці, ні рискою в стрічці. */
 function crmSeenAt(o){ return String((o && o.crmSeen) || ''); }
+/* СКІЛЬКИ ПРОПУЩЕНО — ОДИН ПІДРАХУНОК НА ВСІ МІСЦЯ (16.10).
+   Хвіст клієнтських реплік у кінці стрічки — до нашої репліки або до
+   позначки «прочитано». Позначка — конкретне повідомлення (crmSeenK) і
+   точна мить (crmSeenTs, мс); стара позначка хвилиною (crmSeen) — лише для
+   записаних до 16.10. */
+function crmMsgId(m){ return (m && m.id) ? 'id:' + m.id : crmMsgKey(m); }
+function crmTailOf(o, живі){
+  const key = String((o && o.crmSeenK) || ''), keyT = String((o && o.crmSeenKt) || '');
+  const ts = +((o && o.crmSeenTs) || 0), хв = crmSeenAt(o);
+  let n = 0;
+  for(let i = (живі || []).length - 1; i >= 0; i--){
+    const m = живі[i];
+    if(!m || m.mine) break;
+    /* Те саме повідомлення: за id, коли він є з обох боків, інакше — за
+       текстом і файлами. */
+    if(m.id && key.indexOf('id:') === 0 ? ('id:' + m.id) === key : (keyT && crmMsgKey(m) === keyT)) break;
+    /* Давніше за позначку: точним часом, коли він є з обох боків, інакше —
+       хвилиною (записи до 16.10 і стрічки без секунд). */
+    if(ts && m.ts){ if(m.ts <= ts) break; }
+    else if(хв && m.at && m.at <= хв) break;
+    n++;
+  }
+  return n;
+}
+/* Поставити позначку «прочитано тут»: на останню репліку стрічки, а як
+   стрічки ще немає — на цю мить. */
+function crmSeenMark(o){
+  const st = crmChat[o.id] || {};
+  const живі = (st.msgs || []).filter(m => m && !m.gone && !m.local);
+  const ост = живі[живі.length - 1];
+  o.crmSeenK = ост ? crmMsgId(ост) : '';
+  o.crmSeenKt = ост ? crmMsgKey(ост) : '';
+  /* Без стрічки — по останній репліці, яку бачив обхід (час Sitniks, а не
+     годинник браузера: той може відставати чи поспішати). */
+  o.crmSeenTs = ост ? (ост.ts || 0) : (crmTime(o.crmAt) || Date.now());
+  o.crmSeen = (ост && ост.at) || (o.crmAt ? String(o.crmAt).replace('T', ' ').slice(0, 16)
+                                           : new Date().toISOString().replace('T', ' ').slice(0, 16));
+  o.crmUnread = 0; o.crmTheirs = false;
+}
+function crmSeenClear(o){ o.crmSeen = ''; o.crmSeenK = ''; o.crmSeenKt = ''; o.crmSeenTs = 0; }
 /* ПОЗНАЧИТИ РОЗМОВУ ПРОЧИТАНОЮ — ОДНЕ МІСЦЕ НА ВСІ ПРИВОДИ.
 
    Приводів два: відкрили й прочитали, або натиснули око. Вони мають робити
@@ -28841,10 +28878,7 @@ function chatMarkRead(o, kind){
     /* Мить останньої репліки в стрічці, а як її немає — час картки. Саме
        мить, а не «прочитано»: інакше наступний такт опитування перерахує
        хвіст і поверне число назад. */
-    const st = crmChat[o.id] || {};
-    const остання = (st.msgs || []).filter(m => m && m.at).map(m => m.at).sort().pop();
-    o.crmSeen = остання || o.crmAt || new Date().toISOString().replace('T', ' ').slice(0, 16);
-    o.crmUnread = 0; o.crmTheirs = false;
+    crmSeenMark(o);
   }
   /* Число біля розділу гасне ТІЄЇ Ж МИТІ, а не з наступним тактом. Запис у
      базу йде своїм ходом — чекати на мережу, щоб прибрати цифру, яка вже
@@ -28870,20 +28904,15 @@ function chatSeenToggle(o, kind){
     if(було){ o.tgSeen = o.tgAt; o.tgSeenWrote = +o.tgWrote || 0; }
     else { o.tgSeen = ''; o.tgSeenWrote = null; }
   } else if(було){
-    /* Мить останньої репліки в стрічці, а як її немає — час картки. */
-    const st = crmChat[o.id] || {};
-    const остання = (st.msgs || []).filter(m => m && m.at).map(m => m.at).sort().pop();
-    o.crmSeen = остання || o.crmAt || new Date().toISOString().replace('T', ' ').slice(0, 16);
-    o.crmUnread = 0; o.crmTheirs = false;
+    crmSeenMark(o);
   } else {
-    o.crmSeen = '';
+    crmSeenClear(o);
     /* Повертаємо рівно те, що система рахує сама: хвіст клієнтських реплік
        після нашої останньої відповіді. Вигадувати одиницю не можна — вона
        розійдеться з тим, що покаже наступний такт. */
     const st = crmChat[o.id] || {};
     let хвіст = 0;
-    const живі = (st.msgs || []).filter(m => m && !m.gone);
-    for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) хвіст++;
+    хвіст = crmTailOf(o, (st.msgs || []).filter(m => m && !m.gone));
     o.crmUnread = хвіст || 1;
     o.crmTheirs = true;
   }
