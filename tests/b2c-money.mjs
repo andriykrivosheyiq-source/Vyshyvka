@@ -276,6 +276,59 @@ ok(пос.після.n === 1 && пос.після.сума === пос.до + 200
 ok(пос.roНазва && !пос.roЦіна, 'дизайнер бачить послугу в позиції, без ціни', JSON.stringify(пос));
 
 console.log('');
+console.log('═══ ТИП МАЛЮНКА: ЦІНА ± І ОПЛАТА ДИЗАЙНЕРАМ (16.10) ═══');
+const тип = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui;
+  contentData.b2c = Object.assign({}, contentData.b2c, {
+    artKinds: [{ id:'text', name:'Текст', delta:-200 }, { id:'portrait', name:'Портрет', delta:0 }],
+    dzRates: { graphic: { '*': { text:300, portrait:600 }, 'g1@x': { text:400 } },
+               stitch:  { '*': { text:200 } } } });
+  const j = designJobMake('2000103'); const o = orders.find(x => x.orderId === '2000103');
+  j.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:1, note:'напис', artKind:'text' })];
+  const u = j.units[0];
+  U.priceLockJob(j);
+  const базова = U.sumRows(j)[0].sum;
+  const r0 = { дельта: U.sumRows(j).filter(r => r.kindDelta).map(r => r.sum).join(), сума: U.netSum(o, j),
+               гр: U.dzCostOf(u, 'graphic'), вш: U.dzCostOf(u, 'stitch') };
+  /* Середня записана — зміна ставок у налаштуваннях її не рухає. */
+  contentData.b2c.dzRates.stitch['*'].text = 500;
+  U.priceLockJob(j);
+  const вшПісля = U.dzCostOf(u, 'stitch');
+  /* Обрали графічного — його ставка. */
+  const d = D.dzNew(); d.who = 'g1@x'; u.graphic = [d];
+  const r1 = U.dzCostOf(u, 'graphic');
+  /* Клієнт погодив — нараховано; ставка потім змінилась — нарахування те саме. */
+  d.ok = { ver:1, at:new Date().toISOString() }; d.status = 'approved';
+  U.priceLockJob(j);
+  contentData.b2c.dzRates.graphic['g1@x'].text = 450;
+  U.priceLockJob(j);
+  const r2 = U.dzCostOf(u, 'graphic');
+  const соб = U.orderCost(j);
+  const m = new Date().toISOString().slice(0, 7);
+  const виплата = dashDzPay(m, 'graphic').filter(x => x.who === 'g1@x')[0] || null;
+  /* Зміна дельти в налаштуваннях не міняє зафіксованої. */
+  contentData.b2c.artKinds[0].delta = -300;
+  U.priceLockJob(j);
+  const дельтаПісля = U.sumRows(j).filter(r => r.kindDelta).map(r => r.sum).join();
+  const html = (() => { U.setTab('acct'); U.open('2000103'); U.render(document.getElementById('dzRoot'));
+    const f = document.querySelector('#dzRoot [data-fold="Гроші"]'); if(f && !f.closest('.open')) f.click();
+    return (document.querySelector('#dzRoot .dz-cost') || {}).textContent || ''; })();
+  return { базова, r0, вшПісля, r1, r2, соб, виплата, дельтаПісля, html };
+});
+console.log('  ' + JSON.stringify(тип));
+ok(тип.r0.дельта === '-200' && тип.r0.сума === тип.базова - 200,
+  'тип «Текст» −200 ₴ — окремим рядком у «Гроші», сума менша на 200', JSON.stringify(тип.r0));
+ok(тип.r0.гр.src === 'avg' && тип.r0.гр.sum === 350 && тип.r0.вш.src === 'avg' && тип.r0.вш.sum === 200,
+  'дизайнера ще немає — у собівартості середня ставка за тип: графічний 350 (300 і 400), вишивальний 200', JSON.stringify(тип.r0));
+ok(тип.вшПісля.sum === 200, 'середня записана в позицію — зміна ставок її не рухає', JSON.stringify(тип.вшПісля));
+ok(тип.r1.src === 'rate' && тип.r1.sum === 400, 'обрали дизайнера — його ставка (400)', JSON.stringify(тип.r1));
+ok(тип.r2.src === 'paid' && тип.r2.sum === 400, 'клієнт погодив — нараховано 400; зміна ставки на 450 нарахування не міняє', JSON.stringify(тип.r2));
+ok(тип.виплата && тип.виплата.sum === 400 && тип.виплата.n === 1, 'Дашборди: дизайнеру до виплати 400 за 1 дизайн', JSON.stringify(тип.виплата));
+ok(тип.дельтаПісля === '-200', 'зміна «±» у налаштуваннях не міняє зафіксованого в картці', тип.дельтаПісля);
+ok(/графічний\s*400\s*₴\s*нараховано/.test(тип.html) && /вишивальний\s*~200\s*₴\s*середня/.test(тип.html),
+  'у «Гроші» — собівартість рядком: одяг · графічний (нараховано) · вишивальний (середня)', тип.html);
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close();
 srv.close();

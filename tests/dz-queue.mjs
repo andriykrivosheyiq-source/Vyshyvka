@@ -327,6 +327,24 @@ ok(типи.до.join('|') === 'Дитячий малюнок|Портрет|П�
   'типи редагуються в налаштуваннях: перейменування тримає той самий id, новий тип додається',
   'типи: ' + JSON.stringify(типи));
 
+const ставки = await p.evaluate(async () => {
+  paintB2c();
+  const d = document.querySelector('#b2c-artkinds [data-ak-delta]'); d.value = '-150';
+  const inp = document.querySelector('#b2c-dzrates [data-dzr^="graphic|*|"]');
+  const kind = inp.dataset.dzr.split('|')[2];
+  inp.value = '320';
+  const st = document.querySelector('#b2c-dzrates [data-dzr^="stitch|*|"]'); st.value = '180';
+  document.getElementById('b2c-save').click();
+  await new Promise(r => setTimeout(r, 900));
+  const H = window.LQDesign.ui.host;
+  return { kind, гр: H.dzRate('graphic', 'хтось@x', kind), вш: H.dzRate('stitch', '', st.dataset.dzr.split('|')[2]),
+           дельта: H.artKinds()[0].delta, таблиць: document.querySelectorAll('#b2c-dzrates table').length };
+});
+console.log('  ' + JSON.stringify(ставки));
+ok(ставки.таблиць === 2 && ставки.гр === 320 && ставки.вш === 180 && ставки.дельта === -150,
+  'налаштування: «± до ціни» типу й ставки графічним/вишивальним (рядок «За замовчуванням») зберігаються',
+  'ставки: ' + JSON.stringify(ставки));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');

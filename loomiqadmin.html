@@ -4561,6 +4561,20 @@
   }
   /* Привʼязка праворуч, на місці картки (16.10): без затемнення решти
      екрана — діалог ліворуч лишається живим. Рядки — у два ряди. */
+  .b2c-dzr{margin:6px 0 12px;}
+  .b2c-dzr-h{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;}
+  .b2c-dzr-w{overflow-x:auto;max-width:100%;}
+  .b2c-dzr-t{border-collapse:collapse;font-size:12.5px;}
+  .b2c-dzr-t th{font-weight:600;color:var(--muted);text-align:left;padding:4px 6px;white-space:nowrap;}
+  .b2c-dzr-t td{padding:3px 6px;white-space:nowrap;}
+  .b2c-dzr-t input{width:84px;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 7px;}
+  .dz-cost{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:12px;color:var(--ink-soft);
+    border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;}
+  .dz-cost>span{font-weight:700;color:var(--muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.04em;}
+  .dz-cost em{font-style:normal;}
+  .dz-cost i{font-style:normal;color:var(--muted);font-size:11px;}
+  .dz-cost b{margin-left:auto;color:var(--ink);}
+  .dz-sum-r.is-kind b{color:var(--ink-soft);}
   .pp-note{font-size:13px;color:#8A4B08;background:#FFF6E5;border:1px solid #F5DDB0;border-radius:10px;
     padding:9px 12px;margin-bottom:10px;line-height:1.45;}
   .fin-modal.pp-side{inset:auto;position:fixed;background:none;padding:0;display:block;}
@@ -6533,10 +6547,22 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           Що саме малюємо: дитячий малюнок, портрет, портрет улюбленця… Менеджер
           обирає тип у позиції з індивідуальним дизайном — без нього позиція в
           роботу не йде. Дизайнер бачить, що робити, аналітика — що замовляють.
-          Ціну тип не міняє.
+          «± до ціни» — скільки додати чи відняти від базової ціни індивідуального
+          (наприклад, текст: −200). Фіксується в картці разом із ціною.
         </div>
         <div id="b2c-artkinds"></div>
         <div class="add-row-btn" id="b2c-artkind-add">+ Додати тип</div>
+
+        <div class="tl-divider" style="margin-top:22px;">Оплата дизайнерам за дизайн</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Скільки платимо за ОДИН дизайн позиції — окремо кожному дизайнеру і за
+          кожен тип малюнка. Правки й нові версії окремо не оплачуються. Рядок
+          «За замовчуванням» — для того, кому сума не вписана. Іде в собівартість:
+          поки дизайнера немає — середня за 30 днів, обрали — його ставка,
+          графічному нараховується, коли клієнт погодив ескіз, вишивальному —
+          коли здав файли. Нові типи зʼявляться в таблиці після «Зберегти».
+        </div>
+        <div id="b2c-dzrates"></div>
 
         <div class="tl-divider" style="margin-top:22px;">Термін виготовлення</div>
         <div class="sub" style="margin-bottom:8px;">
@@ -7729,28 +7755,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4314fc734e"></script>
-<script src="loomiq-fingerprint.js?v=4314fc734e"></script>
-<script src="loomiq-pricing.js?v=4314fc734e"></script>
+<script src="loomiq-select.js?v=5cf55b9bc1"></script>
+<script src="loomiq-fingerprint.js?v=5cf55b9bc1"></script>
+<script src="loomiq-pricing.js?v=5cf55b9bc1"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=4314fc734e"></script>
+<script src="loomiq-money-core.js?v=5cf55b9bc1"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4314fc734e"></script>
-<script src="loomiq-bg.js?v=4314fc734e"></script>
-<script src="loomiq-mock.js?v=4314fc734e"></script>
+<script src="loomiq-design.js?v=5cf55b9bc1"></script>
+<script src="loomiq-bg.js?v=5cf55b9bc1"></script>
+<script src="loomiq-mock.js?v=5cf55b9bc1"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=4314fc734e"></script>
-<script src="loomiq-threads.js?v=4314fc734e"></script>
+<script src="imagetracer.js?v=5cf55b9bc1"></script>
+<script src="loomiq-threads.js?v=5cf55b9bc1"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4314fc734e"></script>
+<script src="loomiq-cards.js?v=5cf55b9bc1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7795,7 +7821,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '4314fc734e';
+var LQ_VER = '5cf55b9bc1';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9909,6 +9935,9 @@ function paintArtKinds(list){
     <div class="b2c-ak-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
       <input data-ak-name type="text" maxlength="60" value="${escapeHtml(k.name || '')}" placeholder="назва типу"
         style="flex:1;max-width:420px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <input data-ak-delta type="number" step="1" value="${+k.delta ? escapeHtml(String(+k.delta)) : ''}" placeholder="± до ціни, ₴"
+        title="Скільки додати (+) чи відняти (−) від базової ціни індивідуального"
+        style="width:130px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
       <input data-ak-id type="hidden" value="${escapeHtml(k.id || '')}">
       <button class="pc-btn reset" data-ak-del="${i}" style="flex:none;padding:7px 10px;" title="Прибрати зі списку — у вже заведених позиціях тип лишиться">✕</button>
     </div>`).join('');
@@ -9921,7 +9950,8 @@ function readArtKinds(){
   if(!box) return [];
   return Array.from(box.querySelectorAll('.b2c-ak-row')).map(r => ({
     id: String((r.querySelector('[data-ak-id]') || {}).value || '') || ('ak' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
-    name: String(r.querySelector('[data-ak-name]').value || '').trim().slice(0, 60)
+    name: String(r.querySelector('[data-ak-name]').value || '').trim().slice(0, 60),
+    delta: Math.round(parseFloat((r.querySelector('[data-ak-delta]') || {}).value) || 0) || 0
   })).filter(x => x.name);
 }
 (function(){
@@ -9931,6 +9961,63 @@ function readArtKinds(){
     const l = document.querySelectorAll('#b2c-artkinds [data-ak-name]'); if(l.length) l[l.length - 1].focus();
   });
 })();
+/* ОПЛАТА ДИЗАЙНЕРАМ (16.10): b2c.dzRates = { graphic|stitch: { email|'*': { типId: ₴ } } }. */
+const DZ_RATE_ROLES = [['graphic', 'Графічні дизайнери', 'designer'], ['stitch', 'Вишивальні дизайнери', 'embroidery']];
+function b2cDzRates(){
+  const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
+  return (c.dzRates && typeof c.dzRates === 'object') ? c.dzRates : {};
+}
+function dzRateOf(role, who, kind){
+  const r = b2cDzRates()[role] || {};
+  const v = (r[String(who || '').toLowerCase()] || {})[kind];
+  if(v != null && v !== '') return +v;
+  const d = (r['*'] || {})[kind];
+  return (d != null && d !== '') ? +d : null;
+}
+/* Середня оплата за тип: нараховане за 30 днів; без історії — середнє ставок
+   із налаштувань (усі дизайнери цієї ролі й рядок за замовчуванням). */
+function dzRateAvg(role, kind){
+  const від = Date.now() - 30 * 24 * 3600 * 1000, l = [];
+  Object.keys(designJobs || {}).forEach(k => ((designJobs[k] || {}).units || []).forEach(u => {
+    const p = u && u.dzPay && u.dzPay[role];
+    if(p && p.sum != null && p.kind === kind && Date.parse(p.at || '') >= від) l.push(+p.sum || 0);
+  }));
+  if(!l.length){
+    const r = b2cDzRates()[role] || {};
+    Object.keys(r).forEach(w => { const v = (r[w] || {})[kind]; if(v != null && v !== '') l.push(+v || 0); });
+  }
+  return l.length ? Math.round(l.reduce((a, b) => a + b, 0) / l.length) : null;
+}
+function paintDzRates(){
+  const box = document.getElementById('b2c-dzrates');
+  if(!box) return;
+  const kinds = b2cArtKinds(), rates = b2cDzRates(), E = escapeHtml;
+  const team = (contentData.team || []).filter(m => m && m.email);
+  box.innerHTML = DZ_RATE_ROLES.map(([role, title, tRole]) => {
+    const люди = [{ email:'*', name:'За замовчуванням' }].concat(team.filter(m => m.role === tRole)
+      .map(m => ({ email: String(m.email).toLowerCase(), name: personName(m.email) || m.email })));
+    const r = rates[role] || {};
+    return '<div class="b2c-dzr"><div class="b2c-dzr-h">' + E(title) + '</div><div class="b2c-dzr-w"><table class="b2c-dzr-t"><thead><tr><th></th>' +
+      kinds.map(k => '<th>' + E(k.name) + '</th>').join('') + '</tr></thead><tbody>' +
+      люди.map(m => '<tr><td>' + E(m.name) + '</td>' + kinds.map(k => {
+        const v = (r[m.email] || {})[k.id];
+        return '<td><input type="number" min="0" step="1" data-dzr="' + E(role + '|' + m.email + '|' + k.id) + '" value="' +
+          (v != null && v !== '' ? E(String(+v)) : '') + '" placeholder="₴"></td>'; }).join('') + '</tr>').join('') +
+      '</tbody></table></div></div>';
+  }).join('');
+}
+function readDzRates(){
+  const box = document.getElementById('b2c-dzrates');
+  if(!box) return b2cDzRates();
+  const out = {};
+  box.querySelectorAll('[data-dzr]').forEach(el => {
+    const [role, who, kind] = el.dataset.dzr.split('|');
+    const v = String(el.value || '').trim();
+    if(v === '') return;
+    ((out[role] = out[role] || {})[who] = out[role][who] || {})[kind] = Math.max(0, Math.round(+v || 0));
+  });
+  return out;
+}
 function paintExtras(list){
   const box = document.getElementById('sp-extras');
   if(!box) return;
@@ -12203,7 +12290,32 @@ function renderDash(){
       'від 02.10.2026. Комунікейшн-менеджер замовлення — той, хто першим відповів клієнту.</div>' : '') +
     (d.k === 'prod' ? '<div class="tm-hint">Вироби — замовлення, яким цех поставив «Готово» цього місяця.</div>' +
       dashRedoHtml(m) : '') +
-    (d.k === 'gd' || d.k === 'acct' ? dashArtKindsHtml(m) : '');
+    (d.k === 'gd' || d.k === 'acct' ? dashArtKindsHtml(m) : '') +
+    (d.k === 'gd' ? dashDzPayHtml(m, 'graphic') : d.k === 'sd' ? dashDzPayHtml(m, 'stitch') : '');
+}
+/* ДО ВИПЛАТИ ДИЗАЙНЕРАМ (16.10): нараховане за місяць — один дизайн
+   позиції один раз, за ставкою дизайнера й типом малюнка. */
+function dashDzPay(m, role){
+  const по = {};
+  Object.keys(designJobs || {}).forEach(k => ((designJobs[k] || {}).units || []).forEach(u => {
+    const p = u && u.dzPay && u.dzPay[role];
+    if(!p || String(p.at || '').slice(0, 7) !== m) return;
+    const w = String(p.who || '').toLowerCase();
+    const r = по[w] = по[w] || { who: w, n: 0, sum: 0, unknown: 0, kinds: {} };
+    r.n++; if(p.sum == null) r.unknown++; else r.sum += +p.sum || 0;
+    const kn = (b2cArtKinds().filter(x => x.id === p.kind)[0] || {}).name || u.artKindName || p.kind || '—';
+    r.kinds[kn] = (r.kinds[kn] || 0) + 1;
+  }));
+  return Object.keys(по).map(k => по[k]).sort((a, b) => b.sum - a.sum);
+}
+function dashDzPayHtml(m, role){
+  const E = escapeHtml, l = dashDzPay(m, role);
+  return '<div class="dash-dzpay"><div class="fin-l" style="margin-top:18px;">До виплати за дизайни · ' + E(finMonthLabel(m)) + '</div>' +
+    (l.length ? '<table class="an-t"><thead><tr><th>Дизайнер</th><th>Дизайнів</th><th>За типами</th><th>Сума</th></tr></thead><tbody>' +
+      l.map(r => '<tr><td><b>' + E(personName(r.who) || r.who) + '</b></td><td>' + r.n + '</td><td>' +
+        E(Object.keys(r.kinds).map(k => k + ' ' + r.kinds[k]).join(' · ')) + '</td><td><b>' + fmt(r.sum) + ' ₴</b>' +
+        (r.unknown ? ' <i>+' + r.unknown + ' без ставки</i>' : '') + '</td></tr>').join('') + '</tbody></table>'
+      : '<div class="tm-none">Цього місяця нарахувань немає.</div>') + '</div>';
 }
 /* ТИПИ МАЛЮНКІВ (16.10, Андрій): що замовляють в індивідуальному дизайні
    B2C — дитячі малюнки, портрети, улюбленці… Позиції замовлень, заведених
@@ -12654,6 +12766,7 @@ function paintB2c(){
   try{ paintReadyDesigns(); }catch(e){ console.warn('готові дизайни', e); }
   paintExtras(c.extras);
   paintArtKinds(b2cArtKinds());
+  try{ paintDzRates(); }catch(e){ console.warn('ставки дизайнерам', e); }
   try{ paintThreads(); }catch(e){ console.warn('нитки', e); }
   const d = document.getElementById('b2c-days');
   if(d) d.value = (c.days === B2C_DAYS) ? '' : (c.days || '');
@@ -12816,7 +12929,7 @@ function retailCost(gid, kind){
     const нитки = readThreads();
     const станд = threadsDefault();
     const своя = !(нитки.length === станд.length && нитки.every((t, i) => t.code === станд[i].code && t.hex === станд[i].hex));
-    const b2c = { extras: readExtras(), artKinds: readArtKinds().length ? readArtKinds() : null, days: days || null,
+    const b2c = { extras: readExtras(), artKinds: readArtKinds().length ? readArtKinds() : null, dzRates: readDzRates(), days: days || null,
                   threads: (своя && нитки.length) ? нитки : null,
                   terms: Object.keys(terms).length ? terms : null,
                   dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
@@ -12841,6 +12954,7 @@ function retailCost(gid, kind){
       await PHOTOS_DOC.set({ b2c, products: { retail, retailCost, retailReady, retailCostReady, b2cOff } }, { merge:true });
       contentData.b2c = b2c;
       threadsApply();
+      try{ paintDzRates(); }catch(e){}
       try{ paintThreads(); }catch(e){}
       contentData.products = contentData.products || {};
       contentData.products.retail = цін;
@@ -32040,6 +32154,8 @@ function openDesign(){
     roleSeat: r => { const d = roleDef(r); return (d && Array.isArray(d.cols) && d.cols.length) ? 'prod' : ''; },
     cardTitle: () => b2cCfg().cardTitle,
     artKinds: () => b2cArtKinds(),
+    dzRate: (role, who, kind) => dzRateOf(role, who, kind),
+    dzAvg: (role, kind) => dzRateAvg(role, kind),
     /* Наші контакти для шапки аркуша — ті самі, що в комерційній
        пропозиції. Аркуш доходить до цеху й до підрядника, і питання «а це
        від кого» має отримати відповідь на самому аркуші. */

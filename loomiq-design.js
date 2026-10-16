@@ -5301,8 +5301,89 @@
   }
   function priceLockJob(job, force){
     var n = 0;
-    unitsOf(job).forEach(function(u){ if(priceLock(u, force)) n++; });
+    unitsOf(job).forEach(function(u){ if(priceLock(u, force)) n++; if(kindLock(u, force)) n++; });
+    try{ dzCostSync(job); }catch(e){ console.warn('собівартість дизайну', e); }
     return n;
+  }
+  /* ══════════ ТИП МАЛЮНКА: ЦІНА Й ОПЛАТА ДИЗАЙНЕРАМ (16.10) ══════════
+
+     Ціна: у типу є «до ціни клієнту ±» (текст дешевший — мінус). Фіксується
+     в позиції разом із ціною: змінили налаштування — старі картки ті самі.
+
+     Собівартість дизайну — окремо графічний і вишивальний, у три стадії:
+       середня — дизайнера ще немає: середня ставка за цей тип (нарахування
+                 за 30 днів, а без історії — середнє ставок із налаштувань),
+                 записується в позицію ОДИН раз — ціна не «гуляє» щодня;
+       ставка  — дизайнера обрали: його ставка за цей тип;
+       нараховано — графічному, коли клієнт погодив ескіз; вишивальному —
+                 коли здав файли. Один раз за дизайн, скільки б не було версій.
+     Готовий і повторний дизайн оплати дизайнерам не мають — файли вже є. */
+  function artKindOf(id){
+    return artKindsOf().filter(function(k){ return k.id === id; })[0] || null;
+  }
+  function kindLock(u, force){
+    if(!u || u.ready || !u.artKind) return false;
+    if(!force && u.kindDeltaFor === u.artKind) return false;
+    var k = artKindOf(u.artKind);
+    u.kindDelta = Math.round(+((k && k.delta) || 0)) || 0;
+    u.kindDeltaFor = u.artKind;
+    return true;
+  }
+  function rateOf(role, who, kind){
+    try{
+      var v = host.dzRate ? host.dzRate(role, who, kind) : null;
+      return (v == null || v === '') ? null : Math.max(0, Math.round(+v || 0));
+    }catch(e){ return null; }
+  }
+  function avgOf(role, kind){
+    try{
+      var v = host.dzAvg ? host.dzAvg(role, kind) : null;
+      return (v == null) ? null : Math.max(0, Math.round(+v || 0));
+    }catch(e){ return null; }
+  }
+  var DZ_ROLES = ['graphic', 'stitch'];
+  function dzDoneOf(u, role){
+    return dzList(u, role).filter(function(d){
+      if(!d || !d.who) return false;
+      return role === 'graphic' ? !!(D.sketchOk(d) || d.ok) : !!(d.ok || d.status === 'approved');
+    })[0] || null;
+  }
+  function dzCostSync(job){
+    var n = 0, now = new Date().toISOString();
+    unitsOf(job).forEach(function(u){
+      if(!u || u.ready || !u.artKind) return;
+      DZ_ROLES.forEach(function(role){
+        u.dzEst = u.dzEst || {};
+        var est = u.dzEst[role];
+        if(!est || est.kind !== u.artKind){
+          u.dzEst[role] = { sum: avgOf(role, u.artKind), kind: u.artKind, at: now }; n++;
+        }
+        u.dzPay = u.dzPay || {};
+        if(!u.dzPay[role]){
+          var d = dzDoneOf(u, role);
+          if(d){
+            var r = rateOf(role, d.who, u.artKind);
+            if(r == null) r = u.dzEst[role].sum;
+            u.dzPay[role] = { sum: r == null ? null : r, who: d.who, kind: u.artKind, at: now }; n++;
+          }
+        }
+      });
+    });
+    return n;
+  }
+  /* Скільки зараз стоїть у собівартості за дизайн цієї ролі і наскільки
+     це точно: paid — нараховано, rate — ставка обраного, avg — середня. */
+  function dzCostOf(u, role){
+    if(!u || u.ready || !u.artKind) return null;
+    var pay = (u.dzPay || {})[role];
+    if(pay && pay.sum != null) return { sum: pay.sum, src: 'paid', who: pay.who };
+    var l = dzList(u, role).filter(function(d){ return d && d.who; });
+    var d = l[l.length - 1];
+    if(d){ var r = rateOf(role, d.who, u.artKind); if(r != null) return { sum: r, src: 'rate', who: d.who }; }
+    var est = (u.dzEst || {})[role];
+    if(est && est.sum != null && est.kind === u.artKind) return { sum: est.sum, src: 'avg' };
+    var a = avgOf(role, u.artKind);
+    return a == null ? null : { sum: a, src: 'avg' };
   }
   function sumRows(job){
     return unitsOf(job).map(function(u){
@@ -5322,7 +5403,23 @@
                lockedAt: зафікс ? u.priceAt : '', nowPrice: (зафікс && прайс !== ціна) ? прайс : 0,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
                cost: соб, costSum: соб * к,
-               нема: !!u.gid && !ціна }].concat(((u.services) || []).map(function(x){
+               нема: !!u.gid && !ціна }].concat((function(){
+        /* Тип малюнка: ± до ціни (зафіксоване в позиції) і оплата дизайнерам
+           (лише в собівартість — клієнт її не бачить окремим рядком). */
+        var out = [];
+        if(u.ready || !u.artKind) return out;
+        var дельта = (u.kindDeltaFor === u.artKind) ? (Math.round(+u.kindDelta || 0) || 0)
+                   : (Math.round(+((artKindOf(u.artKind) || {}).delta || 0)) || 0);
+        if(дельта) out.push({ name: '↳ ' + (u.artKindName || (artKindOf(u.artKind) || {}).name || 'тип малюнка'),
+                              kindDelta: true, qty: к, price: дельта, sum: дельта * к, cost: 0, costSum: 0, нема: false });
+        DZ_ROLES.forEach(function(role){
+          var c = dzCostOf(u, role);
+          out.push({ name: role === 'graphic' ? 'графічний дизайн' : 'вишивальний дизайн', dzCost: role,
+                     src: c ? c.src : '', qty: 1, price: 0, sum: 0,
+                     cost: c ? c.sum : 0, costSum: c ? c.sum : 0, costKnown: !!c, нема: false });
+        });
+        return out;
+      })()).concat(((u.services) || []).map(function(x){
         var ц = Math.max(0, Math.round(+x.price || 0)), с = Math.max(0, Math.round(+x.cost || 0));
         return { name: '+ ' + (x.name || 'послуга'), service: true, qty: 1, price: ц, sum: ц,
                  cost: с, costSum: с, costKnown: x.cost != null, нема: false };
@@ -5338,11 +5435,13 @@
     var сума = 0, повна = true;
     rows.forEach(function(r){
       if(!r.qty) return;
+      if(r.kindDelta) return;
+      if(r.dzCost){ if(!r.costKnown) повна = false; сума += r.costSum; return; }
       if(r.service){ сума += r.costSum; return; }      // послуга без собівартості — 0, а не «невідомо»
       if(!r.cost){ повна = false; return; }
       сума += r.costSum;
     });
-    return { sum: сума, full: повна && rows.some(function(r){ return r.qty && !r.service; }) };
+    return { sum: сума, full: повна && rows.some(function(r){ return r.qty && !r.service && !r.dzCost && !r.kindDelta; }) };
   }
   function orderSum(o, job){
     var з = sumRows(job).reduce(function(a, r){ return a + r.sum; }, 0);
@@ -5441,6 +5540,9 @@
       (rows.length
         ? '<div class="dz-sum">' + rows.map(function(r){
             if(r.service) return '<div class="dz-sum-r is-svc"><span>' + esc(r.name) + '</span><i>послуга</i><b>' + esc(грн(r.sum)) + '</b></div>';
+            if(r.dzCost) return '';
+            if(r.kindDelta) return '<div class="dz-sum-r is-svc is-kind"><span>' + esc(r.name) + '</span><i>тип малюнка</i><b>' +
+              (r.sum < 0 ? '−' + esc(грн(-r.sum)) : '+' + esc(грн(r.sum))) + '</b></div>';
             return '<div class="dz-sum-r' + (r.нема ? ' no' : '') + '">' +
               '<span>' + esc(r.name) + (r.color ? ' · ' + esc(r.color) : '') +
                 (r.design ? ' · <em class="dz-sum-k">' + esc(r.design) + '</em>' : '') + '</span>' +
@@ -5481,8 +5583,30 @@
           esc(грн(пре)) + '</b></div>') +
       '<div class="dz-money-r is-left"><span>Залишок до оплати</span><b>' +
         esc(грн(лишок)) + '</b></div>' +
+      costHtml(job) +
       payRowsHtml(o) +
     '</div>';
+  }
+  /* СОБІВАРТІСТЬ РЯДКОМ (16.10): одяг · графічний · вишивальний — і
+     наскільки кожне точне: середня / ставка дизайнера / нараховано. */
+  var DZ_SRC = { avg:'середня', rate:'ставка', paid:'нараховано' };
+  function costHtml(job){
+    var rows = sumRows(job);
+    if(!rows.some(function(r){ return r.dzCost; })) return '';
+    var одяг = 0, gr = 0, st = 0, grS = {}, stS = {}, невідомо = false;
+    rows.forEach(function(r){
+      if(r.dzCost === 'graphic'){ gr += r.costSum; if(r.src) grS[r.src] = 1; if(!r.costKnown) невідомо = true; }
+      else if(r.dzCost === 'stitch'){ st += r.costSum; if(r.src) stS[r.src] = 1; if(!r.costKnown) невідомо = true; }
+      else if(!r.kindDelta && !r.service) одяг += r.costSum;
+      else if(r.service) одяг += r.costSum;
+    });
+    var мітка = function(m){ var k = Object.keys(m); return k.length === 1 ? DZ_SRC[k[0]] : (k.length ? 'частково' : ''); };
+    var шт = function(n, m){ return (m.avg && !m.rate && !m.paid ? '~' : '') + грн(n) + (мітка(m) ? ' <i>' + esc(мітка(m)) + '</i>' : ''); };
+    return '<div class="dz-cost"><span>Собівартість</span>' +
+      '<em>одяг ' + esc(грн(одяг)) + '</em>' +
+      '<em>графічний ' + шт(gr, grS) + '</em>' +
+      '<em>вишивальний ' + шт(st, stS) + '</em>' +
+      '<b>' + esc(грн(одяг + gr + st)) + (невідомо ? ' <i>без ставок</i>' : '') + '</b></div>';
   }
   function грн(n){
     return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
@@ -5782,6 +5906,7 @@
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, acctUrg: acctUrg, writeHtml: writeHtml,
     verTilesHtml: verTilesHtml,
     unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden, artKindsOf: artKindsOf, b2cGate: b2cGate,
+    dzCostOf: dzCostOf, dzCostSync: dzCostSync,
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
        картку з них, а не малюють кожна свій варіант того самого. */
