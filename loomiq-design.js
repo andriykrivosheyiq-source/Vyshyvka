@@ -10630,7 +10630,10 @@
       s.places.forEach(function(p){
         місця.push({ side:s.side, label:s.label, name:p.name,
                      work:p.work, x:p.x, y:p.y, w:p.w,
-                     wCm:p.wCm, hCm:p.hCm, topCm:p.topCm, sideCm:p.sideCm }); });
+                     wCm:p.wCm, hCm:p.hCm, topCm:p.topCm, sideCm:p.sideCm,
+                     /* 16.10: пропорції файлу й видимі межі малюнка — щоб карта цеху
+                        міряла по малюнку, а не по прозорому квадрату. */
+                     ar: p.ar || null, tr: p.tr || null }); });
     }
     /* Робота з прибраним фоном зібралась у браузері як data-URL —
        кладемо в сховище, як і мокапи. Особа роботи (хеш) лишається
