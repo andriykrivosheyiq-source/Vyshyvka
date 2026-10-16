@@ -252,6 +252,31 @@
         list: сироти.map(function(p){ return p.id; }),
         text: сироти.length + ' надходж. на ' + грн(сироти.reduce(function(a, p){ return a + r(p.amount); }, 0)) + ' за ТТН, яких немає в жодній картці CRM. Привʼяжіть їх у Фінансах або впишіть ТТН у замовлення.' });
 
+    /* РАХУНОК НЕ ОНОВЛЮВАВСЯ (17.10, Андрій: «рахунки не підвʼязались
+       повністю»). Приват і NovaPay сервер питає сам щокілька хвилин; коли
+       банк відмовляє (протермінований ключ), рухи перестають приходити, і
+       гроші зникають з поля зору тихо. Монобанк сам шле рухи, коли вони є, —
+       його тиша не помилка, тож його тут немає. Джерело — стан перевірки
+       (opt.sync, пише сервер) або, поки його ще немає, дата залишку від
+       банку (opt.bal). */
+    var ПИТАЄМО = { privat: 1, novapay: 1, privat24: 1 };
+    (opt.accs || []).forEach(function(a){
+      if(!a || !a.id || !ПИТАЄМО[a.bank]) return;
+      var st = (opt.sync || {})[a.id], b = (opt.bal || {})[a.id];
+      var коли = st && st.at ? time(st.at) : (b && b.at ? time(b.at) : 0);
+      var помилка = st && st.error ? String(st.error) : '';
+      var назва = a.name || a.id;
+      if(помилка)
+        out.push({ kind:'acc_err', sev:'red', acc:a.id,
+          text: 'Рахунок «' + назва + '»: банк відмовляє — ' + помилка.slice(0, 160) + '. Рухи з нього не приходять.' });
+      else if(st && st.skip)
+        out.push({ kind:'acc_off', sev:'amber', acc:a.id,
+          text: 'Рахунок «' + назва + '» не підключено: ' + String(st.skip).slice(0, 120) + '.' });
+      else if(коли && now - коли > DAY)
+        out.push({ kind:'acc_stale', sev:'red', acc:a.id,
+          text: 'Рахунок «' + назва + '» не оновлювався з ' + дата(коли) + ' — рухи з банку не приходять. Перевірте ключ банку.' });
+    });
+
     /* «Перевірено, все гаразд» — людина подивилась і закрила пункт
        (товар повернувся, переплату повернули). Позначка живе в самому
        замовленні (o.moneyOk) або в русі (p.auditOk), а не в памʼяті сторінки. */
@@ -268,7 +293,7 @@
     return out;
   }
 
-  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || '') ; }
+  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || '') ; }
 
   var api = { BANK_SRC:BANK_SRC, COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
               paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, audit:audit,
