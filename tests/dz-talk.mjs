@@ -159,6 +159,25 @@ ok(дошка.кут === '2', 'на картці Канбану в куті — 
    'кружечок на картці: «' + дошка.кут + '»');
 ok(дошка.іг === '3', 'а на кнопці Instagram — 3 від клієнта', 'кружечок на Instagram: «' + дошка.іг + '»');
 
+/* 16.10, Андрій: «при наводі на Instagram повідомлення пригає». Кружечок
+   має стояти в правому верхньому куті картки й з мишею над кнопкою. */
+const кутІг = () => p.evaluate(() => {
+  const w = document.querySelector('[data-open="2000101"]').closest('.dz-card-w');
+  const n = w.querySelector('.dz-ig-n'), c = w.querySelector('.dz-card');
+  const r = n.getBoundingClientRect(), k = c.getBoundingClientRect();
+  return { зверху: Math.round(r.top - k.top), справа: Math.round(k.right - r.right) };
+});
+const безМиші = await кутІг();
+const ig = await p.$('[data-open="2000101"]');
+await p.hover('.dz-card-w:has([data-open="2000101"]) .dz-card-ig');
+await p.waitForTimeout(250);
+const зМишею = await кутІг();
+await p.mouse.move(1, 1);
+console.log('  кружечок Instagram: ' + JSON.stringify({ безМиші, зМишею }));
+ok(безМиші.зверху < 20 && безМиші.справа < 20 && JSON.stringify(безМиші) === JSON.stringify(зМишею),
+  'кружечок Instagram — у правому верхньому куті картки й не стрибає при наведенні',
+  'кружечок зрушив: ' + JSON.stringify({ безМиші, зМишею }));
+
 await p.evaluate(() => { document.querySelector('[data-open="2000101"]').click(); });
 await p.waitForTimeout(500);
 const картка = await p.evaluate(() => {

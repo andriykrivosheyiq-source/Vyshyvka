@@ -4533,6 +4533,10 @@
     paint();
     var f = el.querySelector('.dz-rdp-q'); if(f) f.focus();
   }
+  /* B2C: кількості в картці немає — позиція завжди 1 шт (16.10). */
+  function qtyHidden(o, u){
+    return !!(o && o.dir === 'b2c') && !((Math.round(+((u || {}).qty) || 0)) > 1);
+  }
   function unitHtml(job, u, n, opt){
     opt = opt || {};
     var ro = !!opt.ro, only = opt.only || '';
@@ -4567,7 +4571,7 @@
               (u.colorHex ? '<b class="dz-sw" style="background:' + esc(u.colorHex) + '"></b>' : '') +
               esc(u.color || 'ще не знаємо') + '</span>' +
             '<span><i>Розмір</i>' + esc(u.size || 'ще не знаємо') + '</span>' +
-            '<span><i>Кількість</i>' + (+u.qty || 0) + ' шт</span>' +
+            (qtyHidden(opt.o, u) ? '' : '<span><i>Кількість</i>' + (+u.qty || 0) + ' шт</span>') +
           '</div>'
         /* Підписи живуть УСЕРЕДИНІ полів. Ряд «ВИРІБ · КОЛІР · РОЗМІР ·
            КІЛЬКІСТЬ» над кнопками займав рядок і не додавав нічого: кнопка
@@ -4595,9 +4599,13 @@
           '" data-do="u-pick-size" data-u="' + esc(u.id) + '"' +
           (u.gid ? '' : ' disabled') + '>' +
           esc(u.size || 'Розмір') + '</button>' +
-        /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10). */
+        /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10).
+           У B2C поля немає зовсім (16.10, Андрій): там одиночні замовлення,
+           а дві-три речі — це окремі позиції. Стара позиція з 2+ шт поле
+           зберігає — інакше множник у сумі сидів би невидимим. */
+        (qtyHidden(opt.o, u) ? '' :
         '<input class="dz-qty" type="number" min="1" step="1" title="Кількість" ' +
-          'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">';
+          'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">');
         })() +
         /* Дії — у кінці того самого рядка. Значками, а не словами: вони
            дрібні, повторювані й самі себе пояснюють. */
@@ -5698,7 +5706,7 @@
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, acctUrg: acctUrg, writeHtml: writeHtml,
     verTilesHtml: verTilesHtml,
-    unitsOf: unitsOf, unitAt: unitAt,
+    unitsOf: unitsOf, unitAt: unitAt, qtyHidden: qtyHidden,
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
        картку з них, а не малюють кожна свій варіант того самого. */
@@ -5822,11 +5830,12 @@
      підставлено, менеджер лише перевіряє; чого немає — заповнює. Кнопка
      живе, коли заповнено все. Після неї позиція одночасно йде у вишивку
      й закупнику. `done(дані)` або нічого, якщо передумали. */
-  function clothOpen(u, title, done){
+  function clothOpen(u, title, done, o){
+    var безК = U.qtyHidden(o, u);
     var cat = [];
     try{ cat = (host().catalog && host().catalog()) || []; }catch(e){}
     var st = { gid: u.gid || '', name: u.name || '', color: u.color || '', colorHex: u.colorHex || '',
-               size: u.size || '', qty: (+u.qty || 0) > 0 ? Math.round(+u.qty) : '' };
+               size: u.size || '', qty: (+u.qty || 0) > 0 ? Math.round(+u.qty) : (безК ? 1 : '') };
     var w = document.createElement('div');
     w.className = 'dz-pick dz-cf dz-cl';
     var item = function(){ return cat.filter(function(g){ return g.id === st.gid; })[0] || null; };
@@ -5850,8 +5859,8 @@
           opt('', '— оберіть —', st.color) + colors.map(function(c){ return opt(c.v, c.v, st.color); }).join('') + '</select></label>' +
         '<label class="dz-cl-r"><span>Розмір</span><select data-cl="size"' + (st.gid ? '' : ' disabled') + '>' +
           opt('', '— оберіть —', st.size) + sizes.map(function(z){ return opt(z, z, st.size); }).join('') + '</select></label>' +
-        '<label class="dz-cl-r"><span>Кількість</span><input type="number" min="1" data-cl="qty" placeholder="шт" value="' +
-          U.esc(st.qty) + '"></label>' +
+        (безК ? '' : '<label class="dz-cl-r"><span>Кількість</span><input type="number" min="1" data-cl="qty" placeholder="шт" value="' +
+          U.esc(st.qty) + '"></label>') +
         '<div class="dz-cf-f">' +
           '<button type="button" class="dz-b" data-cl-no>Скасувати</button>' +
           '<button type="button" class="dz-b pri" data-cl-go' + (повно ? '' : ' disabled') + '>Підтвердити</button>' +
@@ -6045,6 +6054,10 @@
   }
   function save(job, o, msg){
     job.updatedAt = new Date().toISOString();
+    /* B2C: поля кількості немає — позиція без числа стає 1 шт, інакше
+       «бракує кількості» сказало б про поле, якого не видно. */
+    if(o && o.dir === 'b2c') U.unitsOf(job).forEach(function(u){
+      if(!((+u.qty || 0) > 0)) u.qty = 1; });
     try{ U.priceLockJob(job); }catch(e){ console.warn('ціна', e); }
     try{ D.dzAutoQueue(job, o, (host().me && host().me()) || ''); }
     catch(e){ console.warn('черга відділу', e); }
@@ -9518,7 +9531,7 @@
         clothApply(x.u, st, me0);
         D.dzOk(x.d, me0, 'client', n);
         далі();
-      });
+      }, p.o);
     };
     далі();
   }
@@ -10165,7 +10178,7 @@
       return clothOpen(cu, 'Підтвердити одяг', function(st){
         clothApply(cu, st, m);
         save(job, o, 'Одяг підтверджено — позиція йде у вишивку й на закупівлю');
-      });
+      }, o);
     }
     if(what === 'u-pic'){
       var upu = U.unitAt(job, data && data.u);
@@ -10721,8 +10734,8 @@
          характеристик на кшталт «Нанесення: DTF друк та вишивка» немає —
          вони казали те саме двічі. */
       title: (function(){
-        try{ return (host().cardTitle && host().cardTitle()) || 'Макет на узгодження'; }
-        catch(e){ return 'Макет на узгодження'; }
+        try{ return (host().cardTitle && host().cardTitle()) || 'Макет на погодження'; }
+        catch(e){ return 'Макет на погодження'; }
       })(),
       no: U.unitNo(job, u),
       desc: sheetDesc(u, g, pl),
@@ -10843,7 +10856,7 @@
           clothOpen(du, 'Фіксація · v' + n + ' · одяг', function(st){
             clothApply(du, st, m);
             act('dz-ok', root, { dz: dkey, v: n, how: як });
-          });
+          }, o);
         };
         if(vs.length === 1) return погодити(vs[0].n);
         /* Фіксація — тієї версії, яку клієнт уже погодив: питати вдруге нема про що. */

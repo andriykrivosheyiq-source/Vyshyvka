@@ -132,9 +132,59 @@ const наше = await обхід([{ id:'chat-77', lastMessage:{
   text:'Так, L у наявності', createdAt:'2026-09-22T11:05:00.000Z',
   isOutgoing:true } }]);
 console.log('   ' + JSON.stringify(наше));
-ok(наше.непрочитаних === 1 && !наше.чекає,
-  'наша ж репліка не нарощує лічильник і знімає «клієнт чекає»',
+/* 16.10, Андрій: «якщо ми там відповідали, то це обнуляється» — навіть
+   коли відповіли прямо з Instagram, мимо CRM. */
+ok(наше.непрочитаних === 0 && !наше.чекає,
+  'наша ж репліка не нарощує лічильник, знімає «клієнт чекає» й обнуляє число',
   'адмінка повідомляє нам про нас самих: ' + JSON.stringify(наше));
+
+console.log('');
+console.log('═══ ТРИ РЕПЛІКИ МІЖ ТАКТАМИ — ЧИСЛО 3, НЕ 1 ═══');
+/* «Скільки пропущених повідомлень від клієнта, стільки тут і показується»
+   (16.10). Обхід бачить лише останню репліку розмови — три за пів хвилини
+   він рахував одиницею. Тепер дочитує стрічку й рахує точний хвіст. */
+await p.evaluate(() => {
+  window.__MSGS = [
+    { id:'m1', text:'Доброго дня, а є розмір L?', createdAt:'2026-09-22T11:00:00.000Z' },
+    { id:'m2', text:'Так, L у наявності', createdAt:'2026-09-22T11:05:00.000Z', isOutgoing:true },
+    { id:'m3', text:'Супер', createdAt:'2026-09-22T11:06:00.000Z' },
+    { id:'m4', text:'А чорний є?', createdAt:'2026-09-22T11:06:10.000Z' },
+    { id:'m5', text:'І скільки йде доставка?', createdAt:'2026-09-22T11:06:20.000Z' }];
+  const f = window.crmFetch;
+  window.crmFetch = async (path) => path === '/chats/chat-77/messages'
+    ? { items: window.__MSGS } : f(path);
+});
+const три = await обхід([{ id:'chat-77', lastMessage:{
+  text:'І скільки йде доставка?', createdAt:'2026-09-22T11:06:20.000Z' } }]);
+console.log('   ' + JSON.stringify(три));
+ok(три.непрочитаних === 3 && три.чекає,
+  'клієнт написав тричі після нашої відповіді — на кружечку 3',
+  'число недораховане: ' + JSON.stringify(три));
+const ще = await обхід([{ id:'chat-77', lastMessage:{
+  text:'Дякую', createdAt:'2026-09-22T11:20:00.000Z', isOutgoing:true } }]);
+ok(ще.непрочитаних === 0 && !ще.чекає,
+  'ми відповіли — знову нуль',
+  'після відповіді число лишилось: ' + JSON.stringify(ще));
+
+console.log('');
+console.log('═══ TELEGRAM: ПІСЛЯ НАШОЇ ВІДПОВІДІ — З НУЛЯ ═══');
+/* Клієнт написав двічі, ми відповіли, він написав ще раз — на кружечку 1,
+   а не 3: рахуємо лише те, що після нашої відповіді (16.10). */
+const тг = await p.evaluate(() => {
+  const o = { id:'tg1', tgSeenWrote:0, tgWrote:0 };
+  const r = [];
+  tgTake(o, { last:'Привіт', wrote:1, lastAt:'2026-09-22 10:00' });
+  tgTake(o, { last:'Є худі?', wrote:2, lastAt:'2026-09-22 10:01' });
+  r.push(tgUnreadCount(o));
+  tgTake(o, { last:'Ви: Так, є', wrote:2, lastAt:'2026-09-22 10:05' });
+  r.push(tgUnreadCount(o));
+  tgTake(o, { last:'А чорне?', wrote:3, lastAt:'2026-09-22 10:06' });
+  r.push(tgUnreadCount(o));
+  return r;
+});
+console.log('   ' + JSON.stringify(тг));
+ok(тг.join() === '2,0,1', 'Telegram: 2 пропущених → відповіли → 0 → клієнт написав ще → 1',
+  'лічильник Telegram: ' + JSON.stringify(тг));
 
 console.log('');
 console.log('═══ КРУЖЕЧОК НА КАРТЦІ ═══');

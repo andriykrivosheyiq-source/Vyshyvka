@@ -177,6 +177,10 @@ await poll(); await p.waitForTimeout(300);
 await poll(); await p.waitForTimeout(300);
 r = await feed();
 ok(pics(r).length === 1 && !r.some(x => x.gone), 'Sitniks фото не повернув — наше не зникає після перечитування стрічки й не стає «видаленим»', JSON.stringify(r));
+/* 16.10, Андрій: фото в Direct дійшло, а в CRM вічно одна ✓. Sitniks
+   своїх вкладень у стрічку часто не повертає — але дав повідомленню номер,
+   тобто воно в його розмові й пішло клієнту. */
+ok(/✓✓/.test(pics(r)[0].at), 'Sitniks дав фото номер — ✓✓, хоч у стрічку він його й не повернув', 'позначка: «' + pics(r)[0].at + '»');
 
 console.log('');
 console.log('═══ Б. SITNIKS ПОВЕРНУВ ЗА КІЛЬКА ХВИЛИН — ЗІ СВОЇМ НОМЕРОМ ═══');

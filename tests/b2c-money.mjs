@@ -138,11 +138,15 @@ const r = await p.evaluate(async () => {
   const who = panel().querySelector('.dz-own-who');
   const вигляд = { другийКлієнт: !!(who && who.querySelector('span')), вРяд: !!(who && who.classList.contains('is-row')),
                    щоШиємо: /Що шиємо/i.test([...panel().querySelectorAll('.dz-u-cap')].map(x => x.textContent).join()),
-                   qty: (panel().querySelector('.dz-qty') || {}).value };
+                   qty: (panel().querySelector('.dz-qty') || {}).value,
+                   полів: panel().querySelectorAll('.dz-qty').length };
   /* 0 у кількість — стає 1. */
   const q = panel().querySelector('.dz-qty'); q.value = '0'; q.dispatchEvent(new Event('change'));
   await new Promise(r => setTimeout(r, 300));
   const qty0 = __j1.units[0].qty;
+  /* 16.10: у B2C поля кількості немає — лише в старої позиції з 2+ шт. */
+  const полів = { до: вигляд.полів, після: panel().querySelectorAll('.dz-qty').length,
+                  позицій: __j1.units.length, з2: __j1.units.filter(u => (+u.qty || 0) > 1).length };
   fold('Гроші');
   await new Promise(r => setTimeout(r, 200));
   const рядок = (panel().querySelector('.dz-sum-r span') || {}).textContent;
@@ -169,13 +173,16 @@ const r = await p.evaluate(async () => {
   const t1 = тег();
   payments.push({ id:'pX', amount: 300, orderId: '2000101', tag: 'prepay', at: '2026-10-15' });
   const t2 = тег();
-  return { вигляд, qty0, рядок, до, грн, pct, запас, t1, t2 };
+  return { вигляд, qty0, полів, рядок, до, грн, pct, запас, t1, t2 };
 });
 console.log('  ' + JSON.stringify(r));
 ok(!r.вигляд.другийКлієнт && r.вигляд.вРяд, 'без другого «Клієнт»; нік і «Відвʼязати» — одним рядком', JSON.stringify(r.вигляд));
 ok(!r.вигляд.щоШиємо, '«Що шиємо» прибрано', JSON.stringify(r.вигляд));
 ok(r.вигляд.qty === '2' || r.вигляд.qty === '1', 'кількість стоїть числом (за замовчуванням 1)', JSON.stringify(r.вигляд));
 ok(r.qty0 === 1, '0 у кількість — стає 1', 'кількість: ' + r.qty0);
+ok(r.полів.після === r.полів.з2 && r.полів.після < r.полів.до,
+  'B2C: позиція на 1 шт — без поля кількості; поле лишається лише в старої позиції з 2+ шт',
+  'поля кількості: ' + JSON.stringify(r.полів));
 ok(/Футболка базова/.test(r.рядок) && /повторний/.test(r.рядок), 'у «Гроші» — «Футболка базова · … · повторний»', r.рядок);
 ok(r.до.total === 450 && !r.до.попер, 'ціна повторного — «готовий ескіз» (450), не індивідуальна', JSON.stringify(r.до));
 ok(r.грн.gross === 450 && r.грн.disc === 100 && r.грн.total === 350 && r.грн.доОпл, 'знижка 100 ₴ → до оплати 350 (і totalPrice — 350 для грошового ядра)', JSON.stringify(r.грн));
