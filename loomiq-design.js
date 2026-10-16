@@ -4352,27 +4352,32 @@
   /* Файли «Повторного»: три списки з «+» і «×». Після вишивки (позиція в
      цеху) — лише читаються. */
   function repeatFilesHtml(u, ro){
+    /* ТРИ ПЛИТКИ В РЯД (16.10): «Принти · DST · Додатково» поруч, а не
+       списками один під одним — блок не розтягується на пів картки. */
     var r = u.ready || {};
     var лок = ro || D.dzList(u, 'stitch').length > 0;
-    var список = function(k, назва, підк, img){
+    var плитка = function(k, назва, img){
       var l = k === 'arts' ? D.readyArts(r) : (r[k] || []);
-      return '<div class="dz-rep-s"><b>' + esc(назва) + '</b>' + (підк ? '<small>' + esc(підк) + '</small>' : '') +
+      return '<div class="dz-rep-t' + (l.length ? '' : ' is-empty') + '">' +
+        '<div class="dz-rep-th"><b>' + esc(назва) + '</b><i>' + l.length + '</i>' +
+          (лок ? '' : '<button type="button" class="dz-rep-add" data-do="u-rep-up" data-u="' + esc(u.id) + '" data-k="' + k + '" title="Додати">＋</button>') +
+        '</div>' +
         '<div class="dz-rep-l">' + (l.length ? l.map(function(f, i){
-          return '<span class="dz-rep-f">' +
-            (img ? '<img src="' + esc(f.url) + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+          return '<span class="dz-rep-f" title="' + esc(f.name || '') + '">' +
+            (img ? '<img src="' + esc(f.url) + '" alt="" onerror="this.style.display=\'none\'">'
+                 : '<em>' + esc(((String(f.name || '').match(/\.(\w+)$/) || ['', 'файл'])[1]).toUpperCase().slice(0, 4)) + '</em>') +
             '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name || 'файл') + '</a>' +
             (лок ? '' : '<button type="button" data-do="u-rep-del" data-u="' + esc(u.id) + '" data-k="' + k + '" data-i="' + i + '" title="Прибрати">×</button>') +
-          '</span>'; }).join('') : '<i>немає</i>') +
-        (лок ? '' : '<button type="button" class="dz-b" data-do="u-rep-up" data-u="' + esc(u.id) + '" data-k="' + k + '">+ ' + (k === 'arts' ? 'Принт' : 'Файл') + '</button>') +
-        '</div></div>';
+          '</span>'; }).join('') : '<i class="dz-rep-0">немає</i>') + '</div>' +
+      '</div>';
     };
     return '<div class="dz-rep">' +
-      список('arts', 'Принти без фону (PNG)', '', true) +
-      список('files', 'Вишивальні (DST)', '', false) +
-      список('extras', 'Додатково для виробництва', 'палітра, схема, примітки', true) +
-      (лок ? '' : '<button type="button" class="dz-b" data-do="u-rep-past" data-u="' + esc(u.id) + '">⤓ З минулого замовлення</button>') +
+      плитка('arts', 'Принти PNG', true) +
+      плитка('files', 'DST', false) +
+      плитка('extras', 'Додатково', true) +
     '</div>';
   }
+
   function readyHtml(job, u, ro, opt){
     var r = u.ready || {};
     var gl = dzList(u, 'graphic');
@@ -4393,12 +4398,18 @@
       (пов ? repeatFilesHtml(u, ro) : '') +
       (!d || !(d.vers || []).length
         ? (ro ? '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>'
+            : пов ? '<div class="dz-rep-a">' +
+                (D.dzList(u, 'stitch').length ? '' : '<button type="button" class="dz-b" data-do="u-rep-past" data-u="' + esc(u.id) + '">⤓ З минулого замовлення</button>') +
+                (!u.gid ? '<span class="dz-rep-hint">Спершу оберіть одяг — принт кладемо на нього</span>'
+                  : !готовіФайли ? '<span class="dz-rep-hint">Додайте хоч один принт і один DST</span>'
+                  : '<button type="button" class="dz-b pri" data-do="u-ready-place" data-u="' + esc(u.id) + '">◱ Розмістити на одязі</button>') +
+              '</div>'
             : !u.gid ? '<div class="dz-miss">Спершу оберіть одяг — принт кладемо на нього.</div>'
-            : (пов && !готовіФайли) ? '<div class="dz-miss">Додайте хоч один принт і один DST — тоді можна розміщати.</div>'
             : '<button type="button" class="dz-b pri wide" data-do="u-ready-place" data-u="' + esc(u.id) + '">◱ Розмістити на одязі</button>')
         : dzCardHtml(u, 'graphic', d, gi, job, opt && opt.o, key, ro)) +
       (st ? '<div class="dz-miss is-calm">Вишивка — файли з бібліотеки, позиція йде у виробництво.</div>'
-          : (D.graphicOk(u) && !D.clothOk(u) && !ro)
+          /* Лише коли ескіз справді погоджено — до розміщення писало «погоджено». */
+          : (d && d.ok && D.graphicOk(u) && !D.clothOk(u) && !ro)
           ? '<div class="dz-miss dz-need">Ескіз погоджено — підтвердіть одяг' +
             (D.unitMissing(u).length ? ' (не заповнено: <b>' + esc(D.unitMissing(u).join(', ')) + '</b>)' : '') +
             '.<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) + '">Підтвердити одяг</button></div>'
@@ -4620,6 +4631,9 @@
       /* Кнопка «додати» — такий самий квадратик, як самі картинки, і стоїть
          у їхньому ряду. Окрема кнопка збоку читалась як чужа річ, а не як
          «ще одна плитка»; та й ряд картинок вона розривала. */
+      /* Готовий / повторний: файли дизайну — у своєму блоці нижче, тож «+» з
+         картинками ТЗ тут зайвий (Андрій, 16.10). Вже додані — показуємо. */
+      ((u.ready && !(u.pics || []).length) ? '' :
       '<div class="dz-u-pics">' +
         /* Квадратиками, а не полотнами. Референсів буває пʼять, і кожен на
            пів картки означає, що склад замовлення доводиться шукати
@@ -4640,10 +4654,10 @@
                 (ro ? '' : '<button class="dz-pic-x" data-do="u-pic-del" data-u="' + esc(u.id) +
                 '" data-i="' + i + '">×</button>') + '</span>';
           }).join('') +
-          (ro ? '' : '<button type="button" class="dz-pic-add" data-do="u-pic" data-u="' +
+          ((ro || u.ready) ? '' : '<button type="button" class="dz-pic-add" data-do="u-pic" data-u="' +
             esc(u.id) + '" title="Додати картинку">＋</button>') +
         '</div>' +
-      '</div>' +
+      '</div>') +
       /* Правка до типу одягу. Менеджер копіює сюди слова клієнта з
          переписки — і вони їдуть разом із виробом, а не лишаються в чаті,
          куди дизайнер не має доступу. */
