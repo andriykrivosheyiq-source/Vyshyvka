@@ -44,10 +44,10 @@ const CONTENT = {
   b2c: { dzHours: 24 }
 };
 const ORDERS = [
-  { id:'1', orderId:'2000201', type:'client', dir:'b2c', name:'Асія', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T09:00:00.000Z', totalPrice: 1000, items:[] },
-  { id:'2', orderId:'2000202', type:'client', dir:'b2c', name:'Богдан', status:'prorahunok', site:'main',
-    payments:[], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] }
+  { id:'1', orderId:'2000201', type:'client', dir:'b2c', crmChatId:'c-gate', name:'Асія', status:'prorahunok', site:'main',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T09:00:00.000Z', totalPrice: 1000, items:[] },
+  { id:'2', orderId:'2000202', type:'client', dir:'b2c', crmChatId:'c-gate', name:'Богдан', status:'prorahunok', site:'main',
+    payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] }
 ];
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
@@ -139,8 +139,8 @@ console.log('═══ 0. ГРАФІКА — БЕЗ ОДЯГУ ═══');
    коментар. Одяг не обовʼязковий». */
 const безОдягу = await p.evaluate(async () => {
   const D = window.LQDesign, U = D.ui;
-  orders.unshift({ id:'3', orderId:'2000203', type:'client', dir:'b2c', name:'В', status:'prorahunok',
-                   site:'main', payments:[], hist:[], createdAt:new Date().toISOString(), totalPrice:0, items:[] });
+  orders.unshift({ id:'3', orderId:'2000203', type:'client', dir:'b2c', crmChatId:'c-gate', name:'В', status:'prorahunok',
+                   site:'main', payments:[{ at:'2026-09-20T09:00:00.000Z', sum:300, kind:'prepay', by:'test' }], hist:[], createdAt:new Date().toISOString(), totalPrice:0, items:[] });
   const j = designJobMake('2000203');
   j.units = [Object.assign(U.unitNew(), { pics:[{ name:'ref.png', url:'https://x/ref.png' }] })];
   const o = orders.find(x => x.orderId === '2000203');
@@ -169,14 +169,14 @@ const безОдягу = await p.evaluate(async () => {
 });
 ok(!безОдягу.самЗберіг, 'саме збереження в чергу не ставить', 'стало в чергу без кнопки');
 ok(безОдягу.безТипу.спить && /не обрано тип малюнка/.test(безОдягу.безТипу.чому) && безОдягу.безТипу.червоне,
-  'тип малюнка не обрано — «Зберегти й передати» спить, сказано чому, поле червоне',
+  'тип малюнка не обрано — «Передати дизайнеру» спить, сказано чому, поле червоне',
   'без типу: ' + JSON.stringify(безОдягу.безТипу));
 ok(безОдягу.безТипу.типи.join('|') === 'Дитячий малюнок|Портрет|Портрет улюбленця|Інше' &&
    безОдягу.тип.join('|') === 'pet|Портрет улюбленця',
   'типи — з налаштувань B2C; обраний тип записано в позицію разом із назвою',
   'типи: ' + JSON.stringify(безОдягу));
-ok(безОдягу.живе && безОдягу.черга && /Передано в роботу/.test(безОдягу.підпис),
-  '«Зберегти й передати дизайнерам»: позиція лише з картинкою, без виробу — у черзі графічного відділу',
+ok(безОдягу.живе && безОдягу.черга && /Передано дизайнеру/.test(безОдягу.підпис),
+  '«Передати дизайнеру»: позиція лише з картинкою, без виробу — у черзі графічного відділу',
   'не стала в чергу: ' + JSON.stringify(безОдягу));
 await p.evaluate(() => { const D = window.LQDesign; D.dzClaim(D.dzList(__j3.units[0], 'graphic')[0], 'test@loomiq');
   const U = D.ui; U.setTab('graphic'); U.open('2000203'); U.render(document.getElementById('dzRoot')); });
