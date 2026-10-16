@@ -4561,6 +4561,33 @@
   }
   /* Привʼязка праворуч, на місці картки (16.10): без затемнення решти
      екрана — діалог ліворуч лишається живим. Рядки — у два ряди. */
+  /* Варіанти на кількох виробах (16.10). */
+  .dz-var{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#FCFCFE;}
+  .dz-var.is-empty{border:0;padding:0;background:none;}
+  .dz-var-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;}
+  .dz-var-h i{font-style:normal;color:var(--muted);font-size:11.5px;}
+  .dz-var-ok{margin-left:auto;font-size:11.5px;font-weight:700;color:#1B6B3A;background:#DDF3E4;border-radius:8px;padding:2px 8px;}
+  .dz-var-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;}
+  .dz-var-t{position:relative;display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff;}
+  .dz-var-t.is-pick{border-color:#1B6B3A;box-shadow:0 0 0 2px rgba(27,107,58,.18);}
+  .dz-var-n{position:absolute;top:8px;left:8px;z-index:1;font-style:normal;min-width:22px;height:22px;border-radius:11px;
+    background:#0F2034;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .dz-var-img{all:unset;cursor:pointer;display:block;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#F4F6F9;}
+  .dz-var-img img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dz-var-img.is-none{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);
+    border:1px dashed var(--line);box-sizing:border-box;}
+  .dz-var-l{font-size:11.5px;color:var(--ink);line-height:1.3;}
+  .dz-var-l em{font-style:normal;color:var(--muted);font-size:10.5px;}
+  .dz-var-a{display:flex;gap:2px;justify-content:flex-end;}
+  .dz-var-add{all:unset;cursor:pointer;box-sizing:border-box;border:1px dashed var(--line);border-radius:10px;min-height:120px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:22px;color:var(--muted);}
+  .dz-var-add span{font-size:12px;}
+  .dz-var-add:hover{border-color:var(--accent);color:var(--accent);}
+  .dz-var-f{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .dz-var-f .dz-b[disabled]{opacity:.45;cursor:default;}
+  .dz-var-ch{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .dz-var-c{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;}
+  .dz-var-c img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#F4F6F9;}
   .b2c-dzr{margin:6px 0 12px;}
   .b2c-dzr-h{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;}
   .b2c-dzr-w{overflow-x:auto;max-width:100%;}
@@ -7755,28 +7782,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5cf55b9bc1"></script>
-<script src="loomiq-fingerprint.js?v=5cf55b9bc1"></script>
-<script src="loomiq-pricing.js?v=5cf55b9bc1"></script>
+<script src="loomiq-select.js?v=1a0d521d46"></script>
+<script src="loomiq-fingerprint.js?v=1a0d521d46"></script>
+<script src="loomiq-pricing.js?v=1a0d521d46"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=5cf55b9bc1"></script>
+<script src="loomiq-money-core.js?v=1a0d521d46"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5cf55b9bc1"></script>
-<script src="loomiq-bg.js?v=5cf55b9bc1"></script>
-<script src="loomiq-mock.js?v=5cf55b9bc1"></script>
+<script src="loomiq-design.js?v=1a0d521d46"></script>
+<script src="loomiq-bg.js?v=1a0d521d46"></script>
+<script src="loomiq-mock.js?v=1a0d521d46"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=5cf55b9bc1"></script>
-<script src="loomiq-threads.js?v=5cf55b9bc1"></script>
+<script src="imagetracer.js?v=1a0d521d46"></script>
+<script src="loomiq-threads.js?v=1a0d521d46"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5cf55b9bc1"></script>
+<script src="loomiq-cards.js?v=1a0d521d46"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7821,7 +7848,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5cf55b9bc1';
+var LQ_VER = '1a0d521d46';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

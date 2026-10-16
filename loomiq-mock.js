@@ -1236,6 +1236,51 @@
     x.drawImage(im, t.x, t.y, t.w, t.h, a + (w - dw) / 2, b + (h - dh) / 2, dw, dh);
     x.restore();
   }
+  /* КАРТКА ВАРІАНТІВ (16.10, Андрій): той самий дизайн на кількох виробах —
+     сіткою, з великими номерами 1–6, щоб клієнт відповів одним числом. */
+  async function variantsCard(data){
+    var items = (data.items || []).filter(function(v){ return v && v.img; }).slice(0, 6);
+    if(!items.length) return null;
+    var ims = [];
+    for(var i = 0; i < items.length; i++) ims.push(await img(items[i].img));
+    /* До трьох — одним рядом (порівнювати поруч), 4 — 2×2, 5–6 — по три. */
+    var cols = items.length <= 3 ? Math.max(2, items.length) : (items.length === 4 ? 2 : 3);
+    var rowsN = Math.ceil(items.length / cols);
+    var gap = 22, innerW = DOC_W - 128, cw = (innerW - gap * (cols - 1)) / cols;
+    var cellH = Math.round(Math.min(620, cw * 1.12)), labH = 46, top = 52, головаH = 40;
+    var нотаH = data.note ? 40 : 0;
+    var H = top + головаH + 24 + rowsN * (cellH + labH + gap) + нотаH + 30;
+    var cv = document.createElement('canvas');
+    cv.width = DOC_W; cv.height = H;
+    var x = cv.getContext('2d');
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, H);
+    var y = top + 28;
+    x.textAlign = 'left'; x.fillStyle = '#0F2034'; x.font = '700 30px Inter, system-ui, sans-serif';
+    x.fillText(String(data.title || 'Варіанти на вибір'), 64, y);
+    if(data.no){
+      x.textAlign = 'right'; x.fillStyle = '#A9B2C0'; x.font = '400 16px Inter, system-ui, sans-serif';
+      x.fillText(String(data.no), DOC_W - 64, y); x.textAlign = 'left';
+    }
+    var y0 = top + головаH + 24;
+    items.forEach(function(v, k){
+      var c = k % cols, r = Math.floor(k / cols);
+      var a = 64 + c * (cw + gap), b = y0 + r * (cellH + labH + gap);
+      if(ims[k]) framed(x, ims[k], a, b, cw, cellH);
+      /* Номер — великим кружком у куті, щоб читався й на телефоні. */
+      var R = 30, cx = a + 16 + R, cy = b + 16 + R;
+      x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fillStyle = '#0F2034'; x.fill();
+      x.fillStyle = '#fff'; x.font = '800 32px Inter, system-ui, sans-serif'; x.textAlign = 'center';
+      x.fillText(String(v.n || k + 1), cx, cy + 11); x.textAlign = 'left';
+      x.fillStyle = '#0F2034'; x.font = '600 18px Inter, system-ui, sans-serif';
+      x.fillText(String(v.n || k + 1) + ' — ' + String(v.label || ''), a, b + cellH + 30);
+    });
+    if(data.note){
+      x.fillStyle = '#6B7280'; x.font = '400 16px Inter, system-ui, sans-serif';
+      x.fillText(String(data.note), 64, y0 + rowsN * (cellH + labH + gap) + 18);
+    }
+    return cv.toDataURL('image/png');
+  }
   async function card(data){
     var mocks = (data.mocks && data.mocks.length ? data.mocks : [data.mock]).filter(Boolean);
     var works = (data.works && data.works.length ? data.works : [data.art]).filter(Boolean);
@@ -1797,7 +1842,7 @@
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
-    open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, cardV: CARD_V, prodCard: prodCard, close: close,
+    open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, variantsCard: variantsCard, cardV: CARD_V, prodCard: prodCard, close: close,
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */
