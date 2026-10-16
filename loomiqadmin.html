@@ -4572,6 +4572,9 @@
     font-size:12px;font-weight:700;gap:0;color:#fff;min-height:32px;box-sizing:border-box;white-space:nowrap;
     background:linear-gradient(45deg,#F09433,#DC2743 45%,#BC1888);}
   .dz-card .dz-card-ig.is-in::before{content:none;}
+  /* filter на :hover робить кнопку «рамкою» для absolute-нащадків — кружечок
+     стрибав усередину кнопки. Тому без filter: світліший градієнт. */
+  .dz-card .dz-card-ig.is-in:hover{filter:none;background:linear-gradient(45deg,#F4A24D,#E43F59 45%,#C9349A);}
   /* 16.10: кружечок пропущених — у правому верхньому куті КАРТКИ (Андрій).
      Винесений за край кнопки, він обрізався краєм картки й видно було лише дужку;
      тепер кнопка не тримає його, і він стає в кут самої картки, всередині. */
@@ -7665,28 +7668,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ac1ab24d1a"></script>
-<script src="loomiq-fingerprint.js?v=ac1ab24d1a"></script>
-<script src="loomiq-pricing.js?v=ac1ab24d1a"></script>
+<script src="loomiq-select.js?v=10032864d4"></script>
+<script src="loomiq-fingerprint.js?v=10032864d4"></script>
+<script src="loomiq-pricing.js?v=10032864d4"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=ac1ab24d1a"></script>
+<script src="loomiq-money-core.js?v=10032864d4"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ac1ab24d1a"></script>
-<script src="loomiq-bg.js?v=ac1ab24d1a"></script>
-<script src="loomiq-mock.js?v=ac1ab24d1a"></script>
+<script src="loomiq-design.js?v=10032864d4"></script>
+<script src="loomiq-bg.js?v=10032864d4"></script>
+<script src="loomiq-mock.js?v=10032864d4"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=ac1ab24d1a"></script>
-<script src="loomiq-threads.js?v=ac1ab24d1a"></script>
+<script src="imagetracer.js?v=10032864d4"></script>
+<script src="loomiq-threads.js?v=10032864d4"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ac1ab24d1a"></script>
+<script src="loomiq-cards.js?v=10032864d4"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7731,7 +7734,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ac1ab24d1a';
+var LQ_VER = '10032864d4';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -14417,6 +14420,9 @@ function watchTelegramLeads(){
            усі картки одночасно — тобто не підняло б жодної. */
         if(o.tgWrote != null && wrote > (+o.tgWrote || 0)) touchOrder(o);
         o.tgLast = last; o.tgWrote = wrote; o.tgAt = v.lastAt || '';
+        /* Ми відповіли — лічильник з нуля: наступне число рахує лише те,
+           що клієнт напише ПІСЛЯ нашої відповіді (Андрій, 16.10). */
+        if(last.slice(0, 4) === 'Ви: ') o.tgSeenWrote = wrote;
         /* Відкрита картка більше не гасить нове (15.10) — лише 👁 або відповідь. */
         touched = true;
       }
@@ -26368,6 +26374,7 @@ async function crmSweepOnce(){
   try{
     const rows = crmListOf(await crmFetch('/chats'));
     let touched = false;
+    const recount = [];
     crmInbox = [];
     rows.forEach(r => {
       const id = String((r && (r.chatId || r.chat_id || r.id)) || '');
@@ -26399,9 +26406,22 @@ async function crmSweepOnce(){
            порожнечу. */
         o.crmUnread = (+o.crmUnread || 0) + 1;
         touchOrder(o);      // клієнт озвався — картка вгору колонки
+        /* Спостереження недораховує: три репліки між тактами — це одна
+           «нова остання». Андрій: «скільки пропущених, стільки й
+           показується». Тож дочитуємо стрічку й рахуємо точний хвіст. */
+        if(!(chatWin && chatWin.id === o.id)) recount.push(o);
+      } else {
+        /* Ми відповіли (хоч і прямо з Instagram) — лічильник обнуляється. */
+        o.crmUnread = 0; o.crmSeen = '';
       }
       touched = true;
     });
+    /* Не більше трьох за такт: Sitniks рахує запити. Решту дорахує
+       наступний такт або відкриття розмови. */
+    for(const o of recount.slice(0, 3)){
+      try{ crmNormMsgs(await crmFetch('/chats/' + encodeURIComponent(o.crmChatId) + '/messages'), o); }
+      catch(e){ if(e && e.status === 429) break; }
+    }
     if(touched){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
       renderBoard();
