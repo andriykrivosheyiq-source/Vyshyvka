@@ -1331,6 +1331,9 @@ export default {
         out.кроки = NOVAPAY_TRACE;
         await fsWrite(env, 'loomiq/novapayLog', { json: JSON.stringify({ at: new Date().toISOString(), ok: out.ok,
           error: out.error || '', кроки: NOVAPAY_TRACE }) }).catch(() => null);
+        /* Ручний прогін — теж у стан рахунків, щоб картки в CRM оновились одразу. */
+        if (parts[1] === 'poll') await accounts(env).then(l => syncMark(env, l.filter(a => a.bank === 'novapay')
+          .map(a => ({ acc: a.id, src: 'novapay', error: out.ok ? '' : out.error })))).catch(() => null);
         return json(out, out.ok ? 200 : 502);
       }
       if (parts[0] === 'fix-tz') {
