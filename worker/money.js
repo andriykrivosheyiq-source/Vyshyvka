@@ -409,6 +409,49 @@ async function monoSetup(env, acc, url) {
   return t;
 }
 
+/* МОНОБАНК — ПІДКЛЮЧАЄТЬСЯ САМ (17.10, Андрій: «ФОП Віталіка підключили, а
+   звичайну карту, на яку перекидує кошти, — ні»). Токен Монобанку один на
+   людину й бачить усі її рахунки — і ФОП, і особисті картки. Вебхук теж
+   один на токен, а рух розкладаємо за номером рахунку (monoMap). Тож для
+   картки досить вписати її IBAN у Фінансах: сервер сам шукає, чий токен її
+   бачить, і додає в monoMap. Без окремого секрету й без /mono/setup.
+   Обмеження Монобанку — client-info раз на хвилину на токен, тож за прогін
+   (раз на 5 хв) — один непідключений рахунок, кожним токеном по разу. */
+async function monoAutoLink(env) {
+  const accs = (await accounts(env)).filter(a => a.bank === 'mono' && a.iban);
+  const map = await monoMap(env);
+  const a = accs.filter(x => !map[x.id])[0];
+  if (!a) return null;
+  const ключі = Object.keys(env).filter(k => /^MONO_TOKEN_/.test(k) && env[k]);
+  /* Свій токен рахунку — першим. */
+  ключі.sort((x, y) => (y === 'MONO_TOKEN_' + a.id) - (x === 'MONO_TOKEN_' + a.id));
+  let база = '';
+  for (const k of ключі) {
+    const r = await fetch(MONO_URL + '/personal/client-info', { headers: { 'X-Token': String(env[k]).trim() } });
+    const info = await r.json().catch(() => null);
+    if (!r.ok || !info) continue;
+    const wh = String(info.webHookUrl || '');
+    if (!база && /\/mono\//.test(wh)) база = wh.split('/mono/')[0];
+    const hit = monoPick(info, a.iban);
+    if (!hit) continue;
+    await fsWrite(env, 'loomiq/monoMap', { [a.id]: hit.id });
+    MONO_MAP = null;
+    if (hit.balance != null)
+      await bankBalance(env, a.id, (+hit.balance || 0) / 100, new Date().toISOString(), 'mono');
+    /* У цієї людини вебхука ще немає (токен новий) — ставимо той самий,
+       що в інших: адресу беремо з уже підключених. */
+    if (!wh && база && env.HOOK_SECRET)
+      await fetch(MONO_URL + '/personal/webhook', { method: 'POST',
+        headers: { 'X-Token': String(env[k]).trim(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webHookUrl: база + '/mono/' + a.id + '?s=' + env.HOOK_SECRET }) }).catch(() => null);
+    await syncMark(env, [{ acc: a.id, src: 'mono' }]);
+    return { acc: a.id, підключено: k.slice(11) };
+  }
+  await syncMark(env, [{ acc: a.id, src: 'mono', skip: 'жоден токен Монобанку не бачить IBAN ' + a.iban.slice(0, 6) + '…' + a.iban.slice(-4) +
+    ' — потрібен токен власника картки (MONO_TOKEN_' + a.id + ')' }]);
+  return { acc: a.id, error: 'IBAN не знайдено в жодному токені' };
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    ПРИВАТ ДЛЯ БІЗНЕСУ (Автоклієнт)
 
@@ -1246,6 +1289,8 @@ async function poll(env, opts) {
     try { out.privat.push(await privatPoll(env, a)); }
     catch (e) { out.privat.push({ acc: a.id, error: e.message }); }
   }
+  /* Монобанк: картки, у яких уже є IBAN, а підключення ще немає. */
+  try { out.mono = await monoAutoLink(env); } catch (e) { out.mono = { error: e.message }; }
   /* Рухи прийшли, а залишок — ні: це теж треба бачити (дата на картці стоїть). */
   await syncMark(env, out.privat.map(x => Object.assign({ src: 'privat' }, x,
     (!x.error && typeof x.залишок === 'string') ? { error: 'залишок ' + x.залишок } : {})));
