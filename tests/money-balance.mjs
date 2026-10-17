@@ -207,6 +207,22 @@ ok(sync('mono3') && sync('mono3').ok === false && /token expired/.test(sync('mon
   'Приват відмовив — у bankSync його точні слова («token expired»), CRM покаже їх на картці', 'bankSync: ' + JSON.stringify(sync('mono3')));
 
 console.log('');
+console.log('═══ МОНОБАНК: ОСОБИСТА КАРТКА ПІДКЛЮЧАЄТЬСЯ САМА ЗА IBAN (17.10) ═══');
+/* Андрій: «ФОП Віталіка підключили, а звичайну карту — ні». Токен один на
+   людину й бачить і ФОП, і картку — досить вписати IBAN картки. */
+DB['loomiq/photos'].fin.mapValue.fields.accounts.arrayValue.values.push(
+  { mapValue: { fields: { id: sv('card1'), bank: sv('mono'), iban: sv('UA 333'), name: sv('Картка Віталія') } } });
+await call('/poll?s=sek');
+const мап = DB['loomiq/monoMap'] || {};
+ok(мап.card1 && мап.card1.stringValue === 'personal' && bb('card1') && bb('card1').bal === 1 && sync('card1') && sync('card1').ok,
+  'картка з IBAN — сервер сам знайшов її в токені ФОПа: рухи підуть, залишок одразу, «перевірено»',
+  'картка: ' + JSON.stringify({ map: мап.card1, bal: bb('card1'), sync: sync('card1') }));
+const w0 = await call('/mono/mono1?s=sek', 'POST', { type:'StatementItem', data:{ account:'personal',
+  statementItem:{ id:'p-in-1', time: 1760700000, amount: 250000, balance: 260000, description:'Переказ з ФОП' } } });
+ok(w0.written === 1 && DB['payments/mono_p-in-1'] && DB['payments/mono_p-in-1'].acc.stringValue === 'card1',
+  'рух по картці з того самого вебхука лягає в «Картку Віталія»', 'рух: ' + JSON.stringify(w0));
+
+console.log('');
 console.log('═══ НОВА ПОШТА: УСІ СТОРІНКИ НАКЛАДНИХ І ВИПЛАТА ═══');
 const npo = po2.np || {};
 console.log('   ' + JSON.stringify(npo));
