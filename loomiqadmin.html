@@ -5273,6 +5273,8 @@
   .fin-c-st.is-ok{color:#1B6B3A;}
   .fin-c-st.is-err{color:#D92D20;font-weight:600;}
   .fin-c-st.is-off{color:var(--muted);}
+  .fin-c-why{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+    font-size:10.5px;line-height:1.35;color:var(--ink-soft);margin-top:2px;word-break:break-word;}
   .fin-c-n{font-size:13px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;}
   .fin-c-s{font-size:19px;font-weight:700;color:var(--ink);
@@ -7789,28 +7791,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a64504fd4b"></script>
-<script src="loomiq-fingerprint.js?v=a64504fd4b"></script>
-<script src="loomiq-pricing.js?v=a64504fd4b"></script>
+<script src="loomiq-select.js?v=a755678ad7"></script>
+<script src="loomiq-fingerprint.js?v=a755678ad7"></script>
+<script src="loomiq-pricing.js?v=a755678ad7"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=a64504fd4b"></script>
+<script src="loomiq-money-core.js?v=a755678ad7"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a64504fd4b"></script>
-<script src="loomiq-bg.js?v=a64504fd4b"></script>
-<script src="loomiq-mock.js?v=a64504fd4b"></script>
+<script src="loomiq-design.js?v=a755678ad7"></script>
+<script src="loomiq-bg.js?v=a755678ad7"></script>
+<script src="loomiq-mock.js?v=a755678ad7"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=a64504fd4b"></script>
-<script src="loomiq-threads.js?v=a64504fd4b"></script>
+<script src="imagetracer.js?v=a755678ad7"></script>
+<script src="loomiq-threads.js?v=a755678ad7"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a64504fd4b"></script>
+<script src="loomiq-cards.js?v=a755678ad7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7855,7 +7857,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a64504fd4b';
+var LQ_VER = 'a755678ad7';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10325,8 +10327,8 @@ function finSyncOf(a){
       return { cls:'err', txt:'не оновлювався з ' + payDate(bb.at).slice(0, 5), title:'Сервер не отримує даних від банку понад добу — найімовірніше, протермінований ключ банку' };
     return null;
   }
-  if(err) return { cls:'err', txt:'помилка банку', title:'Перевірено ' + payDate(at) + ' · ' + err };
-  if(skip) return { cls:'off', txt:'не підключено', title: skip };
+  if(err) return { cls:'err', txt:'помилка банку', title:'Перевірено ' + payDate(at) + ' · ' + err, why: String(err).slice(0, 140) };
+  if(skip) return { cls:'off', txt:'не підключено', title: skip, why: String(skip).slice(0, 140) };
   if(питаємо && Date.now() - Date.parse(at) > 864e5)
     return { cls:'err', txt:'не перевірявся з ' + payDate(at).slice(0, 5), title:'Сервер грошей не перевіряв рахунок понад добу' };
   return { cls:'ok', txt: (a.bank === 'mono' ? 'останній рух ' : 'перевірено ') + payDate(at), title:'Банк відповідає · ' + payDate(at) };
@@ -10407,7 +10409,10 @@ function renderFinCards(){
       '<span class="fin-c-s">' + escapeHtml(payMoneyK(b).replace('+', '')) + '</span>' +
       (bb ? '<span class="fin-c-at" title="Залишок, який назвав банк">банк · ' + escapeHtml(payDate(bb.at)) + '</span>'
           : '<span class="fin-c-at is-calc" title="Банк ще не називав залишок: початковий залишок плюс рухи">розрахунок</span>') +
-      (ст ? '<span class="fin-c-st is-' + ст.cls + '" title="' + escapeHtml(ст.title) + '">' + escapeHtml(ст.txt) + '</span>' : '') +
+      (ст ? '<span class="fin-c-st is-' + ст.cls + '" title="' + escapeHtml(ст.title) + '">' + escapeHtml(ст.txt) + '</span>' +
+            /* Причину — одразу на картці, без наведення (17.10): за нею й
+               видно, який ключ чи поле поправити. */
+            (ст.why ? '<span class="fin-c-why">' + escapeHtml(ст.why) + '</span>' : '') : '') +
     '</div>';
   }).join('') +
     '<div class="fin-c is-all"><span class="fin-c-b">Разом</span>' +
