@@ -200,9 +200,10 @@ const зони = await p.evaluate(() => {
   actedSeen = null; renderTeamList();
   return {
     вкладки:[...document.querySelectorAll('#team-list [data-tmtab]')].map(b => b.textContent.trim()),
-    галочок:document.querySelectorAll('#team-list .tu-row input[type=checkbox]').length,
+    /* Галочки ролей (18.10: кілька ролей на пошту) — не поштучні права. */
+    галочок:document.querySelectorAll('#team-list .tu-row input[type=checkbox]:not(.tm-rck)').length,
     людей:document.querySelectorAll('#team-list .tu-row').length,
-    ролейВРядку:document.querySelectorAll('#team-list .tu-row .tm-role').length,
+    ролейВРядку:document.querySelectorAll('#team-list .tu-row .tm-rpick').length,
     колонки:[...document.querySelectorAll('#team-list .tu-head span')].map(s => s.textContent.trim())
   };
 });
@@ -295,10 +296,10 @@ console.log('═══ У ВИБОРІ ЛЮДИНИ — РІВНО ТІ РОЛІ
    — Канбану, двох чатів і B2C, — і ті чотири розділи вже й так є галочками
    в самій ролі. Другий вимикач на ті самі двері. */
 const ролі = await p.evaluate(() => {
-  const sel = document.querySelector('#team-list .tm-role');
-  const opts = [...(sel ? sel.options : [])].map(o => o.textContent.trim());
+  const sel = document.querySelector('#team-list .tm-rpick');
+  const opts = [...(sel ? sel.querySelectorAll('.tm-rc') : [])].map(o => o.textContent.trim());
   return { вибір:opts, ролі:roleDefs().map(r => r.name),
-           значення:[...(sel ? sel.options : [])].map(o => o.value) };
+           значення:[...(sel ? sel.querySelectorAll('.tm-rck') : [])].map(o => o.value) };
 });
 console.log('   ' + JSON.stringify(ролі.вибір));
 ok(ролі.вибір.join() === ролі.ролі.join(),
@@ -310,6 +311,45 @@ ok(!ролі.значення.some(v => v.indexOf('|') >= 0),
 ok(!/memberDirs|canDir\(/.test(fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8')),
   'напряму як окремого поля людини більше немає — його задають розділи ролі',
   'напрям досі живе поруч із роллю');
+
+/* КІЛЬКА РОЛЕЙ НА ОДНУ ПОШТУ (18.10, Андрій: «менеджер і акаунт-менеджер»).
+   Доступи складаються, правила бази (acl) — теж, перша роль головна. */
+const кілька = await p.evaluate(() => {
+  const ролі = roleDefs().map(r => r.key).filter(k => k !== 'owner');
+  const a = ролі[0], b = ролі[1];
+  const m = { email:'two@loomiq', role:a, roles:[a, b] };
+  const pa = presetOf(a), pb = presetOf(b), u = accOf(m);
+  const має = (all, part) => all === '*' || (part === '*' ? all === '*' : (part || []).every(x => all.indexOf(x) >= 0));
+  const сума = ['nav', 'see', 'can'].every(k => має(u[k], pa[k]) && має(u[k], pb[k]));
+  /* Галочкою в рядку людини: додали другу роль — доступи склались. */
+  renderTeamList();
+  const row0 = [...document.querySelectorAll('#team-list .tu-row')].filter(r => {
+    const x = teamList()[+r.dataset.i]; return x && memberRoles(x)[0] !== 'owner'; })[0];
+  const i = row0 ? +row0.dataset.i : -1;
+  const було = i >= 0 ? JSON.parse(JSON.stringify(teamList()[i])) : null;
+  if(i >= 0){ const x = teamList()[i]; x.roles = [a]; x.role = a; x.acc = accExpand(presetOf(a)); renderTeamList(); }
+  const row = document.querySelector('#team-list .tu-row[data-i="' + i + '"]');
+  const ck = row && row.querySelector('.tm-rck[value="' + b + '"]');
+  if(ck){ ck.checked = true; ck.dispatchEvent(new Event('change')); }
+  const p = teamList()[i];
+  const acl = (p && aclFromTeam([p])[aclKeyOf(p.email)]) || {};
+  const row2 = document.querySelector('#team-list .tu-row[data-i="' + i + '"]');
+  const r = { сума, ролі: p.roles, головна: p.role, a, b,
+              головнаПлашка: row2 && row2.querySelector('.tm-rc.main') ? row2.querySelector('.tm-rc.main').textContent.trim() : '',
+              accCan: p.acc.can.length >= Math.max(accExpand(pa).can.length, accExpand(pb).can.length),
+              acl: Object.keys(acl).length, власник: memberRoles({ roles:['owner', a] }).join() };
+  if(було) teamList()[i] = було;
+  renderTeamList();
+  return r;
+});
+console.log('   ' + JSON.stringify(кілька));
+if(process.env.SHOT){ await p.evaluate(() => { renderTeamList(); const r = document.querySelector('#team-list .tu-row'); if(r) r.scrollIntoView(); });
+  await p.screenshot({ path: process.env.SHOT }); }
+ok(кілька.сума && кілька.ролі.join() === [кілька.a, кілька.b].join() && кілька.головна === кілька.a && кілька.accCan && кілька.acl > 0,
+  'одна пошта — кілька ролей: доступи складаються (і в правилах бази), перша роль головна',
+  'кілька ролей: ' + JSON.stringify(кілька));
+ok(кілька.головнаПлашка && кілька.власник === 'owner',
+  'головна роль позначена в рядку; «Власник» — окремо, не поєднується', JSON.stringify(кілька));
 
 /* Напрям тепер задається розділами: Канбан і «Чати B2B» — це B2B, «B2C» і
    «Чати B2C» — це B2C. Менеджер одного напряму так само не знає, що існує
