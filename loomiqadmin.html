@@ -4728,6 +4728,16 @@
   .dz-svc button{border:none;background:none;color:#6366F1;cursor:pointer;font-size:14px;padding:0 0 0 2px;line-height:1;}
   .dz-svc-add{all:unset;cursor:pointer;font-size:12px;color:var(--accent-deep,#4338CA);padding:3px 8px;border:1px dashed #C7D2FE;border-radius:999px;}
   .dz-sum-r.is-svc span{padding-left:12px;color:var(--ink-soft);}
+  /* Товар з цим ескізом (18.10). */
+  .dz-link-add{border-color:#A5B4FC;color:#4338CA;font-weight:600;}
+  .dz-link-note{margin:4px 0 2px;font-size:12px;color:#3730A3;background:#EEF2FF;border-radius:8px;padding:5px 9px;}
+  .dz-link-note b{display:inline-block;min-width:16px;text-align:center;border-radius:5px;background:#C7D2FE;font-size:11px;margin-right:2px;}
+  .dz-kind.is-link{align-items:center;gap:8px;padding-left:10px;background:#EEF2FF;border-color:#C7D2FE;}
+  .dz-link-t{font-size:12.5px;font-weight:700;color:#3730A3;}
+  .dz-ready.is-link{background:#F5F7FF;border-color:#C7D2FE;}
+  .dz-cf.is-many .dz-cf-b{width:min(860px,100%);}
+  .dz-cf-is{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;}
+  .dz-cf-is .dz-cf-i{max-height:44vh;}
   .dz-price-up{margin:6px 0 2px;font-size:12px;}
   .dz-disc{align-items:center;}
   .dz-disc-f{display:inline-flex;gap:4px;margin-left:auto;margin-right:8px;}
@@ -7799,28 +7809,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b2840cf256"></script>
-<script src="loomiq-fingerprint.js?v=b2840cf256"></script>
-<script src="loomiq-pricing.js?v=b2840cf256"></script>
+<script src="loomiq-select.js?v=a37638c4a1"></script>
+<script src="loomiq-fingerprint.js?v=a37638c4a1"></script>
+<script src="loomiq-pricing.js?v=a37638c4a1"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=b2840cf256"></script>
+<script src="loomiq-money-core.js?v=a37638c4a1"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b2840cf256"></script>
-<script src="loomiq-bg.js?v=b2840cf256"></script>
-<script src="loomiq-mock.js?v=b2840cf256"></script>
+<script src="loomiq-design.js?v=a37638c4a1"></script>
+<script src="loomiq-bg.js?v=a37638c4a1"></script>
+<script src="loomiq-mock.js?v=a37638c4a1"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=b2840cf256"></script>
-<script src="loomiq-threads.js?v=b2840cf256"></script>
+<script src="imagetracer.js?v=a37638c4a1"></script>
+<script src="loomiq-threads.js?v=a37638c4a1"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b2840cf256"></script>
+<script src="loomiq-cards.js?v=a37638c4a1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7865,7 +7875,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b2840cf256';
+var LQ_VER = 'a37638c4a1';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
