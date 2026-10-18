@@ -973,7 +973,9 @@
   function dzAutoQueue(job, o, by){
     if(!job) return 0;
     stitchHeal(job, by);
-    return dzAutoStitch(job, by);
+    var n = dzAutoStitch(job, by);
+    linkSync(job, by);
+    return n;
   }
   /* ВИШИВКУ, ЗДАНУ ДО ПРАВИЛА «ЗДАВ = ГОТОВО», ДОВОДИМО ДО КІНЦЯ.
 
@@ -1480,6 +1482,9 @@
       if(!clothOk(u)) return;
       var l = dzList(u, 'stitch');
       if(l.length) return;
+      /* Товар з тим самим ескізом (18.10): у чергу вишивки не стає — файл
+         прийде з головної позиції (linkSync). */
+      if(linkOf(u)) return;
       var g = dzList(u, 'graphic').filter(dzReal);
       var d = dzNew();
       d.from = g.map(function(x){ return { i: dzList(u, 'graphic').indexOf(x), ver: (x.ok && x.ok.ver) || x.vers.length }; });
@@ -1586,7 +1591,8 @@
     d.who = ''; d.pool = false;
     d.sentBy = String(by || ''); d.sentAt = nowIso();
     d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'note',
-                    text: 'Готовий дизайн «' + ((u.ready && u.ready.name) || '') + '» — без графічного дизайнера',
+                    text: linkOf(u) ? 'Той самий ескіз, що й у головній позиції, — без графічного дизайнера'
+                                    : 'Готовий дизайн «' + ((u.ready && u.ready.name) || '') + '» — без графічного дизайнера',
                     seen: [String(by || '')] });
     l.push(d);
     return d;
@@ -1616,6 +1622,115 @@
     u.stitch = dzList(u, 'stitch').filter(function(x){ return !x.readyMade; });
     delete u.ready;
     return true;
+  }
+  /* ══════════ ТОВАР З ЦИМ ЕСКІЗОМ (18.10, Андрій) ══════════
+
+     Той самий ескіз — ще й на іншому товарі цього ж замовлення: «щоб не
+     робити ще раз картинку, ми просто додаємо товар з цією ж картинкою».
+     Така позиція — це «готовий дизайн», джерело якого не бібліотека, а
+     позиція цього замовлення (`u.ready.link` = її id). Звідси само собою:
+     ціна «готовий / повторний», без типу малюнка й ТЗ, без графічного й
+     вишивального дизайнера і без їхньої оплати — ескіз один, і файл для
+     машини один. Свої в неї лише виріб, колір, розмір, кількість, послуги
+     й розміщення (мокап), яке робиться слідом за головною позицією. */
+  function linkOf(u){ return (u && u.ready && u.ready.link) ? String(u.ready.link) : ''; }
+  function linkMain(job, u){
+    var id = linkOf(u);
+    return id ? (jobUnits(job).filter(function(x){ return x && x.id === id; })[0] || null) : null;
+  }
+  function linksOf(job, main){
+    return (main && main.id) ? jobUnits(job).filter(function(x){ return linkOf(x) === main.id; }) : [];
+  }
+  /* Картинка ескізу головної: готовий/повторний — його принти;
+     індивідуальний — роботи останньої версії дизайнера. */
+  function linkArts(main){
+    if(!main) return [];
+    if(main.ready && !linkOf(main)) return readyArts(main.ready);
+    var l = dzList(main, 'graphic').filter(function(d){ return d && !d.readyMade && (d.vers || []).length; });
+    var d = l[l.length - 1];
+    if(!d) return [];
+    var v = d.vers[d.vers.length - 1];
+    var p = verParts(v);
+    var pw = ((v.place && v.place.works) || []).filter(function(x){ return x && x.url; });
+    var w = p.work.length ? p.work : pw;
+    /* Нитки роботи — з розміщення головної: цех читає їх і зі звʼязаної. */
+    return w.map(function(f){
+      var o = { name: String(f.name || 'ескіз.png'), url: String(f.url) };
+      var t = pw.filter(function(x){ return x.url === f.url; })[0];
+      if(t && (t.threads || []).length) o.threads = t.threads;
+      return o; });
+  }
+  function linkUrls(l){ return (l || []).map(function(f){ return f && f.url; }).filter(Boolean).sort().join('|'); }
+  function linkAttach(u, main){
+    if(!u || !main) return null;
+    var arts = linkArts(main);
+    u.ready = { id: 'link', link: String(main.id), name: 'Той самий ескіз',
+                pic: (arts[0] && arts[0].url) || '', art: arts[0] || null, arts: arts,
+                files: [], extras: [], at: nowIso() };
+    delete u.artKind; delete u.artKindName;
+    return u.ready;
+  }
+  /* Розміщення треба (ще раз): ескіз уже є, а на цьому товарі його ще не
+     клали — або клали попередню картинку. */
+  function linkStale(job, u){
+    if(!linkOf(u) || placeLocked(u)) return false;
+    var main = linkMain(job, u), arts = linkArts(main);
+    if(!arts.length) return false;
+    var g = dzList(u, 'graphic').filter(function(x){ return x.readyMade; })[0];
+    var v = g && g.vers[g.vers.length - 1];
+    if(!v) return true;
+    return (v.linkArts || '') !== linkUrls(arts);
+  }
+  /* Звʼязані позиції тримаємо в ладі з головною — при кожному збереженні:
+     свіжа картинка (поки не у вишивці) і вишивальні файли головної, щойно
+     вишивальний їх здав. Ідемпотентно. */
+  function linkSync(job, by){
+    var n = 0;
+    jobUnits(job).forEach(function(u){
+      if(!linkOf(u)) return;
+      var main = linkMain(job, u);
+      if(!main) return;
+      if(!placeLocked(u)){
+        var arts = linkArts(main);
+        if(arts.length && linkUrls(arts) !== linkUrls(u.ready.arts)){
+          u.ready.arts = arts; u.ready.art = arts[0]; u.ready.pic = arts[0].url; n++;
+        }
+      }
+      /* Вишивка: один файл на ескіз — береться з головної. */
+      var ms = dzList(main, 'stitch').filter(dzReal);
+      if(!ms.length || !ms.every(function(d){ return d.ok; })) return;
+      if(!graphicDone(u) || !clothOk(u)) return;
+      var files = [], extras = [], ключ = [];
+      ms.forEach(function(d){
+        var v = d.vers.filter(function(x){ return +x.n === +d.ok.ver; })[0] || d.vers[d.vers.length - 1];
+        if(!v) return;
+        ключ.push(d.id + ':' + v.n);
+        var p = verParts(v);
+        p.machine.forEach(function(f){ files.push({ name: f.name, url: f.url }); });
+        (p.extra || []).concat(p.shot).forEach(function(f){ extras.push({ name: f.name, url: f.url }); });
+      });
+      if(!files.length) return;
+      var k = ключ.join(',');
+      var st = dzList(u, 'stitch');
+      var d0 = st.filter(function(x){ return x.readyMade; })[0];
+      if(d0 && d0.linkFrom === k) return;
+      u.ready.files = files; u.ready.extras = extras;
+      if(!d0){ d0 = dzNew(); st.push(d0); }
+      d0.readyMade = true; d0.who = ''; d0.pool = false; d0.linkFrom = k;
+      d0.sentBy = d0.sentBy || String(by || ''); d0.sentAt = d0.sentAt || nowIso();
+      dzVer(d0, by, files.map(function(f){ return { name: f.name, url: f.url, role:'machine' }; })
+        .concat(readyArts(u.ready).map(function(f){ return { name: f.name, url: f.url, role:'extra', kind:'print' }; }))
+        .concat(extras.map(function(f){ return { name: f.name, url: f.url, role:'extra' }; })),
+        'Той самий ескіз — вишивальні файли позиції ' + (jobUnits(job).indexOf(main) + 1), null, 'stitch');
+      d0.vers[d0.vers.length - 1].byAcct = true;
+      dzOk(d0, by, 'auto', d0.vers.length);
+      d0.thread.push({ at: nowIso(), by: String(by || ''), kind:'note',
+                       text: 'Той самий ескіз, що й у позиції ' + (jobUnits(job).indexOf(main) + 1) +
+                             ' — один вишивальний файл, оцифровують і платять один раз',
+                       seen: [String(by || '')] });
+      n++;
+    });
+    return n;
   }
   function dzDecline(d, by, why){
     if(!d) return null;
@@ -2518,6 +2633,7 @@
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
+    linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -4332,11 +4448,28 @@
       return l.length ? '<div class="dz-u-svc is-ro">' + l.map(function(x){
         return '<span class="dz-svc">+ ' + esc(x.name) + '</span>'; }).join('') + '</div>' : '';
     }
+    /* ＋ ТОВАР З ЦИМ ЕСКІЗОМ (18.10) — лише в B2C і лише з «головної»
+       позиції: у звʼязаної ескіз і так чужий. */
+    var лінк = !!(opt && opt.o && opt.o.dir === 'b2c') && !D.linkOf(u);
     return '<div class="dz-u-svc">' + l.map(function(x, i){
         return '<span class="dz-svc">+ ' + esc(x.name) +
           '<button type="button" data-do="u-svc-del" data-u="' + esc(u.id) + '" data-i="' + i + '" title="Прибрати послугу">×</button></span>';
       }).join('') +
-      '<button type="button" class="dz-svc-add" data-do="u-svc-add" data-u="' + esc(u.id) + '">+ Послуга</button></div>';
+      '<button type="button" class="dz-svc-add" data-do="u-svc-add" data-u="' + esc(u.id) + '">+ Послуга</button>' +
+      (лінк ? '<button type="button" class="dz-svc-add dz-link-add" data-do="u-link-add" data-u="' + esc(u.id) + '" ' +
+        'title="Ще один товар із цією самою картинкою — без нового ескізу й без оплати дизайнерам">＋ Товар з цим ескізом</button>' : '') +
+      '</div>';
+  }
+  /* «Цей ескіз також на…» — на головній позиції (і в дизайнера): щоб було
+     видно, що розміщувати доведеться не на одному товарі. */
+  function linksNoteHtml(job, u){
+    var l = D.linksOf(job, u);
+    if(!l.length) return '';
+    var all = unitsOf(job);
+    return '<div class="dz-link-note">🔗 Цей ескіз також на: ' + l.map(function(x){
+      var g = catItem(x.gid);
+      return '<b>' + (all.indexOf(x) + 1) + '</b> ' + esc([(g && g.name) || x.name || 'виріб ще не обрано', x.color, x.size].filter(Boolean).join(' · '));
+    }).join('; ') + '</div>';
   }
   function capHtml(t){
     return '<div class="dz-u-cap"><span>' + esc(t) + '</span></div>';
@@ -4367,7 +4500,16 @@
           esc(k.name) + '</option>'; }).join('') +
       '</select></label>';
   }
-  function designKindHtml(u){
+  function designKindHtml(u, job){
+    if(D.linkOf(u)){
+      var mn = D.linkMain(job, u);
+      var зПог = dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
+      return '<div class="dz-kind is-link"><span class="dz-link-t">🔗 Той самий ескіз, що й позиція ' +
+        (mn ? (unitsOf(job).indexOf(mn) + 1) : '?') + '</span>' +
+        '<button type="button" class="dz-kind-b" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
+          (зПог ? ' disabled title="Дизайн уже погоджено"' : ' title="Відвʼязати від ескізу — позиція стане окремою зі своїм дизайном"') + '>Свій дизайн</button>' +
+      '</div>';
+    }
     var пов = !!(u.ready && u.ready.repeat);
     var гот = !!u.ready && !пов;
     var зПогодж = !!u.ready && dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
@@ -4412,6 +4554,7 @@
   }
 
   function readyHtml(job, u, ro, opt){
+    if(D.linkOf(u)) return linkHtml(job, u, ro, opt);
     var r = u.ready || {};
     var gl = dzList(u, 'graphic');
     var gi = -1;
@@ -4446,6 +4589,42 @@
           ? '<div class="dz-miss dz-need">Ескіз погоджено — підтвердіть одяг' +
             (D.unitMissing(u).length ? ' (не заповнено: <b>' + esc(D.unitMissing(u).join(', ')) + '</b>)' : '') +
             '.<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) + '">Підтвердити одяг</button></div>'
+          : '') +
+    '</div>';
+  }
+  /* Звʼязана позиція (18.10): ескіз головної, своє лише розміщення. */
+  function linkHtml(job, u, ro, opt){
+    var r = u.ready || {};
+    var mn = D.linkMain(job, u), no = mn ? (unitsOf(job).indexOf(mn) + 1) : '?';
+    var gl = dzList(u, 'graphic');
+    var gi = -1;
+    gl.forEach(function(x, i){ if(x.readyMade) gi = i; });
+    var d = gi >= 0 ? gl[gi] : null;
+    var key = esc(u.id) + '|graphic|' + gi;
+    var st = dzList(u, 'stitch').filter(function(x){ return x.readyMade; })[0];
+    var arts = D.linkArts(mn), pic = (arts[0] && arts[0].url) || r.pic || '';
+    var stale = D.linkStale(job, u);
+    var кнопка = function(t){ return '<button type="button" class="dz-b pri" data-do="u-ready-place" data-u="' + esc(u.id) + '">' + t + '</button>'; };
+    return '<div class="dz-ready is-link">' +
+      '<div class="dz-ready-h">' +
+        (pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(pic) + '"><img src="' + esc(pic) + '" alt=""></button>' : '') +
+        '<span class="dz-ready-t"><b>Ескіз позиції ' + no + '</b>' +
+          '<i>без нового ескізу й без оплати дизайнерам · вишивальний файл — той самий</i></span>' +
+      '</div>' +
+      (!mn ? '<div class="dz-miss">Головної позиції вже немає — натисніть «Свій дизайн».</div>'
+        : !arts.length ? '<div class="dz-miss is-calm">Розмістимо, щойно буде ескіз позиції ' + no + '.</div>'
+        : (!d || !(d.vers || []).length)
+          ? (ro ? '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>'
+              : !u.gid ? '<div class="dz-miss">Спершу оберіть одяг — ескіз кладемо на нього.</div>'
+              : '<div class="dz-rep-a">' + кнопка('◱ Розмістити на одязі') + '</div>')
+          : ((stale && !ro) ? '<div class="dz-miss dz-need">Ескіз позиції ' + no + ' оновився — розмістіть його й тут.' + кнопка('◱ Розмістити') + '</div>' : '') +
+            dzCardHtml(u, 'graphic', d, gi, job, opt && opt.o, key, ro)) +
+      (st ? '<div class="dz-miss is-calm">Вишивка — файл позиції ' + no + ', позиція йде у виробництво.</div>'
+          : (d && d.ok && D.graphicOk(u) && !D.clothOk(u) && !ro)
+          ? '<div class="dz-miss dz-need">Ескіз погоджено — підтвердіть одяг' +
+            (D.unitMissing(u).length ? ' (не заповнено: <b>' + esc(D.unitMissing(u).join(', ')) + '</b>)' : '') +
+            '.<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) + '">Підтвердити одяг</button></div>'
+          : (d && d.ok && mn && dzList(mn, 'stitch').length) ? '<div class="dz-miss is-calm">Вишивальний файл прийде з позиції ' + no + '.</div>'
           : '') +
     '</div>';
   }
@@ -4650,6 +4829,7 @@
         '</span>' +
       '</div>') +
       servicesHtml(u, ro, opt) +
+      linksNoteHtml(job, u) +
       /* 16.10, Андрій: коментар ліворуч, картинки праворуч — одним рядком,
          щоб позиція була нижчою. Картинок багато — права частина росте вниз. */
       '<div class="dz-u-np">' +
@@ -4725,7 +4905,7 @@
       capHtml('Дизайн') +
       /* Індивідуальний чи готовий (13.10). Дизайнер свою половину бачить як
          раніше — перемикача в нього немає. */
-      ((ro || only) ? '' : designKindHtml(u)) +
+      ((ro || only) ? '' : designKindHtml(u, job)) +
       (u.ready && !only ? readyHtml(job, u, ro, opt) :
       /* Яку половину тримаємо відкритою. Дизайнеру показують лише його
          половину (`only`) — там вибору немає й смужки теж. */
@@ -4793,7 +4973,7 @@
   function varsOf(u){ return (u && u.variants && Array.isArray(u.variants.list)) ? u.variants.list : []; }
   function variantsHtml(u, opt){
     var o = (opt && opt.o) || null;
-    if(!(o && o.dir === 'b2c')) return '';
+    if(!(o && o.dir === 'b2c') || D.linkOf(u)) return '';
     var l = varsOf(u), uid = esc(u.id);
     if(!l.length)
       return '<div class="dz-var is-empty"><button type="button" class="dz-b" data-do="u-var-add" data-u="' + uid + '" ' +
@@ -5448,7 +5628,7 @@
       var соб = зафікс ? Math.max(0, Math.round(+u.cost || 0)) : прайсС;
       var к = Math.max(0, Math.round(+u.qty || 0));
       /* Вид дизайну — у назві рядка (15.10): «Футболка базова · повторний». */
-      var дизайн = !u.ready ? 'індивідуальний' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
+      var дизайн = !u.ready ? 'індивідуальний' : D.linkOf(u) ? 'той самий ескіз' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
       /* Ціни «готовий ескіз» для виробу не вписано — береться індивідуальна;
          кажемо про це, щоб не дивувались сумі. */
       var запас = !!(u.ready && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
@@ -6266,13 +6446,19 @@
   /* `save(text)` — зберегти правлений текст у заготовку назавжди (14.10):
      Андрій — «в кожній зоні можливість підкорегувати скрипт олівцем, і він
      назавжди зберігся». */
-  function tellConfirm(url, text, title, save){
+  function tellConfirm(url, text, title, save, more){
+    /* `more` — ще аркуші (той самий ескіз на інших товарах, 18.10): їдуть
+       слідом за першим, тим самим надсиланням, без окремого тексту. */
+    more = (more || []).filter(Boolean);
     return new Promise(function(res){
       var w = document.createElement('div');
-      w.className = 'dz-pick dz-cf';
+      w.className = 'dz-pick dz-cf' + (more.length ? ' is-many' : '');
       w.innerHTML = '<div class="dz-cf-b" role="dialog" aria-label="Надіслати клієнту">' +
         '<div class="dz-cf-h">Надіслати клієнту' + (title ? ' · ' + U.esc(title) : '') + '</div>' +
-        '<img class="dz-cf-i" src="' + U.esc(url) + '" alt="">' +
+        (more.length
+          ? '<div class="dz-cf-is">' + [url].concat(more).map(function(x){
+              return '<img class="dz-cf-i" src="' + U.esc(x) + '" alt="">'; }).join('') + '</div>'
+          : '<img class="dz-cf-i" src="' + U.esc(url) + '" alt="">') +
         '<textarea class="dz-cf-t" rows="4">' + U.esc(text || '') + '</textarea>' +
         (save ? '<div class="dz-cf-s"><button type="button" class="dz-b" data-cf-save ' +
           'title="Цей текст стане заготовкою й підставлятиметься щоразу">✎ Зберегти текст у заготовку назавжди</button>' +
@@ -7305,6 +7491,12 @@
                   esc(u.artKindName || u.artKind) + '</div>' : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                   esc(u.note) + '</div>' : '') +
+        /* Той самий ескіз ще й на інших товарах (18.10). */
+        ((x.job && D.linksOf(x.job, u).length) ? '<div class="dz-w-note"><i>Цей ескіз також на</i>' +
+          D.linksOf(x.job, u).map(function(lu){
+            return esc([(U.catItem(lu.gid) || {}).name || lu.name || 'виріб ще не обрано', lu.color, lu.size].filter(Boolean).join(' · ')); }).join('; ') +
+          (kind === 'stitch' ? ' — файл один на всі, оплата одна'
+                             : ' — після здачі вікно розміщення відкриється на кожному') + '</div>' : '') +
         /* Додаткові послуги позиції — без цін (15.10). */
         ((u.services || []).length ? '<div class="dz-w-note"><i>Додаткові послуги</i>' +
           u.services.map(function(sv){ return esc(sv.name); }).join(' · ') + '</div>' : '') +
@@ -9746,7 +9938,7 @@
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
     'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'dz-hand-all':'art', 'pic-open':'', 'dz-dl':'',
     /* Готовий дизайн (13.10) — робота менеджера зі складом, як вибір одягу. */
-    'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art',
+    'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art', 'u-link-add':'art',
     'u-repeat':'art', 'u-rep-up':'art', 'u-rep-del':'art', 'u-rep-past':'art',
     'u-var-add':'art', 'u-var-place':'art', 'u-var-art':'art', 'u-var-del':'art', 'u-var-send':'art', 'u-var-pick':'art',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
@@ -9844,6 +10036,68 @@
       wCm: (місця[0] || {}).wCm || 0, hCm: (місця[0] || {}).hCm || 0,
       topCm: (місця[0] || {}).topCm || 0, sideCm: (місця[0] || {}).sideCm || 0
     } };
+  }
+  /* ── ТОВАР З ЦИМ ЕСКІЗОМ (18.10): розміщення слідом за головною ── */
+  function linkPlace(job, o, u, done){
+    var main = D.linkMain(job, u), arts = D.linkArts(main);
+    var no = U.unitsOf(job).indexOf(u) + 1, mno = U.unitsOf(job).indexOf(main) + 1;
+    if(!arts.length) return say('Ескізу позиції ' + mno + ' ще немає — розміщувати нічого');
+    if(!u.gid) return say('Позиція ' + no + ': спершу оберіть одяг');
+    if(!window.LQMock || !window.LQMock.openWork) return say('Вікно розміщення не завантажилось');
+    var сторони = [];
+    try{ сторони = (host().sides && host().sides(u.gid, u.color)) || []; }catch(e){}
+    if(!сторони.length) return say('У виробу позиції ' + no + ' немає фото в каталозі');
+    var m = (host().me && host().me()) || '';
+    var keys = сторони.map(function(x){ return x.key; });
+    var g = D.dzList(u, 'graphic').filter(function(x){ return x.readyMade; })[0];
+    /* Місце — своє минуле, а вперше — як на головній: зазвичай лишається
+       тільки підправити. */
+    var src = (g && g.vers[g.vers.length - 1]) || (function(){
+      var l = D.dzList(main, 'graphic').filter(function(x){ return x && (x.vers || []).length; });
+      var d = l[l.length - 1];
+      return d ? d.vers[d.vers.length - 1] : null;
+    })();
+    var places = src ? D.verSpots(src).filter(function(sp){ return sp && sp.x != null; }).map(function(sp){
+      return { side: keys.indexOf(sp.side) >= 0 ? sp.side : keys[0], work: Math.min(+sp.work || 0, arts.length - 1),
+               x: sp.x, y: sp.y, w: sp.w }; }) : [];
+    if(!places.length) places = [{ side: keys[0], work: 0, x: 0.5, y: 0.3, w: 0.26 }];
+    return window.LQMock.openWork({
+      placeOnly: true,
+      gid: u.gid, size: u.size || 'M', sizeAssumed: !u.size, color: u.color || '',
+      name: 'Позиція ' + no + ' · ескіз позиції ' + mno + ' · ' +
+            [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
+      sides: сторони,
+      works: arts.map(function(f, k){
+        return { name: f.name || 'ескіз.png', url: f.url, hash: 'link:' + main.id + (k ? ':' + k : ''), threads: f.threads || [] }; }),
+      places: places,
+      onDone: async function(res){
+        var зб = await workVer(res, u);
+        if(!зб) return;
+        var d = D.readyGraphic(u, m);
+        var булоОк = !!d.ok;
+        D.dzVer(d, m, зб.files, 'Ескіз позиції ' + mno, зб.place, 'acct');
+        var v = d.vers[d.vers.length - 1];
+        v.byAcct = true; v.linkArts = D.linkUrls(arts);
+        if(булоОк){ d.ok.ver = v.n; d.status = 'approved'; }
+        await save(job, o, 'Розміщено · позиція ' + no);
+        if(done) done(v);
+      }
+    });
+  }
+  /* По черзі — на всіх товарах із цим ескізом, де його ще не клали (або
+     клали попередню картинку). Потім `then`. */
+  function linkChain(job, o, main, then){
+    var all = D.linksOf(job, main);
+    var без = all.filter(function(u){ return !u.gid; });
+    var черга = all.filter(function(u){ return u.gid && D.linkStale(job, u); });
+    if(без.length) say('Позиція ' + без.map(function(u){ return U.unitsOf(job).indexOf(u) + 1; }).join(', ') +
+                       ' без виробу — розмістите, коли оберете одяг');
+    var k = 0;
+    var далі = function(){
+      if(k >= черга.length) return then ? then() : null;
+      linkPlace(job, o, черга[k++], далі);
+    };
+    далі();
   }
   /* ── ВАРІАНТИ: допоміжне ── */
   function varRowWithVer(u){
@@ -10456,8 +10710,44 @@
     if(what === 'u-del'){
       var del = U.unitAt(job, data && data.u);
       if(!del) return;
+      /* На ескізі цієї позиції висять інші товари (18.10) — питаємо, що з ними. */
+      var лінки = D.linksOf(job, del);
+      if(лінки.length){
+        var номери = лінки.map(function(x){ return U.unitsOf(job).indexOf(x) + 1; }).join(', ');
+        var разом = true, окремо = false;
+        try{ разом = window.confirm('На ескізі цієї позиції ще товари: ' + номери + '.\n\nOK — прибрати їх разом із нею.\nСкасувати — не прибирати їх.'); }catch(e){}
+        if(!разом){
+          try{ окремо = window.confirm('Зробити позиції ' + номери + ' окремими — кожна зі своїм дизайном (індивідуальним)?'); }catch(e){}
+          if(!окремо) return;
+          var лишились = лінки.filter(function(x){ return !D.readyDetach(x); });
+          if(лишились.length) return say('Позиції ' + лишились.map(function(x){ return U.unitsOf(job).indexOf(x) + 1; }).join(', ') +
+                                         ' вже погоджені — прибрати головну не можна');
+          job.units = U.unitsOf(job).filter(function(x){ return x !== del; });
+          return save(job, o, 'Прибрано · позиції з її ескізом тепер окремі');
+        }
+        job.units = U.unitsOf(job).filter(function(x){ return x !== del && лінки.indexOf(x) < 0; });
+        return save(job, o, 'Прибрано разом із товарами з цим ескізом');
+      }
       job.units = U.unitsOf(job).filter(function(x){ return x !== del; });
       return save(job, o, 'Прибрано');
+    }
+    /* ＋ ТОВАР З ЦИМ ЕСКІЗОМ (18.10): нова позиція відразу після головної
+       (і її вже звʼязаних), далі — вибір виробу. */
+    if(what === 'u-link-add'){
+      var lm = U.unitAt(job, data && data.u);
+      if(!lm || D.linkOf(lm)) return;
+      var nu = U.unitNew();
+      D.linkAttach(nu, lm);
+      var ul = U.unitsOf(job), li = ul.indexOf(lm);
+      D.linksOf(job, lm).forEach(function(x){ li = Math.max(li, ul.indexOf(x)); });
+      job.units = ul.slice(0, li + 1).concat([nu], ul.slice(li + 1));
+      await save(job, o, 'Товар з ескізом позиції ' + (ul.indexOf(lm) + 1) + ' — оберіть виріб');
+      return U.pickGarment('', function(gid){
+        nu.gid = gid;
+        var pg = U.catItem(gid);
+        nu.name = pg ? pg.name : '';
+        save(job, o, (nu.name || 'Виріб обрано') + ' — тепер колір і розмір');
+      });
     }
     /* ── ГОТОВИЙ ДИЗАЙН (13.10) ──
        Обрали дизайн → файли в позиції → одразу розміщення на одязі →
@@ -10515,7 +10805,8 @@
     if(what === 'u-ready-off'){
       var ou = U.unitAt(job, data && data.u);
       if(!ou || !ou.ready) return;
-      try{ if(!window.confirm('Зробити позицію індивідуальною? ' + (ou.ready.repeat ? 'Повторний дизайн' : 'Готовий дизайн «' + (ou.ready.name || '') + '»') + ' з неї знімемо.')) return; }catch(e){}
+      try{ if(!window.confirm(D.linkOf(ou) ? 'Відвʼязати від ескізу головної позиції? Позиція стане окремою — зі своїм індивідуальним дизайном.'
+          : 'Зробити позицію індивідуальною? ' + (ou.ready.repeat ? 'Повторний дизайн' : 'Готовий дизайн «' + (ou.ready.name || '') + '»') + ' з неї знімемо.')) return; }catch(e){}
       if(!D.readyDetach(ou)) return say('Готовий дизайн уже погоджено — змінити не можна');
       return save(job, o, 'Позиція індивідуальна');
     }
@@ -10726,6 +11017,13 @@
          цьому блоці; запису графіки ще може не бути, тож до пошуку `dd`. */
       if(what === 'dz-ready-place'){
         var rpu = U.unitAt(job, dp[0]);
+        if(rpu && D.linkOf(rpu)) return linkPlace(job, o, rpu, function(v){
+          /* Головну вже показували клієнту — цей товар шлемо окремо. */
+          var mn = D.linkMain(job, rpu);
+          var бачив = D.dzList(mn, 'graphic').some(function(x){ return (x.vers || []).some(function(y){ return y.sentToClient; }); });
+          var g = D.dzList(rpu, 'graphic').filter(function(x){ return x.readyMade; })[0];
+          if(бачив && g && !g.ok) return act('dz-tell', root, { dz: rpu.id + '|graphic|' + D.dzList(rpu, 'graphic').indexOf(g), v: v.n });
+        });
         return (rpu && rpu.ready) ? readyPlace(root, job, o, rpu) : undefined;
       }
       var du = U.unitAt(job, dp[0]);
@@ -10933,6 +11231,9 @@
             dd.draft = null;
             if(hEl2) hEl2.value = '';
             await save(job, o, 'Надіслано · ' + res.нанесень + ' нанесень');
+            /* Той самий ескіз на інших товарах (18.10) — розміщення слідом. */
+            if(dk === 'graphic' && D.linksOf(job, du).length)
+              linkChain(job, o, du, function(){ say('Ескіз розміщено на всіх товарах — версія на перевірці'); });
           }
         });
       }
@@ -11121,7 +11422,10 @@
         await save(job, o, 'Готовий дизайн розміщено · версія ' + v.n);
         if(булоОк) return;
         var i = D.dzList(u, 'graphic').indexOf(d);
-        return act('dz-tell', root, { dz: u.id + '|graphic|' + i, v: v.n });
+        var показати = function(){ return act('dz-tell', root, { dz: u.id + '|graphic|' + i, v: v.n }); };
+        /* Той самий ескіз на інших товарах (18.10): спершу розмістити й там. */
+        if(D.linksOf(job, u).length) return linkChain(job, o, u, показати);
+        return показати();
       }
     });
   }
@@ -11295,7 +11599,14 @@
           /* Крок 1 — «Ескіз узгоджено», без вікна (14.10). */
           if(!D.sketchOk(dd)){
             D.sketchOkMark(dd, n, m);
-            return save(job, o, 'Ескіз узгоджено · v' + n + ' — далі «Фіксація»');
+            /* Той самий ескіз на інших товарах (18.10) — погодження одне. */
+            var лз = 0;
+            D.linksOf(job, du).forEach(function(lu){
+              var lg = D.dzList(lu, 'graphic').filter(function(x){ return x.readyMade; })[0];
+              var lv = lg && lg.vers[lg.vers.length - 1];
+              if(lv && !D.sketchOk(lg) && !lg.ok){ D.sketchOkMark(lg, lv.n, m); лз++; }
+            });
+            return save(job, o, 'Ескіз узгоджено · v' + n + (лз ? ' (і на ' + лз + ' товар(ах) з цим ескізом)' : '') + ' — далі «Фіксація»');
           }
           /* Крок 2 — фіксація: одяг обовʼязково, далі черга вишивки.
              Надсилали варіанти — спершу який обрав клієнт (16.10). */
@@ -11303,7 +11614,21 @@
             return variantChoose(du, function(v){ var n2 = varApply(job, du, v, m, dd); погодити(n2 || n); });
           clothOpen(du, 'Фіксація · v' + n + ' · одяг', function(st){
             clothApply(du, st, m);
-            act('dz-ok', root, { dz: dkey, v: n, how: як });
+            /* Товари з тим самим ескізом (18.10) фіксуються тут же, по черзі. */
+            var лф = D.linksOf(job, du).map(function(lu){
+              return { u: lu, g: D.dzList(lu, 'graphic').filter(function(x){ return x.readyMade; })[0] };
+            }).filter(function(x){ return x.g && D.sketchOk(x.g) && !x.g.ok; });
+            var кф = 0;
+            var далі = function(){
+              if(кф >= лф.length) return act('dz-ok', root, { dz: dkey, v: n, how: як });
+              var x = лф[кф++];
+              clothOpen(x.u, 'Фіксація · ' + U.unitNo(job, x.u) + ' · той самий ескіз', function(st2){
+                clothApply(x.u, st2, m);
+                D.dzOk(x.g, m, 'client', +x.g.sketchOk || x.g.vers.length);
+                далі();
+              }, o);
+            };
+            далі();
           }, o);
         };
         if(vs.length === 1) return погодити(vs[0].n);
@@ -11346,6 +11671,11 @@
                  || dd.vers[dd.vers.length - 1];
         if(!tv) return say('Версії ще немає');
         if(!host().tellPic) return say('Надсилання картинок недоступне');
+        /* ТОЙ САМИЙ ЕСКІЗ НА ІНШИХ ТОВАРАХ (18.10): спершу розміщення там, де
+           його ще немає, потім — усі аркуші одним надсиланням. */
+        var лінки = (dk === 'graphic' && !D.linkOf(du)) ? D.linksOf(job, du) : [];
+        if(лінки.some(function(x){ return x.gid && D.linkStale(job, x); }))
+          return linkChain(job, o, du, function(){ act('dz-tell', root, data); });
         /* Клієнту йде АРКУШ, а не голий мокап: на ньому наші контакти,
            розміри й примітка про колір. Немає аркуша (стара версія) —
            збираємо тут і кладемо у версію, а не підмінюємо мокапом: мокап
@@ -11371,8 +11701,20 @@
            підтвердження, що саме ми надсилаємо… картинка і текст. Якщо все
            правильно — надсилаємо». Текст можна поправити тут же. */
         var ключСкр = dd.readyMade && перша ? 'ready' : перша ? 'design1' : 'design2';
-        var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n,
-          host().scriptSave ? function(t){ return host().scriptSave(o, ключСкр, t, { v: tv.n }); } : null);
+        /* Аркуші товарів із тим самим ескізом, які клієнт ще не бачив. */
+        var дод = [];
+        for(var lk = 0; lk < лінки.length; lk++){
+          var lg = D.dzList(лінки[lk], 'graphic').filter(function(x){ return x.readyMade; })[0];
+          var lv = lg && lg.vers[lg.vers.length - 1];
+          if(!lv || lv.sentToClient) continue;
+          var ls = await sheetGet(job, o, лінки[lk], lv);
+          if(ls && ls.url) дод.push({ u: лінки[lk], d: lg, v: lv, url: ls.url });
+        }
+        if(дод.length) await save(job, o, '');
+        var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n +
+            (дод.length ? ' + ' + дод.length + ' ' + (дод.length === 1 ? 'товар' : 'товари') + ' з цим ескізом' : ''),
+          host().scriptSave ? function(t){ return host().scriptSave(o, ключСкр, t, { v: tv.n }); } : null,
+          дод.map(function(x){ return x.url; }));
         if(остаточно === null) return;
         txt = остаточно;
         say('Надсилаю…');
@@ -11380,13 +11722,21 @@
         try{ вийшло = await host().tellPic(o, мок.url, txt); }
         catch(e){ console.error(e); }
         if(!вийшло) return say('Не надіслалось — перевірте привʼязку розмови');
+        var недійшло = 0;
+        for(var lx = 0; lx < дод.length; lx++){
+          var ok2 = false;
+          try{ ok2 = await host().tellPic(o, дод[lx].url, ''); }catch(e){ console.error(e); }
+          if(ok2){ дод[lx].v.sentToClient = new Date().toISOString(); D.dzTold(дод[lx].d, m, дод[lx].v.n); }
+          else недійшло++;
+        }
         /* `nowIso` живе в ядрі, не тут. Виняток ковтався й виглядав як
            «надіслалось, але кнопка не згасла» — тобто менеджер тиснув удруге. */
         tv.sentToClient = new Date().toISOString();
         /* Своя подія, не `dzSay`: та позначає правку, і показ клієнту
            рахувався б у історії поверненням роботи. */
         D.dzTold(dd, m, tv.n);
-        return save(job, o, 'Надіслано клієнту');
+        return save(job, o, недійшло ? 'Надіслано, але ' + недійшло + ' аркуш(і) не дійшли — надішліть їх із позицій'
+                                     : 'Надіслано клієнту' + (дод.length ? ' · ' + (дод.length + 1) + ' аркуші' : ''));
       }
       /* ══════════ ПРАВКА — МАЛЕНЬКИМ ВІКНОМ ══════════
 
