@@ -163,7 +163,7 @@ const f1 = await p.evaluate(() => {
   const b = document.querySelector('[data-shipform]'); if(!b) return null;
   const val = s => (b.querySelector(s) || {}).value;
   return { name: val('[data-shf="name"]'), phone: val('[data-shf="phone"]'), kg: val('[data-shf="weightKg"]'),
-           format: val('[data-shf="format"]'), cod: val('[data-shf="cod"]'), codOn: (b.querySelector('[data-shf-codon]') || {}).checked,
+           format: val('[data-shf="format"]'), cod: String(val('[data-shf-cod]') || '').replace(/\D/g, ''), codRo: !!(b.querySelector('[data-shf-cod]') || {}).readOnly,
            miss: (b.querySelector('.shf-miss') || {}).textContent || '', dis: (b.querySelector('[data-shf-make]') || {}).disabled,
            from: (b.querySelector('.shf-from') || {}).textContent || '' };
 });
@@ -171,7 +171,7 @@ console.log('   ' + JSON.stringify(f1));
 ok(f1 && f1.name === 'Ромашка Ольга' && f1.phone === '+380671112233', 'отримувач і телефон — самі із замовлення', 'отримувач: ' + JSON.stringify(f1));
 ok(f1 && /ФОП Юкальчук/.test(f1.from) && /Вінниця/.test(f1.from), 'відправник за замовчуванням і звідки їде', 'відправник: ' + (f1 && f1.from));
 ok(f1 && f1.kg === '1.9' && f1.format === 'Пакет M', 'вага 3 × 600 г + 100 г = 1,9 кг → формат «Пакет M» (до 3 кг)', 'вага/формат: ' + (f1 && f1.kg + ' / ' + f1.format));
-ok(f1 && f1.codOn && f1.cod === '3100', 'контроль оплати на залишок: 6 000 − 2 900 = 3 100 ₴', 'контроль оплати: ' + (f1 && f1.cod));
+ok(f1 && f1.codRo && f1.cod === '3100', 'контроль оплати = залишок 6 000 − 2 900 = 3 100 ₴, руками не міняється', 'контроль оплати: ' + JSON.stringify(f1));
 ok(f1 && f1.dis && /місто/.test(f1.miss) && /відділення/.test(f1.miss), '«Створити ТТН» неактивна, і написано, чого бракує: ' + (f1 && f1.miss), 'кнопка: ' + JSON.stringify(f1));
 await type('[data-shipform] [data-shf-city]', 'Київ'); await pick(0);
 await type('[data-shipform] [data-shf-wh]', '50'); await pick(1);
@@ -209,16 +209,16 @@ await p.evaluate(() => { const b = document.querySelector('[data-fold="Відп�
 await p.waitForTimeout(500);
 const c1 = await p.evaluate(() => {
   const b = document.querySelector('#dzPanel [data-shipform], .dz-panel [data-shipform]'); if(!b) return null;
-  return { kg: b.querySelector('[data-shf="weightKg"]').value, cod: b.querySelector('[data-shf="cod"]').value,
+  return { kg: b.querySelector('[data-shf="weightKg"]').value, cod: b.querySelector('[data-shf-cod]').value.replace(/\D/g, ''),
            lock: (b.querySelector('.gate-sum') || {}).textContent || '', dis: b.querySelector('[data-shf-make]').disabled,
            name: b.querySelector('[data-shf="name"]').value };
 });
 console.log('   ' + JSON.stringify(c1));
 ok(c1 && c1.name === 'Мороз Євгенія' && c1.kg === '1.3', 'B2C: та сама форма; вага з позицій відділу — 2 × 600 г + 100 г = 1,3 кг', 'B2C форма: ' + JSON.stringify(c1));
-/* Сума B2C — зі складу відділу (та сама, що в зоні «Гроші»), а не з поля
-   прорахунку. Нічого не сплачено — контроль оплати на всю суму. */
+/* Сума B2C — зі складу відділу після знижки (та сама, що в зоні «Гроші»),
+   а не з поля прорахунку. Нічого не сплачено — контроль оплати на всю суму. */
 const сумаB2C = await p.evaluate(() => { const o = orders.filter(x => x.orderId === '2000777')[0];
-  return window.LQDesign.ui.orderSum(o, designJobs['2000777']); });
+  return orderTotalOf(o); });
 ok(c1 && +c1.cod === сумаB2C && сумаB2C > 0, 'контроль оплати — залишок, як у зоні «Гроші» (нічого не сплачено): ' + сумаB2C + ' ₴',
   'B2C контроль оплати: ' + (c1 && c1.cod) + ' замість ' + сумаB2C);
 ok(c1 && c1.dis && /погодив готовий виріб/.test(c1.lock), 'поки менеджер не погодив готовий виріб — 🔒 і кнопка неактивна', 'ворота: ' + JSON.stringify(c1));

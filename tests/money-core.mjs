@@ -163,6 +163,22 @@ console.log('═══ 8. РАХУНОК НЕ ОНОВЛЮВАВСЯ (17.10) ═
     'стан перевірки від сервера: помилка банку — червоним з текстом, без ключа — «не підключено»', JSON.stringify([e, off]));
 }
 
+console.log('═══ 9. КОНТРОЛЬ ОПЛАТИ ТТН = ЗАЛИШОК ±5 ₴ (18.10) ═══');
+{
+  const run = (o, pays) => M.audit([o], pays || [], { now: Date.now(), np: {}, accs: [] }).filter(x => /^cod_(over|under)$/.test(x.kind));
+  ok(!run({ orderId:'K1', totalPrice:3000, ttn:'901', ttnCod:2996, payments:[] }).length &&
+     !run({ orderId:'K2', totalPrice:3000, ttn:'902', ttnCod:3004, payments:[] }).length,
+    'розходження до 5 ₴ — гаразд', 'тривога на копійки');
+  const u = run({ orderId:'K3', totalPrice:3000, ttn:'903', ttnCod:2000, payments:[] })[0] || {};
+  ok(u.kind === 'cod_under' && u.sev === 'red' && u.sum === 1000, 'контроль оплати менший за залишок на 1 000 ₴ — червоний «недоотримаємо»', JSON.stringify(u));
+  const z = run({ orderId:'K4', totalPrice:3000, ttn:'904', ttnCod:0, payments:[{ sum:1000 }] })[0] || {};
+  ok(z.kind === 'cod_under' && z.sum === 2000 && /без контролю/.test(z.text), 'ТТН без контролю оплати, а лишилось 2 000 ₴ — червоний', JSON.stringify(z));
+  ok(!run({ orderId:'K5', totalPrice:3000, ttn:'905', ttnCod:0, payments:[{ sum:3000 }] }).length,
+    'передоплата покрила все — без контролю оплати й без тривоги', 'K5');
+  ok(!run({ orderId:'K6', totalPrice:3000, ttn:'906', payments:[] }).length,
+    'ТТН внесена вручну без відомого контролю — не вигадуємо', 'K6');
+}
+
 console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);
