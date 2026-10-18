@@ -7799,28 +7799,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5a0eef5095"></script>
-<script src="loomiq-fingerprint.js?v=5a0eef5095"></script>
-<script src="loomiq-pricing.js?v=5a0eef5095"></script>
+<script src="loomiq-select.js?v=b2840cf256"></script>
+<script src="loomiq-fingerprint.js?v=b2840cf256"></script>
+<script src="loomiq-pricing.js?v=b2840cf256"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=5a0eef5095"></script>
+<script src="loomiq-money-core.js?v=b2840cf256"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5a0eef5095"></script>
-<script src="loomiq-bg.js?v=5a0eef5095"></script>
-<script src="loomiq-mock.js?v=5a0eef5095"></script>
+<script src="loomiq-design.js?v=b2840cf256"></script>
+<script src="loomiq-bg.js?v=b2840cf256"></script>
+<script src="loomiq-mock.js?v=b2840cf256"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=5a0eef5095"></script>
-<script src="loomiq-threads.js?v=5a0eef5095"></script>
+<script src="imagetracer.js?v=b2840cf256"></script>
+<script src="loomiq-threads.js?v=b2840cf256"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5a0eef5095"></script>
+<script src="loomiq-cards.js?v=b2840cf256"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7865,7 +7865,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5a0eef5095';
+var LQ_VER = 'b2840cf256';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11044,11 +11044,16 @@ function finOwnSet(){ return finOwnCalc().own; }
    (LQMoney.audit); тут — лише показ і кнопки. Бачить усякий, кому видно
    Фінанси. */
 const finAudit = { open: false, more: {} };
+/* Сума замовлення ДО ОПЛАТИ — та сама, що в блоці «Гроші»: у B2C — позиції
+   за зафіксованими цінами МІНУС ЗНИЖКА (18.10: доти тут бралась сума до
+   знижки, і контроль оплати ТТН виходив більшим за залишок у «Гроші»). */
 function orderTotalOf(o){
   let t = 0;
   try{
-    if(orderDir(o) === 'b2c' && window.LQDesign && window.LQDesign.ui.orderSum)
-      t = window.LQDesign.ui.orderSum(o, (designJobs || {})[o.orderId]) || 0;
+    if(orderDir(o) === 'b2c' && window.LQDesign && window.LQDesign.ui.orderSum){
+      const g = window.LQDesign.ui.orderSum(o, (designJobs || {})[o.orderId]) || 0;
+      t = g ? Math.max(0, g - (LQMoney.discountOf ? LQMoney.discountOf(o, g) : 0)) : 0;
+    }
   }catch(e){}
   return t || +o.totalPrice || 0;
 }
@@ -22995,12 +23000,7 @@ function shipPickFormat(sender, kg){
 }
 /* Скільки лишилось заплатити — сума контролю оплати за замовчуванням. */
 function shipLeft(o){
-  let total = 0;
-  try{
-    if(orderDir(o) === 'b2c' && window.LQDesign && window.LQDesign.ui.orderSum)
-      total = window.LQDesign.ui.orderSum(o, (designJobs || {})[o.orderId]) || 0;
-  }catch(e){}
-  if(!total) total = +o.totalPrice || 0;
+  const total = orderTotalOf(o);
   /* Залишок — з грошового ядра: контроль оплати не може бути більшим за
      те, що клієнт іще винен. */
   return LQMoney.due(o, payPays(), total);
@@ -23019,7 +23019,11 @@ function shipVals(o){
     cityRef: sh.cityRef || '', cityName: sh.cityName || sh.city || '',
     whRef: sh.whRef || '', whName: sh.whName || sh.office || '', whNumber: sh.whNumber || '',
     kg, kgAuto: !(+sh.weightKg > 0), weight: w, format: fmt,
-    codOn: sh.codOn !== false, cod: (sh.cod != null && sh.cod !== '') ? Math.max(0, Math.round(+sh.cod || 0)) : left,
+    /* КОНТРОЛЬ ОПЛАТИ = ЗАЛИШОК, ЗАВЖДИ (18.10, Андрій: «100% випадків — та
+       сама сума, що залишок по оплаті»). Руками не міняється; залишок 0 —
+       контролю немає. Інша сума потрібна — спершу внесіть оплату в «Гроші».
+       Лишилось до 5 ₴ — вважаємо сплаченим (копійки округлень / комісій). */
+    codOn: left > 5, cod: left > 5 ? Math.round(left) : 0,
     left, payer: sh.payer === 'sender' ? 'sender' : 'recipient'
   };
 }
@@ -23055,9 +23059,9 @@ function shipFormHtml(o){
     <label class="shf-f"><span>Формат посилки</span>
       ${fmts.length ? `<select data-shf="format">${fmts.map(f => `<option value="${E(f.name)}"${v.format && v.format.name === f.name ? ' selected' : ''}>${E(f.name)} · ${+f.l || 0}×${+f.w || 0}×${+f.h || 0} см · до ${+f.maxKg || 0} кг</option>`).join('')}</select>`
                     : `<input disabled value="форматів не задано">`}</label>
-    <label class="shf-f shf-cod"><span>Контроль оплати</span>
-      <span class="shf-row"><input type="checkbox" data-shf-codon${v.codOn ? ' checked' : ''}>
-      <input data-shf="cod" type="number" min="0" step="1" value="${E(String(v.cod))}"${v.codOn ? '' : ' disabled'}> ₴</span></label>
+    <label class="shf-f shf-cod"><span>Контроль оплати = залишок у «Гроші»</span>
+      <input data-shf-cod readonly value="${v.codOn ? E(fmt(v.cod)) + ' ₴' : 'без контролю — оплачено повністю'}"
+        title="Завжди рівно залишок до оплати. Інша сума — спершу внесіть оплату в «Гроші»"></label>
     <label class="shf-f"><span>Доставку платить</span>
       <select data-shf="payer"><option value="recipient"${v.payer === 'recipient' ? ' selected' : ''}>отримувач</option>
         <option value="sender"${v.payer === 'sender' ? ' selected' : ''}>ми</option></select></label>
@@ -23125,8 +23129,6 @@ function wireShipForm(box, o, persist){
       else if(k === 'name' || k === 'phone') redraw();
     });
   });
-  const codOn = box.querySelector('[data-shf-codon]');
-  if(codOn) codOn.addEventListener('change', async () => { sh().codOn = !!codOn.checked; await keep(); redraw(); });
   const cityI = box.querySelector('[data-shf-city]'), whI = box.querySelector('[data-shf-wh]');
   const list = box.querySelector('[data-shf-list]');
   if(cityI && whI && list){
@@ -23150,9 +23152,6 @@ function wireShipForm(box, o, persist){
     if(miss.length) return toast('Бракує: ' + miss.join(', '));
     const gate = shipGate(o);
     if(!gate.ok) return toast('Накладну ще рано: ' + gate.why);
-    /* Контроль оплати — не більше за залишок: інакше клієнт переплатить. */
-    if(v.codOn && +v.cod > v.left + 1 && !confirm('Контроль оплати ' + fmt(v.cod) + ' ₴ більший за залишок ' +
-        fmt(v.left) + ' ₴ — клієнт переплатить ' + fmt(v.cod - v.left) + ' ₴. Створити все одно?')) return;
     if(o.ttn && +o.ttnCod > 0 && !confirm('У замовленні вже є ТТН ' + o.ttn + ' з контролем оплати ' + fmt(o.ttnCod) +
         ' ₴. Друга накладна — друга оплата з клієнта. Створити все одно?')) return;
     make.disabled = true;
