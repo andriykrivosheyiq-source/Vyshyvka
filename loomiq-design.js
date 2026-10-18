@@ -5185,20 +5185,19 @@
     if(пішло) return null;
     var діалог = !!(o.crmChatId || String(o.webId || '').slice(0, 3) === 'tg:');
     try{ if(host.hasChat) діалог = !!host.hasChat(o); }catch(e){}
-    var гроші = paidOf(o) > 0;
-    if(діалог && гроші) return null;
-    return { dialog: діалог, paid: гроші };
+    /* 18.10, Андрій: передоплату як обовʼязкову умову ЗНЯТО — склад
+       відкривається, щойно привʼязано діалог. */
+    if(діалог) return null;
+    return { dialog: діалог, paid: true };
   }
   function gateHtml(g){
     var крок = function(ok, n, txt, дія){
       return '<div class="dz-gate-s' + (ok ? ' ok' : '') + '"><i>' + (ok ? '✓' : n) + '</i><span>' + txt + '</span>' +
         (!ok && дія ? дія : '') + '</div>'; };
     return '<div class="dz-gate">' +
-      '<div class="dz-gate-h">Склад відкриється після діалогу й передоплати</div>' +
+      '<div class="dz-gate-h">Склад відкриється після привʼязки діалогу</div>' +
       крок(g.dialog, 1, g.dialog ? 'Діалог привʼязано' : 'Привʼяжіть діалог — вставте адресу розмови вгорі, під номером', '') +
-      крок(g.paid, 2, g.paid ? 'Передоплату привʼязано' : 'Привʼяжіть передоплату — звірте з чеком у переписці',
-        g.dialog ? '<button type="button" class="dz-b pri" data-do="pay-pick">Привʼязати платіж</button>' : '') +
-      крок(false, 3, 'Додайте одяг і дизайн', '') +
+      крок(false, 2, 'Додайте одяг і дизайн', '') +
     '</div>';
   }
   function unitsHtml(job, opt){
@@ -5918,7 +5917,8 @@
   function teamOpts(role, cur){
     var all = (host.team ? host.team() : []);
     var list = all.filter(function(m){
-      return !role || m.role === role || m.role === 'owner';
+      var rs = Array.isArray(m.roles) && m.roles.length ? m.roles : [m.role];
+      return !role || rs.indexOf(role) >= 0 || rs.indexOf('owner') >= 0;
     });
     var jobs = pairs().map(function(p){ return p.job; });
     var me = (host.me && host.me()) || '';

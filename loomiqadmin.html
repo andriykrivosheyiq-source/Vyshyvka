@@ -2239,6 +2239,13 @@
   .tm-row .tm-mail{flex:1 1 220px;min-width:0;}
   .tm-row .tm-name{flex:0 1 160px;min-width:0;}
   .tm-row .tm-role{flex:none;}
+  /* Кілька ролей — галочками-плашками; головна (перша) — з рамкою. */
+  .tm-rpick{display:flex;flex-wrap:wrap;gap:4px;}
+  .tm-rc{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;border:1px solid var(--line);border-radius:8px;
+    padding:3px 7px;cursor:pointer;color:var(--ink-soft);background:#fff;user-select:none;}
+  .tm-rc input{margin:0;width:13px;height:13px;}
+  .tm-rc.on{background:var(--accent-soft, #EEF4FF);border-color:var(--accent);color:var(--ink);}
+  .tm-rc.main{box-shadow:0 0 0 1px var(--accent) inset;font-weight:700;}
   .tm-lock{flex:none;width:30px;text-align:center;font-size:14px;opacity:.55;cursor:default;}
   .tm-pin{all:unset;cursor:pointer;width:28px;height:28px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.35;flex:none;}
@@ -7792,28 +7799,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f0f49eafc4"></script>
-<script src="loomiq-fingerprint.js?v=f0f49eafc4"></script>
-<script src="loomiq-pricing.js?v=f0f49eafc4"></script>
+<script src="loomiq-select.js?v=5a0eef5095"></script>
+<script src="loomiq-fingerprint.js?v=5a0eef5095"></script>
+<script src="loomiq-pricing.js?v=5a0eef5095"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f0f49eafc4"></script>
+<script src="loomiq-money-core.js?v=5a0eef5095"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f0f49eafc4"></script>
-<script src="loomiq-bg.js?v=f0f49eafc4"></script>
-<script src="loomiq-mock.js?v=f0f49eafc4"></script>
+<script src="loomiq-design.js?v=5a0eef5095"></script>
+<script src="loomiq-bg.js?v=5a0eef5095"></script>
+<script src="loomiq-mock.js?v=5a0eef5095"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f0f49eafc4"></script>
-<script src="loomiq-threads.js?v=f0f49eafc4"></script>
+<script src="imagetracer.js?v=5a0eef5095"></script>
+<script src="loomiq-threads.js?v=5a0eef5095"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f0f49eafc4"></script>
+<script src="loomiq-cards.js?v=5a0eef5095"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7858,7 +7865,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f0f49eafc4';
+var LQ_VER = '5a0eef5095';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10031,7 +10038,7 @@ function paintDzRates(){
   const kinds = b2cArtKinds(), rates = b2cDzRates(), E = escapeHtml;
   const team = (contentData.team || []).filter(m => m && m.email);
   box.innerHTML = DZ_RATE_ROLES.map(([role, title, tRole]) => {
-    const люди = [{ email:'*', name:'За замовчуванням' }].concat(team.filter(m => m.role === tRole)
+    const люди = [{ email:'*', name:'За замовчуванням' }].concat(team.filter(m => hasRole(m, tRole))
       .map(m => ({ email: String(m.email).toLowerCase(), name: personName(m.email) || m.email })));
     const r = rates[role] || {};
     return '<div class="b2c-dzr"><div class="b2c-dzr-h">' + E(title) + '</div><div class="b2c-dzr-w"><table class="b2c-dzr-t"><thead><tr><th></th>' +
@@ -32314,7 +32321,7 @@ function openDesign(){
        кого сьогодні немає. */
     shiftSet: (who, iso, off) => shiftSet(who, iso, off),
     designers: () => (contentData.team || [])
-      .filter(p => p && p.email && (p.role === 'designer' || p.role === 'designmgr'))
+      .filter(p => p && p.email && (hasRole(p, 'designer') || hasRole(p, 'designmgr')))
       .map(p => ({ email:p.email, name:p.name || p.email })),
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
@@ -32401,7 +32408,7 @@ function openDesign(){
        місце — воно й ходить у Sitniks. */
     whoLabel: o => crmWhoLabel(o),
     team: ()=> (contentData.team || []).map(m => ({
-      email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
+      email: m.email || '', name: personName(m.email) || m.email || '', role: memberRoles(m)[0], roles: memberRoles(m) })),
     onlyMine: ()=> mine,
     /* НАДІСЛАТИ КАРТИНКУ КЛІЄНТУ, НЕ ВІДКРИВАЮЧИ РОЗМОВИ.
 
@@ -32477,7 +32484,7 @@ function openDesign(){
        не створюється: краще без нього, ніж комусь навмання. */
     buyer: ()=>{
       const t = contentData.team || [];
-      const byRole = r => (t.filter(x => x.role === r && x.email)[0] || {}).email || '';
+      const byRole = r => (t.filter(x => hasRole(x, r) && x.email)[0] || {}).email || '';
       /* Команди ще немає — значить, усе робить одна людина, і це та, хто
          зараз натиснув. Лишити доручення без адресата означало б загубити
          саме ту половину передачі, заради якої воно й створюється. */
@@ -32939,15 +32946,38 @@ function presetOf(role){
     canAll: Array.isArray(src.canAll) ? src.canAll : null,
     cols: Array.isArray(src.cols) ? src.cols.slice() : null });
 }
-/* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
+/* КІЛЬКА РОЛЕЙ НА ОДНУ ПОШТУ (18.10, Андрій: «менеджер і акаунт-менеджер»).
+   member.roles — список, перша роль головна (з неї стартова дошка й підпис);
+   member.role лишається головною для старих записів і всього, що читає
+   одну роль. Власник — сам по собі: він і так бачить усе. */
+function memberRoles(m){
+  const l = [];
+  (m && Array.isArray(m.roles) ? m.roles : []).forEach(r => { if(roleDef(r) && l.indexOf(r) < 0) l.push(r); });
+  if(!l.length && m && roleDef(m.role)) l.push(m.role);
+  if(!l.length) l.push('manager');
+  return l.indexOf('owner') >= 0 ? ['owner'] : l;
+}
+function hasRole(m, r){ return memberRoles(m).indexOf(r) >= 0; }
+/* Доступи складаються: що відкриває хоч одна з ролей — відкрито. */
+function accUnion(a, b){
+  const join = (x, y) => (x === '*' || y === '*') ? '*'
+    : [].concat(Array.isArray(x) ? x : [], Array.isArray(y) ? y : []).filter((v, i, l) => l.indexOf(v) === i);
+  return { ui: a.ui, nav: join(a.nav, b.nav), boards: join(a.boards, b.boards),
+           see: join(a.see, b.see), can: join(a.can, b.can),
+           navAll: a.navAll || b.navAll || null, canAll: a.canAll || b.canAll || null,
+           cols: (Array.isArray(a.cols) && Array.isArray(b.cols)) ? join(a.cols, b.cols) : null };
+}
+function presetOfRoles(roles){
+  return (roles && roles.length ? roles : ['manager']).map(presetOf).reduce(accUnion);
+}
+/* Доступи людини: сума пресетів усіх її ролей. */
 function accOf(member){
   /* Індивідуальних доступів більше немає: що бачить людина, вирішує її
      роль, і тільки вона. Старі збережені набори галочок лишаються в записі
      людини, але нічого вже не означають — інакше «роль» знову стала б
      приблизною, і на питання «що бачить менеджер» знову не було б
      відповіді. */
-  const role = (member && roleDef(member.role)) ? member.role : 'manager';
-  return presetOf(role);
+  return presetOfRoles(memberRoles(member));
 }
 /* ══════════ Режим «Дивитись як» ══════════
    Потрібен щодня: коли налаштовуєш ролі, коли людина каже «у мене цього
@@ -33206,7 +33236,7 @@ function teamList(){
     teamDraft = ((contentData.team) || []).map(p => ({
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
-      role: roleDef(p.role) ? p.role : 'manager',
+      role: memberRoles(p)[0], roles: memberRoles(p),
       phone: String(p.phone || '').trim(),
       createdAt: p.createdAt || '',
       updatedAt: p.updatedAt || '',
@@ -33847,9 +33877,13 @@ function tmUsersHtml(){
           escapeHtml(p.phone || '') + '"></span></div>' +
       '<div class="tu-mail"><input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="' +
         escapeHtml(p.email) + '"></div>' +
-      '<div class="tu-role"><select class="tm-role">' + roleOptions().map(op =>
-        '<option value="' + escapeHtml(op.v) + '"' + (op.v === roleValue(p) ? ' selected' : '') +
-        '>' + escapeHtml(op.t) + '</option>').join('') + '</select></div>' +
+      /* Кілька ролей (18.10): позначте всі, які людина має; перша — головна. */
+      '<div class="tu-role tm-rpick">' + (function(){ const mine = memberRoles(p);
+        return roleOptions().map(op => { const k = mine.indexOf(op.v);
+          return '<label class="tm-rc' + (k >= 0 ? ' on' : '') + (k === 0 && mine.length > 1 ? ' main' : '') + '"' +
+            (k === 0 && mine.length > 1 ? ' title="Головна роль — з неї стартова дошка"' : '') + '>' +
+            '<input type="checkbox" class="tm-rck" value="' + escapeHtml(op.v) + '"' + (k >= 0 ? ' checked' : '') + '>' +
+            escapeHtml(op.t) + '</label>'; }).join(''); })() + '</div>' +
       '<div class="tu-dt">' + escapeHtml(tmDate(p.createdAt)) + '</div>' +
       '<div class="tu-dt">' + escapeHtml(inv
         ? (lastInviteAt(p.email) ? tmDate(lastInviteAt(p.email)) : 'ще не слали')
@@ -33883,7 +33917,7 @@ function tmRolesHtml(){
   const list = rolesList();
   const cur = list.filter(r => r.key === roleOpen)[0] || null;
   const used = {};
-  ((contentData.team) || []).forEach(p => { used[p.role] = (used[p.role] || 0) + 1; });
+  ((contentData.team) || []).forEach(p => { memberRoles(p).forEach(r => { used[r] = (used[r] || 0) + 1; }); });
   const left = '<div class="tr-list"><div class="tm-bar"><b>Роль</b>' +
     '<button class="tr-add">+ Додати роль</button></div>' +
     list.map(r => '<div class="tr-row' + (r.key === roleOpen ? ' is-on' : '') + '" data-rk="' +
@@ -33982,9 +34016,9 @@ function wireTeamPane(box){
       if(!e || have[e]) return;
       /* Роль і доступи беремо зі знімка як є — саме заради них він і
          лежить. Немає доступів (старий запис) — даємо пресет ролі. */
-      list.push({ email:e, name:String(x.name || ''), role: roleDef(x.role) ? x.role : 'manager',
+      list.push({ email:e, name:String(x.name || ''), role: memberRoles(x)[0], roles: memberRoles(x),
                   phone:String(x.phone || ''), createdAt:x.createdAt || new Date().toISOString(),
-                  updatedAt:'', acc: accExpand(x.acc || presetOf(x.role)) });
+                  updatedAt:'', acc: accExpand(x.acc || accOf(x)) });
       delete teamPulled[e];
       n++;
     });
@@ -34003,7 +34037,7 @@ function wireTeamPane(box){
     const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
     const був = gone.filter(g => String(g.email || '').trim().toLowerCase() === mail)[0];
     list.push(був
-      ? Object.assign({}, був, { updatedAt:'', acc: accExpand(був.acc || presetOf(був.role)) })
+      ? Object.assign({}, був, { updatedAt:'', roles: memberRoles(був), acc: accExpand(був.acc || accOf(був)) })
       : { email: mail, name:'', role:'manager', phone:'',
           createdAt:new Date().toISOString(), updatedAt:'',
           acc: accExpand(presetOf('manager')) });
@@ -34035,14 +34069,22 @@ function wireTeamPane(box){
     const on = (sel, key)=>{ const el = row.querySelector(sel); if(!el) return;
       el.addEventListener('input', ()=>{ touch(); teamList()[i][key] = el.value; }); };
     on('.tm-mail', 'email'); on('.tm-name', 'name'); on('.tm-phone', 'phone');
-    const r = row.querySelector('.tm-role');
-    if(r) r.addEventListener('change', ()=>{
+    row.querySelectorAll('.tm-rck').forEach(ck => ck.addEventListener('change', ()=>{
       const p = teamList()[i];
       touch();
-      p.role = roleDef(r.value) ? r.value : 'manager';
-      p.acc = accExpand(presetOf(p.role));
+      let l = memberRoles(p).slice();
+      if(ck.checked){
+        /* Власник — сам по собі; інша роль поруч із власником знімає його. */
+        if(ck.value === 'owner') l = ['owner'];
+        else { l = l.filter(x => x !== 'owner'); if(l.indexOf(ck.value) < 0) l.push(ck.value); }
+      } else {
+        l = l.filter(x => x !== ck.value);
+        if(!l.length) return renderTeamList();      // без жодної ролі людини не буває
+      }
+      p.roles = l; p.role = l[0];
+      p.acc = accExpand(presetOfRoles(l));
       renderTeamList();
-    });
+    }));
     const del = row.querySelector('.qr-del');
     if(del) del.addEventListener('click', ()=>{
       const p = teamList()[i];
@@ -34119,7 +34161,7 @@ function wireTeamPane(box){
   });
   box.querySelectorAll('[data-rdel]').forEach(b => b.addEventListener('click', ()=>{
     const k = b.dataset.rdel;
-    const n = ((contentData.team) || []).filter(p => p.role === k).length;
+    const n = ((contentData.team) || []).filter(p => hasRole(p, k)).length;
     if(n) return toast('Цю роль має ' + n + ' люд. — спершу переведіть їх на іншу');
     if(!confirm('Прибрати роль «' + roleName(k) + '»?')) return;
     rolesDraft = rolesList().filter(r => r.key !== k);
@@ -34269,7 +34311,7 @@ async function rolesSave(){
     const list = teamList()
       .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
                    name: String(p.name||'').trim(),
-                   role: roleDef(p.role) ? p.role : 'manager',
+                   role: memberRoles(p)[0], roles: memberRoles(p),
                    phone: String(p.phone||'').trim(),
                    /* Коли завели й коли востаннє чіпали. Питання «а хто це
                       додав минулого тижня» виникає рано чи пізно, і журнал
@@ -34369,7 +34411,7 @@ async function rolesSave(){
                            { merge:true });
       contentData.team = list;
       contentData.ownerEmail = own;
-      teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
+      teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role, roles: memberRoles(p),
                                    phone:p.phone, createdAt:p.createdAt,
                                    updatedAt:p.updatedAt, acc: accExpand(p.acc) }));
       teamDirty = false;      // збережене — вже не «чиясь незбережена робота»
