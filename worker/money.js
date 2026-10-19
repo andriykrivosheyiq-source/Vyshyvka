@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-19 · Моно: картка за IBAN підключається сама; помилка підключення — на картці рахунку';
+const VERSION = '2026-10-19.2 · Моно: непідключені рахунки по черзі; номер картки замість IBAN — кажемо прямо';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -420,8 +420,22 @@ async function monoSetup(env, acc, url) {
 async function monoAutoLink(env) {
   const accs = (await accounts(env)).filter(a => a.bank === 'mono' && a.iban);
   const map = await monoMap(env);
-  const a = accs.filter(x => !map[x.id])[0];
+  /* ПО ЧЕРЗІ, НАЙДАВНІШЕ ПЕРЕВІРЕНИЙ — ПЕРШИМ (19.10). Доти брався перший
+     непідключений зі списку: картка з неправильним IBAN стояла в ньому
+     першою й щоразу забирала єдину спробу прогону — решта рахунків не
+     перевірялись ніколи. */
+  let sync = {};
+  try { sync = (await fsGet(env, 'loomiq/bankSync')) || {}; } catch (e) {}
+  const коли = id => { const f = sync[id]; return String((f && f.at && f.at.stringValue) || ''); };
+  const todo = accs.filter(x => !map[x.id]).sort((p, q) => коли(p.id) < коли(q.id) ? -1 : коли(p.id) > коли(q.id) ? 1 : 0);
+  const a = todo[0];
   if (!a) return null;
+  /* Номер картки замість IBAN — Монобанк за ним рахунку не дасть; кажемо прямо. */
+  if (!/^UA\d{27}$/i.test(a.iban)) {
+    await syncMark(env, [{ acc: a.id, src: 'mono', skip: 'у полі IBAN стоїть не IBAN (' + a.iban.slice(0, 6) + '…' + a.iban.slice(-4) +
+      '): потрібен номер виду UA + 27 цифр — у застосунку Mono: картка → реквізити → IBAN' }]);
+    return { acc: a.id, error: 'не IBAN' };
+  }
   const ключі = Object.keys(env).filter(k => /^MONO_TOKEN_/.test(k) && env[k]);
   /* Свій токен рахунку — першим. */
   ключі.sort((x, y) => (y === 'MONO_TOKEN_' + a.id) - (x === 'MONO_TOKEN_' + a.id));
