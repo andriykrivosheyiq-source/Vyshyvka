@@ -132,6 +132,34 @@ ok(saved[0] === NO + '_файл.emb', 'файл із чужою назвою, х
 ok(saved[1] === NO + '_v2.dst', 'правильне імʼя лишається як є', JSON.stringify(saved));
 
 console.log('');
+console.log('═══ 3. ГОТОВИЙ ДИЗАЙН ОНОВИЛИ В БІБЛІОТЦІ — ЦЕХ БАЧИТЬ НОВІ ФАЙЛИ ═══');
+const r3 = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const j = designJobMake('2000302'), o = orders.find(x => x.orderId === '2000302');
+  const u = Object.assign(U.unitNew(), { gid:'hoodie', name:'Худі', color:'Чорний', size:'M', qty:1 });
+  const rd = JSON.parse(JSON.stringify(contentData.readyDesigns[0]));
+  D.readyAttach(u, rd);
+  const g = D.readyGraphic(u, 'x'); D.dzVer(g, 'x', [{ url:'m', role:'mock' }], '', null, 'acct'); D.dzOk(g, 'x', 'client', 1);
+  D.clothConfirm(u, 'x'); j.units = [u];
+  D.dzAutoStitch(j, 'x');
+  const до = D.verParts(D.dzList(u, 'stitch')[0].vers.slice(-1)[0]).machine.map(f => f.url).join();
+  /* Власник міняє DST у бібліотеці. */
+  const list = contentData.readyDesigns.map(x => x.id === rd.id ? Object.assign({}, x, { files:[{ name:'кіт-новий.dst', url:'https://f/cat-v2.dst' }] }) : x);
+  await rdSave(list, '');
+  await new Promise(r => setTimeout(r, 300));
+  const st = D.dzList(u, 'stitch')[0];
+  const після = D.verParts(st.vers.slice(-1)[0]).machine.map(f => f.url).join();
+  const мокап = D.dzList(u, 'graphic').filter(x => x.readyMade)[0].vers.length;
+  /* Повторне збереження нічого не дублює. */
+  D.dzAutoQueue(j, o, 'x');
+  return { до, після, ok: !!st.ok, vers: st.vers.length, мокап, ready: u.ready.files.map(f => f.url).join() };
+});
+console.log('  ' + JSON.stringify(r3));
+ok(r3.до === 'https://f/cat.dst' && r3.після === 'https://f/cat-v2.dst' && r3.ok && r3.ready === 'https://f/cat-v2.dst',
+  'оновили DST у бібліотеці — у замовленні нова погоджена версія з новим файлом', JSON.stringify(r3));
+ok(r3.vers === 2 && r3.мокап === 1, 'без дублів; погоджене клієнтом розміщення не чіпали', JSON.stringify(r3));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'файли скачуються під номером замовлення');
 await browser.close(); srv.close();

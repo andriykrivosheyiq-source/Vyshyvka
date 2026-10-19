@@ -1009,6 +1009,12 @@
   function dzAutoQueue(job, o, by){
     if(!job) return 0;
     stitchHeal(job, by);
+    /* Готові дизайни — свіжі з бібліотеки (20.10). */
+    try{
+      var rdOf = (typeof window !== 'undefined' && window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host &&
+                  window.LQDesign.ui.host.readyDesign) || null;
+      if(rdOf && !(o && chainAt(job, o) === 'shipped')) jobUnits(job).forEach(function(u){ if(u && u.ready && !u.ready.repeat && !u.ready.link) readySync(u, rdOf(u.ready.id), by); });
+    }catch(e){ console.warn('готовий дизайн', e); }
     var n = dzAutoStitch(job, by);
     linkSync(job, by);
     return n;
@@ -1569,6 +1575,36 @@
                 extras: readyFiles(rd.extras, 'файл'),
                 at: nowIso() };
     return u.ready;
+  }
+  /* ГОТОВИЙ ДИЗАЙН ОНОВИЛИ В БІБЛІОТЦІ — ОНОВЛЮЄТЬСЯ Й У ЗАМОВЛЕННЯХ (20.10,
+     Андрій: «змінив файли DST — щоб на виробництві бачили вже оновлені, а
+     не старі»). Доти файли копіювались у позицію в мить вибору й так і
+     лишались. Тепер: інші вишивальні файли, принти чи додаткове — позиція
+     бере свіжі, а запис вишивки (readyMade) отримує нову погоджену версію з
+     ними — цех завжди бачить останню. Розміщення (мокапи) не чіпаємо: його
+     погодив клієнт. Повернення: true — щось змінилось. */
+  function readySig(r){
+    return [readyArts(r), (r && r.files) || [], (r && r.extras) || []]
+      .map(function(l){ return (l || []).map(function(f){ return f && f.url; }).join(','); }).join('|');
+  }
+  function readySync(u, rd, by){
+    if(!u || !u.ready || !rd || u.ready.repeat || u.ready.link || String(u.ready.id) !== String(rd.id || '')) return false;
+    var fresh = { arts: readyFiles(readyArts(rd), 'принт.png'), files: readyFiles(rd.files, 'файл'), extras: readyFiles(rd.extras, 'файл') };
+    if(readySig(fresh) === readySig(u.ready)) return false;
+    u.ready.arts = fresh.arts; u.ready.art = fresh.arts[0] || null;
+    u.ready.files = fresh.files; u.ready.extras = fresh.extras;
+    u.ready.pic = String(rd.pic || u.ready.pic || ''); u.ready.name = String(rd.name || u.ready.name || '');
+    u.ready.syncAt = nowIso();
+    var st = dzList(u, 'stitch').filter(function(d){ return d && d.readyMade; })[0];
+    if(st){
+      dzVer(st, by, fresh.files.map(function(f){ return { name: f.name, url: f.url, role:'machine' }; })
+        .concat(fresh.arts.map(function(f){ return { name: f.name, url: f.url, role:'extra', kind:'print' }; }))
+        .concat(fresh.extras.map(function(f){ return { name: f.name, url: f.url, role:'extra' }; })),
+        'Готовий дизайн «' + (u.ready.name || '') + '» оновлено в бібліотеці — нові файли', null, 'stitch');
+      st.vers[st.vers.length - 1].byAcct = true;
+      dzOk(st, by, 'auto', st.vers.length);
+    }
+    return true;
   }
   /* ══════════ ПОВТОРНИЙ ДИЗАЙН (15.10) ══════════
      Андрій: дизайн, який ми вже робили, — «одразу завантажуємо DST-шки,
@@ -2685,7 +2721,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce,
+    readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
