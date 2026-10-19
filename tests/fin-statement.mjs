@@ -201,6 +201,10 @@ const h1 = await p.evaluate(() => {
 });
 console.log('   ' + h1.title + ' · ' + h1.sum);
 h1.rows.forEach(r => console.log('     ' + r.who + '  ' + r.amt + '  → ' + r.bal + (r.calc ? ' (пораховано)' : ' (банк)')));
+const f1 = await p.evaluate(() => ({ accs: Array.from(new Set(finRows().map(x => x.acc))),
+  chip: (document.querySelector('#fin-sum [data-fin-hist-x]') || {}).textContent || '' }));
+ok(f1.accs.length === 1 && f1.accs[0] === 'mono1' && /Малєєва/.test(f1.chip),
+  'список рухів нижче — лише цього рахунку, з кнопкою «× усі рахунки»', 'список: ' + JSON.stringify(f1));
 ok(h1.shown && h1.on && !h1.modal, 'натиск розгорнув виписку під картками, картка підсвічена, налаштування не відкрились',
   'виписка не розгорнулась: ' + JSON.stringify({ shown: h1.shown, on: h1.on, modal: h1.modal }));
 ok(/Моно ФОП Малєєва/.test(h1.title), 'у заголовку — назва рахунку', 'заголовок: ' + h1.title);
@@ -268,6 +272,8 @@ await p.click('[data-fin-hist-x]');
 await p.waitForTimeout(200);
 ok(await p.evaluate(() => document.getElementById('fin-hist').hidden && !document.querySelector('#fin-cards .fin-c.on')),
   '× згортає виписку', '× не згорнув');
+ok(await p.evaluate(() => new Set(finRows().map(x => x.acc)).size > 1),
+  'після × список рухів — знову всі рахунки', 'список лишився відфільтрованим');
 
 console.log('');
 console.log('═══ ⚙ — НАЛАШТУВАННЯ, А НЕ ВИПИСКА ═══');
