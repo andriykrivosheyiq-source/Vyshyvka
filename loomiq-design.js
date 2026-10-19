@@ -383,6 +383,11 @@
      «клієнт уже відповів і просить зміни» — а це різні за терміновістю
      речі, і саме правки губились найчастіше. */
   var CHAIN = [
+    /* ЧЕРГА (19.10, Андрій): клієнт забронював місце малою передоплатою
+       (перший платіж до 300 ₴ — питаємо), але ще не готовий починати.
+       Картку заповнюють як завжди; дизайнерам нічого не йде, поки менеджер
+       сам не натисне «Передати дизайнеру» — це і є вихід із черги. */
+    { key:'queue',   label:'Черга',                     color:'slate'  },
     { key:'new',     label:'Нове',                      color:'gray'   },
     { key:'design',  label:'У графічного дизайнера',    color:'blue'   },
     /* Дизайнер здав ескіз, клієнту його ще не надіслали (Андрій, 08.10).
@@ -433,6 +438,7 @@
        десяти, і рано чи пізно вони розходяться — тоді дошка починає
        брехати. Тут вона не може: колонка і є переказ роботи. */
     var d = designStage(job);
+    if(job && job.queue && (!d || d === 'new')) return 'queue';
     if(d) return d;
     /* Дизайнів ще немає зовсім — рішення лишається за станом задачі, як
        було доти. Інакше щойно заведене замовлення одразу опинялось би «у
@@ -462,7 +468,7 @@
   /* sketchok → stitchq — це ФІКСАЦІЯ (14.10): перенести можна, але лише
      через вікно одягу (модель, колір, розмір, кількість) — його відкриває
      дошка, сам acctMove цього переходу не робить. */
-  var ACCT_MOVES = { sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client', 'stitchq'] };
+  var ACCT_MOVES = { new: ['queue'], queue: ['new'], sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client', 'stitchq'] };
   /* «✓ Погоджено» у клієнта (14.10): клієнт погодив ЕСКІЗ — позначаємо саме
      це (Ескіз узгоджено), без вікна одягу. Фіксація — наступним кроком. */
   function sketchOkMark(x, n, by){
@@ -471,10 +477,40 @@
     x.sketchOk = +n || (last ? last.n : 1); x.sketchOkBy = String(by || ''); x.sketchOkAt = nowIso();
     return x;
   }
+  /* Перший платіж до цієї суми включно — питаємо «це черга?» (жорстко, 19.10). */
+  var QUEUE_MAX = 300;
+  /* У чергу — лише те, що ще нікому не передавали: робота, яку вже
+     віддали дизайнерам (чи хоч розмістили готовий), назад не ховається. */
+  function queueable(job){
+    if(!job || job.handedAt) return false;
+    return !jobUnits(job).some(function(u){
+      return dzList(u, 'graphic').some(function(d){ return d && (d.sentAt || d.pool || (d.vers || []).length); }) ||
+             dzList(u, 'stitch').some(dzReal); });
+  }
+  function queueIn(job, by, sum){
+    if(!job || !queueable(job)) return null;
+    job.queue = { at: nowIso(), by: String(by || '') };
+    if(+sum > 0) job.queue.sum = Math.round(+sum);
+    return job.queue;
+  }
+  function queueOut(job, by, why){
+    if(!job || !job.queue) return null;
+    job.queueHist = (Array.isArray(job.queueHist) ? job.queueHist : []).concat([
+      Object.assign({}, job.queue, { out: nowIso(), outBy: String(by || ''), why: String(why || '') })]);
+    delete job.queue;
+    return job;
+  }
+  /* Скільки днів у черзі — щоб було видно, кого дотискати першим. */
+  function queueDays(job, now){
+    if(!job || !job.queue || !job.queue.at) return 0;
+    return Math.max(0, Math.floor(((now || Date.now()) - Date.parse(job.queue.at)) / 864e5));
+  }
   function acctCanMove(from, to){ return (ACCT_MOVES[from] || []).indexOf(to) >= 0; }
   function acctMove(job, o, to, by){
     var from = chainAt(job, o);
     if(!acctCanMove(from, to)) return null;
+    if(to === 'queue'){ if(!queueIn(job, by)) return null; return chainAt(job, o) === to ? to : null; }
+    if(from === 'queue'){ queueOut(job, by, 'руками на дошці'); return chainAt(job, o) === to ? to : null; }
     var g = [];
     jobUnits(job).forEach(function(u){
       dzList(u, 'graphic').forEach(function(x){ if(x.sentAt && x.status === 'review') g.push(x); }); });
@@ -546,7 +582,7 @@
   /* Хто зараз тримає замовлення. Питання «а чиє це» має мати відповідь у
      кожній колонці — інакше воно щодня ставиться вголос. */
   var CHAIN_WHO = {
-    new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт', sketchok:'акаунт-менеджер',
+    queue:'акаунт-менеджер', new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт', sketchok:'акаунт-менеджер',
     fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
     prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—'
   };
@@ -1054,7 +1090,8 @@
       d.thread[d.thread.length - 1].text = 'Менеджер передав дизайнерам — стало в чергу відділу';
       out.sent++;
     });
-    if(out.sent){ job.handedAt = nowIso(); job.handedBy = String(by || ''); job.handedN = out.sent; }
+    if(out.sent){ job.handedAt = nowIso(); job.handedBy = String(by || ''); job.handedN = out.sent;
+                  queueOut(job, by, 'передали дизайнеру'); }
     return out;
   }
   /* Скільки позицій ще можна передати: з ТЗ і без роботи. */
@@ -2604,7 +2641,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, prodAt: prodAt, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
@@ -2944,13 +2981,14 @@
         /* Низ картки: Instagram — кнопкою ліворуч, як на картці B2B, мітки —
            праворуч (06.10: «нормальна кнопка всередині картки внизу, як у B2B»). Усередині
            картки-кнопки — тож не <button>, а span з роллю кнопки. */
-        ((c.wait || c.fix || c.chat)
+        ((c.wait || c.fix || c.chat || c.qTxt)
           ? '<span class="dz-c-foot">' +
             (c.chat ? '<span class="dz-card-ig is-in" role="button" tabindex="0" data-do="chat" data-id="' + esc(c.id) +
               '" title="Відкрити розмову з клієнтом">' + esc(c.chatTxt || 'Instagram') +
               (c.igN ? '<span class="dz-ig-n" title="Клієнт написав, не прочитано">' + c.igN + '</span>' : '') + '</span>' : '') +
             '<span class="dz-card-m">' +
               (c.fix ? '<b class="dz-m-fix">' + esc(c.fixLabel || 'правка') + '</b>' : '') +
+              (c.qTxt ? '<b class="dz-m-q" title="Скільки замовлення в черзі">' + esc(c.qTxt) + '</b>' : '') +
               (c.wait ? '<b class="dz-m-wait">чекають відповіді</b>' : '') +
             '</span></span>'
           : '') +
@@ -5392,7 +5430,20 @@
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
       ((opt && opt.ro) ? '' : '<div class="dz-u-foot">' +
-        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' + handOverHtml(job, opt && opt.o) + '</div>');
+        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' + handOverHtml(job, opt && opt.o) + queueHtml(job, opt && opt.o) + '</div>');
+  }
+  /* ЧЕРГА (19.10): «⏳ У чергу» для замовлення, яке ще нікуди не пішло;
+     у черзі — скільки днів і як вийти («Передати дизайнеру»). */
+  function queueHtml(job, o){
+    if(!(o && o.dir === 'b2c')) return '';
+    var col = D.chainAt(job, o);
+    if(col === 'queue'){
+      var дн = D.queueDays(job);
+      return '<span class="dz-q-on" title="Клієнт ще не готовий починати. Коли буде готовий — «Передати дизайнеру»">⏳ У черзі' +
+        (дн ? ' · ' + дн + ' дн.' : ' · з сьогодні') + '</span>';
+    }
+    if(col !== 'new' || !D.queueable(job)) return '';
+    return '<button class="dz-b" data-do="queue-in" title="Клієнт забронював місце, але ще не готовий — у колонку «Черга»">⏳ У чергу</button>';
   }
   /* «ЗБЕРЕГТИ Й ПЕРЕДАТИ ДИЗАЙНЕРАМ» — праворуч від «Додати одяг».
      Нічого передавати (усе вже в роботі або без ТЗ) — кнопка спить, а
@@ -6578,6 +6629,8 @@
            дизайнерів — кружечком на самій картці. */
         igN: clientUnread(p.o),
         wait: mk.wait, unseen: mk.unseen,
+        /* Черга (19.10): скільки днів — кого дотискати першим. */
+        qTxt: col === 'queue' ? '⏳ ' + (D.queueDays(p.job) ? D.queueDays(p.job) + ' дн.' : 'сьогодні') : '',
         foot: стан };
     });
   }
@@ -6585,6 +6638,7 @@
      усе передано й погоджено, замовлення вже в цеху. */
   function stateOf(job, o, col, open){
     var доруч = open ? ' · доручень ' + open : '';
+    if(col === 'queue'){ var дн = D.queueDays(job); return 'у черзі ' + (дн ? дн + ' дн.' : 'з сьогодні') + доруч; }
     if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn : 'чекає ТТН') + доруч;
     if(col === 'appr')    return 'фото з цеху — погодьте' + доруч;
     if(col === 'prod' || col === 'shipped'){
@@ -6727,7 +6781,7 @@
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
-  var CHAIN_STEP = { new:0, design:0, sketch:0, client:0, sketchok:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
+  var CHAIN_STEP = { queue:0, new:0, design:0, sketch:0, client:0, sketchok:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
   var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
   function cmTxt(mm){
     if(!mm || !(+mm.w > 0)) return '';
@@ -9938,7 +9992,7 @@
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
     'u-pic':'art', 'u-pic-del':'art', 'u-cloth':'art', 'dz-hand-all':'art', 'pic-open':'', 'dz-dl':'',
     /* Готовий дизайн (13.10) — робота менеджера зі складом, як вибір одягу. */
-    'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art', 'u-link-add':'art',
+    'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art', 'u-link-add':'art', 'queue-in':'art',
     'u-repeat':'art', 'u-rep-up':'art', 'u-rep-del':'art', 'u-rep-past':'art',
     'u-var-add':'art', 'u-var-place':'art', 'u-var-art':'art', 'u-var-del':'art', 'u-var-send':'art', 'u-var-pick':'art',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
@@ -10036,6 +10090,36 @@
       wCm: (місця[0] || {}).wCm || 0, hCm: (місця[0] || {}).hCm || 0,
       topCm: (місця[0] || {}).topCm || 0, sideCm: (місця[0] || {}).sideCm || 0
     } };
+  }
+  /* ЧЕРГА (19.10): перший привʼязаний платіж до 300 ₴ включно — питаємо.
+     «Так» — у чергу; «Ні» — звичайне замовлення, і більше не питаємо. */
+  function queueAsk(job, o, info){
+    if(!(o && o.dir === 'b2c') || !info || !info.first) return;
+    var sum = Math.round(+info.amount || 0);
+    if(!(sum > 0 && sum <= D.QUEUE_MAX) || job.queueAsk || job.queue) return;
+    if(D.chainAt(job, o) !== 'new' || !D.queueable(job)) return;
+    var m = (host().me && host().me()) || '';
+    var w = document.createElement('div');
+    w.className = 'dz-pick dz-cf dz-qa';
+    w.innerHTML = '<div class="dz-cf-b" role="dialog" aria-label="Це черга?">' +
+      '<div class="dz-cf-h">Перший платіж ' + esc(money(sum)) + ' — це черга?</div>' +
+      '<div class="dz-cl-hint">Мала передоплата — часто бронь місця: клієнт ще не готовий починати. ' +
+        'У черзі картку заповнюють як завжди, а дизайнеру передають, коли клієнт буде готовий.</div>' +
+      '<div class="dz-cf-f">' +
+        '<button type="button" class="dz-b" data-qa="no">Ні, звичайне</button>' +
+        '<button type="button" class="dz-b pri" data-qa="yes">⏳ Так, у чергу</button>' +
+      '</div></div>';
+    var відп = function(так){
+      if(w.parentNode) w.parentNode.removeChild(w);
+      job.queueAsk = { at: new Date().toISOString(), by: m, sum: sum, ans: так ? 'yes' : 'no' };
+      if(так) D.queueIn(job, m, sum);
+      save(job, o, так ? 'У черзі — коли клієнт буде готовий, «Передати дизайнеру»' : '');
+    };
+    w.addEventListener('click', function(e){
+      var b = e.target.closest('[data-qa]');
+      if(b) відп(b.dataset.qa === 'yes');
+    });
+    document.body.appendChild(w);
   }
   /* ── ТОВАР З ЦИМ ЕСКІЗОМ (18.10): розміщення слідом за головною ── */
   function linkPlace(job, o, u, done){
@@ -10629,7 +10713,14 @@
        на рахунок, а не того, що згадали. */
     if(what === 'pay-pick' && host().payPick){
       /* Вікно рядків із пошуком — робочого місця (те саме, що в B2B). */
-      return host().payPick(o, function(){ render(document.getElementById('dzRoot')); });
+      return host().payPick(o, function(info){
+        render(document.getElementById('dzRoot'));
+        queueAsk(job, o, info);
+      });
+    }
+    if(what === 'queue-in'){
+      if(D.chainAt(job, o) !== 'new' || !D.queueIn(job, m)) return say('У чергу — лише нове замовлення, яке ще нікуди не пішло');
+      return save(job, o, 'У черзі — коли клієнт буде готовий, «Передати дизайнеру»');
     }
     if(what === 'pay-pick'){
       var w = host().payments && host().payments(o);
