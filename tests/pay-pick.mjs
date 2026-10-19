@@ -239,12 +239,33 @@ const к0 = await крок();
 console.log('   ' + JSON.stringify({ нове0, к0 }));
 ok(нове0.стало === 1 && нове0.dir === 'b2c' && !нове0.вікно,
   '«+ Нове замовлення» створює замовлення одразу, без вікна платежу', 'нове: ' + JSON.stringify(нове0));
-ok(к0.gate && !к0.додати && к0.ok.join() === 'false,false',
-  'склад закритий, поки не привʼязано діалог', 'крок 0: ' + JSON.stringify(к0));
+/* 20.10, Андрій: передоплата ЗНОВУ обовʼязкова (знімали 18.10). */
+ok(к0.gate && !к0.додати && к0.ok.join() === 'false,false,false' && !к0.платіж,
+  'склад закритий: спершу діалог, потім передоплата, потім товар', 'крок 0: ' + JSON.stringify(к0));
 await p.evaluate(() => { __nov.crmChatId = 'c-new'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 const к1 = await крок();
-/* 18.10, Андрій: передоплата більше не обовʼязкова — діалог привʼязано, склад відкрито. */
-ok(!к1.gate && к1.додати, 'діалог привʼязано — склад відкрився одразу, без обовʼязкової передоплати', 'крок 1: ' + JSON.stringify(к1));
+ok(к1.gate && !к1.додати && к1.ok.join() === 'true,false,false' && к1.платіж,
+  'діалог привʼязано — лишається передоплата, кнопка «Привʼязати платіж» тут же', 'крок 1: ' + JSON.stringify(к1));
+/* Власник бачить «Вписати платіж вручну»; вписує 300 ₴ — склад відкривається. */
+const ман = await p.evaluate(async () => {
+  document.querySelector('.dz-gate [data-do="pay-pick"]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const det = document.querySelector('.pp-man');
+  if(!det) return { err: 'немає ручного платежу' };
+  det.open = true;
+  det.querySelector('[data-pm-sum]').value = '300';
+  det.querySelector('[data-pm-note]').value = 'готівка в шоурумі';
+  det.querySelector('[data-pm-go]').click();
+  await new Promise(r => setTimeout(r, 800));
+  window.LQDesign.ui.render(document.getElementById('dzRoot'));
+  const p = (payments || []).filter(x => x.ownerManual && x.orderId === __nov.orderId)[0];
+  return { p: p && { amount: p.amount, src: p.src, by: p.by, counter: p.counter }, paid: paidSum(__nov), open: !!document.querySelector('.pp-w') };
+});
+const к2 = await крок();
+console.log('   ' + JSON.stringify({ ман, к2 }));
+ok(ман.p && ман.p.amount === 300 && ман.p.src === 'manual' && ман.paid === 300 && !ман.open,
+  'власник вписав 300 ₴ вручну — платіж записано (src manual, хто вписав) і привʼязано', JSON.stringify(ман));
+ok(!к2.gate && к2.додати, 'передоплату привʼязано — склад відкрився', 'крок 2: ' + JSON.stringify(к2));
 
 console.log('');
 console.log('═══ ВУЗЬКИЙ ЕКРАН ═══');

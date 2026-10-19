@@ -4735,6 +4735,22 @@
   .dz-card-m .dz-m-q{background:#E2E8F0;color:#334155;}
   .dz-q-on{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;color:#334155;
     background:#E2E8F0;border-radius:999px;padding:5px 11px;}
+  /* Фінанси: ФОП і його картка — однією групою, підсумок під ними (20.10). */
+  .pp-man{margin-top:10px;border:1px dashed #F59E0B;border-radius:10px;padding:8px 10px;background:#FFFBEB;}
+  .pp-man summary{cursor:pointer;font-weight:700;font-size:13px;color:#92400E;}
+  .pp-man-f{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px;}
+  .pp-man-f label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--ink-soft);}
+  .pp-man-f input,.pp-man-f select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;}
+  .pp-man-w{flex:1;min-width:160px;}
+  .fin-grp{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .fin-grp.is-many{padding:6px;border:1px solid var(--line);border-radius:16px;background:#F8FAFC;}
+  .fin-grp .fin-c.is-sub{margin-left:14px;position:relative;}
+  .fin-grp .fin-c.is-sub::before{content:'';position:absolute;left:-10px;top:-6px;bottom:50%;width:8px;border-left:2px solid #CBD5E1;border-bottom:2px solid #CBD5E1;border-bottom-left-radius:6px;}
+  .fin-gs{display:flex;flex-direction:column;gap:2px;font-size:11.5px;padding:4px 8px;color:var(--ink-soft);}
+  .fin-gs-r{display:grid;grid-template-columns:62px 1fr 1fr;gap:6px;align-items:baseline;}
+  .fin-gs-r i{font-style:normal;}
+  .fin-gs-r b{font-weight:700;text-align:right;white-space:nowrap;}
+  .fin-gs-r b.is-in{color:#0E9F6E;} .fin-gs-r b.is-out{color:#B42318;}
   .dz-svc-add{all:unset;cursor:pointer;font-size:12px;color:var(--accent-deep,#4338CA);padding:3px 8px;border:1px dashed #C7D2FE;border-radius:999px;}
   .dz-sum-r.is-svc span{padding-left:12px;color:var(--ink-soft);}
   /* Товар з цим ескізом (18.10). */
@@ -7825,33 +7841,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e755924e05"></script>
-<script src="loomiq-fingerprint.js?v=e755924e05"></script>
-<script src="loomiq-pricing.js?v=e755924e05"></script>
+<script src="loomiq-select.js?v=98978915d8"></script>
+<script src="loomiq-fingerprint.js?v=98978915d8"></script>
+<script src="loomiq-pricing.js?v=98978915d8"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=e755924e05"></script>
+<script src="loomiq-money-core.js?v=98978915d8"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e755924e05"></script>
-<script src="loomiq-bg.js?v=e755924e05"></script>
-<script src="loomiq-mock.js?v=e755924e05"></script>
+<script src="loomiq-design.js?v=98978915d8"></script>
+<script src="loomiq-bg.js?v=98978915d8"></script>
+<script src="loomiq-mock.js?v=98978915d8"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e755924e05"></script>
+<script src="imagetracer.js?v=98978915d8"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=e755924e05"></script>
-<script src="loomiq-threads.js?v=e755924e05"></script>
+<script src="loomiq-chat.js?v=98978915d8"></script>
+<script src="loomiq-threads.js?v=98978915d8"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e755924e05"></script>
+<script src="loomiq-cards.js?v=98978915d8"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7896,7 +7912,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e755924e05';
+var LQ_VER = '98978915d8';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10429,12 +10445,45 @@ async function finAccsSave(list){
 }
 /* Картка рахунку: назва, банк, скільки на ньому. Натиск відкриває
    налаштування — перейменувати, вказати залишок, підключити банк. */
+/* ЧИЯ КАРТКА (20.10, Андрій: «зверху ФОП, під ним карта — щоб візуально
+   звʼязані»). Вписано в налаштуваннях — те; ні — за прізвищем у назві. */
+function finOwnerOf(a){
+  if(!a) return '';
+  if(a.owner) return a.owner === '-' ? '' : a.owner;
+  if(!finIsCard(a)) return '';
+  const сл = n => String(n || '').toLowerCase().replace(/[^a-zа-яіїєґ' ]/gi, ' ').split(/\s+/)
+    .filter(w => w.length >= 4 && !/^(карта|картка|фоп|novapay|моно|приват)/.test(w)).map(w => w.slice(0, 5));
+  const мої = сл(a.name);
+  const fop = finAccounts().filter(x => x.id !== a.id && !finIsCard(x) && сл(x.name).some(w => мої.indexOf(w) >= 0))[0];
+  return fop ? fop.id : '';
+}
+/* Підсумок групи: надходження й витрати за сьогодні / тиждень / місяць
+   (переказ між своїми — не рахуємо). */
+function finGrpSum(ids){
+  const свої = finOwnSet();
+  const дн = new Date(); дн.setHours(0, 0, 0, 0);
+  const межі = { 'сьогодні': дн.toISOString(), 'тиждень': new Date(Date.now() - 7 * 864e5).toISOString(),
+                 'місяць': new Date(Date.now() - 30 * 864e5).toISOString() };
+  return Object.keys(межі).map(k => {
+    let вх = 0, вих = 0;
+    (payments || []).forEach(p => {
+      if(!p || ids.indexOf(p.acc) < 0 || свої[p.id] || String(p.at || '') < межі[k]) return;
+      const v = Math.round(+p.amount || 0);
+      if(v > 0) вх += v; else вих -= v;
+    });
+    return '<span class="fin-gs-r"><i>' + k + '</i><b class="is-in">' + escapeHtml(payMoneyK(вх)) + '</b>' +
+      '<b class="is-out">' + escapeHtml(payMoneyK(-вих)) + '</b></span>';
+  }).join('');
+}
 function renderFinCards(){
   const box = document.getElementById('fin-cards');
   if(!box) return;
   const accs = finAccounts();
   const разом = accs.reduce((s, a) => s + (finIsPass(a.id) ? 0 : finBalance(a.id)), 0);
-  box.innerHTML = accs.map(a => {
+  /* Групи: ФОП (чи окремий рахунок) і під ним його картки. */
+  const чиї = {}; accs.forEach(a => { const ow = finOwnerOf(a); if(ow && accs.some(x => x.id === ow)) чиї[a.id] = ow; });
+  const групи = accs.filter(a => !чиї[a.id]).map(a => [a].concat(accs.filter(x => чиї[x.id] === a.id)));
+  const tile = a => {
     if(a.bank === 'novapaycard')
       return '<div class="fin-c' + (finHist.acc === a.id ? ' on' : '') + '" role="button" tabindex="0" ' +
           'data-fin-acc-open="' + escapeHtml(a.id) + '" title="Показати, що виведено на картку">' +
@@ -10464,7 +10513,12 @@ function renderFinCards(){
                видно, який ключ чи поле поправити. */
             (ст.why ? '<span class="fin-c-why" data-fin-why title="Натисніть — показати повністю">' + escapeHtml(ст.why) + '</span>' : '') : '') +
     '</div>';
-  }).join('') +
+  };
+  box.innerHTML = групи.map(g => '<div class="fin-grp' + (g.length > 1 ? ' is-many' : '') + '">' +
+      g.map((a, i) => tile(a).replace('class="fin-c', 'class="fin-c' + (i ? ' is-sub' : ''))).join('') +
+      '<div class="fin-gs" title="Надходження / витрати по ' + (g.length > 1 ? 'ФОП і картці разом' : 'рахунку') + ' (переказ між своїми не рахується)">' +
+        finGrpSum(g.map(a => a.id)) + '</div>' +
+    '</div>').join('') +
     '<div class="fin-c is-all"><span class="fin-c-b">Разом</span>' +
       '<span class="fin-c-n">на всіх рахунках</span>' +
       '<span class="fin-c-s">' + escapeHtml(payMoneyK(разом).replace('+', '')) + '</span></div>';
@@ -11172,12 +11226,12 @@ function renderFin(){
   document.querySelectorAll('[data-fin-tab]').forEach(b =>
     b.classList.toggle('on', b.dataset.finTab === finAn.tab));
   renderFinCards();
+  /* Вкладки рахунків над списком прибрано (20.10, Андрій: «функціонал
+     дублюється»): рахунок обирають натиском на його плитку — виписка
+     відкривається одразу під плитками. Список нижче — усі рахунки. */
+  finView.acc = '';
   const accs = document.getElementById('fin-accs');
-  if(accs) accs.innerHTML = ['<button class="fin-tab' + (finView.acc ? '' : ' on') +
-      '" data-fin-acc="">Усі рахунки</button>']
-    .concat(finAccounts().map(a => '<button class="fin-tab' +
-      (finView.acc === a.id ? ' on' : '') + '" data-fin-acc="' + escapeHtml(a.id) + '">' +
-      escapeHtml(a.name) + '</button>')).join('');
+  if(accs){ accs.innerHTML = ''; accs.hidden = true; }
   const rows = finRows();
   const пари = finOwnCalc();
   const свої = пари.own;
@@ -11559,6 +11613,11 @@ function finAccEdit(id){
         : 'Рухи по цьому рахунку записуються руками.'}</div>
       <label class="fin-chk"><input type="checkbox" id="fa-linked"${a.linked ? ' checked' : ''}>
         <span>Банк підключено — Worker уже шле рухи</span></label>
+      <label class="fin-chk"><input type="checkbox" id="fa-pick"${finPickable(a) ? ' checked' : ''}>
+        <span>Показувати при привʼязці платежів до замовлень</span></label>
+      ${finIsCard(a) || a.owner ? `<label class="fin-f"><span>Належить до ФОП</span>
+        <select id="fa-owner"><option value="">— окремо —</option>${finAccounts().filter(x => x.id !== a.id && !finIsCard(x))
+          .map(x => `<option value="${escapeHtml(x.id)}"${finOwnerOf(a) === x.id ? ' selected' : ''}>${escapeHtml(x.name || x.id)}</option>`).join('')}</select></label>` : ''}
       <div class="fin-acts">
         <button class="pc-btn up" id="fa-save">Зберегти</button>
         <button class="pc-btn reset" id="fa-del">Прибрати рахунок</button>
@@ -11577,6 +11636,9 @@ function finAccEdit(id){
       if(String(st).trim() === '') delete a.start; else a.start = Math.round(+st || 0);
       a.iban = d.querySelector('#fa-iban').value.replace(/\s+/g, ' ').trim();
       a.linked = d.querySelector('#fa-linked').checked;
+      a.pick = d.querySelector('#fa-pick').checked;
+      const ow = d.querySelector('#fa-owner');
+      if(ow) a.owner = ow.value || '-';
       await finAccsSave(accs);
       toast('Збережено');
       return закрити();
@@ -20974,9 +21036,16 @@ function odMoneyHtml(o){
    по всьому: сума, дата, час, хто, підпис». Одне вікно на обидві картки —
    B2B і B2C. Лише НЕПІДПИСАНІ надходження: не привʼязані до жодного
    замовлення й не перекази між своїми рахунками. */
+/* ЧИ ПОКАЗУВАТИ РАХУНОК У ВІКНІ ПРИВʼЯЗКИ ПЛАТЕЖІВ (20.10, Андрій: «лише
+   надходження на ФОПи — поставлю галочки, де відображати»). Галочка в
+   налаштуваннях рахунку; не ставили — ФОП і бізнес-рахунки так, картки ні. */
+function finIsCard(a){ return !!a && (a.bank === 'novapaycard' || a.bank === 'privat24' || /карт/i.test(String(a.name || ''))); }
+function finPickable(a){ return !!a && (a.pick != null ? !!a.pick : !finIsCard(a)); }
 function payFreeList(){
   const свої = (typeof finOwnSet === 'function') ? finOwnSet() : {};
-  return (payments || []).filter(p => p && !p.orderId && (+p.amount || 0) > 0 && !свої[p.id])
+  const можна = {};
+  finAccounts().forEach(a => { if(finPickable(a)) можна[a.id] = 1; });
+  return (payments || []).filter(p => p && !p.orderId && (+p.amount || 0) > 0 && !свої[p.id] && можна[p.acc])
     .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
 }
 /* Усе, за чим платіж можна знайти, одним рядком. Сума — кількома
@@ -21018,6 +21087,17 @@ function payPickOpen(o, onPick, opt){
       <div class="pp-list"></div>
       <div class="pp-f"><span class="pp-sel">Позначте платіж галочкою</span>
         <button type="button" class="dz-b pri" data-pp-go disabled>Привʼязати</button></div>
+      ${/* РУЧНИЙ ПЛАТІЖ — ЛИШЕ ВЛАСНИК (20.10, Андрій: «тільки в мене — вписати
+           суму самостійно й прикріпити», напр. гроші прийшли на інший банк). */
+        (myRole() === 'owner' && o && o.orderId) ? `<details class="pp-man"><summary>＋ Вписати платіж вручну (власник)</summary>
+        <div class="pp-man-f">
+          <label>Сума, ₴<input type="number" min="1" step="1" data-pm-sum placeholder="напр. 300"></label>
+          <label>Дата<input type="date" data-pm-at value="${new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10)}"></label>
+          <label>Куди прийшло<select data-pm-acc><option value="">інший банк / готівка</option>${finAccounts().map(a =>
+            `<option value="${E(a.id)}">${E(a.name || a.id)}</option>`).join('')}</select></label>
+          <label class="pp-man-w">Коментар<input data-pm-note placeholder="від кого, звідки"></label>
+          <button type="button" class="dz-b pri" data-pm-go>Записати й привʼязати</button>
+        </div></details>` : ''}
     </div></div>`;
   document.body.appendChild(d);
   /* ПРАВОРУЧ, НА МІСЦІ КАРТКИ (16.10, Андрій): діалог ліворуч лишається
@@ -21045,6 +21125,28 @@ function payPickOpen(o, onPick, opt){
   const esc = e => { if(e.key === 'Escape'){ e.stopPropagation(); close(); } };
   document.addEventListener('keydown', esc, true);
   d.addEventListener('click', e => { if(e.target === d || e.target.closest('[data-pp-x]')) close(); });
+  const pm = d.querySelector('[data-pm-go]');
+  if(pm) pm.addEventListener('click', async () => {
+    if(myRole() !== 'owner') return toast('Вписувати платіж вручну може лише власник');
+    const сума = Math.round(+d.querySelector('[data-pm-sum]').value || 0);
+    if(!(сума > 0)) return toast('Впишіть суму');
+    const дата = d.querySelector('[data-pm-at]').value;
+    const нота = d.querySelector('[data-pm-note]').value.trim();
+    const p = { id: 'man_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+                at: (дата ? new Date(дата + 'T12:00:00').toISOString() : new Date().toISOString()),
+                amount: сума, ccy:'UAH', acc: d.querySelector('[data-pm-acc]').value || '',
+                counter: нота || 'Вписано вручну', desc: 'вписав власник · ' + (myEmail() || ''),
+                src:'manual', by: myEmail() || '', ownerManual: true };
+    pm.disabled = true;
+    try{
+      const { id: _id, ...запис } = p;   // id — це сам документ; undefined Firestore не приймає
+      await PAY_COL.doc(p.id).set(запис, { merge:true });
+      if(!(payments || []).some(x => x.id === p.id)) (payments || (payments = [])).push(p);
+      await onPick(p); привʼязано++;
+      toast('Платіж ' + fmt(сума) + ' ₴ вписано й привʼязано');
+      close();
+    }catch(err){ console.error(err); toast('Не збереглось: ' + ((err && err.message) || err)); pm.disabled = false; }
+  });
   const підсумок = () => {
     const l = (payments || []).filter(p => обрані[p.id]);
     const сума = l.reduce((a, p) => a + (+p.amount || 0), 0);
