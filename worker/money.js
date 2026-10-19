@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-08.2 · NovaPay: сертифікат без &#xD;';
+const VERSION = '2026-10-19 · Моно: картка за IBAN підключається сама; помилка підключення — на картці рахунку';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -1290,7 +1290,17 @@ async function poll(env, opts) {
     catch (e) { out.privat.push({ acc: a.id, error: e.message }); }
   }
   /* Монобанк: картки, у яких уже є IBAN, а підключення ще немає. */
-  try { out.mono = await monoAutoLink(env); } catch (e) { out.mono = { error: e.message }; }
+  try { out.mono = await monoAutoLink(env); }
+  catch (e) {
+    out.mono = { error: e.message };
+    /* Збій підключення — на картку рахунку, а не лише в журнал: доти рахунок
+       мовчки стояв «розрахунок», і з адмінки не було видно, що щось не так. */
+    try {
+      const map = await monoMap(env);
+      const a = accs.filter(x => x.bank === 'mono' && x.iban && !map[x.id])[0];
+      if (a) await syncMark(env, [{ acc: a.id, src: 'mono', error: 'підключення: ' + String(e.message || e).slice(0, 200) }]);
+    } catch (e2) { /* нічого — журнал уже має помилку */ }
+  }
   /* Рухи прийшли, а залишок — ні: це теж треба бачити (дата на картці стоїть). */
   await syncMark(env, out.privat.map(x => Object.assign({ src: 'privat' }, x,
     (!x.error && typeof x.залишок === 'string') ? { error: 'залишок ' + x.залишок } : {})));
