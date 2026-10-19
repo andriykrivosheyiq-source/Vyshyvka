@@ -1660,6 +1660,22 @@
     delete u.ready;
     return true;
   }
+  /* ВЛАСНИК ПЕРЕМИКАЄ ВИД ДИЗАЙНУ ПОПРИ РОБОТУ (19.10, Андрій: «створили
+     нове, його вже поставили в чергу відділу, а мені треба перенести в
+     готовий дизайн — така можливість тільки в мене, як видалення карток»).
+     Знімаємо з позиції ВСЕ по дизайну: чергу й задачу дизайнера, здані
+     версії, готовий/повторний і його погодження, підтвердження одягу.
+     Слід — у журналі замовлення (ds: kind-force). */
+  function kindForce(job, u, by, to){
+    if(!u) return null;
+    var all = dzList(u, 'graphic').concat(dzList(u, 'stitch'));
+    var здано = all.filter(function(d){ return d && (d.vers || []).length; }).length;
+    var кому = all.map(function(d){ return d && d.who; }).filter(Boolean);
+    u.graphic = []; u.stitch = [];
+    delete u.ready; delete u.confirmed;
+    ds(job, 'kind-force', { by: by, unit: u.id, to: to, dropped: здано, from: кому.join(', ') });
+    return { dropped: здано, who: кому };
+  }
   /* ══════════ ТОВАР З ЦИМ ЕСКІЗОМ (18.10, Андрій) ══════════
 
      Той самий ескіз — ще й на іншому товарі цього ж замовлення: «щоб не
@@ -2669,7 +2685,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach,
+    readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -4552,10 +4568,13 @@
     var гот = !!u.ready && !пов;
     var зПогодж = !!u.ready && dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
     var зІнд = !u.ready && dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; });
-    var закр = зПогодж ? ' disabled title="Дизайн уже погоджено"' : зІнд ? ' disabled title="Позицію вже передали графічному дизайнеру"' : '';
-    return '<div class="dz-kind">' +
+    /* Власник перемикає завжди (19.10) — з підтвердженням у самій дії. */
+    var власник = ((host.role && host.role()) || '') === 'owner';
+    var закр = власник ? ((зПогодж || зІнд) ? ' title="Власник: перемкнути можна й у роботі — спитаємо підтвердження"' : '')
+      : зПогодж ? ' disabled title="Дизайн уже погоджено"' : зІнд ? ' disabled title="Позицію вже передали графічному дизайнеру"' : '';
+    return '<div class="dz-kind' + (власник && (зПогодж || зІнд) ? ' is-force' : '') + '">' +
       '<button type="button" class="dz-kind-b' + (u.ready ? '' : ' on') + '" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
-        (зПогодж ? ' disabled title="Дизайн уже погоджено"' : '') + '>Індивідуальний</button>' +
+        (зПогодж && !власник ? ' disabled title="Дизайн уже погоджено"' : '') + '>Індивідуальний</button>' +
       '<button type="button" class="dz-kind-b' + (гот ? ' on' : '') + '" data-do="u-ready-pick" data-u="' + esc(u.id) + '"' +
         (гот ? '' : закр) + '>Готовий дизайн</button>' +
       '<button type="button" class="dz-kind-b' + (пов ? ' on' : '') + '" data-do="u-repeat" data-u="' + esc(u.id) + '"' +
@@ -10121,6 +10140,29 @@
     });
     document.body.appendChild(w);
   }
+  /* ── ВЛАСНИК ПЕРЕМИКАЄ ВИД ДИЗАЙНУ ПОПРИ РОБОТУ (19.10) ── */
+  function kindBusy(u){
+    return D.dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; }) ||
+           D.dzList(u, 'stitch').some(D.dzReal);
+  }
+  /* true — перемкнули (все по дизайну знято); false — відмовили або не власник. */
+  function kindForceAsk(job, u, to){
+    var роль = (host().role && host().role()) || '';
+    if(роль !== 'owner'){
+      say(u.ready ? 'Дизайн уже погоджено — змінити може лише власник' : 'Позиція вже в дизайнера — змінити може лише власник');
+      return false;
+    }
+    var all = D.dzList(u, 'graphic').concat(D.dzList(u, 'stitch'));
+    var здано = all.filter(function(d){ return d && (d.vers || []).length; }).length;
+    var хто = all.map(function(d){ return d && d.who; }).filter(Boolean).map(function(e){ return U.nameOf(e); });
+    var txt = (u.ready ? 'Дизайн уже погоджено.' : 'Позиція вже в роботі' + (хто.length ? ' у ' + хто.join(', ') : ' (у черзі відділу)') + '.') +
+      (здано ? ' Здан' + (здано === 1 ? 'а версія пропаде' : 'і версії пропадуть') + '.' : '') +
+      ' Перемкнути як власник? Задача в дизайнера зникне.';
+    try{ if(!window.confirm(txt)) return false; }catch(e){}
+    var m = (host().me && host().me()) || '';
+    D.kindForce(job, u, m, to);
+    return true;
+  }
   /* ── ТОВАР З ЦИМ ЕСКІЗОМ (18.10): розміщення слідом за головною ── */
   function linkPlace(job, o, u, done){
     var main = D.linkMain(job, u), arts = D.linkArts(main);
@@ -10848,7 +10890,9 @@
       var ru = U.unitAt(job, data && data.u);
       if(!ru) return;
       return U.readyPickOpen(async function(rd){
-        if(ru.ready && !D.readyDetach(ru)) return say('Готовий дизайн уже погоджено — змінити не можна');
+        if(ru.ready ? !D.readyDetach(ru) : kindBusy(ru)){
+          if(!kindForceAsk(job, ru, 'ready')) return;
+        }
         D.readyAttach(ru, rd);
         await save(job, o, 'Готовий дизайн · ' + (rd.name || ''));
         if(ru.gid) return act('dz-ready-place', root, { dz: ru.id + '|graphic|0' });
@@ -10859,9 +10903,11 @@
     if(what === 'u-repeat'){
       var rpu = U.unitAt(job, data && data.u);
       if(!rpu || (rpu.ready && rpu.ready.repeat)) return;
-      if(rpu.ready){
+      if(rpu.ready ? !D.readyDetach(rpu) : kindBusy(rpu)){
+        if(!kindForceAsk(job, rpu, 'repeat')) return;
+      } else if(rpu.ready){
         try{ if(!window.confirm('Зробити позицію повторною? Готовий дизайн «' + (rpu.ready.name || '') + '» з неї знімемо.')) return; }catch(e){}
-        if(!D.readyDetach(rpu)) return say('Дизайн уже погоджено — змінити не можна');
+        D.readyDetach(rpu);
       }
       D.repeatAttach(rpu);
       return save(job, o, 'Повторний дизайн — додайте DST і принти або візьміть з минулого замовлення');
@@ -10898,7 +10944,7 @@
       if(!ou || !ou.ready) return;
       try{ if(!window.confirm(D.linkOf(ou) ? 'Відвʼязати від ескізу головної позиції? Позиція стане окремою — зі своїм індивідуальним дизайном.'
           : 'Зробити позицію індивідуальною? ' + (ou.ready.repeat ? 'Повторний дизайн' : 'Готовий дизайн «' + (ou.ready.name || '') + '»') + ' з неї знімемо.')) return; }catch(e){}
-      if(!D.readyDetach(ou)) return say('Готовий дизайн уже погоджено — змінити не можна');
+      if(!D.readyDetach(ou) && !kindForceAsk(job, ou, 'custom')) return;
       return save(job, o, 'Позиція індивідуальна');
     }
     /* ── ВАРІАНТИ НА КІЛЬКОХ ВИРОБАХ ── */
