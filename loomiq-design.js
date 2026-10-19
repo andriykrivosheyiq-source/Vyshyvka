@@ -3150,6 +3150,21 @@
     var b = dlBase(no, u, kind, i, vn);
     return { base: b, mock: dlMock(b, u) };
   }
+  /* Розширення файлу — з його назви, а нема в назві — з адреси. Саме лише
+     розширення й береться від оригіналу: решта імені — за замовленням
+     (Андрій, 20.10: «завантажуємо з різними назвами, там свої номери —
+     щоб у нас цієї помилки не було»). */
+  function dlExt(f){
+    var m = /\.([A-Za-z0-9]{2,5})$/.exec(String((f && f.name) || '')) ||
+            /\.([A-Za-z0-9]{2,5})(?:$|[?#])/.exec(String((f && f.url) || '').split('/').pop());
+    return m ? m[1].toLowerCase() : '';
+  }
+  /* Імʼя для скачування: основа за замовленням + суфікс + номер, коли
+     однотипних кілька, + розширення оригіналу. */
+  function dlFile(base, f, suffix, k, n){
+    var e = dlExt(f);
+    return base + (suffix ? '_' + suffix : '') + (n > 1 ? '_' + ((+k || 0) + 1) : '') + (e ? '.' + e : '');
+  }
 
   /* ── Клієнт і строк: перше, що має бути в картці ────────────────────
      Доти цього в картці не було зовсім: замовлення позначалось номером, а
@@ -4583,11 +4598,13 @@
   }
   /* Файли «Повторного»: три списки з «+» і «×». Після вишивки (позиція в
      цеху) — лише читаються. */
-  function repeatFilesHtml(u, ro){
+  function repeatFilesHtml(u, ro, job){
     /* ТРИ ПЛИТКИ В РЯД (16.10): «Принти · DST · Додатково» поруч, а не
        списками один під одним — блок не розтягується на пів картки. */
     var r = u.ready || {};
     var лок = ro || D.dzList(u, 'stitch').length > 0;
+    var основа = dlBase(job ? unitNo(job, u) : '', null);
+    var СУФ = { arts: 'принт', files: '', extras: 'дод' };
     var плитка = function(k, назва, img){
       var l = k === 'arts' ? D.readyArts(r) : (r[k] || []);
       return '<div class="dz-rep-t' + (l.length ? '' : ' is-empty') + '">' +
@@ -4598,7 +4615,11 @@
           return '<span class="dz-rep-f" title="' + esc(f.name || '') + '">' +
             (img ? '<img src="' + esc(f.url) + '" alt="" onerror="this.style.display=\'none\'">'
                  : '<em>' + esc(((String(f.name || '').match(/\.(\w+)$/) || ['', 'файл'])[1]).toUpperCase().slice(0, 4)) + '</em>') +
-            '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name || 'файл') + '</a>' +
+            /* Скачується під іменем за замовленням; як файл назвали при
+               завантаженні — видно при наведенні (20.10). */
+            '<button type="button" class="dz-rep-dl" data-do="dz-dl" data-url="' + esc(f.url) + '" data-name="' +
+              esc(dlFile(основа, f, СУФ[k], i, l.length)) + '" title="Скачати як ' + esc(dlFile(основа, f, СУФ[k], i, l.length)) +
+              (f.name ? ' · завантажено як ' + esc(f.name) : '') + '">' + esc(dlFile(основа, f, СУФ[k], i, l.length)) + '</button>' +
             (лок ? '' : '<button type="button" data-do="u-rep-del" data-u="' + esc(u.id) + '" data-k="' + k + '" data-i="' + i + '" title="Прибрати">×</button>') +
           '</span>'; }).join('') : '<i class="dz-rep-0">немає</i>') + '</div>' +
       '</div>';
@@ -4628,7 +4649,7 @@
           '<i>' + (r.files || []).length + ' вишив. файл(и) · без графічного й вишивального дизайнера</i></span>' +
         ((!ro && !пов && !(d && d.ok)) ? '<button type="button" class="dz-b" data-do="u-ready-pick" data-u="' + esc(u.id) + '">Змінити</button>' : '') +
       '</div>' +
-      (пов ? repeatFilesHtml(u, ro) : '') +
+      (пов ? repeatFilesHtml(u, ro, job) : '') +
       (!d || !(d.vers || []).length
         ? (ro ? '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>'
             : пов ? '<div class="dz-rep-a">' +
@@ -6198,7 +6219,7 @@
     tab: function(){ return tab; },
     open: function(k){ openKey = k; },
     tabOpen: function(){ return openKey; },
-    esc: esc, dt: dt, nameOf: nameOf, say: say, verPic: verPic,
+    esc: esc, dt: dt, nameOf: nameOf, say: say, verPic: verPic, dlExt: dlExt, dlFile: dlFile,
     pairs: pairs, pairOf: pairOf,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
@@ -8209,13 +8230,13 @@
      поклав до кожної позиції. Доти тут стояло лише загальне ТЗ замовлення
      (`job.brief`), а в нових замовленнях воно порожнє: усе лежить у
      позиціях. Тепер — і те, і те; кілька позицій — з підписом виробу. */
-  function prodPicsHtml(pics){
-    return '<div class="dz-pics">' + pics.map(function(pp){
+  function prodPicsHtml(pics, base){
+    return '<div class="dz-pics">' + pics.map(function(pp, k){
       return '<span class="dz-pic">' +
         '<button type="button" class="dz-pic-b" data-do="pic-open" data-url="' + esc(pp.url) + '" ' +
           'title="' + esc(pp.name || 'Подивитись') + '"><img src="' + esc(pp.url) + '" alt="" loading="lazy"></button>' +
         '<button type="button" class="dz-pic-dl" data-do="dz-dl" data-url="' + esc(pp.url) + '" data-name="' +
-          esc(pp.name || 'вихідник') + '" title="Скачати">⤓</button></span>';
+          esc(U.dlFile(base || 'замовлення', pp, 'референс', k, pics.length)) + '" title="Скачати">⤓</button></span>';
     }).join('') + '</div>';
   }
   function prodTzHtml(job, o){
@@ -8227,7 +8248,7 @@
         (us.length > 1 && назва ? '<div class="dz-tz-uh">' + esc(назва) + '</div>' : '') +
         (String(u.note || '').trim() ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
           esc(u.note).replace(/\n/g, '<br>') + '</div>' : '') +
-        ((u.pics || []).length ? prodPicsHtml(u.pics) : '') +
+        ((u.pics || []).length ? prodPicsHtml(u.pics, U.dlBase(U.unitNo(job, u), null)) : '') +
       '</div>';
     }).join('');
     var t = String(br.text || '').trim();
@@ -8250,7 +8271,7 @@
                 (довге ? '<button type="button" class="dz-buy-more" data-do="prod-tz" data-id="' + esc(key) + '">' +
                   (відкр ? 'згорнути' : 'розгорнути') + '</button>' : '')
               : (pics.length || поЮнітах ? '' : '<div class="dz-miss is-calm">ТЗ не заповнено.</div>')) +
-      (pics.length ? prodPicsHtml(pics) : '') +
+      (pics.length ? prodPicsHtml(pics, U.dlBase(U.jobNo(job), null) + '_тз') : '') +
       кнопки;
   }
   function packPanel(p){
@@ -11057,7 +11078,10 @@
         var blob = await r.blob();
         /* Розширення беремо з адреси: без нього Windows не знає, чим
            відкривати, і файл лягає «без типу». */
-        var ext = (/\.(png|jpe?g|webp|svg|pdf|ai|eps|zip|dst|pes)(?:$|[?#])/i.exec(dlUrl) || [])[1];
+        /* Розширення: з поданого імені, далі з адреси (будь-яке: EMB, EXP,
+           JEF, DST…), далі з типу файлу. */
+        var ext = (/\.([A-Za-z0-9]{2,5})$/.exec(String((data && data.name) || '')) || [])[1] ||
+                  U.dlExt({ url: dlUrl });
         /* Адреса не завжди має розширення: Cloudinary віддає перетворені
            картинки без нього взагалі. Тоді питаємо сам файл — він знає
            свій тип, і це надійніше за здогад з адреси. */
@@ -11068,6 +11092,12 @@
                   'application/zip':'zip' }[mt] || '';
         }
         var nm = String((data && data.name) || 'файл').replace(/[\\/:*?"<>|]+/g, '-');
+        /* СТРАХОВКА (20.10): імʼя завжди починається з номера ЦЬОГО
+           замовлення. Файл, що прийшов зі своєю назвою й чужим номером
+           («8669996.EMB»), отримує імʼя за замовленням. */
+        var свій = String((job && job.no) || '').replace('#', '');
+        if(свій && nm.indexOf(свій) !== 0)
+          nm = свій + '_' + (String((data && data.role) || '') || 'файл') + (ext ? '.' + String(ext).toLowerCase() : '');
         if(ext && nm.toLowerCase().indexOf('.' + ext.toLowerCase()) < 0) nm += '.' + ext.toLowerCase();
         var ou = URL.createObjectURL(blob);
         var la = document.createElement('a');
