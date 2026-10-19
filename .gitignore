@@ -11,3 +11,6 @@ _*.html
 __pycache__/
 tests/.probe-logo.png
 tests/.tmp-*.png
+
+# Playwright для сторожа діалогу в CI (npm i --no-save) — у репозиторії не живе.
+node_modules/
