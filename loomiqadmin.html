@@ -7841,33 +7841,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=8459146094"></script>
-<script src="loomiq-fingerprint.js?v=8459146094"></script>
-<script src="loomiq-pricing.js?v=8459146094"></script>
+<script src="loomiq-select.js?v=b2f560f877"></script>
+<script src="loomiq-fingerprint.js?v=b2f560f877"></script>
+<script src="loomiq-pricing.js?v=b2f560f877"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=8459146094"></script>
+<script src="loomiq-money-core.js?v=b2f560f877"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=8459146094"></script>
-<script src="loomiq-bg.js?v=8459146094"></script>
-<script src="loomiq-mock.js?v=8459146094"></script>
+<script src="loomiq-design.js?v=b2f560f877"></script>
+<script src="loomiq-bg.js?v=b2f560f877"></script>
+<script src="loomiq-mock.js?v=b2f560f877"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=8459146094"></script>
+<script src="imagetracer.js?v=b2f560f877"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=8459146094"></script>
-<script src="loomiq-threads.js?v=8459146094"></script>
+<script src="loomiq-chat.js?v=b2f560f877"></script>
+<script src="loomiq-threads.js?v=b2f560f877"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=8459146094"></script>
+<script src="loomiq-cards.js?v=b2f560f877"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7912,7 +7912,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '8459146094';
+var LQ_VER = 'b2f560f877';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10460,7 +10460,14 @@ function finOwnerOf(a){
   const сл = n => String(n || '').toLowerCase().replace(/[^a-zа-яіїєґ' ]/gi, ' ').split(/\s+/)
     .filter(w => w.length >= 4 && !/^(карта|картка|фоп|novapay|моно|приват)/.test(w)).map(w => w.slice(0, 5));
   const мої = сл(a.name);
-  const fop = finAccounts().filter(x => x.id !== a.id && !finIsCard(x) && сл(x.name).some(w => мої.indexOf(w) >= 0))[0];
+  /* Найбільше спільних слів — не перший збіг (19.10): «Юкальчук Володимир»
+     ставав під «ФОП Леся Юкальчук», бо прізвище в них спільне. */
+  let fop = null, best = 0;
+  finAccounts().forEach(x => {
+    if(x.id === a.id || finIsCard(x)) return;
+    const n = сл(x.name).filter(w => мої.indexOf(w) >= 0).length;
+    if(n > best){ best = n; fop = x; }
+  });
   return fop ? fop.id : '';
 }
 /* Підсумок групи: надходження й витрати за сьогодні / тиждень / місяць
@@ -10539,9 +10546,10 @@ function renderFinCards(){
    після руху. Список унизу сторінки тримає лише пів року — виписка тягне
    рухи цього рахунку за весь час окремим запитом. */
 function finHistOpen(id){
-  if(finHist.acc === id){ finHist.acc = ''; return renderFinCards(); }
+  /* renderFin, а не лише плитки: список нижче фільтрується за обраним рахунком. */
+  if(finHist.acc === id){ finHist.acc = ''; return renderFin(); }
   finHist.acc = id; finHist.shown = 100;
-  renderFinCards();
+  renderFin();
   if(finHist.all[id] || finHist.loading === id) return;
   finHist.loading = id;
   PAY_COL.where('acc', '==', id).get().then(snap => {
@@ -11236,8 +11244,10 @@ function renderFin(){
   renderFinCards();
   /* Вкладки рахунків над списком прибрано (20.10, Андрій: «функціонал
      дублюється»): рахунок обирають натиском на його плитку — виписка
-     відкривається одразу під плитками. Список нижче — усі рахунки. */
-  finView.acc = '';
+     відкривається одразу під плитками, а список нижче показує лише рухи
+     цього рахунку (19.10, Андрій: «натискаю ФОП — і всі зарахування й
+     витрати саме на цей ФОП»). Без обраної плитки — усі рахунки. */
+  finView.acc = finHist.acc || '';
   const accs = document.getElementById('fin-accs');
   if(accs){ accs.innerHTML = ''; accs.hidden = true; }
   const rows = finRows();
@@ -11247,7 +11257,9 @@ function renderFin(){
   const витрата = rows.reduce((s, p) => s + (свої[p.id] ? 0 : Math.max(0, -Math.round(+p.amount || 0))), 0);
   const переказів = rows.filter(p => свої[p.id] && +p.amount > 0).reduce((s, p) => s + Math.round(+p.amount || 0), 0);
   const sum = document.getElementById('fin-sum');
-  if(sum) sum.innerHTML = rows.length
+  const обраний = finView.acc
+    ? '<button class="fin-chip on" data-fin-hist-x title="Показати всі рахунки">' + escapeHtml(finAccName(finView.acc)) + ' ×</button>' : '';
+  if(sum) sum.innerHTML = обраний + (rows.length
     ? '<span>Рухів: <b>' + rows.length + '</b></span>' +
       '<span class="is-in">Надійшло: <b>' + payMoney(дохід) + '</b></span>' +
       '<span class="is-out">Витрачено: <b>' + payMoney(-витрата) + '</b></span>' +
@@ -11257,7 +11269,7 @@ function renderFin(){
         const v = rows.reduce((a, p) => a + (p.tag === k && (+p.amount || 0) > 0 ? Math.round(+p.amount) : 0), 0);
         return v ? '<span class="is-chk">' + escapeHtml(PAY_TAGS[k]) + ': <b>' + escapeHtml(payMoney(v).replace('+', '')) + '</b></span>' : '';
       }).join('') : '')
-    : '';
+    : (обраний ? '<span>По цьому рахунку рухів немає' + (finView.days || finView.kind || finView.link || finView.q || finView.cat ? ' з цими фільтрами' : '') + ' — 0 ₴</span>' : ''));
   /* Фільтр і підсумок за категоріями витрат (05.10). */
   const кс = document.getElementById('fin-cat');
   if(кс) кс.innerHTML = '<option value="">усі категорії</option>' +
@@ -11701,7 +11713,7 @@ async function finAddManual(){
     const hd = e.target.closest && e.target.closest('[data-fin-hist-days]');
     if(hd){ finHist.days = +hd.dataset.finHistDays || 0; finHist.shown = 100; return renderFinHist(); }
     if(e.target.closest && e.target.closest('[data-fin-hist-more]')){ finHist.shown += 100; return renderFinHist(); }
-    if(e.target.closest && e.target.closest('[data-fin-hist-x]')){ finHist.acc = ''; return renderFinCards(); }
+    if(e.target.closest && e.target.closest('[data-fin-hist-x]')){ finHist.acc = ''; return renderFin(); }
     const chk = e.target.closest && e.target.closest('[data-fin-chk]');
     if(chk) return finChk(chk.dataset.finChk);
     const open = e.target.closest && e.target.closest('[data-fin-open]');

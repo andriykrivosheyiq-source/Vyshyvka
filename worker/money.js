@@ -75,7 +75,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-20.2 · Моно: історія за тиждень — по черзі, стан на картці рахунку';
+const VERSION = '2026-10-20.3 · Моно: історія за тиждень — одним пакетом (не впирається в ліміт звернень)';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -436,12 +436,18 @@ async function monoHistory(env, acc, days, force) {
   const ключі = Object.keys(env).filter(k => /^MONO_TOKEN_/.test(k) && env[k]);
   ключі.sort((x, y) => (y === 'MONO_TOKEN_' + a.id) - (x === 'MONO_TOKEN_' + a.id));
   let ліміт = false;
+  try {
   for (const k of ключі) {
     const r = await fetch(MONO_URL + '/personal/statement/' + encodeURIComponent(map[a.id]) + '/' + from + '/' + to,
       { headers: { 'X-Token': String(env[k]).trim() } });
     if (r.status === 429) { ліміт = true; continue; }
     const list = await r.json().catch(() => null);
     if (!r.ok || !Array.isArray(list)) continue;      // чужий токен — цього рахунку не бачить
+    /* ОДНИМ ПАКЕТОМ (20.10). Доти кожен рух писався окремим зверненням, а
+       Cloudflare дає воркеру 50 звернень за прогін: на рахунку з сотнею
+       рухів за тиждень прогін падав посередині — і не встигав навіть
+       написати причину на картку. Тому жоден рахунок не дочитувався. */
+    const пакет = [];
     let n = 0;
     for (const it of list) {
       if (!it || !it.id) continue;
@@ -454,13 +460,19 @@ async function monoHistory(env, acc, days, force) {
         desc: [it.description, it.comment].filter(Boolean).join(' · '),
         src: 'mono',
         balAfter: it.balance == null ? null : (+it.balance || 0) / 100
-      });
+      }, пакет);
       n++;
     }
+    if (пакет.length) await fsCommit(env, пакет);
     await fsWrite(env, 'loomiq/monoHist', { [a.id]: new Date().toISOString(),
       ['msg_' + a.id]: 'історію за ' + д + ' дн. дочитано · рухів: ' + n });
     await syncMark(env, [{ acc: a.id, src: 'mono', рухів: n }]);
     return { acc: a.id, днів: д, рухів: n };
+  }
+  } catch (e) {
+    /* Збій — на картку рахунку, не лише в журнал Cloudflare. */
+    await fsWrite(env, 'loomiq/monoHist', { ['msg_' + a.id]: 'історія: збій — ' + String(e.message || e).slice(0, 200) }).catch(() => null);
+    throw e;
   }
   const чому = ліміт ? 'Монобанк: раз на хвилину — дочитаємо наступним прогоном' : 'жоден токен не віддав виписку цього рахунку';
   await fsWrite(env, 'loomiq/monoHist', { ['msg_' + a.id]: 'історія: ' + чому }).catch(() => null);
