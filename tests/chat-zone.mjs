@@ -271,7 +271,8 @@ console.log('═══ КАРТКИ НАДСИЛАЮТЬ ІЗ САМОЇ РОЗ�
    можна зняти зайве. Скриптів два, бо це дві різні розмови в різний час:
    прорахунок сьогодні, «до цього зазвичай беруть» — через тиждень. */
 {
-  const adm = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  /* Код діалогу — у loomiq-chat.js (19.10), стилі — в адмінці: читаємо обидва. */
+  const adm = (fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'loomiq-chat.js'), 'utf8'));
   const типові = adm.slice(adm.indexOf('const QR_DEFAULT = ['),
                            adm.indexOf('function quickReplies'));
   const скрипти = await p.evaluate(txt => ({
@@ -510,7 +511,7 @@ console.log('═══ КАРТИНКА В SITNIKS — ВКЛАДЕННЯМ, А 
    Sitniks картинки надсилає, отже спосіб існує; назву поля з закритої
    документації не вгадати, тому код пробує способи сам. */
 {
-  const adm = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const adm = (fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'loomiq-chat.js'), 'utf8'));
   const блок = adm.slice(adm.indexOf('const CRM_PIC_WAYS = ['),
                          adm.indexOf('];', adm.indexOf('const CRM_PIC_WAYS = [')));
   const ways = (блок.match(/id:'([^']+)'/g) || []).map(s => s.slice(4, -1));
@@ -654,7 +655,7 @@ console.log('═══ СМУЖКА: СПЕРШУ ПОКАЗАТИ, ПОТІМ �
   /* Плитка мусить стати ВИДИМОЮ одразу, ще порожньою: велике фото
      зменшується помітну мить, і доти людина не розуміла, вибралось воно
      взагалі чи ні. Андрій: «завантажу 4 картинки — і нічого». */
-  const adm1 = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const adm1 = (fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'loomiq-chat.js'), 'utf8'));
   const бере = adm1.slice(adm1.indexOf('async function chatTake'),
                           adm1.indexOf('function wireChatWin'));
   ok(бере.indexOf('renderChatWin()') < бере.indexOf('await shrinkImage'),
@@ -674,7 +675,7 @@ console.log('═══ СМУЖКА: СПЕРШУ ПОКАЗАТИ, ПОТІМ �
     'хрестик не прибирає: лишилось ' + після);
   /* Порядок Андрій назвав прямо: «фотки спочатку відправляються окремим
      повідомленням, і потім внизу ще окремим повідомленням підпис». */
-  const adm0 = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const adm0 = (fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'loomiq-chat.js'), 'utf8'));
   const пік = adm0.slice(adm0.indexOf('async function chatSendPics'),
                          adm0.indexOf('function picWord'));
   ok(пік.indexOf('crmSendPic(o, urls') < пік.indexOf('if(text)') &&
@@ -739,7 +740,7 @@ console.log('═══ КАРТКА ЙДЕ ВГОРУ ВІД БУДЬ-ЯКОЇ �
    Правило ширше: вгору підіймає все, що з замовленням сьогодні робили, —
    наш лист, наша картинка, слово клієнта і заповнене поле в самій картці. */
 {
-  const adm = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const adm = (fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'loomiq-chat.js'), 'utf8'));
   const між = (a, b) => adm.slice(adm.indexOf(a), adm.indexOf(b, adm.indexOf(a)));
   const фото = між('async function chatSendPics', '\nfunction picWord');
   ok(/touchOrder\(o\)/.test(фото),
