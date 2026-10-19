@@ -74,7 +74,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-19.2 · Моно: непідключені рахунки по черзі; номер картки замість IBAN — кажемо прямо';
+const VERSION = '2026-10-19.3 · Моно: непідключені рахунки по черзі; номер картки замість IBAN — кажемо прямо';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -431,7 +431,7 @@ async function monoAutoLink(env) {
   const a = todo[0];
   if (!a) return null;
   /* Номер картки замість IBAN — Монобанк за ним рахунку не дасть; кажемо прямо. */
-  if (!/^UA\d{27}$/i.test(a.iban)) {
+  if (!/^UA/i.test(a.iban)) {
     await syncMark(env, [{ acc: a.id, src: 'mono', skip: 'у полі IBAN стоїть не IBAN (' + a.iban.slice(0, 6) + '…' + a.iban.slice(-4) +
       '): потрібен номер виду UA + 27 цифр — у застосунку Mono: картка → реквізити → IBAN' }]);
     return { acc: a.id, error: 'не IBAN' };
