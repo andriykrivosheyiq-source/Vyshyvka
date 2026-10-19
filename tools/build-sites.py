@@ -46,6 +46,10 @@ CTOR_DESIGN = 'loomiq-design.js'
 # Грошове ядро — «скільки сплачено» й Звірка. Штампуємо з рештою: стара копія
 # в кеші рахувала б оплату за старими правилами.
 CTOR_MONEY = 'loomiq-money-core.js'
+# Діалог (Telegram + Sitniks, вікно переписки, розділи «Чати») — окремим
+# файлом (19.10), щоб зміни решти адмінки його не зачіпали. Штампуємо з
+# рештою: стара копія в кеші говорила б з адмінкою, якої вже немає.
+CTOR_CHAT = 'loomiq-chat.js'
 # Мокап — макет на фото виробу й сантиметри під ним. Окремим файлом, бо це
 # власна річ із власним вікном і власною арифметикою; версію штампуємо
 # разом з рештою: розмітка виробу й підрахунок мусять їхати однією парою.
@@ -462,6 +466,7 @@ def main():
     cards = open(os.path.join(ROOT, CTOR_CARDS), encoding='utf-8').read()
     design = open(os.path.join(ROOT, CTOR_DESIGN), encoding='utf-8').read()
     design += open(os.path.join(ROOT, CTOR_MONEY), encoding='utf-8').read()
+    design += open(os.path.join(ROOT, CTOR_CHAT), encoding='utf-8').read()
     mockjs = open(os.path.join(ROOT, CTOR_MOCK), encoding='utf-8').read() + open(os.path.join(ROOT, CTOR_BG), encoding='utf-8').read()
     mockjs += open(os.path.join(ROOT, CTOR_THREADS), encoding='utf-8').read()
     mockjs += open(os.path.join(ROOT, CTOR_KIT), encoding='utf-8').read()
@@ -492,7 +497,7 @@ def main():
         txt = open(path, encoding='utf-8').read()
         new = txt
         for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
-                      CTOR_CARDS, CTOR_DESIGN, CTOR_MONEY, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER, CTOR_KIT, CTOR_BG):
+                      CTOR_CARDS, CTOR_DESIGN, CTOR_MONEY, CTOR_CHAT, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER, CTOR_KIT, CTOR_BG):
             new = stamp(new, asset, ver)
         # Версія САМОЇ сторінки. Позначка в адресі рятує лише скрипти: у HTML
         # адреси немає, браузер тримає його стільки, скільки схоче, — і людина
