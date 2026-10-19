@@ -129,15 +129,17 @@ console.log('═══ УСІ РУХИ ОДНИМ СПИСКОМ ═══');
 const списком = await p.evaluate(() => ({
   видно: (document.getElementById('view-fin') || {}).style.display,
   рядків: document.querySelectorAll('#fin-list .fin-row').length,
-  рахунків: document.querySelectorAll('[data-fin-acc]').length,
+  рахунків: document.querySelectorAll('#fin-cards [data-fin-acc-open]').length,
+  вкладок: document.querySelectorAll('[data-fin-acc]').length,
   підсумок: (document.getElementById('fin-sum') || {}).textContent || ''
 }));
 ok(списком.видно === 'block', 'розділ «Фінанси» відкривається', 'розділ не відкрився');
 ok(списком.рядків === 4, 'усі чотири рухи в списку — і надходження, і витрата',
   'рухів у списку ' + списком.рядків + ' замість 4');
-/* Пʼять рахунків плюс «усі»: один Приват ФОП і чотири Моно. */
-ok(списком.рахунків === 6, 'рахунки добираються окремо: пʼять плюс «усі»',
-  'рахунків у доборі ' + списком.рахунків);
+/* Пʼять рахунків — плитками; вкладок над списком більше немає (20.10:
+   «функціонал дублюється» — рахунок обирають плиткою). */
+ok(списком.рахунків === 5 && списком.вкладок === 0, 'пʼять рахунків плитками, дубль-вкладок над списком немає',
+  'плиток ' + списком.рахунків + ', вкладок ' + списком.вкладок);
 ok(/Надійшло/.test(списком.підсумок) && /Витрачено/.test(списком.підсумок),
   'зверху видно, скільки надійшло й скільки витрачено',
   'підсумку немає: ' + списком.підсумок);
@@ -149,9 +151,12 @@ const добір = await p.evaluate(async () => {
     return document.querySelectorAll('#fin-list .fin-row').length; };
   const надходжень = await one(()=>{ const s = document.getElementById('fin-kind');
     s.value = 'in'; s.dispatchEvent(new Event('change')); });
-  const наРахунку = await one(()=>{ document.querySelector('[data-fin-acc="mono1"]').click(); });
-  const усе = await one(()=>{ document.querySelector('[data-fin-acc=""]').click();
-    const s = document.getElementById('fin-kind'); s.value = ''; s.dispatchEvent(new Event('change')); });
+  /* Рахунок — натиском на плитку: виписка цього рахунку під плитками. */
+  document.querySelector('[data-fin-acc-open="mono1"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  const наРахунку = document.querySelectorAll('#fin-hist .fin-hrow, #fin-hist .fin-row').length;
+  document.querySelector('[data-fin-acc-open="mono1"]').click();
+  const усе = await one(()=>{ const s = document.getElementById('fin-kind'); s.value = ''; s.dispatchEvent(new Event('change')); });
   const пошук = await one(()=>{ const q = document.getElementById('fin-q');
     q.value = 'нитки'; q.dispatchEvent(new Event('input')); });
   document.getElementById('fin-q').value = '';
