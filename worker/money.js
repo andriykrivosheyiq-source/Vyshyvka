@@ -65,6 +65,7 @@
  *
  *   POST /mono/<acc>?s=<HOOK_SECRET>   — сюди шле Монобанк
  *   GET  /mono/setup/<acc>?s=...       — сказати Монобанку цю адресу
+ *   GET  /mono/history/<acc>?s=...&days=7 — дочитати виписку за N днів (≤31)
  *   GET  /poll?s=...                   — опитати Приват і Нову пошту зараз
  *   GET  /np/probe/<ttn>?s=...         — показати, що САМЕ каже НП про накладну
  *   GET  /privat/balance/<acc>?s=...   — що САМЕ каже Приват про залишок
@@ -74,7 +75,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-19.3 · Моно: непідключені рахунки по черзі; номер картки замість IBAN — кажемо прямо';
+const VERSION = '2026-10-20 · Моно: історія за тиждень при підключенні (/personal/statement)';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -407,6 +408,54 @@ async function monoSetup(env, acc, url) {
   const t = await r.text();
   if (!r.ok) throw new Error('Монобанк відмовив: ' + t.slice(0, 200));
   return t;
+}
+
+/* ІСТОРІЯ МОНОБАНКУ ЗА ТИЖДЕНЬ (20.10, Андрій: «щоб історія Володимира
+   показувалась — щоб ми могли підвʼязати платежі за останній тиждень»).
+   Вебхук шле лише нове — з миті підключення. Тож щойно рахунок
+   підключено, раз дочитуємо виписку за 7 днів (/personal/statement).
+   Номери рухів ті самі, що з вебхука (mono_<id>), — повтор нешкідливий, а
+   привʼязку й підпис, зроблені людиною, payment() не чіпає. Ліміт Монобанку
+   — раз на хвилину на токен, тож за прогін — один рахунок; 429 — наступного
+   разу. Позначка «дочитано» — loomiq/monoHist {acc: коли}. */
+async function monoHistory(env, acc, days, force) {
+  const map = await monoMap(env, true);
+  const hist = (await fsGet(env, 'loomiq/monoHist')) || {};
+  const all = (await accounts(env)).filter(a => a.bank === 'mono' && map[a.id]);
+  const a = acc ? all.filter(x => x.id === acc)[0] : all.filter(x => !hist[x.id])[0];
+  if (!a) return acc ? { acc, error: 'рахунок не підключений до Монобанку' } : null;
+  if (!force && hist[a.id]) return { acc: a.id, skip: 'уже дочитано ' + hist[a.id] };
+  const д = Math.max(1, Math.min(31, +days || 7));
+  const to = Math.floor(Date.now() / 1000), from = to - д * 86400;
+  const ключі = Object.keys(env).filter(k => /^MONO_TOKEN_/.test(k) && env[k]);
+  ключі.sort((x, y) => (y === 'MONO_TOKEN_' + a.id) - (x === 'MONO_TOKEN_' + a.id));
+  let ліміт = false;
+  for (const k of ключі) {
+    const r = await fetch(MONO_URL + '/personal/statement/' + encodeURIComponent(map[a.id]) + '/' + from + '/' + to,
+      { headers: { 'X-Token': String(env[k]).trim() } });
+    if (r.status === 429) { ліміт = true; continue; }
+    const list = await r.json().catch(() => null);
+    if (!r.ok || !Array.isArray(list)) continue;      // чужий токен — цього рахунку не бачить
+    let n = 0;
+    for (const it of list) {
+      if (!it || !it.id) continue;
+      await payment(env, {
+        id: 'mono_' + it.id,
+        at: new Date((+it.time || 0) * 1000).toISOString(),
+        amount: (+it.amount || 0) / 100,
+        acc: a.id,
+        counter: it.counterName || it.counterEdrpou || '',
+        desc: [it.description, it.comment].filter(Boolean).join(' · '),
+        src: 'mono',
+        balAfter: it.balance == null ? null : (+it.balance || 0) / 100
+      });
+      n++;
+    }
+    await fsWrite(env, 'loomiq/monoHist', { [a.id]: new Date().toISOString() });
+    await syncMark(env, [{ acc: a.id, src: 'mono', рухів: n }]);
+    return { acc: a.id, днів: д, рухів: n };
+  }
+  return { acc: a.id, skip: ліміт ? 'Монобанк: раз на хвилину — дочитаємо наступним прогоном' : 'жоден токен не віддав виписку' };
 }
 
 /* МОНОБАНК — ПІДКЛЮЧАЄТЬСЯ САМ (17.10, Андрій: «ФОП Віталіка підключили, а
@@ -1304,6 +1353,8 @@ async function poll(env, opts) {
     catch (e) { out.privat.push({ acc: a.id, error: e.message }); }
   }
   /* Монобанк: картки, у яких уже є IBAN, а підключення ще немає. */
+  /* Історія за тиждень — для щойно підключених (один рахунок за прогін). */
+  try { out.monoHist = await monoHistory(env); } catch (e) { out.monoHist = { error: e.message }; }
   try { out.mono = await monoAutoLink(env); }
   catch (e) {
     out.mono = { error: e.message };
@@ -1369,6 +1420,11 @@ export default {
 
       /* Монобанк перевіряє адресу вебхука порожнім GET: маємо відповісти 200,
          інакше він її навіть не збереже. */
+      /* Дочитати історію рахунку вручну: /mono/history/<acc>?s=…&days=7 */
+      if (parts[0] === 'mono' && parts[1] === 'history') {
+        if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
+        return json(Object.assign({ ok: true }, await monoHistory(env, parts[2] || '', url.searchParams.get('days'), true)));
+      }
       if (parts[0] === 'mono' && parts[1] !== 'setup' && request.method === 'GET')
         return new Response('ok');
 
