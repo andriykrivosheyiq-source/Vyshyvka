@@ -75,7 +75,7 @@
 
 /* Версія коду — у кожній відповіді. Код у Cloudflare вставляють руками, і
    «а що зараз стоїть» інакше не перевірити. Міняти при кожній правці. */
-const VERSION = '2026-10-20 · Моно: історія за тиждень при підключенні (/personal/statement)';
+const VERSION = '2026-10-20.2 · Моно: історія за тиждень — по черзі, стан на картці рахунку';
 const FS = 'https://firestore.googleapis.com/v1';
 const NP_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const PRIVAT_URL = 'https://acp.privatbank.ua/api/statements/transactions';
@@ -422,7 +422,13 @@ async function monoHistory(env, acc, days, force) {
   const map = await monoMap(env, true);
   const hist = (await fsGet(env, 'loomiq/monoHist')) || {};
   const all = (await accounts(env)).filter(a => a.bank === 'mono' && map[a.id]);
-  const a = acc ? all.filter(x => x.id === acc)[0] : all.filter(x => !hist[x.id])[0];
+  /* ПО ЧЕРЗІ, НАЙДАВНІШЕ ПРОБУВАНИЙ — ПЕРШИМ (20.10). Доти брався перший
+     недочитаний: рахунок, якого не віддав жоден токен, стояв у черзі
+     першим назавжди, і до решти (ФОП Володимира) черга не доходила. */
+  const спроба = id => String(hist['try_' + id] || '');
+  const a = acc ? all.filter(x => x.id === acc)[0]
+    : all.filter(x => !hist[x.id]).sort((p, q) => спроба(p.id) < спроба(q.id) ? -1 : спроба(p.id) > спроба(q.id) ? 1 : 0)[0];
+  if (a && !acc) await fsWrite(env, 'loomiq/monoHist', { ['try_' + a.id]: new Date().toISOString() }).catch(() => null);
   if (!a) return acc ? { acc, error: 'рахунок не підключений до Монобанку' } : null;
   if (!force && hist[a.id]) return { acc: a.id, skip: 'уже дочитано ' + hist[a.id] };
   const д = Math.max(1, Math.min(31, +days || 7));
@@ -451,11 +457,14 @@ async function monoHistory(env, acc, days, force) {
       });
       n++;
     }
-    await fsWrite(env, 'loomiq/monoHist', { [a.id]: new Date().toISOString() });
+    await fsWrite(env, 'loomiq/monoHist', { [a.id]: new Date().toISOString(),
+      ['msg_' + a.id]: 'історію за ' + д + ' дн. дочитано · рухів: ' + n });
     await syncMark(env, [{ acc: a.id, src: 'mono', рухів: n }]);
     return { acc: a.id, днів: д, рухів: n };
   }
-  return { acc: a.id, skip: ліміт ? 'Монобанк: раз на хвилину — дочитаємо наступним прогоном' : 'жоден токен не віддав виписку' };
+  const чому = ліміт ? 'Монобанк: раз на хвилину — дочитаємо наступним прогоном' : 'жоден токен не віддав виписку цього рахунку';
+  await fsWrite(env, 'loomiq/monoHist', { ['msg_' + a.id]: 'історія: ' + чому }).catch(() => null);
+  return { acc: a.id, skip: чому };
 }
 
 /* МОНОБАНК — ПІДКЛЮЧАЄТЬСЯ САМ (17.10, Андрій: «ФОП Віталіка підключили, а

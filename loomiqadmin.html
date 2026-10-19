@@ -7841,33 +7841,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=98978915d8"></script>
-<script src="loomiq-fingerprint.js?v=98978915d8"></script>
-<script src="loomiq-pricing.js?v=98978915d8"></script>
+<script src="loomiq-select.js?v=8481e8a2da"></script>
+<script src="loomiq-fingerprint.js?v=8481e8a2da"></script>
+<script src="loomiq-pricing.js?v=8481e8a2da"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=98978915d8"></script>
+<script src="loomiq-money-core.js?v=8481e8a2da"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=98978915d8"></script>
-<script src="loomiq-bg.js?v=98978915d8"></script>
-<script src="loomiq-mock.js?v=98978915d8"></script>
+<script src="loomiq-design.js?v=8481e8a2da"></script>
+<script src="loomiq-bg.js?v=8481e8a2da"></script>
+<script src="loomiq-mock.js?v=8481e8a2da"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=98978915d8"></script>
+<script src="imagetracer.js?v=8481e8a2da"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=98978915d8"></script>
-<script src="loomiq-threads.js?v=98978915d8"></script>
+<script src="loomiq-chat.js?v=8481e8a2da"></script>
+<script src="loomiq-threads.js?v=8481e8a2da"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=98978915d8"></script>
+<script src="loomiq-cards.js?v=8481e8a2da"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7912,7 +7912,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '98978915d8';
+var LQ_VER = '8481e8a2da';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10167,6 +10167,7 @@ let payWatching = false;
 let payLoaded = false;     // рухи вже прийшли з бази (до того «сплачено» рахуємо лише з картки)
 let npState = {};          // стан посилок з контролем оплати — пише грошовий воркер (loomiq/npState)
 let bankBal = {};          // { acc: { bal, at, src, got } } — залишок від банку
+let monoHist = {};          // { acc: коли дочитано, msg_acc: що сталось } — історія Монобанку (20.10)
 let bankSync = {};         // { acc: { at, ok, error, skip, src } } — стан перевірки (пише сервер, 17.10)
 let novapayLog = null;     // останній прогін NovaPay (пише сервер)
 let payErr = '';           // чому рухи не читаються — показуємо словами
@@ -10311,6 +10312,11 @@ function watchPayments(){
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
   }, e => console.warn('залишки банку', e));
   /* Стан перевірки кожного рахунку — щоб зупинка банку була видна одразу. */
+  /* Історія Монобанку за тиждень — що сервер дочитав (20.10). */
+  fbDb.collection('loomiq').doc('monoHist').onSnapshot(sn => {
+    monoHist = sn.exists ? (sn.data() || {}) : {};
+    try{ renderFinCards(); }catch(e){}
+  }, e => console.warn('monoHist', e));
   fbDb.collection('loomiq').doc('bankSync').onSnapshot(sn => {
     bankSync = sn.exists ? (sn.data() || {}) : {};
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
@@ -10512,6 +10518,8 @@ function renderFinCards(){
             /* Причину — одразу на картці, без наведення (17.10): за нею й
                видно, який ключ чи поле поправити. */
             (ст.why ? '<span class="fin-c-why" data-fin-why title="Натисніть — показати повністю">' + escapeHtml(ст.why) + '</span>' : '') : '') +
+      (a.bank === 'mono' && monoHist['msg_' + a.id]
+        ? '<span class="fin-c-why' + (monoHist[a.id] ? ' is-ok' : '') + '" title="Історія за тиждень з Монобанку">' + escapeHtml(monoHist['msg_' + a.id]) + '</span>' : '') +
     '</div>';
   };
   box.innerHTML = групи.map(g => '<div class="fin-grp' + (g.length > 1 ? ' is-many' : '') + '">' +
