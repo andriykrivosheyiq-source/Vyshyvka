@@ -881,6 +881,36 @@ function crmOutKeys(text){
    Тому та сама прикмета лежить ще й тут, у вкладці. Вона переживає будь-
    яку підміну картки, а в базу пишеться своєю чергою. */
 const crmOutHere = {};
+/* ЖИВА КАРТКА, А НЕ ТА КОПІЯ, ЩО ПІД РУКОЮ (19.10).
+
+   Аркуш із дошки дизайну, картку з КП, лист із будь-якого місця поза
+   відкритим вікном діалогу шлють із ТІЄЇ копії замовлення, яку те місце
+   тримало на час малювання. А масив замовлень тим часом підміняється
+   знімком бази — від обходу розмов, від чужої правки, від автозапису.
+   Запис «це наше» лягав у копію, якої вже ніхто не збереже, і після
+   перезавантаження (чи на іншому компʼютері) наш текст і наші аркуші
+   ставали ліворуч, як клієнтські. Андрій: «це все плутає менеджера».
+
+   Тому кожен запис памʼяті йде у ЖИВУ картку за номером, картка на час
+   відправки тримається від підміни знімком (crmHold → ordersHeld), а
+   збереження в базу ставиться в чергу тут же, не покладаючись на того,
+   хто кликав. */
+function crmLive(o){
+  if(!o || !o.id) return o;
+  try{ return (orders || []).find(x => x && x.id === o.id) || o; }catch(e){ return o; }
+}
+const crmHold = {};
+function crmHeldIds(){ const now = Date.now(); return Object.keys(crmHold).filter(k => crmHold[k] > now); }
+const crmSaveT = {};
+function crmKeep(o){
+  const id = o && o.id; if(!id) return;
+  crmHold[id] = Date.now() + 30000;
+  clearTimeout(crmSaveT[id]);
+  crmSaveT[id] = setTimeout(() => {
+    try{ if(typeof saveOrders === 'function') saveOrders({ quiet:true }).catch(e => console.warn('памʼять розмови', e)); }
+    catch(e){ console.warn('памʼять розмови', e); }
+  }, 400);
+}
 function crmOutList(o){
   const own = Array.isArray(o && o.crmOut) ? o.crmOut : [];
   const here = (o && crmOutHere[o.id]) || [];
@@ -888,9 +918,13 @@ function crmOutList(o){
 }
 function crmOutPush(o, rec){
   if(!o || !rec || !rec.t) return;
-  const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
-  if(!list.some(r => r && r.t === rec.t)) list.push(rec);
-  if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
+  const live = crmLive(o);
+  [o, live].filter((x, i, a) => a.indexOf(x) === i).forEach(x => {
+    const list = Array.isArray(x.crmOut) ? x.crmOut : (x.crmOut = []);
+    if(!list.some(r => r && r.t === rec.t)) list.push(rec);
+    if(list.length > CRM_OUT_KEEP) x.crmOut = list.slice(-CRM_OUT_KEEP);
+  });
+  crmKeep(o);
   const here = crmOutHere[o.id] || (crmOutHere[o.id] = []);
   if(!here.some(r => r && r.t === rec.t)) here.push(rec);
   if(here.length > CRM_OUT_KEEP) crmOutHere[o.id] = here.slice(-CRM_OUT_KEEP);
@@ -1304,15 +1338,20 @@ function crmPicsAdd(o, urls, state){
 }
 /* Надіслане — у картку (з адресами хмари), щоб пережило перезавантаження. */
 function crmPicsKeep(o, e){
-  const l = Array.isArray(o.crmPicsOut) ? o.crmPicsOut : (o.crmPicsOut = []);
-  const i = l.findIndex(x => x.k === e.k);
   const rec = { k: e.k, at: e.at, urls: e.urls, by: e.by, state: 'sent', t: e.t || '', pre: (e.pre || []).slice(-20) };
-  if(i >= 0) l[i] = rec; else l.push(rec);
-  if(l.length > CRM_PICS_KEEP) o.crmPicsOut = l.slice(-CRM_PICS_KEEP);
+  const live = crmLive(o);
+  [o, live].filter((x, i, a) => a.indexOf(x) === i).forEach(x => {
+    const l = Array.isArray(x.crmPicsOut) ? x.crmPicsOut : (x.crmPicsOut = []);
+    const i = l.findIndex(y => y.k === e.k);
+    if(i >= 0) l[i] = rec; else l.push(rec);
+    if(l.length > CRM_PICS_KEEP) x.crmPicsOut = l.slice(-CRM_PICS_KEEP);
+  });
+  crmKeep(o);
 }
 function crmPicsDrop(o, k){
   const m = crmPicsMem[o.id]; if(m){ const i = m.findIndex(x => x.k === k); if(i >= 0) m.splice(i, 1); }
-  if(Array.isArray(o.crmPicsOut)) o.crmPicsOut = o.crmPicsOut.filter(x => x.k !== k);
+  const live = crmLive(o);
+  [o, live].forEach(x => { if(x && Array.isArray(x.crmPicsOut)) x.crmPicsOut = x.crmPicsOut.filter(y => y.k !== k); });
 }
 /* Злити наші записи зі стрічкою Sitniks: впізнане — прибрати (його вже
    показує Sitniks), решту — поставити на своє місце за часом. */

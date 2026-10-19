@@ -133,8 +133,11 @@ await p.route('**://**', async r => {
     if(mm && m === 'POST'){
       let j = {}; try{ j = JSON.parse(r.request().postData() || '{}'); }catch(e){}
       const id = String(++sitniks.seq);
-      const msg = { id, text: j.text || '', createdAt: iso(Date.now()), isOutgoing:true };
-      if(Array.isArray(j.attachments) && j.attachments.length){ msg.attachments = j.attachments.map(x => ({ mediaType:'image', mediaUrl: String(x) })); msg.attachmentUrl = String(j.attachments[0]); }
+      /* Як справжній Sitniks: надіслане через API повертається БЕЗ ознаки
+         «вихідне» й без відправника — хто це писав, стрічка має знати сама. */
+      const msg = { id, text: j.text || '', createdAt: iso(Date.now()) };
+      /* Як справжній Sitniks: нашу адресу не повертає, картинка — вже з його CDN. */
+      if(Array.isArray(j.attachments) && j.attachments.length){ msg.attachments = j.attachments.map((x, i) => ({ mediaType:'image', mediaUrl: 'https://res.test/cdn-' + id + '-' + i + '.jpg' })); msg.attachmentUrl = msg.attachments[0].mediaUrl; }
       (sitniks.chats[mm[1]] || (sitniks.chats[mm[1]] = [])).push(msg);
       return r.fulfill({ contentType:'application/json', body: JSON.stringify({ id }) });
     }
@@ -160,7 +163,11 @@ const openChat = async (orderId) => {
     chatOpen(o, 'crm', { host: chatsHostId('b2c'), dir:'b2c' });
     renderChats('b2c');
   }, orderId);
-  return wait(() => { const f = document.querySelector('#chatWin .cw-feed'); return f && !f.querySelector('.is-busy') ? true : null; });
+  /* Чекаємо саме стрічку з Sitniks (або чесну помилку), а не перший малюнок
+     вікна: черга відправленого малюється й до того, як історія приїхала. */
+  return wait(() => { const st = crmChat[chatWin && chatWin.id] || {};
+    const f = document.querySelector('#chatWin .cw-feed');
+    return f && !st.loading && (Array.isArray(st.msgs) || st.noHistory) ? true : null; });
 };
 const feed = () => p.evaluate(() => {
   const f = document.querySelector('#chatWin .cw-feed');
@@ -277,10 +284,61 @@ const f7 = await wait(() => {
   const pic = r.filter(x => x.querySelector('img')).pop(), cap = r.filter(x => /Ось макет/.test(x.textContent)).pop();
   return (pic && cap && !document.querySelector('#chatWin .cw-go.is-busy')) ? { ticks: /✓/.test(pic.textContent) } : null; }, 60);
 const picPost = sitniks.log.filter(x => x === 'POST /chats/c-a/messages').length;
-const sentAtt = (sitniks.chats['c-a'] || []).filter(m => m.isOutgoing && m.attachments).length;
+const sentAtt = (sitniks.chats['c-a'] || []).filter(m => +m.id >= 100 && m.attachments).length;   // надіслані через API
 console.log('  ' + JSON.stringify({ f7, picPost, sentAtt }));
 ok(f7 && sentAtt === 1, 'фото пішло в Sitniks одним повідомленням attachments — і стоїть у стрічці картинкою, підпис окремо під ним', JSON.stringify({ f7, sentAtt, log: sitniks.log.slice(-6) }));
 ok(await p.evaluate(() => (chatWin.pics || []).length === 0 && !chatWin.picsBusy), 'смужка фото очистилась, кнопка знову жива', 'смужка не очистилась');
+
+console.log('');
+console.log('═══ 8. З ДОШКИ (АРКУШ + ТЕКСТ) — НАШЕ Й ПІСЛЯ ПЕРЕЗАВАНТАЖЕННЯ ═══');
+/* Як дошка дизайну: тримає СВОЮ копію замовлення, а не живу з масиву; у
+   вікні діалогу розмова не відкрита. Поки летить — приходить знімок бази
+   й підміняє масив замовлень. Після «перезавантаження» (чиста памʼять
+   вкладки, картки з бази) наше має лишитись праворуч із ✓✓, і одним. */
+await p.evaluate(() => { chatClose(); window.__db = {};
+  /* Дошка дизайну заводить host (tellPic тощо) при відкритті розділу. */
+  try{ document.getElementById('view-design').style.display = 'block'; openDesign(); }catch(e){ console.warn(e); }
+  const orig = ORDERS_COL.doc.bind(ORDERS_COL);
+  ORDERS_COL.doc = id => { const d = orig(id); const set0 = d.set.bind(d);
+    d.set = (v, opt) => { window.__db[id] = (opt && opt.merge) ? Object.assign(window.__db[id] || {}, JSON.parse(JSON.stringify(v))) : JSON.parse(JSON.stringify(v)); return set0(v, opt); };
+    return d; }; });
+const r8 = await p.evaluate(async () => {
+  const stale = JSON.parse(JSON.stringify(orders.find(x => x.id === 'a')));
+  const going = window.LQDesign.ui.host.tellPic(stale, 'https://res.test/sheet-1.png', 'Подивіться як гарно вийшло');
+  /* Знімок бази посеред відправки: масив замовлень — нові обʼєкти без нашого запису. */
+  await new Promise(r => setTimeout(r, 150));
+  orders = orders.map(o => JSON.parse(JSON.stringify(window.__db[o.id] || o)));
+  const ok = await going;
+  await new Promise(r => setTimeout(r, 1500));
+  const live = orders.find(x => x.id === 'a');
+  return { ok, liveOut: (live.crmOut || []).length, dbOut: ((window.__db['a'] || {}).crmOut || []).length,
+           held: typeof crmHeldIds === 'function' && crmHeldIds().indexOf('a') >= 0 };
+});
+console.log('  ' + JSON.stringify(r8));
+ok(r8.ok && r8.liveOut >= 2 && r8.dbOut >= 2 && r8.held, 'надіслано з копії картки — памʼять «це наше» в живій картці й у базі, картку тримаємо від підміни', JSON.stringify(r8));
+/* «Перезавантаження»: усе, що жило у вкладці, — геть; картки — як у базі. */
+await p.evaluate(() => {
+  orders = orders.map(o => JSON.parse(JSON.stringify(window.__db[o.id] || o)));
+  Object.keys(crmChat).forEach(k => delete crmChat[k]);
+  Object.keys(crmOutHere).forEach(k => delete crmOutHere[k]);
+  Object.keys(crmPicsMem).forEach(k => delete crmPicsMem[k]);
+  try{ Object.keys(crmHold).forEach(k => delete crmHold[k]); }catch(e){}
+  crmSent.clear();
+});
+await openChat('2000501');
+const f8 = await feed();
+const наші = (f8 && f8.rows || []).filter(r => /гарно вийшло/.test(r.text) || (r.img && r.mine && !r.text));
+const аркуші = (f8 && f8.rows || []).filter(r => r.img && /cdn-|sheet-1/.test('') || (r.img && r.mine && !r.text));
+console.log('  ' + JSON.stringify((f8 && f8.rows || []).slice(-4).map(r => (r.mine ? '→' : '←') + (r.img ? '[фото]' : '') + r.text + ' ' + r.tick)));
+const txt8 = (f8 && f8.rows || []).filter(r => /гарно вийшло/.test(r.text))[0];
+const pic8 = (f8 && f8.rows || []).filter(r => r.img && !r.text).slice(-1)[0];
+ok(txt8 && txt8.mine && /✓✓/.test(txt8.tick), 'після перезавантаження текст з дошки — праворуч, ✓✓', 'текст: ' + JSON.stringify(txt8));
+ok(pic8 && pic8.mine && /✓✓/.test(pic8.tick), 'аркуш, який Sitniks повернув своєю адресою, — праворуч, ✓✓', 'аркуш: ' + JSON.stringify(pic8));
+/* Скільки картинок у стрічці — рівно стільки, скільки повідомлень із
+   вкладенням у самому Sitniks (фото клієнта + наші): жодного дубля. */
+const nPic = (f8 && f8.rows || []).filter(r => r.img).length;
+const nSit = sitniks.chats['c-a'].filter(m => m.attachments && m.attachments.length).length;
+ok(nPic === nSit, 'картинок у стрічці стільки ж, скільки в Sitniks (' + nSit + ') — нічого не двоїться', 'у стрічці ' + nPic + ', у Sitniks ' + nSit);
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
