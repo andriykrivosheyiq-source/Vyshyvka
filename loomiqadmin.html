@@ -2017,6 +2017,10 @@
   .cw-feed .od-crm-img{width:100%;max-width:240px;}
   .cw-empty{margin:auto;max-width:250px;text-align:center;font-size:12.5px;line-height:1.55;
     color:#8A94A6;}
+  .cw-load{display:flex;flex-direction:column;align-items:center;gap:10px;color:#5B6472;}
+  .cw-load.is-busy::before{content:'';width:18px;height:18px;border:2px solid #C7D2FE;border-top-color:#4F46E5;border-radius:50%;animation:cwspin .8s linear infinite;}
+  @keyframes cwspin{to{transform:rotate(360deg);}}
+  .cw-reload{font:inherit;font-size:12.5px;font-weight:600;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);cursor:pointer;}
   .cw-bar{flex:none;background:#fff;border-top:1px solid var(--line);padding:8px 9px;}
   /* Смужка зібраного до відправки. Доти вибрана картинка летіла клієнту
      тієї ж миті: роздивитись її, додати другу чи передумати було ніколи. */
@@ -7814,28 +7818,28 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=398ed64459"></script>
-<script src="loomiq-fingerprint.js?v=398ed64459"></script>
-<script src="loomiq-pricing.js?v=398ed64459"></script>
+<script src="loomiq-select.js?v=413d1047b9"></script>
+<script src="loomiq-fingerprint.js?v=413d1047b9"></script>
+<script src="loomiq-pricing.js?v=413d1047b9"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=398ed64459"></script>
+<script src="loomiq-money-core.js?v=413d1047b9"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=398ed64459"></script>
-<script src="loomiq-bg.js?v=398ed64459"></script>
-<script src="loomiq-mock.js?v=398ed64459"></script>
+<script src="loomiq-design.js?v=413d1047b9"></script>
+<script src="loomiq-bg.js?v=413d1047b9"></script>
+<script src="loomiq-mock.js?v=413d1047b9"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=398ed64459"></script>
-<script src="loomiq-threads.js?v=398ed64459"></script>
+<script src="imagetracer.js?v=413d1047b9"></script>
+<script src="loomiq-threads.js?v=413d1047b9"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=398ed64459"></script>
+<script src="loomiq-cards.js?v=413d1047b9"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7880,7 +7884,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '398ed64459';
+var LQ_VER = '413d1047b9';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -24914,6 +24918,14 @@ function crmBase(){
   const u = ((contentData || {}).bgApi || {}).sitniksUrl || '';
   return String(u).replace(/\/+$/, '');
 }
+/* ПАУЗА ПІСЛЯ 429 (19.10). Sitniks рахує запити, і коли ми його
+   перевантажуємо (жива розмова що 4 с + обхід що 30 с), він відмовляє всім
+   підряд — і відкритий діалог теж лишається порожнім. Тож після відмови
+   ФОНОВІ запити (обхід, опитування) мовчать, поки пауза не мине, а
+   відкритий діалог каже про це словами й повторює сам. */
+let crmCoolUntil = 0, crmCoolWhy = '';
+function crmCooling(){ return crmCoolUntil > Date.now() ? crmCoolUntil - Date.now() : 0; }
+function crmCool(ms, why){ crmCoolUntil = Math.max(crmCoolUntil, Date.now() + ms); crmCoolWhy = why || ''; }
 async function crmFetch(path, options){
   const base = crmBase();
   if(!base) throw new Error('Адресу воркера Sitniks не задано (Конструктор сайту → Sitniks CRM)');
@@ -24935,7 +24947,7 @@ async function crmFetch(path, options){
   let res;
   try{ res = await fetch(base + path, opt); }
   catch(e){
-    if(e && e.name === 'AbortError'){ const er = new Error('Sitniks не відповідає ' + Math.round(мс / 1000) + ' с'); er.status = 0; throw er; }
+    if(e && e.name === 'AbortError'){ const er = new Error('Sitniks не відповідає ' + Math.round(мс / 1000) + ' с'); er.status = 0; if(!opt.method || opt.method === 'GET') crmCool(10000, er.message); throw er; }
     throw e;
   }finally{ if(таймер) clearTimeout(таймер); }
   const text = await res.text().catch(()=> '');
@@ -24950,6 +24962,13 @@ async function crmFetch(path, options){
     }catch(e){ detail = text.slice(0, 200); }
     const err = new Error(detail ? ('HTTP ' + res.status + ': ' + detail) : ('HTTP ' + res.status));
     err.status = res.status;
+    /* 429 — пауза всім (Retry-After воркер не пропускає, тож хвилина);
+       збій читання (5xx) — коротка пауза лише читанню. Невдале НАДСИЛАННЯ
+       читання не зупиняє: стрічка має й далі оновлюватись. */
+    if(res.status === 429){
+      const ra = parseFloat(res.headers.get('Retry-After'));
+      crmCool((ra > 0 && ra < 600 ? ra : 60) * 1000, 'Sitniks обмежив запити (429)');
+    } else if(res.status >= 500 && (!opt.method || opt.method === 'GET')) crmCool(10000, 'Sitniks: ' + err.message);
     throw err;
   }
   try{ return JSON.parse(text); }catch(e){ return {}; }
@@ -25217,6 +25236,7 @@ async function crmLoadChat(o){
   if(!chatId) return;
   crmChat[o.id] = { chatId, clientName: o.crmChatName || '', loading: true };
   renderOrderDrawer();
+  if(chatWin && chatWin.id === o.id) renderChatWin();
   const st = { chatId, clientName: o.crmChatName || '' };
   try{
     const r = await crmFetchMsgs(chatId);
@@ -25230,6 +25250,7 @@ async function crmLoadChat(o){
   }
   crmChat[o.id] = st;
   renderOrderDrawer();
+  if(chatWin && chatWin.id === o.id) renderChatWin();
 }
 
 function crmBlockHtml(o){
@@ -26591,6 +26612,10 @@ async function crmPollOnce(o){
   if(!live){ crmStopPoll(); return; }
   const st = crmChat[o.id];
   if(!st || !st.chatId || st.loading) return;
+  if(crmCooling()){ if(chatWin && chatWin.id === o.id && !st.msgs) renderChatWin(); return; }
+  /* Перше завантаження не вдалось (429, тайм-аут) — повторюємо його, а не
+     лишаємо діалог порожнім назавжди. */
+  if(!st.msgs && st.noHistory) return crmLoadChat(o);
   try{
     const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
     /* Опитування бере лише свіжу сторінку — гортати всю розмову щохвилини
@@ -26791,6 +26816,10 @@ function crmTakeFeed(o, data){
 }
 async function crmSweepOnce(){
   if(crmSweepBusy || !crmBase() || document.hidden) return;
+  /* Пауза після 429 — і поки відкритий діалог ще не дочитав свою стрічку:
+     він важливіший за кружечки. */
+  if(crmCooling()) return;
+  if(chatWin && chatWin.kind === 'crm' && !((crmChat[chatWin.id] || {}).msgs)) return;
   /* Поки щось надсилається — не питаємо: Sitniks рахує запити, і обхід
      у цю мить лише відбирає в картинки ліміт. */
   if(chatWin && (chatWin.sending || chatWin.picsBusy)) return;
@@ -30082,7 +30111,19 @@ function renderChatWin(toBottom){
               .filter(Boolean).join(' · ');
 
   let feed;
-  if(!msgs.length){
+  const cst = isTg ? null : (crmChat[o.id] || {});
+  if(!msgs.length && cst && (cst.loading || cst.noHistory || !cst.msgs)){
+    /* ПОРОЖНЬО ≠ НЕМАЄ (19.10). Доти невдале завантаження (429, тайм-аут)
+       виглядало як «Повідомлень поки немає» — і менеджер вірив, що
+       переписка зникла. Тепер — що сталось насправді, і кнопка. */
+    const пауза = crmCooling();
+    feed = `<div class="cw-empty cw-load${cst.loading ? ' is-busy' : ''}" data-cw-state="${cst.loading ? 'loading' : (cst.noHistory ? 'error' : 'idle')}">` +
+      (cst.loading ? 'Завантажуємо переписку…'
+        : пауза ? `Sitniks обмежив запити — повторимо за ${Math.ceil(пауза / 1000)} с.`
+        : cst.noHistory ? `Переписка не завантажилась: ${escapeHtml(cst.noHistory)}.` : 'Переписка ще не завантажена.') +
+      (cst.loading ? '' : `<button type="button" class="cw-reload" data-cw-reload>Оновити</button>`) +
+      `</div>`;
+  } else if(!msgs.length){
     feed = `<div class="cw-empty">${isTg
       ? 'Людина відкрила бота, але ще нічого не написала. Можна написати першим — вона отримає повідомлення в Telegram.'
       : 'Повідомлень поки немає.'}</div>`;
@@ -30377,6 +30418,8 @@ function wireChatWin(box, o, focusIn){
   if(seenB) seenB.addEventListener('click', ()=> chatSeenToggle(o, chatWin.kind));
   const card = box.querySelector('[data-cw-card]');
   if(card) card.addEventListener('click', ()=>{ try{ openOrderDrawer(o); }catch(e){} });
+  const rl = box.querySelector('[data-cw-reload]');
+  if(rl) rl.addEventListener('click', ()=>{ crmCoolUntil = 0; crmLoadChat(o).then(()=> crmStartPoll(o)); });
   /* Перехід на інше замовлення тієї самої розмови. Переписку не
      перевідкриваємо — вона та сама людина й ті самі повідомлення; міняється
      тільки картка праворуч і те, чиїм замовленням ми зараз зайняті. */

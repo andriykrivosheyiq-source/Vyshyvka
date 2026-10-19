@@ -1,0 +1,28 @@
+name: Сторож діалогу
+
+# 19.10, Андрій: «після кожного оновлення перевіряти діалог: відправка
+# фоток, тексту, чи відображається вся переписка, чи всі повідомлення ми
+# отримуємо». На кожен пуш — справжній код переписки з підміненим Sitniks.
+# Червоний значок тут — зміна зламала діалог; зливати не можна.
+on:
+  push:
+    paths: ['loomiqadmin.html', 'loomiq-chat.js', 'worker/sitniks-proxy.js', 'tests/chat-guard.mjs', 'tests/fbstub.js', '.github/workflows/chat-guard.yml']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  chat-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright + Chromium
+        run: |
+          npm i --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Сторож діалогу
+        run: node tests/chat-guard.mjs

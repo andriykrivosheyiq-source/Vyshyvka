@@ -21,4 +21,15 @@ if git diff --cached --name-only | grep -qE '^(loomiq-money-core\.js|loomiqadmin
   fi
   echo "✓ грошове ядро ціле"
 fi
+# СТОРОЖ ДІАЛОГУ (19.10). Андрій: «постійні проблеми з діалогом, коли я
+# зміни вношу». Зміна адмінки — прогін справжнього коду переписки з
+# підміненим Sitniks: історія, помилки вголос, текст, повтор, нове, фото.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|worker/sitniks-proxy\.js|tests/chat-guard\.mjs)'; then
+  node tests/chat-guard.mjs >/tmp/lq-chat-guard.log 2>&1 || {
+    echo "✗ Діалог зламано — коміт зупинено. Подробиці: /tmp/lq-chat-guard.log"
+    grep '✗' /tmp/lq-chat-guard.log
+    exit 1
+  }
+  echo "✓ діалог цілий"
+fi
 exit 0
