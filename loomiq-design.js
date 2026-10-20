@@ -9077,6 +9077,10 @@
       _cols[b.parentNode.getAttribute('data-col')] = b.scrollTop; });
     var _main = root.closest ? root.closest('main') : null;
     var _mt = _main ? _main.scrollTop : 0;
+    /* І прокрутка самого вікна (20.10, Андрій: «закриваю картку — пригоняє
+       в канбан»): на планшеті гортається не main, а сторінка, і її теж
+       треба повернути туди, де була. */
+    var _wy = window.pageYOffset || 0;
     healOld();
     var role = (U.host.role && U.host.role()) || '';
     var boss = U.isBoss(role);
@@ -9163,6 +9167,11 @@
       if(t) b.scrollTop = t;
     });
     if(_main && _main.scrollTop !== _mt) _main.scrollTop = _mt;
+    if(Math.abs((window.pageYOffset || 0) - _wy) > 1){ try{ window.scrollTo(0, _wy); }catch(e){} }
+    /* Поки картка відкрита, сторінка під нею не гортається — інакше на
+       планшеті прокрутка картки «протікала» на сторінку, і після закриття
+       людина опинялась на початку дошки. */
+    try{ document.body.classList.toggle('dz-panel-on', !!openId); }catch(e){}
     /* До відкритої картки підкручуємо ЛИШЕ коли її щойно відкрили: доти це
        робилось на кожному фоновому оновленні, і дошка смикалась до картки
        саме тоді, коли людина прокрутила її подивитись інші. */
