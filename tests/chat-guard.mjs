@@ -139,7 +139,8 @@ await p.route('**://**', async r => {
       /* Як справжній Sitniks: нашу адресу не повертає, картинка — вже з його CDN. */
       if(Array.isArray(j.attachments) && j.attachments.length){ msg.attachments = j.attachments.map((x, i) => ({ mediaType:'image', mediaUrl: 'https://res.test/cdn-' + id + '-' + i + '.jpg' })); msg.attachmentUrl = msg.attachments[0].mediaUrl; }
       (sitniks.chats[mm[1]] || (sitniks.chats[mm[1]] = [])).push(msg);
-      return r.fulfill({ contentType:'application/json', body: JSON.stringify({ id }) });
+      /* Режим «без номера»: Sitniks прийняв, але номера повідомлення не дав. */
+      return r.fulfill({ contentType:'application/json', body: JSON.stringify(sitniks.noId ? {} : { id }) });
     }
     return r.fulfill({ status:404, contentType:'application/json', body:'{}' });
   }
@@ -178,7 +179,7 @@ const feed = () => p.evaluate(() => {
            rows: [...f.querySelectorAll('.od-crm-msg')].map(x => ({
              text: (x.querySelector('.od-crm-txt') || {}).textContent || '',
              mine: x.classList.contains('mine'), pending: x.classList.contains('pending'), failed: x.classList.contains('ob-failed'),
-             img: !!x.querySelector('img'), tick: (x.querySelector('.od-crm-at') || {}).textContent || '' })) };
+             img: !!x.querySelector('img'), src: ((x.querySelector('img') || {}).src || '').slice(-22), tick: (x.querySelector('.od-crm-at') || {}).textContent || '' })) };
 });
 
 console.log('═══ 1. ІСТОРІЯ ПОКАЗУЄТЬСЯ ═══');
@@ -339,6 +340,63 @@ ok(pic8 && pic8.mine && /✓✓/.test(pic8.tick), 'аркуш, який Sitniks 
 const nPic = (f8 && f8.rows || []).filter(r => r.img).length;
 const nSit = sitniks.chats['c-a'].filter(m => m.attachments && m.attachments.length).length;
 ok(nPic === nSit, 'картинок у стрічці стільки ж, скільки в Sitniks (' + nSit + ') — нічого не двоїться', 'у стрічці ' + nPic + ', у Sitniks ' + nSit);
+
+console.log('');
+console.log('═══ 9. ФОТО КЛІЄНТА ОДРАЗУ ПІСЛЯ НАШОГО ЕСКІЗУ — ЛІВОРУЧ (20.10) ═══');
+/* Аліна Корнійчук: ми надіслали ескіз, через хвилину вона — скріншот. Sitniks
+   номера нашого повідомлення не дав — бік вирішувався часом, і її скріншот
+   ставав праворуч. Тепер наша відправка забирає лише одне, найближче фото. */
+sitniks.noId = true;
+const r9 = await p.evaluate(async () => {
+  const o = orders.find(x => x.id === 'a');
+  return await window.LQDesign.ui.host.tellPic(o, 'https://res.test/sheet-2.png', '');
+});
+sitniks.noId = false;
+sitniks.chats['c-a'].push({ id: 'cl-shot', text: '', createdAt: iso(Date.now() + 50e3), sender: { name: 'Асія Дерещук' },
+  attachmentUrl: 'https://res.test/client-shot.png', attachments: [{ mediaType: 'image', mediaUrl: 'https://res.test/client-shot.png' }] });
+await p.evaluate(() => { const o = orders.find(x => x.id === 'a'); delete crmChat[o.id]; });
+await openChat('2000501');
+const f9 = await feed();
+const фото9 = (f9 && f9.rows || []).filter(r => r.img).slice(-2);
+console.log('  ' + JSON.stringify(фото9.map(r => (r.mine ? '→' : '←') + ' ' + r.src)));
+ok(r9 && фото9.length === 2 && фото9[0].mine && !фото9[1].mine,
+  'наш ескіз — праворуч, скріншот клієнта хвилиною пізніше — ліворуч', 'фото: ' + JSON.stringify(фото9));
+/* Той самий випадок, але Sitniks не підписав і клієнта — лишається найближче за часом. */
+sitniks.chats['c-a'].find(m => m.id === 'cl-shot').sender = null;
+await p.evaluate(() => { const o = orders.find(x => x.id === 'a'); delete crmChat[o.id]; });
+await openChat('2000501');
+const f9b = await feed();
+const фото9b = (f9b && f9b.rows || []).filter(r => r.img).slice(-2);
+ok(фото9b.length === 2 && фото9b[0].mine && !фото9b[1].mine,
+  'навіть без підпису клієнта: одна наша відправка — одне фото, найближче', 'фото: ' + JSON.stringify(фото9b));
+
+console.log('');
+console.log('═══ 10. ВІДПОВІЛИ З ДОШКИ — «2» ГАСНЕ ВСЮДИ І НЕ ПОВЕРТАЄТЬСЯ ОБХОДОМ (20.10) ═══');
+sitniks.chats['c-a'].push(
+  { id: 'q1', text: 'Добрий день', createdAt: iso(Date.now() + 70e3), sender: { name: 'Асія Дерещук' } },
+  { id: 'q2', text: 'Так)', createdAt: iso(Date.now() + 80e3), sender: { name: 'Асія Дерещук' } });
+await p.evaluate(async () => { chatClose(); const o = orders.find(x => x.id === 'a'); delete crmChat[o.id];
+  await crmLoadChat(o); chatsRepaint(); });
+const до10 = await p.evaluate(() => +orders.find(x => x.id === 'a').crmUnread || 0);
+const r10 = await p.evaluate(async () => {
+  /* Як дошка дизайну: своя копія замовлення, не жива. */
+  const stale = JSON.parse(JSON.stringify(orders.find(x => x.id === 'a')));
+  const ok = await window.LQDesign.ui.host.tellPic(stale, 'https://res.test/sheet-3.png', 'Подивіться, як вийшло');
+  const live = orders.find(x => x.id === 'a');
+  const після = { u: +live.crmUnread || 0, t: !!live.crmTheirs };
+  /* Обхід розмов: наша відповідь — остання в списку Sitniks, без ознаки «вихідне». */
+  await crmSweepOnce();
+  await new Promise(r => setTimeout(r, 1500));
+  renderChats('b2c');
+  const рядок = [...document.querySelectorAll('#chatscRoot [data-chl]')].find(b => /2000501/.test(b.textContent));
+  return { ok, після, обхід: { u: +live.crmUnread || 0, t: !!live.crmTheirs },
+           числоВСписку: рядок ? ((рядок.querySelector('.chl-n') || {}).textContent || '') : '?' };
+});
+console.log('  до: ' + до10 + ' · ' + JSON.stringify(r10));
+ok(до10 >= 2, 'клієнт написав — є непрочитані (' + до10 + ')', 'до відповіді: ' + до10);
+ok(r10.ok && r10.після.u === 0 && !r10.після.t, 'відповіли з дошки (з копії картки) — у живій картці 0', JSON.stringify(r10));
+ok(r10.обхід.u === 0 && !r10.обхід.t, 'обхід розмов, побачивши нашу відповідь останньою, «+1» не додає', JSON.stringify(r10));
+ok(r10.числоВСписку === '', 'у списку «Чати B2C» числа біля розмови немає', JSON.stringify(r10));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

@@ -914,7 +914,10 @@ function crmKeep(o){
 function crmOutList(o){
   const own = Array.isArray(o && o.crmOut) ? o.crmOut : [];
   const here = (o && crmOutHere[o.id]) || [];
-  return here.length ? own.concat(here) : own;
+  if(!here.length) return own;
+  /* Картка й памʼять вкладки тримають ті самі записи — без дублів (20.10). */
+  const було = {};
+  return own.concat(here).filter(r => r && !було[r.t] && (було[r.t] = 1));
 }
 function crmOutPush(o, rec){
   if(!o || !rec || !rec.t) return;
@@ -964,7 +967,7 @@ function crmOutSent(o, res){
   crmOutPush(o, { t: id ? ('#' + id) : ('@' + Date.now()), by: myName() });
   return id;
 }
-function crmOutOwn(o, m, files){
+function crmOutOwn(o, m, files, заЧасом){
   const list = crmOutList(o);
   if(!list.length || !m || typeof m !== 'object') return null;
   const id = m.id || m.messageId || m.message_id || m.uuid;
@@ -974,15 +977,48 @@ function crmOutOwn(o, m, files){
   }
   // За часом — лише вкладення: текст ми впізнаємо самим текстом, точно.
   if(!(files && files.length)) return null;
-  const at = Date.parse(crmPick(m, CRM_AT_KEYS) || '');
-  if(!at) return null;
-  for(let i = list.length - 1; i >= 0; i--){
-    const r = list[i];
-    if(!r || String(r.t).charAt(0) !== '@') continue;
+  return (заЧасом && заЧасом.get(m)) || null;
+}
+/* ЗА ЧАСОМ — ОДНА ВІДПРАВКА, ОДНЕ ФОТО (20.10). Андрій: «цю фотку надіслав
+   клієнт, а вона показується з нашого боку». Доти кожне вкладення в межах
+   двох хвилин від нашої відправки ставало нашим — і скріншот, яким клієнт
+   відповів на ескіз через хвилину, ставав праворуч. Тепер кожна наша
+   відправка без номера забирає рівно одне повідомлення з вкладенням —
+   найближче за часом, — і не те, під яким стоїть підпис самого клієнта. */
+function crmOutTimePick(o, arr){
+  const out = new Map();
+  /* Одна відправка може лежати в памʼяті двічі (копія картки й жива) —
+     рахуємо її один раз, інакше вона «забирала» б два фото. */
+  const було = {};
+  const list = crmOutList(o).filter(r => r && String(r.t).charAt(0) === '@' && !було[r.t] && (було[r.t] = 1));
+  if(!list.length || !Array.isArray(arr)) return out;
+  const peer = crmPeerKeys(o);
+  const ids = {};
+  crmOutList(o).forEach(r => { if(r && String(r.t).charAt(0) === '#') ids[String(r.t).slice(1)] = 1; });
+  const кандидати = arr.filter(m => {
+    if(!m || typeof m !== 'object') return false;
+    const id = m.id || m.messageId || m.message_id || m.uuid;
+    if(id != null && ids[String(id)]) return false;
+    const є = (Array.isArray(m.attachments) && m.attachments.length) ||
+              (typeof m.attachmentUrl === 'string' && /^https?:/.test(m.attachmentUrl));
+    if(!є || !Date.parse(crmPick(m, CRM_AT_KEYS) || '')) return false;
+    const who = crmMsgWho(m);
+    const sign = [(who || {}).name, (who || {}).nick].map(crmKeyOf).filter(Boolean);
+    return !(peer.length && sign.some(s2 => peer.some(pk => s2 === pk || s2.indexOf(pk) >= 0 || pk.indexOf(s2) >= 0)));
+  });
+  const взято = new Set();
+  list.forEach(r => {
     const ms = +String(r.t).slice(1);
-    if(ms && Math.abs(at - ms) <= CRM_OUT_WIN) return r;
-  }
-  return null;
+    if(!ms) return;
+    let best = null, bd = Infinity;
+    кандидати.forEach(m => {
+      if(взято.has(m)) return;
+      const d = Math.abs(Date.parse(crmPick(m, CRM_AT_KEYS)) - ms);
+      if(d <= CRM_OUT_WIN && d < bd){ bd = d; best = m; }
+    });
+    if(best){ взято.add(best); out.set(best, r); }
+  });
+  return out;
 }
 function crmOutFind(o, text, files){
   const list = crmOutList(o);
@@ -1170,6 +1206,7 @@ function crmNormMsgs(data, o){
           : (Array.isArray(data && data.messages) ? data.messages
           : (Array.isArray(data && data.results) ? data.results : null))));
   if(!arr) return null;
+  const заЧасом = crmOutTimePick(o, arr);
   const list = arr.map(m => {
     if(typeof m === 'string'){
       const sp = crmSplitFiles(m);
@@ -1215,7 +1252,7 @@ function crmNormMsgs(data, o){
     const who = crmMsgWho(m);
     /* Своє надіслане впізнаємо першими: тут ми знаємо напевно, а не
        здогадуємось за підписом, якого в такому повідомленні немає. */
-    const own = crmOutOwn(o, m, files) || crmOutFind(o, text, files);
+    const own = crmOutOwn(o, m, files, заЧасом) || crmOutFind(o, text, files);
     const mine = own ? true : crmIsMine(m, text, who, peer);
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
@@ -2054,9 +2091,27 @@ function crmSweepRow(r, o){
   const text = String(crmPick(box, CRM_TXT_KEYS) || '');
   /* Чиє воно. Без цього наша ж відповідь піднімала б картку й нарощувала
      лічильник — тобто система повідомляла б нам про нас самих. */
-  const mine = last
+  let mine = last
     ? crmIsMine(last, text, crmMsgWho(last), crmPeerKeys(o))
     : false;
+  /* НАША ЖЕ ВІДПОВІДЬ — НЕ «КЛІЄНТ НАПИСАВ» (20.10). Надіслане через API
+     Sitniks повертає без ознаки «вихідне», і обхід, побачивши її останньою,
+     додавав +1 непрочитаного саме тоді, коли ми відповіли. Звіряємо з
+     памʼяттю відправленого: номер, текст, а фото — одне на відправку. */
+  if(!mine && last && o && o.id){
+    const files = [];
+    (Array.isArray(last.attachments) ? last.attachments : []).forEach(x => {
+      const u = typeof x === 'string' ? x : (x && (x.mediaUrl || x.url)); if(u) files.push({ url: String(u) }); });
+    if(typeof last.attachmentUrl === 'string' && /^https?:/.test(last.attachmentUrl)) files.push({ url: last.attachmentUrl });
+    if(crmOutOwn(o, last, files, crmOutTimePick(o, [last])) || (text && crmOutFind(o, text, files))) mine = true;
+    /* Без тексту й без вкладень у рядку списку (Sitniks не завжди їх кладе) —
+       фото, що зʼявилось поруч із нашою відправкою. Здогад, але безпечний:
+       обхід однаково дочитає стрічку й порахує точний хвіст. */
+    else if(!text && !files.length){
+      const t = Date.parse(at);
+      if(t && crmOutList(o).some(r => r && String(r.t).charAt(0) === '@' && Math.abs(t - +String(r.t).slice(1)) <= CRM_OUT_WIN)) mine = true;
+    }
+  }
   return { at, text, mine };
 }
 /* СПИСОК РОЗМОВ — НЕ ЛИШЕ ПЕРША СТОРІНКА (17.10). Sitniks віддає список
@@ -2695,6 +2750,14 @@ function crmSeenMark(o){
   o.crmSeen = (ост && ост.at) || (o.crmAt ? String(o.crmAt).replace('T', ' ').slice(0, 16)
                                            : new Date().toISOString().replace('T', ' ').slice(0, 16));
   o.crmUnread = 0; o.crmTheirs = false;
+  /* ЖИВА КАРТКА ТЕЖ (20.10). Дошка дизайну шле зі своєї копії замовлення —
+     позначка лягала на копію, а чати й канбан дивляться на живу, і «2»
+     висіло далі, хоча ми вже відповіли. */
+  const live = crmLive(o);
+  if(live && live !== o){
+    ['crmSeenK', 'crmSeenKt', 'crmSeenTs', 'crmSeen', 'crmUnread', 'crmTheirs'].forEach(k => { live[k] = o[k]; });
+    crmKeep(o);
+  }
 }
 function crmSeenClear(o){ o.crmSeen = ''; o.crmSeenK = ''; o.crmSeenKt = ''; o.crmSeenTs = 0; }
 /* ПОЗНАЧИТИ РОЗМОВУ ПРОЧИТАНОЮ — ОДНЕ МІСЦЕ НА ВСІ ПРИВОДИ.
