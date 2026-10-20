@@ -425,6 +425,51 @@ ok(баз.handable > 0 && баз.черга && баз.уГраф, 'без «ти
 ok(баз.дизБачить, 'дизайнер у своїй картці бачить основу «Котик» і що змінити — шукати нічого не треба', JSON.stringify(баз));
 
 console.log('');
+console.log('═══ 7б. ГОТОВИЙ → «З ПРАВКАМИ» ОДНИМ НАТИСКОМ (20.10) ═══');
+/* Андрій: «просто дати можливість переключення… одразу підтягує цей
+   дизайн, який вже обраний… одразу поле, що хочуть змінити». Клієнт уже
+   погодив готовий, менеджер B2C (не власник) перемикає — без бібліотеки. */
+const пер = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, D = window.LQDesign;
+  const j = designJobs['2000102'];
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Білий', size:'L', qty:1 });
+  D.readyAttach(u, contentData.readyDesigns[0]);
+  const g = D.readyGraphic(u, 'mgr@loomiq');
+  D.dzVer(g, 'mgr@loomiq', [{ name:'мокап.png', url:'m', role:'mock' }], 'Готовий', null, 'acct');
+  D.dzOk(g, 'mgr@loomiq', 'client', 1);
+  j.units.push(u);
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'managerb2c' }) : x);
+  let питали = '';
+  const cf = window.confirm; window.confirm = t => { питали = t; return true; };
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const крт = document.querySelector('#dzRoot [data-open="2000102"]');
+  if(!крт) return { err: 'немає картки' };
+  крт.click();
+  await new Promise(r => setTimeout(r, 400));
+  const кн = document.querySelector('.dz-panel [data-do="u-base-pick"][data-u="' + u.id + '"]');
+  if(!кн) return { err: 'немає кнопки' };
+  const вимкн = кн.disabled;
+  кн.click();
+  await new Promise(r => setTimeout(r, 300));
+  const бібл = !!document.querySelector('.dz-rdp');
+  const ta = document.querySelector('.dz-fixw .dz-fix-t');
+  if(!ta){ window.confirm = cf; return { err: 'немає поля «що змінити»', вимкн, бібл }; }
+  ta.value = 'Замість сови — кіт';
+  document.querySelector('.dz-fixw [data-fix-go]').click();
+  await new Promise(r => setTimeout(r, 800));
+  window.confirm = cf;
+  const слід = (j.ds || []).filter(x => x.step === 'ready-to-base' || x.s === 'ready-to-base' || JSON.stringify(x).indexOf('ready-to-base') >= 0).length;
+  return { вимкн, бібл, питали: !!питали, base: u.base && u.base.name, note: u.base && u.base.note, ready: !!u.ready,
+           dst: u.base && u.base.files.length, гот: D.dzList(u, 'graphic').filter(x => x.readyMade).length, слід,
+           handable: D.dzHandable(j, orders.find(x => x.orderId === '2000102')) };
+});
+console.log('  ' + JSON.stringify(пер));
+ok(!пер.err && !пер.вимкн && !пер.бібл && пер.питали, 'менеджер B2C перемикає погоджений готовий — з підтвердженням, без вибору в бібліотеці', JSON.stringify(пер));
+ok(пер.base === 'Гаррі Поттер · Букля' && /кіт/.test(пер.note || '') && !пер.ready && пер.dst === 2 && пер.гот === 0,
+  'обраний дизайн став основою з DST, записи й погодження готового знято', JSON.stringify(пер));
+ok(пер.слід > 0 && пер.handable > 0, 'слід у журналі; позицію можна «Передати дизайнеру»', JSON.stringify(пер));
+
+console.log('');
 console.log('═══ 8. РОЗМІР ВИРОБУ — РОЗМІРИ ВИШИВКИ (20.10) ═══');
 const розм = await p.evaluate(async () => {
   const U = window.LQDesign.ui, D = window.LQDesign;
