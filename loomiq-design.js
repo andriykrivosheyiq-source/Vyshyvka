@@ -6226,7 +6226,7 @@
     if(!(o && o.dir === 'b2c')) return '';
     var cur = waitOf(job, o);
     return '<select class="dz-waitfor' + (cur ? ' on' : '') + '" data-jwait title="Чого ще чекаємо від клієнта — знімається само, щойно внесли">' +
-      [['', 'Чекаємо: —'], ['pay', 'Доплата'], ['data', 'Дані'], ['both', 'Доплата і дані']].map(function(x){
+      [['', '—'], ['pay', 'Доплата'], ['data', 'Дані'], ['both', 'Доплата і дані']].map(function(x){
         return '<option value="' + x[0] + '"' + (cur === x[0] ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') +
     '</select>';
   }
