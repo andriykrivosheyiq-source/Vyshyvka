@@ -523,6 +523,87 @@
         (!w.bgBusy && w.bg === 'local' ? '<i class="mko-bg-w">не чисто — спробуйте «2 · PhotoRoom»</i>' : '') +
       '</div>';
     }
+    /* КОЛІР ПРИНТА (Андрій, 20.10): готовий дизайн білий, а треба чорний —
+       як «Колір нитки» в КП: принт зводиться в один колір, форма й розмір ті
+       самі. Лише обрана картинка; бібліотеку не чіпаємо. Колір іде в
+       замовлення як нитка — його бачать вишивальник і цех. */
+    var КОЛЬОРИ = [['#ffffff','Білий'], ['#111111','Чорний'], ['#8e8e93','Сірий'], ['#c9ccd1','Світло-сірий'],
+      ['#c8102e','Червоний'], ['#7a1220','Бордовий'], ['#f26b21','Помаранчевий'], ['#ffd400','Жовтий'],
+      ['#c9a227','Золотий'], ['#0b3d91','Темно-синій'], ['#1e88e5','Синій'], ['#00a3ad','Бірюзовий'],
+      ['#1b7a43','Зелений'], ['#14532d','Темно-зелений'], ['#6a3da8','Фіолетовий'], ['#e75480','Рожевий'],
+      ['#6b4423','Коричневий'], ['#d8c3a5','Бежевий']];
+    function колірНазва(hex){
+      hex = String(hex || '').toLowerCase();
+      var рgb = function(h){ var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(h) || [0,'0','0','0'];
+        return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]; };
+      var a = рgb(hex), best = КОЛЬОРИ[0], bd = 1e9;
+      КОЛЬОРИ.forEach(function(c){
+        if(c[0] === hex){ best = c; bd = -1; return; }
+        if(bd < 0) return;
+        var b = рgb(c[0]), d = (a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2]);
+        if(d < bd){ bd = d; best = c; }
+      });
+      return best[1];
+    }
+    var колірВідкр = false;
+    function колірHtml(){
+      if(!opt.recolor) return '';
+      var i = активна();
+      if(i < 0) return '';
+      var w = works[i];
+      return '<div class="mko-bg mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
+        '<button type="button" class="mko-bg-b' + (колірВідкр ? ' on' : '') + '" data-mko-clr>🎨 ' +
+          esc(w.color ? w.color.name : 'Змінити колір') + '</button>' +
+        (w.color ? '<button type="button" class="mko-bg-b" data-mko-clr-x>↩ Повернути колір</button>' : '') +
+        (w.clrBusy ? '<i class="mko-bg-w">фарбую…</i>' : '') +
+        (колірВідкр ? '<span class="mko-clr-sw">' +
+          '<input type="color" data-mko-clr-pick value="' + esc((w.color && w.color.hex) || '#111111') + '" aria-label="Точний відтінок">' +
+          КОЛЬОРИ.map(function(c){
+            return '<button type="button" class="mko-sw' + (w.color && w.color.hex === c[0] ? ' on' : '') + '" data-mko-sw="' + c[0] +
+              '" style="background:' + c[0] + '" title="' + esc(c[1]) + '" aria-label="' + esc(c[1]) + '"></button>';
+          }).join('') + '</span>' : '') +
+      '</div>';
+    }
+    async function фарбуй(hex){
+      var i = активна();
+      if(i < 0) return;
+      var w = works[i];
+      if(!w.clrOrig) w.clrOrig = w.url;
+      w.clrBusy = true; малюй();
+      var im = await img(w.clrOrig);
+      var out = null;
+      try{
+        if(!im) throw new Error('не відкрилась');
+        var c = document.createElement('canvas');
+        c.width = im.naturalWidth || 1; c.height = im.naturalHeight || 1;
+        var x = c.getContext('2d');
+        x.drawImage(im, 0, 0);
+        var d = x.getImageData(0, 0, c.width, c.height), px = d.data;
+        var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex) || [];
+        var R = parseInt(m[1], 16) || 0, G = parseInt(m[2], 16) || 0, B = parseInt(m[3], 16) || 0;
+        for(var k = 0; k < px.length; k += 4){
+          if(px[k + 3] === 0) continue;          // прозоре лишаємо прозорим
+          px[k] = R; px[k + 1] = G; px[k + 2] = B;
+        }
+        x.putImageData(d, 0, 0);
+        out = c.toDataURL('image/png');
+      }catch(e){ console.warn('колір принта', e); }
+      w.clrBusy = false;
+      if(!out){ малюй(); return say('Колір не змінився — картинка не відкрилась для перефарбування'); }
+      var ni = await img(out);
+      w.url = out; w.color = { hex: hex, name: колірНазва(hex) };
+      if(ni) арт[i] = ni;
+      малюй();
+    }
+    async function безКольору(){
+      var i = активна();
+      if(i < 0) return;
+      var w = works[i];
+      if(!w.clrOrig) return;
+      w.url = w.clrOrig; delete w.clrOrig; delete w.color;
+      арт[i] = await img(w.url);
+      малюй();
+    }
     async function фон(mode){
       var i = активна();
       if(i < 0) return;
@@ -581,7 +662,7 @@
             (opt.placeOnly ? '' :
               '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>') +
           '</div>' +
-          '<div data-mko-bgbox>' + фонHtml() + '</div>' +
+          '<div data-mko-bgbox>' + фонHtml() + колірHtml() + '</div>' +
           '<div class="mko-tabs">' + сторони.map(function(s){
             var n = (places[s.key] || []).length;
             return '<button type="button" class="mko-tab' + (s.key === бік ? ' on' : '') +
@@ -925,7 +1006,15 @@
       }
       var bgb = t.closest && t.closest('[data-mko-bg]');
       if(bgb) return фон(bgb.getAttribute('data-mko-bg'));
+      if(t.closest && t.closest('[data-mko-clr]')){ колірВідкр = !колірВідкр; return малюй(); }
+      if(t.closest && t.closest('[data-mko-clr-x]')) return безКольору();
+      var sw = t.closest && t.closest('[data-mko-sw]');
+      if(sw) return фарбуй(sw.getAttribute('data-mko-sw'));
       if(t.closest && t.closest('[data-mko-save]')) return зберегти();
+    });
+    el.addEventListener('change', function(ev){
+      var pk = ev.target.closest && ev.target.closest('[data-mko-clr-pick]');
+      if(pk) фарбуй(pk.value);
     });
     /* Стрілки посувають обрану роботу (Shift — більшим кроком): коли мишею
        незручно чи робота дрібна. У полях вводу стрілки свої — не чіпаємо. */

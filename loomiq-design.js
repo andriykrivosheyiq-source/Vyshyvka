@@ -10125,6 +10125,12 @@
   }
   /* Збирач версії з вікна розміщення — один на здачу дизайнера, правку
      менеджера, готовий дизайн і варіанти (винесено з блоку дій 16.10). */
+  /* Перефарбований принт (20.10) — це нитка того кольору: так її й бачать
+     вишивальник і цех («Нитка Чорний»), навіть коли ниток не підбирали. */
+  function clrThreads(w){
+    if((w.threads || []).length || !w.color) return w.threads || [];
+    return [{ code: w.color.name, hex: w.color.hex }];
+  }
   function threadsUnion(works){
     var out = [], seen = {};
     (works || []).forEach(function(w){ (w.threads || []).forEach(function(t){
@@ -10158,7 +10164,8 @@
     for(var wi = 0; wi < (res.works || []).length; wi++){
       var ww = res.works[wi];
       if(!/^data:/i.test(String(ww.url || ''))) continue;
-      var wu = await uploadDataUrl(ww.url, (ww.name || 'робота').replace(/\.\w+$/, '') + '-без-фону.png');
+      var wu = await uploadDataUrl(ww.url, (ww.name || 'робота').replace(/\.\w+$/, '') +
+        (ww.color ? '-' + String(ww.color.name || 'колір').toLowerCase() : '-без-фону') + '.png');
       if(!wu || !wu.url){ say('Робота без фону не зберіглась у сховищі'); return null; }
       ww.url = wu.url;
     }
@@ -10173,9 +10180,12 @@
     });
     return { files: файли, place: {
       works: (res.works || []).map(function(w){
-        return { name:w.name || '', url:w.url, hash:w.hash || '', threads: w.threads || [],
-                 orig: w.orig || null, svg: w.svg || null }; }),
-      threads: threadsUnion(res.works || []),
+        return { name:w.name || '', url:w.url, hash:w.hash || '', threads: clrThreads(w),
+                 orig: w.orig || null, svg: w.svg || null,
+                 /* Колір принта (20.10): яким звели й з чого — щоб наступне
+                    «Поправити розміщення» відкрилось у тому ж кольорі. */
+                 color: w.color ? { hex: w.color.hex, name: w.color.name, from: w.clrOrig || '' } : null }; }),
+      threads: threadsUnion((res.works || []).map(function(w){ return { threads: clrThreads(w) }; })),
       spots: місця, нанесень: res.нанесень, робіт: res.робіт,
       size: res.size || du.size || '',
       /* Перше нанесення — те, що показують у рядку під версією:
@@ -11628,8 +11638,14 @@
       gid: u.gid, size: u.size || 'M', sizeAssumed: !u.size, color: u.color || '',
       name: (r.repeat ? (r.name || 'Повторний') : 'Готовий дизайн «' + (r.name || '') + '»') + ' · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
       sides: сторони, works: принти.map(function(f, k){
-        return { name: f.name || 'принт.png', url: f.url, hash: 'ready:' + (r.id || '') + (k ? ':' + k : '') }; }),
-      places: places,
+        var hash = 'ready:' + (r.id || '') + (k ? ':' + k : '');
+        /* Уже перефарбований раніше — відкриваємо в тому ж кольорі. */
+        var був = ((pv && pv.place && pv.place.works) || []).filter(function(w){
+          return w && w.hash === hash && w.color && w.color.from === f.url; })[0];
+        return був
+          ? { name: f.name || 'принт.png', url: був.url, hash: hash, color: { hex: був.color.hex, name: був.color.name }, clrOrig: f.url }
+          : { name: f.name || 'принт.png', url: f.url, hash: hash }; }),
+      places: places, recolor: true,
       onDone: async function(res){
         var зб = await workVer(res, u);
         if(!зб) return;
