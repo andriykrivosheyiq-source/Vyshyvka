@@ -5782,6 +5782,21 @@
      передали» — це не поломка, це початок роботи, і фарбувати його як
      помилку означає привчити не читати червоне взагалі. */
   .dz-miss.is-calm{background:var(--canvas);border-color:var(--line);color:var(--ink-soft);}
+  .dz-prob-bar{display:flex;align-items:center;gap:8px;padding:8px 12px 0;}
+  .dz-prob-b{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:#B42318;border:1px solid #FDA29B;background:#FEF3F2;border-radius:8px;padding:4px 10px;}
+  .dz-prob-b:hover{background:#FEE4E2;}
+  .dz-prob-n{font-style:normal;font-size:11.5px;color:#B42318;}
+  .od-prob-x{all:unset;cursor:pointer;position:absolute;top:12px;right:46px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#B42318;background:#FEF3F2;border:1px solid #FDA29B;}
+  .od-prob-x:hover{background:#FEE4E2;}
+  .prob-list{display:flex;flex-direction:column;gap:8px;max-width:960px;}
+  .prob-row{border:1px solid #FDA29B;background:#FFFBFA;border-radius:12px;padding:10px 12px;}
+  .prob-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .prob-no{all:unset;cursor:pointer;font-weight:800;color:var(--ink);}
+  .prob-who{font-weight:600;color:var(--ink-soft);}
+  .prob-at{font-size:12px;color:var(--muted);}
+  .prob-x{all:unset;cursor:pointer;margin-left:auto;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:8px;background:#ECFDF3;color:#067647;border:1px solid #ABEFC6;}
+  .prob-t{margin-top:6px;font-size:14px;white-space:pre-wrap;}
+  .prob-none{color:var(--muted);padding:20px 4px;}
   .dz-ok.is-wait{background:#FFFAEB;border-color:#FEDF89;color:#93370D;margin-bottom:8px;}
   .dz-ok{background:#ECFDF3;border:1px solid #ABEFC6;border-radius:10px;padding:8px 10px;
     font-size:12px;color:#067647;margin-bottom:10px;}
@@ -6015,6 +6030,7 @@
         <button data-view="analytics" data-tip="Аналітика"><i class="nav-e">📈</i><span>Аналітика</span></button>
         <button data-view="dash" data-tip="Дашборди відділів"><i class="nav-e">📊</i><span>Дашборди</span></button>
         <button data-view="fin" data-tip="Фінанси — платежі з банків"><i class="nav-e">💳</i><span>Фінанси</span></button>
+        <button data-view="problems" data-tip="Проблемні замовлення — що позначила команда" hidden><i class="nav-e">❗</i><span>Проблемні замовлення</span><i class="nav-n" data-nav-n="problems" hidden></i></button>
         <button data-view="calc" class="nav-off" data-tip="Прорахунок"><i class="nav-e">🧮</i><span>Прорахунок</span></button>
         <!-- Ставки, сітки, підрядники, доступи — сюди заходять раз на
              тиждень. Внизу й під однією кнопкою, щоб щоденне не губилось
@@ -6489,6 +6505,12 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
     <section id="view-chats" style="display:none;">
       <div class="page-head"><h1>Чати B2B</h1></div>
       <div id="chatsRoot" class="chl"></div>
+    </section>
+    <!-- ПРОБЛЕМНІ ЗАМОВЛЕННЯ (20.10): що позначила команда «!» у картці.
+         Бачить і знімає лише власник. -->
+    <section id="view-problems" style="display:none;">
+      <div class="page-head"><h1>Проблемні замовлення</h1></div>
+      <div id="problemsRoot" class="prob-list"></div>
     </section>
     <section id="view-chatsc" class="is-b2c" style="display:none;">
       <div class="page-head"><h1>Чати B2C</h1></div>
@@ -7867,33 +7889,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=123a1e26d4"></script>
-<script src="loomiq-fingerprint.js?v=123a1e26d4"></script>
-<script src="loomiq-pricing.js?v=123a1e26d4"></script>
+<script src="loomiq-select.js?v=8e81d298a4"></script>
+<script src="loomiq-fingerprint.js?v=8e81d298a4"></script>
+<script src="loomiq-pricing.js?v=8e81d298a4"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=123a1e26d4"></script>
+<script src="loomiq-money-core.js?v=8e81d298a4"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=123a1e26d4"></script>
-<script src="loomiq-bg.js?v=123a1e26d4"></script>
-<script src="loomiq-mock.js?v=123a1e26d4"></script>
+<script src="loomiq-design.js?v=8e81d298a4"></script>
+<script src="loomiq-bg.js?v=8e81d298a4"></script>
+<script src="loomiq-mock.js?v=8e81d298a4"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=123a1e26d4"></script>
+<script src="imagetracer.js?v=8e81d298a4"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=123a1e26d4"></script>
-<script src="loomiq-threads.js?v=123a1e26d4"></script>
+<script src="loomiq-chat.js?v=8e81d298a4"></script>
+<script src="loomiq-threads.js?v=8e81d298a4"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=123a1e26d4"></script>
+<script src="loomiq-cards.js?v=8e81d298a4"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7938,7 +7960,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '123a1e26d4';
+var LQ_VER = '8e81d298a4';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9319,8 +9341,10 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
     const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
     const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
+    const vPr = document.getElementById('view-problems'); if(vPr) vPr.style.display = view==='problems' ? 'block':'none';
+    if(view === 'problems') try{ renderProblems(); }catch(e){ console.warn('проблеми', e); }
     const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', dash:'Дашборди', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
-      chats:'Чати B2B', chatsc:'Чати B2C', b2c:'Налаштування B2C', fin:'Фінанси'};
+      chats:'Чати B2B', chatsc:'Чати B2C', b2c:'Налаштування B2C', fin:'Фінанси', problems:'Проблемні замовлення'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     /* РОЗДІЛ РОЗМОВ НЕ ПРОКРУЧУЄТЬСЯ САМ.
@@ -23991,7 +24015,7 @@ function odProdHtml(o){
             due.days < 0 ? 'прострочено ' + (-due.days) + ' дн'
               : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</b>` : ''}</span>
       </div>
-      <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+      <button class="od-prob-x" data-act="problem" title="Щось незрозуміло чи не виходить у CRM — позначте, керівник побачить">!</button><button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
       <div class="od-sec">Стан</div>
@@ -24079,7 +24103,7 @@ function odDesignerHtml(o){
           </select>
         </span>
       </div>
-      <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+      <button class="od-prob-x" data-act="problem" title="Щось незрозуміло чи не виходить у CRM — позначте, керівник побачить">!</button><button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
       <div class="od-sec">Що шиємо</div>
@@ -24588,7 +24612,7 @@ function renderOrderDrawer(){
       ${snz ? `<div class="od-sub">Відкладено до ${escapeHtml(dayUa(snz))} — до цієї дати картки на дошці немає</div>` : ''}
       ${o.status === 'cancel' && o.lostReason
         ? `<div class="od-sub">Причина відмови: <b>${escapeHtml(o.lostReason)}</b></div>` : ''}
-      <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+      <button class="od-prob-x" data-act="problem" title="Щось незрозуміло чи не виходить у CRM — позначте, керівник побачить">!</button><button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
       ${/* Нотатка лишається відкритою: її перечитують щоразу, коли
@@ -24656,7 +24680,7 @@ function renderOrderDrawer(){
       <div class="od-head">
         <div class="od-head-top"><span class="od-pill od-pill-oid">${escapeHtml(o.orderId || '—')}</span></div>
         <div class="od-sub">картка показана скорочено — ${escapeHtml(String(e && e.message || e))}</div>
-        <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+        <button class="od-prob-x" data-act="problem" title="Щось незрозуміло чи не виходить у CRM — позначте, керівник побачить">!</button><button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
       </div>
       <div class="od-body">${odGoodsFold(o)}
         ${canDelete() ? '<button class="od-del-lite" data-act="del">Видалити картку</button>' : ''}
@@ -24789,6 +24813,11 @@ function renderOrderDrawer(){
     }));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
+  /* «!» — лише в B2C (20.10, Андрій: «B2B поки не потрібно»). */
+  panel.querySelectorAll('[data-act="problem"]').forEach(b=> {
+    if(orderDir(o) !== 'b2c'){ b.remove(); return; }
+    b.addEventListener('click', ()=> problemAsk(o));
+  });
   panel.querySelectorAll('[data-act="todesign"]').forEach(b=>
     b.addEventListener('click', ()=>{
       const було = inDesignDept(o);
@@ -28441,6 +28470,9 @@ function openDesign(){
     /* Показ макета з картки (14.10): той самий шлях, що й у вікні чату —
        картинка одразу в стрічці «надсилаю…», чесне «не вийшло», ліміт часу.
        Доти помилки ковтались, і «надіслано» могло бути неправдою. */
+    /* Проблеми по замовленню (20.10): «!» у картці відділу. */
+    problemAdd: (o, text, file, role) => problemAdd(o, text, file, role),
+    problemsOpen: orderId => problemsOf(orderId).length,
     tellPic: async (o, url, text) => {
       if(!crmChatIdOf(o) && tgChatOf(o)){
         if(text && !(await tgSend(o, text))) return false;
@@ -29518,6 +29550,94 @@ function myTaskCount(){
   });
   return n;
 }
+/* ══════════ ПРОБЛЕМНІ ЗАМОВЛЕННЯ (20.10) ══════════
+   Андрій: «вони позначають, що тут така проблема, не можу вирішити, — у мене
+   показується, я вирішую». Лише внутрішній звʼязок під час впровадження CRM:
+   на клієнта, етапи й саме замовлення не впливає. Тому й живе окремо — у
+   loomiq/problems, по полю на проблему, а не в замовленні чи задачі дизайну
+   (задача в замовлення B2B зробила б його «замовленням відділу»). */
+let problems = {};
+const PROBLEMS_DOC = fbDb.collection('loomiq').doc('problems');
+PROBLEMS_DOC.onSnapshot(sn => {
+  problems = sn.exists ? (sn.data() || {}) : {};
+  try{ paintProblems(); }catch(e){}
+}, e => console.warn('проблеми', e));
+function problemsOf(orderId){
+  return Object.keys(problems || {}).map(k => problems[k])
+    .filter(p => p && p.open && String(p.orderId) === String(orderId));
+}
+async function problemAdd(o, text, file, role){
+  if(!o || !o.orderId) return false;
+  const id = 'pr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const rec = { id, orderId: String(o.orderId), at: new Date().toISOString(), by: myEmail() || '', role: String(role || myRole() || ''),
+                text: String(text || '').trim(), file: (file && file.url) ? { name: String(file.name || 'файл'), url: String(file.url) } : null, open: true };
+  problems[id] = rec;
+  try{ await PROBLEMS_DOC.set({ [id]: rec }, { merge: true }); }
+  catch(e){ console.warn('проблема не записалась', e); toast('Не записалось — спробуйте ще раз'); delete problems[id]; return false; }
+  try{ paintProblems(); }catch(e){}
+  return true;
+}
+async function problemClose(id, how){
+  const p = problems[id];
+  if(!p || !p.open) return false;
+  const rec = Object.assign({}, p, { open: false, closedAt: new Date().toISOString(), closedBy: myEmail() || '', how: String(how || '').trim() });
+  problems[id] = rec;
+  try{ await PROBLEMS_DOC.set({ [id]: rec }, { merge: true }); }
+  catch(e){ console.warn('проблема не знялась', e); problems[id] = p; toast('Не знялось — спробуйте ще раз'); return false; }
+  return true;
+}
+function problemAsk(o){
+  if(!o || !o.orderId) return toast('Спершу збережіть замовлення');
+  const U = window.LQDesign && window.LQDesign.ui;
+  if(!U || !U.fixOpen) return toast('Вікно не завантажилось');
+  U.fixOpen(async (txt, file) => {
+    if(!txt && !file) return;
+    if(await problemAdd(o, txt, file, myRole())) toast('Проблему позначено — керівник побачить');
+  }, { title: 'Яка проблема? Побачить керівник', go: 'Позначити' });
+}
+function problemRows(){
+  return Object.keys(problems || {}).map(k => problems[k]).filter(p => p && p.open)
+    .map(p => ({ p, o: (orders || []).find(x => x && x.orderId === p.orderId) || null }))
+    .sort((a, b) => String(a.p.at).localeCompare(String(b.p.at)));
+}
+function paintProblems(){
+  const n = myRole() === 'owner' ? problemRows().length : 0;
+  const el = document.querySelector('[data-nav-n="problems"]');
+  if(el){ el.textContent = n ? String(n) : ''; el.hidden = !n; }
+  const v = document.getElementById('view-problems');
+  if(v && v.style.display === 'block') renderProblems();
+}
+function renderProblems(){
+  const root = document.getElementById('problemsRoot');
+  if(!root) return;
+  if(myRole() !== 'owner'){ root.innerHTML = '<div class="prob-none">Цей розділ — лише для керівника.</div>'; return; }
+  const rows = problemRows();
+  const днів = at => Math.max(0, Math.floor((Date.now() - Date.parse(at)) / 864e5));
+  root.innerHTML = rows.length ? rows.map(r => `
+    <div class="prob-row" data-prob="${escapeHtml(r.p.id)}">
+      <div class="prob-h">
+        <button class="prob-no" data-prob-open title="Відкрити замовлення">#${escapeHtml(r.p.orderId)}</button>
+        <span class="prob-who">${escapeHtml(r.o ? (orderName(r.o) || '') : '')}</span>
+        <span class="prob-at">${escapeHtml(personName(r.p.by) || r.p.by || '—')} · ${escapeHtml(dtUa(r.p.at))}${днів(r.p.at) ? ' · висить ' + днів(r.p.at) + ' дн.' : ''}</span>
+        <button class="prob-x" data-prob-close>✓ Зняти</button>
+      </div>
+      <div class="prob-t">${escapeHtml(r.p.text || '')}${r.p.file ? ` · <a href="${escapeHtml(r.p.file.url)}" target="_blank" rel="noopener">${escapeHtml(r.p.file.name || 'файл')}</a>` : ''}</div>
+    </div>`).join('')
+    : '<div class="prob-none">Проблем немає — усе зрозуміло й працює.</div>';
+  root.querySelectorAll('.prob-row').forEach(row => {
+    const id = row.dataset.prob;
+    const p = problems[id] || {};
+    const o = (orders || []).find(x => x && x.orderId === p.orderId);
+    const op = row.querySelector('[data-prob-open]');
+    if(op) op.addEventListener('click', () => { if(o) openOrderDrawer(o); else toast('Замовлення не знайдено'); });
+    const cl = row.querySelector('[data-prob-close]');
+    if(cl) cl.addEventListener('click', async () => {
+      let how = '';
+      try{ how = window.prompt('Як вирішили? (можна лишити порожнім)') || ''; }catch(e){}
+      if(await problemClose(id, how)){ paintProblems(); renderProblems(); toast('Проблему знято'); }
+    });
+  });
+}
 function paintTaskBadge(){
   const b = document.querySelector('.nav [data-view="design"]');
   if(!b) return;
@@ -29539,6 +29659,8 @@ function applyRoleUi(){
        міняти налаштування тут не одна з галочок, а умова входу: хто не може
        міняти етапи й команду, той і роздавати доступи не має. */
     if(b.dataset.view === 'team' && !canSetup()) on = false;
+    /* «Проблемні замовлення» — лише власнику (20.10). */
+    if(b.dataset.view === 'problems') on = myRole() === 'owner';
     /* НАПРЯМ ТУТ І ЗАДАЄТЬСЯ: Канбан і «Чати B2B» — це B2B, «B2C» і «Чати
        B2C» — це B2C. Окремого поля «напрям» більше немає: воно вмикало рівно
        ці чотири розділи, тобто було другим вимикачем на ті самі двері, і

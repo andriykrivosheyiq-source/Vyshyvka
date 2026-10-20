@@ -8953,7 +8953,7 @@
     var _top = _p ? _p.scrollTop : 0;
     U.setTab('acct');
     U.open(SOLO.id);
-    var html = panelFor('acct', SOLO.id);
+    var html = probBarHtml(SOLO.id) + panelFor('acct', SOLO.id);
     root.innerHTML = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
     wire(root);
     try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
@@ -9057,7 +9057,7 @@
       '<div class="dz-wrap">' +
         '<div class="dz-boards">' + U.boardHtml(b.steps, b.cards) + '</div>' +
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
-          (openId ? panelFor(seat, openId) : '') + '</aside>' +
+          (openId ? probBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
     wire(root);
     /* Аркуш добирається сам, уже після того, як екран намальовано: спершу
@@ -9708,6 +9708,18 @@
      ній відкритий: дизайнеру — версії макета, вишивальнику — файли,
      закупівлі — що замовити. Клієнт, побажання й доручення однакові в
      усіх: це одна картка, показана з різних місць роботи. */
+  /* «!» — позначити проблему (20.10). Скільки ВІДКРИТИХ — бачить лише
+     власник; іншим — лише сама кнопка й «позначено». */
+  function probBarHtml(id){
+    var pr = U.pairOf(String(id).split('|')[0]);
+    if(!pr) return '';
+    var відкр = 0;
+    try{ відкр = +(host().problemsOpen && host().problemsOpen(pr.o.orderId)) || 0; }catch(e){}
+    var бос = ((host().role && host().role()) || '') === 'owner';
+    return '<div class="dz-prob-bar"><button type="button" class="dz-prob-b" data-do="problem-add" data-id="' + esc(String(id)) +
+      '" title="Щось незрозуміло чи не виходить у CRM — позначте, керівник побачить">! Проблема</button>' +
+      (відкр ? '<i class="dz-prob-n">' + (бос ? 'відкритих: ' + відкр : 'позначено') + '</i>' : '') + '</div>';
+  }
   function panelFor(seat, id){
     var pr = U.pairOf(String(id).split('|')[0]);
     if(!pr) return '';
@@ -10678,6 +10690,21 @@
        тому воно йде ДО перевірки контексту. Створює його робоче місце: у
        відділу немає ні форми клієнта, ні нумерації, і заводити їх удруге
        означало б мати два різні «нові замовлення». */
+    /* ПРОБЛЕМА ПО ЗАМОВЛЕННЮ (20.10, Андрій): будь-хто позначає, що не
+       розуміє чи не може зробити в CRM; бачить і знімає лише власник у
+       розділі «Проблемні замовлення». На клієнта й роботу не впливає. */
+    if(what === 'problem-add'){
+      var пр = U.pairOf(String((data && data.id) || '').split('|')[0]);
+      if(!пр) return;
+      return U.fixOpen(async function(txt, file){
+        if(!txt && !file) return;
+        if(!host().problemAdd) return say('Позначити не вдалось');
+        await host().problemAdd(пр.o, txt, file, asRole());
+        say('Проблему позначено — керівник побачить');
+        render(document.getElementById('dzRoot'));
+        if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+      }, { title: 'Яка проблема? Побачить керівник', go: 'Позначити' });
+    }
     if(what === 'order-new'){
       if(host().newOrder) return host().newOrder();
       return say('Створення замовлення доступне з робочого місця');
