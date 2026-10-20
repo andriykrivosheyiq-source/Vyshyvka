@@ -1367,7 +1367,7 @@
     x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, H);
     var y = top + 28;
     x.textAlign = 'left'; x.fillStyle = '#0F2034'; x.font = '700 30px Inter, system-ui, sans-serif';
-    x.fillText(String(data.title || 'Варіанти на вибір'), 64, y);
+    x.fillText(String(data.title || ''), 64, y);
     if(data.no){
       x.textAlign = 'right'; x.fillStyle = '#A9B2C0'; x.font = '400 16px Inter, system-ui, sans-serif';
       x.fillText(String(data.no), DOC_W - 64, y); x.textAlign = 'left';
