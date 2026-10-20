@@ -1758,6 +1758,23 @@
     delete u.ready;
     return true;
   }
+  /* ГОТОВИЙ → «ГОТОВИЙ З ПРАВКАМИ» (20.10, Андрій: «дати можливість
+     переключення… одразу підтягує цей дизайн, який вже обраний»). Клієнт
+     вибрав готовий, а потім хоче щось змінити — навіть коли вже погодив.
+     Знімаємо записи готового (readyMade) з погодженням і розміщенням; сам
+     дизайн стає основою (`u.base`) — далі позиція йде дизайнерам, як
+     індивідуальна. Повернення: набір готового як основа або null. Слід — у
+     журналі (ds: ready-to-base). */
+  function readyToBase(job, u, by){
+    if(!u || !u.ready || u.ready.repeat || u.ready.link) return null;
+    var rd = u.ready;
+    var погодж = dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
+    u.graphic = dzList(u, 'graphic').filter(function(x){ return !x.readyMade; });
+    u.stitch = dzList(u, 'stitch').filter(function(x){ return !x.readyMade; });
+    delete u.ready;
+    ds(job, 'ready-to-base', { by: by || '', unit: u.id, name: rd.name || '', approved: погодж });
+    return rd;
+  }
   /* ВЛАСНИК ПЕРЕМИКАЄ ВИД ДИЗАЙНУ ПОПРИ РОБОТУ (19.10, Андрій: «створили
      нове, його вже поставили в чергу відділу, а мені треба перенести в
      готовий дизайн — така можливість тільки в мене, як видалення карток»).
@@ -2825,7 +2842,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
+    readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -4740,7 +4757,7 @@
       '<button type="button" class="dz-kind-b' + (пов ? ' on' : '') + '" data-do="u-repeat" data-u="' + esc(u.id) + '"' +
         (пов ? '' : закр) + ' title="Дизайн, який ми вже робили: свої DST і принти — без дизайнерів">Повторний</button>' +
       '<button type="button" class="dz-kind-b' + (баз ? ' on' : '') + '" data-do="u-base-pick" data-u="' + esc(u.id) + '"' +
-        (баз ? '' : (u.ready ? закр : '')) + ' title="Дизайн з бібліотеки за основу + правка (напис, дата…): іде дизайнерам, ціна — як у готового">Готовий з правками</button>' +
+        (баз || (гот && !D.linkOf(u)) ? '' : (u.ready ? закр : '')) + ' title="Дизайн з бібліотеки за основу + правка (напис, дата…): іде дизайнерам, ціна — як у готового">Готовий з правками</button>' +
     '</div>';
   }
   /* Основа «Базового з правками» (20.10): що взяли з бібліотеки й що змінити.
@@ -11341,6 +11358,21 @@
     if(what === 'u-base-pick'){
       var bu = U.unitAt(job, data && data.u);
       if(!bu) return;
+      /* Уже обрано готовий з бібліотеки — його ж беремо за основу, одразу
+         поле «що змінити» (основу потім можна змінити в самій позиції). */
+      if(bu.ready && !bu.ready.repeat && !D.linkOf(bu)){
+        var було = bu.ready, погодж = D.dzList(bu, 'graphic').some(function(x){ return x.readyMade && x.ok; });
+        if(погодж){
+          try{ if(!window.confirm('Клієнт уже погодив «' + (було.name || 'готовий дизайн') + '». Перевести в «Готовий з правками»? ' +
+            'Погодження й розміщення готового знімемо, дизайн стане основою — далі дизайнерам.')) return; }catch(e){}
+        }
+        return U.fixOpen(async function(txt, file){
+          if(!bu.ready || bu.ready !== було) return say('Позицію вже змінили — відкрийте ще раз');
+          var rd0 = D.readyToBase(job, bu, (host().me && host().me()) || '');
+          D.baseAttach(bu, rd0, txt, file);
+          await save(job, o, 'Готовий з правками · ' + (rd0.name || '') + ' — тепер «Передати дизайнеру»');
+        }, { title: 'Що змінити в «' + (було.name || 'дизайні') + '»', go: 'Зберегти', text: '' });
+      }
       return U.readyPickOpen(function(rd){
         if(bu.ready ? !D.readyDetach(bu) : (kindBusy(bu) && !(bu.base && String(bu.base.id) === String(rd.id)))){
           if(!kindForceAsk(job, bu, 'base')) return;
