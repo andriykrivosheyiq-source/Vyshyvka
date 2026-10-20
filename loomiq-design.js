@@ -12227,14 +12227,17 @@
     if(колір) колір = колір.charAt(0).toUpperCase() + колір.slice(1);
     var sub = [колір].concat(мат ? мат.split(/\s*[,;]\s*/) : []).filter(Boolean).join(' · ');
     var місця = ((pl && pl.spots) || []).filter(function(sp){ return sp && +sp.wCm > 0; });
+    /* КАРТКА КЛІЄНТУ — БЕЗ САНТИМЕТРІВ І БЕЗ ВИГАДАНОГО РОЗМІРУ (20.10,
+       Андрій): розмір вишивки лишається дизайнерам і цеху, клієнту —
+       лише «Вишивка спереду»; розмір не вказано — прочерк, хоч рахуємо
+       під M. */
     var apps = місця.length
-      ? місця.map(function(sp){
-          return ['Вишивка', sideWord(sp), мсм(sp.wCm) + ' × ' + мсм(sp.hCm)].filter(Boolean).join(' '); })
-      : [(pl && +pl.wCm > 0) ? 'Вишивка ' + мсм(pl.wCm) + ' × ' + мсм(pl.hCm) : 'Вишивка'];
+      ? місця.map(function(sp){ return ['Вишивка', sideWord(sp)].filter(Boolean).join(' '); })
+      : ['Вишивка'];
     return {
       model: (g && g.name) || u.name || '',
       sub: sub,
-      row: [['Розмір', u.size || 'M'], ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : '']]
+      row: [['Розмір', u.size || '—'], ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : '']]
              .filter(function(r){ return r[1]; }),
       apps: apps
     };
