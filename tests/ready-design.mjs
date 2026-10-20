@@ -425,6 +425,31 @@ ok(баз.handable > 0 && баз.черга && баз.уГраф, 'без «ти
 ok(баз.дизБачить, 'дизайнер у своїй картці бачить основу «Котик» і що змінити — шукати нічого не треба', JSON.stringify(баз));
 
 console.log('');
+console.log('═══ 8. РОЗМІР ВИРОБУ — РОЗМІРИ ВИШИВКИ (20.10) ═══');
+const розм = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, D = window.LQDesign;
+  /* Розмірна сітка адмінки: довжина M — 70, 5XL — 84 см. */
+  contentData.sizecharts = Object.assign({}, contentData.sizecharts, { tee: [{ size:'M', A:'70', B:'52' }, { size:'5XL', A:'84', B:'66' }] });
+  const H = U.host.heightCm;
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Білий', size:'M', qty:1 });
+  const d = D.readyGraphic(u, 'mgr@loomiq');
+  D.dzVer(d, 'mgr@loomiq', [{ name:'кіт.png', url:'w', role:'work' }, { name:'мокап.png', url:'m', role:'mock' }, { name:'аркуш-v1.png', url:'s', role:'sheet' }],
+    'Готовий', { size:'M', wCm:20, hCm:10, spots:[{ side:'front', label:'Перед', x:0.5, y:0.3, w:0.3, wCm:20, hCm:10, topCm:8, sideCm:0 }] }, 'acct');
+  const n = D.sizeRescale(u, '5XL', H);
+  const v = d.vers[0], sp = v.place.spots[0];
+  const великий = { place: { size:'XL', spots:[{ label:'Спина', wCm:46, hCm:30, topCm:5 }] } };
+  const html = U.verTilesHtml ? '' : '';
+  return { hM: H('tee', 'M'), h5: H('tee', '5XL'), n, w: sp.wCm, h: sp.hCm, top: sp.topCm, size: v.place.size, from: v.place.sizeFrom,
+           аркуш: v.files.some(f => f.role === 'sheet'), warn: window.LQMock.bigEmb(46, 30), ok: !window.LQMock.bigEmb(44, 29) };
+});
+console.log('  ' + JSON.stringify(розм));
+ok(розм.hM === 70 && розм.h5 === 84, 'довжина виробу — з розмірної сітки адмінки (M 70, 5XL 84 см)', JSON.stringify(розм));
+ok(розм.n === 1 && розм.w === 24 && розм.h === 12 && розм.top === 9.6 && розм.size === '5XL' && розм.from === 'M',
+  'розмір M → 5XL: вишивка 20 × 10 стала 24 × 12 (× 84/70), відступ теж; позначено «з M»', JSON.stringify(розм));
+ok(!розм.аркуш, 'старий аркуш зі старими цифрами прибрано — збереться заново', JSON.stringify(розм));
+ok(розм.warn && розм.ok, 'попередження лише понад 44 × 29 см', JSON.stringify(розм));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
 await browser.close(); srv.close();

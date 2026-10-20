@@ -1954,6 +1954,40 @@
      Нова здача кладе `place.spots` (по нанесенню на кожну сторону), стара —
      одне число на версію. Читаємо обидва однаково: і бриф вишивальника, і
      картка цеху питають саме цей список. */
+  /* РОЗМІР ЗМІНИЛИ ПІСЛЯ РОЗМІЩЕННЯ (20.10, Андрій: «на 5XL це один принт,
+     на XS — зовсім інший»). Сантиметри вишивки рахуються від довжини виробу
+     цього розміру (розмірна сітка адмінки), тож при новому розмірі вони
+     перераховуються тим самим співвідношенням: нове = старе × H(новий) /
+     H(старий). Положення на фото (частки) не міняються — так само рахує й
+     вікно розміщення. Повертає, скільки версій перераховано. */
+  function sizeRescale(u, toSize, heightOf){
+    if(!u || typeof heightOf !== 'function') return 0;
+    var n = 0, to = String(toSize || '') || 'M';
+    var r1 = function(x){ return Math.round((+x || 0) * 10) / 10; };
+    dzList(u, 'graphic').concat(dzList(u, 'stitch')).forEach(function(d){
+      (d && d.vers || []).forEach(function(v){
+        var p = v && v.place;
+        if(!p || !(Array.isArray(p.spots) && p.spots.length || +p.wCm > 0)) return;
+        var from = String(p.size || '') || 'M';
+        if(from === to) return;
+        var h0 = +heightOf(u.gid, from) || 0, h1 = +heightOf(u.gid, to) || 0;
+        if(!(h0 > 0 && h1 > 0)) return;
+        var k = h1 / h0;
+        (p.spots || []).forEach(function(sp){
+          if(!sp) return;
+          ['wCm', 'hCm', 'topCm', 'sideCm'].forEach(function(f){ if(sp[f] != null && sp[f] !== '') sp[f] = r1(sp[f] * k); });
+        });
+        ['wCm', 'hCm', 'topCm', 'sideCm'].forEach(function(f){ if(+p[f]) p[f] = r1(p[f] * k); });
+        p.sizeFrom = from; p.size = to; p.sizeAt = nowIso();
+        /* Аркуш намальований зі старими сантиметрами — прибираємо, він
+           збереться заново сам, щойно картку відкриють. */
+        if(Array.isArray(v.files)) v.files = v.files.filter(function(f){
+          return !(f && (f.role === 'sheet' || (!f.role && /^аркуш/i.test(String(f.name || ''))))); });
+        n++;
+      });
+    });
+    return n;
+  }
   function verSpots(v){
     var p = v && v.place;
     if(!p) return [];
@@ -2743,7 +2777,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, baseAttach: baseAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
+    readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -7490,12 +7524,21 @@
     var l = D.verSpots(v);
     /* Вишивальнику — тільки ширина вишивки. Андрій: «від горла і так далі
        — це вже для виробництва… тут цієї інформації не потрібно». */
+    var розм = (v && v.place && v.place.size) || u.size || '';
+    var великий = function(s){ return !!(window.LQMock && window.LQMock.bigEmb && window.LQMock.bigEmb(s.wCm, s.hCm)); };
+    var увага = '<i class="dz-spot-warn">більше за 44 × 29 см — перевірте, чи влізе в пяльця</i>';
+    var змінено = (v && v.place && v.place.sizeFrom)
+      ? '<div class="dz-spot is-g"><i>розмір змінено з ' + esc(v.place.sizeFrom) + ' на ' + esc(v.place.size || '') +
+        ' — розміри вишивки перераховано</i></div>' : '';
     if(mode === 'stitch'){
       var шв = l.filter(function(s){ return +s.wCm > 0; });
       if(!шв.length) return '';
-      return '<div class="dz-spots">' + шв.map(function(s){
-        return '<div class="dz-spot"><span>Ширина вишивки' + (шв.length > 1 && s.label ? ' · ' + esc(s.label) : '') +
-          '</span><b>' + esc(мсм(s.wCm)) + '</b></div>'; }).join('') + '</div>';
+      /* Під який розмір (20.10): на 5XL і на XS той самий дизайн — різна вишивка. */
+      return '<div class="dz-spots">' + змінено + шв.map(function(s){
+        return '<div class="dz-spot"><span>Вишивка' + (розм ? ' · розмір ' + esc(розм) : '') +
+          (шв.length > 1 && s.label ? ' · ' + esc(s.label) : '') +
+          '</span><b>' + esc(мсм(s.wCm)) + (+s.hCm > 0 ? ' × ' + esc(мсм(s.hCm)) : '') + '</b>' +
+          (великий(s) ? увага : '') + '</div>'; }).join('') + '</div>';
     }
     var шир = 0;
     try{ шир = +(host().widthCm && host().widthCm(u.gid, u.size)) || 0; }catch(e){}
@@ -7511,8 +7554,9 @@
               (+s.sideCm ? ' · від центру ' + (s.sideCm > 0 ? '+' : '−') + esc(мсм(Math.abs(s.sideCm)))
                          : ' · по центру') + '</i>'
             : '<i>розміщення не порахувалось</i>') +
+          (великий(s) ? увага : '') +
         '</div>';
-      }).join('') +
+      }).join('') + змінено +
     '</div>';
   }
   /* ЗДАТИ ВИШИВКУ: файл для машини (DST або EMB) і скрін дизайну з Wilcom.
@@ -7688,6 +7732,10 @@
         /* Тип малюнка (16.10) — дизайнер одразу бачить, що саме робити. */
         (u.artKind && !u.ready ? '<div class="dz-w-note"><i>Тип малюнка</i>' +
                   esc(u.artKindName || u.artKind) + '</div>' : '') +
+        /* Розмір виробу (20.10) — під нього й робиться вишивка. */
+        (u.gid ? '<div class="dz-w-note"><i>Розмір виробу</i>' + (u.size ? esc(u.size) : 'не вказано — рахуємо під M') +
+          (function(){ var h = 0; try{ h = +(host().heightCm && host().heightCm(u.gid, u.size || 'M')) || 0; }catch(e){}
+            return h ? ' · довжина ' + esc(мсм(h)) : ''; })() + '</div>' : '') +
         /* Готовий з правками (20.10): основа з бібліотеки й що змінити — одразу тут. */
         ((u.base && !u.ready) ? U.baseHtml(x.job, u, true) : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
@@ -11219,8 +11267,13 @@
         save(job, o, pu.color || 'Колір знімемо, коли буде відомий');
       });
       return U.pickSize(pu.gid, function(sz){
+        var було = pu.size || '';
         pu.size = String(sz || '');
-        save(job, o, pu.size || 'Розмір знімемо, коли буде відомий');
+        /* Розмір змінили після розміщення — сантиметри вишивки під новий розмір. */
+        var пере = 0;
+        try{ пере = D.sizeRescale(pu, pu.size, host().heightCm); }catch(e){ console.warn('розмір', e); }
+        save(job, o, пере ? 'Розмір ' + (було || 'M') + ' → ' + (pu.size || 'M') + ' — розміри вишивки перераховано'
+                          : (pu.size || 'Розмір знімемо, коли буде відомий'));
       });
     }
     /* ══════════ СКАЧАТИ ФАЙЛ ══════════
