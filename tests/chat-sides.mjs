@@ -323,6 +323,48 @@ ok(!фото.текст, 'фото клієнта в ту саму хвилин�
 ok(фото.картинка, 'а після нашої картинки без номера найближче вкладення — праворуч, як і було', JSON.stringify(фото));
 
 console.log('');
+console.log('═══ ПЕРЕСЛАТИ ПОВІДОМЛЕННЯ КЛІЄНТА ДИЗАЙНЕРУ (20.10) ═══');
+/* Андрій: «натиснули в діалозі з клієнтом самольотик, вибрали передати
+   дизайнеру графічному — і воно в діалозі зʼявилося». ➤ на повідомленні —
+   одне; ➤ унизу біля скріпки — галочки, кілька разом. */
+const фвд = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, o = orders[0];
+  const j = designJobMake(o.orderId);
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1 });
+  j.units.push(u);
+  const d = D.dzNew(); d.who = 'd@loomiq'; d.sentAt = new Date().toISOString(); d.status = 'work';
+  D.dzList(u, 'graphic').push(d);
+  chatOpen(o, 'crm');
+  await new Promise(r => setTimeout(r, 700));
+  const box = document.getElementById('chatWin');
+  const наНаших = [...box.querySelectorAll('.od-crm-msg.mine [data-cw-fwd]')].length;
+  const кн = [...box.querySelectorAll('[data-cw-fwd]')].find(b => /Від 20 шт/.test(b.closest('.od-crm-msg').textContent));
+  if(!кн) return { err: 'немає ➤ на повідомленні клієнта' };
+  кн.click();
+  await new Promise(r => setTimeout(r, 600));
+
+  const одне = d.thread.filter(m => m.fwd).map(m => ({ t: m.text, at: m.fwd.at, role: m.role, kind: m.kind }));
+  const стан1 = d.status;
+  box.querySelector('[data-cw-fwdm]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const галочки = box.querySelectorAll('[data-cw-fwdc]').length;
+  const cs = [...box.querySelectorAll('[data-cw-fwdc]')].slice(0, 2);
+  cs.forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); });
+  const лічильник = (box.querySelector('[data-cw-fwdgo]') || {}).textContent;
+  box.querySelector('[data-cw-fwdgo]').click();
+  await new Promise(r => setTimeout(r, 600));
+  const режимЗнято = !box.querySelector('[data-cw-fwdc]');
+  return { наНаших, одне, стан1, галочки, лічильник, режимЗнято,
+           всього: d.thread.filter(m => m.fwd).length, тексти: d.thread.filter(m => m.fwd).map(m => m.text) };
+});
+console.log('  ' + JSON.stringify(фвд));
+ok(!фвд.err && фвд.наНаших === 0 && фвд.одне.length === 1 && фвд.одне[0].t === 'Від 20 шт' && /2026-09-15/.test(фвд.одне[0].at) && фвд.одне[0].role === 'acct',
+  '➤ є лише на повідомленнях клієнта; натиснули — слова клієнта в розмові з дизайнером з позначкою «від клієнта» і його часом', JSON.stringify(фвд));
+ok(фвд.стан1 === 'revision', 'переслане — правка: робота дизайнера в «Правках»', JSON.stringify(фвд));
+ok(фвд.галочки >= 3 && /2/.test(фвд.лічильник || '') && фвд.всього === 3 && фвд.режимЗнято,
+  '➤ унизу → галочки на повідомленнях клієнта, лічильник «➤ 2», переслано обидва, вибір знято', JSON.stringify(фвд));
+
+console.log('');
 console.log('═══ СИРА ВІДПОВІДЬ — ЛИШЕ ДЛЯ НАЛАШТУВАННЯ ═══');
 const raw = await p.evaluate(async () => {
   const b = document.querySelector('[data-cw-raw]');

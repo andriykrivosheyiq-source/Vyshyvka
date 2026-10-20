@@ -2838,9 +2838,19 @@ function chatSeenToggle(o, kind){
   try{ renderOrderDrawer(); }catch(e){}
   toast(було ? 'Позначено прочитаним' : 'Повернуто в непрочитані');
 }
+/* ПЕРЕСЛАТИ ДИЗАЙНЕРУ (20.10, Андрій): ➤ на повідомленні клієнта — одне;
+   ➤ унизу біля скріпки вмикає галочки — кілька разом. Саме пересилання
+   робить відділ дизайну (`LQDesign.ui.forwardToDesigner`). */
+function chatFwdOn(){
+  return !!(chatWin && chatWin.kind === 'crm' && window.LQDesign && window.LQDesign.ui &&
+            typeof window.LQDesign.ui.forwardToDesigner === 'function');
+}
 function chatRowsHtml(msgs){
   let lastDay = '';
   const list = msgs || [];
+  if(chatWin) chatWin.rows = list;
+  const fwd = chatFwdOn();
+  const sel = (chatWin && chatWin.fwdSel) || {};
   /* ── МЕЖА НЕПРОЧИТАНОГО ────────────────────────────────────────────────
      Андрій: «одразу заходиш в діалог, одразу бачиш непрочитане
      повідомлення». Доти розмова відкривалась просто в кінці: якщо клієнт
@@ -2930,6 +2940,11 @@ function chatRowsHtml(msgs){
         ${crmFilesHtml(m.files)}
         ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
         ${mark}
+        ${(fwd && !m.mine && !m.gone && (m.text || (m.files || []).length))
+          ? (chatWin.fwdMode
+            ? `<label class="od-crm-fwdc"><input type="checkbox" data-cw-fwdc="${i}"${sel[i] ? ' checked' : ''}></label>`
+            : `<button type="button" class="od-crm-fwd" data-cw-fwd="${i}" title="Переслати дизайнеру">➤</button>`)
+          : ''}
         ${/* Підпис показуємо навіть тоді, коли часу ще немає: щойно надіслане
              повідомлення стоїть у стрічці без позначки часу (її поставить
              сервер), а хто його написав — відомо вже зараз. */''}
@@ -3894,6 +3909,10 @@ function renderChatWin(toBottom){
           title="Заготовлені повідомлення — вставити або відредагувати">⚡<span
           class="cw-ic-l">Заготовки</span></button>
         ${canSendFiles() ? '<button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>' : ''}
+        ${chatFwdOn() ? (chatWin.fwdMode
+          ? `<button class="cw-ic on" data-cw-fwdgo title="Переслати відмічене дизайнеру">➤ ${
+              Object.keys(chatWin.fwdSel || {}).filter(k => chatWin.fwdSel[k]).length || ''}</button><button class="cw-ic" data-cw-fwdoff title="Скасувати вибір">✕</button>`
+          : '<button class="cw-ic cw-ic--fwd" data-cw-fwdm title="Переслати дизайнеру кілька повідомлень — відмітити галочками">➤</button>') : ''}
         ${/* Окремої кнопки з посиланням на КП тут немає навмисно. Вона
              вставляла голу адресу, а в «Заготовках» уже лежить заготовка з
              підстановкою {кп} — та сама адреса, але разом із текстом, який
@@ -4276,6 +4295,39 @@ function wireChatWin(box, o, focusIn){
     });
     mIn.focus();
   }
+  /* Переслати дизайнеру: одне — ➤ на повідомленні; кілька — ➤ унизу,
+     галочки, ➤ N. Повідомлення беремо з того ж списку, що й малювали. */
+  const fwdGo = idx => {
+    const o2 = chatOrder(), rows = (chatWin && chatWin.rows) || [];
+    const ms = idx.map(i => rows[i]).filter(Boolean);
+    if(!o2 || !ms.length) return;
+    chatWin.fwdMode = false; chatWin.fwdSel = {};
+    renderChatWin();
+    /* Відділ у цьому сеансі могли ще не відкривати — гачки ядра ставимо самі. */
+    if(typeof designHostInit === 'function') try{ designHostInit(); }catch(e){ console.warn(e); }
+    window.LQDesign.ui.forwardToDesigner(o2, ms);
+  };
+  /* Стрічка при перемальовуванні лишається тим самим вузлом (keepFeed), а
+     wireChatWin іде щоразу — тож кнопки в ній вʼяжемо один раз, інакше один
+     натиск пересилав би стільки разів, скільки було перемальовувань. */
+  const once = (el, ev, fn) => { if(el.__fwd) return; el.__fwd = 1; el.addEventListener(ev, fn); };
+  box.querySelectorAll('[data-cw-fwd]').forEach(b => once(b, 'click', ()=> fwdGo([+b.dataset.cwFwd])));
+  box.querySelectorAll('[data-cw-fwdc]').forEach(c => once(c, 'change', ()=>{
+    chatWin.fwdSel = chatWin.fwdSel || {};
+    if(c.checked) chatWin.fwdSel[c.dataset.cwFwdc] = 1; else delete chatWin.fwdSel[c.dataset.cwFwdc];
+    const go = box.querySelector('[data-cw-fwdgo]');
+    if(go) go.textContent = '➤ ' + (Object.keys(chatWin.fwdSel).length || '');
+  }));
+  const fwdM = box.querySelector('[data-cw-fwdm]');
+  if(fwdM) fwdM.addEventListener('click', ()=>{ chatWin.fwdMode = true; chatWin.fwdSel = {}; renderChatWin(); });
+  const fwdOff = box.querySelector('[data-cw-fwdoff]');
+  if(fwdOff) fwdOff.addEventListener('click', ()=>{ chatWin.fwdMode = false; chatWin.fwdSel = {}; renderChatWin(); });
+  const fwdGoB = box.querySelector('[data-cw-fwdgo]');
+  if(fwdGoB) fwdGoB.addEventListener('click', ()=>{
+    const idx = Object.keys(chatWin.fwdSel || {}).map(Number).sort((a, b) => a - b);
+    if(!idx.length) return toast('Відмітьте галочками, що переслати');
+    fwdGo(idx);
+  });
   const file = box.querySelector('[data-cw-file]');
   // Скріпок дві: у рядку вводу й «+» у смужці. Обидві роблять те саме.
   box.querySelectorAll('[data-cw-clip]').forEach(b => b.addEventListener('click', ()=> file.click()));
