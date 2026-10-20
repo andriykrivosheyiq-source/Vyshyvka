@@ -194,7 +194,7 @@ const картка = await p.evaluate(() => ({
   відмова: !!document.querySelector('.dz-panel [data-do="dz-no"]') }));
 console.log('  ' + JSON.stringify(картка));
 ok(картка.тз.join() === 'мокап,оригінал,картка', 'у ТЗ — погоджений ескіз: мокап, оригінал, картка (без «роботи», 13.10)', 'ТЗ: ' + JSON.stringify(картка.тз));
-ok(картка.беру === 2 && !картка.відмова, 'на кожній позиції «Беру в роботу», відмовитись не можна', 'кнопки: ' + JSON.stringify(картка));
+ok(картка.беру === 1 && !картка.відмова, 'одна «Беру в роботу» на всю картку (20.10), відмовитись не можна', 'кнопки: ' + JSON.stringify(картка));
 /* Ліміт вишивальних — окремий: 1 одночасно. */
 await p.evaluate(() => { contentData.b2c = Object.assign({}, contentData.b2c, { stitchLimit: 1, dzLimit: 0 }); });
 await p.evaluate(() => document.querySelectorAll('.dz-panel [data-do="dz-take"]')[0].click());
@@ -203,7 +203,7 @@ await p.evaluate(() => { const b = document.querySelector('.dz-panel [data-do="d
 await p.waitForTimeout(500);
 const взяв = await p.evaluate(() => __j.units.map(u => window.LQDesign.dzList(u, 'stitch')[0].who));
 console.log('  ' + JSON.stringify(взяв));
-ok(взяв[0] === 'test@loomiq' && взяв[1] === '', 'з лімітом вишивальних 1 друге замовлення... тут та сама картка — друга позиція лишилась у черзі',
+ok(взяв[0] === 'test@loomiq' && взяв[1] === 'test@loomiq', 'ліміт рахує замовлення: одна картка — одне «Беру», обидві позиції взято разом (20.10)',
    'ліміт: ' + JSON.stringify(взяв));
 await p.evaluate(() => { contentData.b2c.stitchLimit = 0; });
 await p.evaluate(() => { const b = document.querySelector('.dz-panel [data-do="dz-take"]'); if(b) b.click(); });

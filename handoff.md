@@ -118,6 +118,9 @@ GitHub Actions → «pages build and deployment»; допомагає насту
 | **Перекази між своїми рахунками** не рахуються двічі (пара −X/+X між нашими рахунками ≤30 хв, або руками «так/ні») | `loomiqadmin.html` → `finOwnSet` | `tests/an-tabs.mjs` |
 | **Банки**: грошовий воркер `loomiq-money` розгорнуто в Cloudflare (`loomiq-money.stvory.workers.dev`), cron кожні 5 хв | `worker/money.js`, `worker/wrangler.money.toml`, `worker/README.md` | `tests/money-worker.mjs` |
 | Роль «Контроль файлів» прибрано | `loomiqadmin.html` (`ROLES`, `ROLE_PRESET`, `roleDefs`) | `tests/design-dept.mjs` |
+| **Вся картка — одному дизайнеру** (20.10): одне «Беру» на всі позиції через дизайнера; здача разом (`d.pend` до останньої); менеджер обирає дизайнера на одній — стає на всіх | `loomiq-design.js` (`dzPeers`, `dzSubmit`, `takePeers`, `[data-dzwho]`) | `tests/dz-queue.mjs` §9, `tests/dz-contour.mjs` |
+| **Розмір виробу → розміри вишивки** (20.10): перерахунок при зміні розміру (`sizeRescale`), довжина з розмірної сітки, попередження понад 44×29 | `loomiq-design.js`, `loomiq-mock.js` | `tests/ready-design.mjs` §8 |
+| **Готовий з правками** (20.10): `u.base` на індивідуальній позиції, ціна як у готового | `loomiq-design.js` (`baseAttach`, `baseHtml`) | `tests/ready-design.mjs` §7 |
 
 ### Стан підключення банків
 

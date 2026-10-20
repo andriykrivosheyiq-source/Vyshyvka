@@ -943,6 +943,47 @@
      Відмовитись від взятого дизайнер не може. Забрати роботу — тільки
      акаунт-менеджер: повернути в чергу або віддати іншому. */
   function dzInQueue(d){ return !!(d && d.pool && !d.who && d.sentAt); }
+  /* ВСЯ КАРТКА — ОДНОМУ ДИЗАЙНЕРУ (Андрій, 20.10: «два, три замовлення в
+     одній картці — дизайнер бере одразу всі й здає одразу всі»). Інші
+     позиції замовлення, що йдуть через дизайнера цього виду (не готовий,
+     не повторний): їхній поточний запис дизайну. */
+  function dzPeers(job, u, kind){
+    var out = [];
+    jobUnits(job).forEach(function(x){
+      if(!x || x === u || x.ready) return;
+      var l = dzList(x, kind).filter(function(d){ return d && !d.readyMade; });
+      var d = l[l.length - 1];
+      if(d) out.push({ u: x, d: d });
+    });
+    return out;
+  }
+  /* ЗДАТИ — РАЗОМ (20.10). Поки інші позиції цього дизайнера в замовленні
+     ще не здані, здане лягає в `d.pend` — менеджер його не бачить. Здали
+     останню — усі стають версіями одночасно (`after` — що ще зробити з
+     кожною, напр. вишивка одразу в цех). Правка однієї позиції, коли решта
+     вже на перевірці, — здається одразу: чекати нема чого. */
+  function dzSubmit(job, u, d, kind, by, sub, after){
+    if(!d || !sub) return null;
+    var мої = dzPeers(job, u, kind).filter(function(x){ return x.d.who && x.d.who === d.who; });
+    var чекаємо = мої.filter(function(x){
+      var st = x.d.status;
+      return !x.d.pend && x.d.sentAt && st !== 'review' && st !== 'approved'; });
+    if(чекаємо.length){
+      d.pend = { files: sub.files || [], note: String(sub.note || ''), place: sub.place || null,
+                 role: sub.role || kind, by: String(by || ''), at: nowIso() };
+      return { held: true, left: чекаємо.map(function(x){ return jobUnits(job).indexOf(x.u) + 1; }) };
+    }
+    var разом = [{ u: u, d: d, sub: sub }].concat(мої.filter(function(x){ return x.d.pend; })
+      .map(function(x){ return { u: x.u, d: x.d, sub: x.d.pend }; }));
+    разом.forEach(function(x){
+      dzVer(x.d, x.sub.by || by, x.sub.files, x.sub.note, x.sub.place, x.sub.role || kind);
+      x.d.status = 'review';
+      delete x.d.pend;
+      x.d.draft = null;
+      if(after) after(x.u, x.d);
+    });
+    return { flushed: разом.length };
+  }
   function dzQueue(d, by){
     if(!d) return null;
     d.who = ''; d.pool = true;
@@ -2777,7 +2818,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
+    readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -6706,6 +6747,17 @@
   /* У якій ролі зараз дивляться: на дошці графічного — графічний
      дизайнер, вишивального — вишивальний, решта — акаунт-менеджер. Від
      цього залежить, що стоїть праворуч і що рахується пропущеним. */
+  /* «Беру» — на всю картку (20.10): решта позицій цього виду, що чекають у
+     черзі чи передані мені, — теж мої. Скільки ще взято. */
+  function takePeers(job, u, kind, me){
+    var n = 0;
+    D.dzPeers(job, u, kind).forEach(function(x){
+      var d = x.d;
+      if(D.dzInQueue(d)){ var r = D.dzClaim(d, me); if(r && !r.taken) n++; }
+      else if(d.sentAt && d.who === me && (d.status === 'sent' || d.status === 'revision')){ D.dzTake(d, me); n++; }
+    });
+    return n;
+  }
   function asRole(){
     var t = U.tab();
     return t === 'graphic' ? 'graphic' : t === 'stitch' ? 'stitch' : 'acct';
@@ -7784,9 +7836,25 @@
           /* «Не братиму» звідси пішло: Андрій вирішив, що відмовитись від
              роботи дизайнер не може — забрати її в нього може тільки
              акаунт-менеджер. Лишилась одна дія. */
+          /* Одна кнопка «Беру» на всю картку (20.10): на решті позицій —
+             підказка, що вони беруться разом із першою. */
+          : (x.job && (D.dzInQueue(d) || d.status === 'sent') && (function(){
+              var перша = U.unitsOf(x.job).filter(function(y){
+                if(!y || y.ready) return false;
+                var l = D.dzList(y, kind).filter(function(z){ return z && !z.readyMade; });
+                var z = l[l.length - 1];
+                return z && (D.dzInQueue(z) || z.status === 'sent'); })[0];
+              return перша && перша !== u; })())
+          ? '<div class="dz-w-take is-q"><span class="dz-w-q">Береться разом з позицією ' +
+              (U.unitsOf(x.job).filter(function(y){
+                if(!y || y.ready) return false;
+                var l = D.dzList(y, kind).filter(function(z){ return z && !z.readyMade; });
+                var z = l[l.length - 1];
+                return z && (D.dzInQueue(z) || z.status === 'sent'); }).map(function(y){ return U.unitsOf(x.job).indexOf(y) + 1; })[0]) +
+              ' — одна кнопка «Беру в роботу» на всю картку</span></div>'
           : D.dzInQueue(d)
           ? '<div class="dz-w-take is-q">' +
-              '<span class="dz-w-q">У черзі відділу — бере той, хто перший натисне</span>' +
+              '<span class="dz-w-q">У черзі відділу — бере той, хто перший натисне · уся картка разом</span>' +
               '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
               takeNoteHtml(м, kind) +
             '</div>'
@@ -7795,6 +7863,16 @@
               '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
               takeNoteHtml(м, kind) +
             '</div>'
+          : d.pend
+          /* Здано, але чекає решти позицій картки (20.10): менеджер побачить
+             усе разом. Переробити можна — нова здача замінить цю. */
+          ? '<div class="dz-ok is-wait">Здано · піде ' + (kind === 'stitch' ? 'у виробництво' : 'менеджеру') +
+              ' разом з іншими позиціями картки, щойно здасте їх' +
+              (function(){ var л = x.job ? D.dzPeers(x.job, u, kind).filter(function(y){
+                  return y.d.who === d.who && !y.d.pend && y.d.sentAt && y.d.status !== 'review' && y.d.status !== 'approved'; })
+                  .map(function(y){ return U.unitsOf(x.job).indexOf(y.u) + 1; }) : [];
+                return л.length ? ' · ще не здано: позиція ' + л.join(', ') : ''; })() + '</div>' +
+            (kind === 'stitch' ? stitchHandHtml(key) : handHtml(u, d, key))
           : (kind === 'stitch' ? stitchHandHtml(key) : handHtml(u, d, key)))) +
       /* НАДІСЛАНІ ВЕРСІЇ — ОДРАЗУ ПІД ЗДАЧЕЮ.
 
@@ -9965,23 +10043,37 @@
         var who = String(el.value || '');
         var хтоЯ = (host().me && host().me()) || '';
         delete U.SWAP[String(el.dataset.dzwho)];
-        /* Робота вже передана — це «забрати або віддати іншому»: з подією
-           в розмові й новим відліком строку. */
-        if(d.sentAt && who){
-          var доЧерги = who === '@queue';
-          if(доЧерги && d.pool && !d.who) return render(root);
-          if(!доЧерги && who === d.who) return render(root);
-          D.dzRecall(d, хтоЯ, доЧерги ? '' : who, доЧерги ? U.whoName(d.who) : U.whoName(who));
-          return save(c.job, c.o, доЧерги ? 'Повернуто в чергу відділу' : 'Передано · ' + U.whoName(who));
-        }
-        if(who === '@queue'){
-          d.who = ''; d.pool = true;
-          return save(c.job, c.o, 'Черга відділу');
-        }
-        if(!who){ d.who = ''; d.pool = false; return save(c.job, c.o, 'Дизайнера знято'); }
-        d.pool = false;
-        D.dzAttach(d, who, хтоЯ, U.whoName(who));
-        save(c.job, c.o, U.whoName(who));
+        var одна = function(d){
+          /* Робота вже передана — це «забрати або віддати іншому»: з подією
+             в розмові й новим відліком строку. */
+          if(d.sentAt && who){
+            if(d.status === 'approved') return '';
+            var доЧерги = who === '@queue';
+            if(доЧерги && d.pool && !d.who) return '';
+            if(!доЧерги && who === d.who) return '';
+            D.dzRecall(d, хтоЯ, доЧерги ? '' : who, доЧерги ? U.whoName(d.who) : U.whoName(who));
+            return доЧерги ? 'Повернуто в чергу відділу' : 'Передано · ' + U.whoName(who);
+          }
+          if(who === '@queue'){ d.who = ''; d.pool = true; return 'Черга відділу'; }
+          if(!who){ d.who = ''; d.pool = false; return 'Дизайнера знято'; }
+          if(d.who === who) return '';
+          d.pool = false;
+          D.dzAttach(d, who, хтоЯ, U.whoName(who));
+          return U.whoName(who);
+        };
+        var напис = одна(d);
+        /* ВСЯ КАРТКА — ОДНОМУ ДИЗАЙНЕРУ (20.10): обрали на одній позиції —
+           те саме на всіх, що йдуть через дизайнера цього виду. Графіку, якої
+           в позиції ще немає, заводимо; вишивку — лише де вона вже є. */
+        var ще = 0;
+        if(k === 'graphic' && who) U.unitsOf(c.job).forEach(function(x){
+          if(!x || x === u || x.ready) return;
+          if(D.dzList(x, 'graphic').some(function(y){ return y && !y.readyMade; })) return;
+          D.dzList(x, 'graphic').push(D.dzNew());
+        });
+        D.dzPeers(c.job, u, k).forEach(function(x){ if(одна(x.d)) ще++; });
+        if(!напис && !ще) return render(root);
+        save(c.job, c.o, (напис || U.whoName(who)) + (ще ? ' · уся картка (' + (ще + 1) + ' позиції)' : ''));
       };
     });
     root.querySelectorAll('[data-jf]').forEach(function(el){
@@ -11526,10 +11618,12 @@
           var взяв = D.dzClaim(dd, m);
           if(взяв && взяв.taken){ render(root); return say('Уже взяв(ла) ' + U.whoName(взяв.taken)); }
           if(!взяв) return;
-          return save(job, o, 'Взяли з черги в роботу');
+          var разом1 = takePeers(job, du, dk, m);
+          return save(job, o, 'Взяли з черги в роботу' + (разом1 ? ' · уся картка (' + (разом1 + 1) + ' позиції)' : ''));
         }
         D.dzTake(dd, m);
-        return save(job, o, 'Взяли в роботу');
+        var разом2 = takePeers(job, du, dk, m);
+        return save(job, o, 'Взяли в роботу' + (разом2 ? ' · уся картка (' + (разом2 + 1) + ' позиції)' : ''));
       }
       if(what === 'dz-no'){
         var чому = '';
@@ -11568,16 +11662,21 @@
       /* ЗДАТИ ВИШИВКУ: файл для машини й скрін із Wilcom — маленьким вікном. */
       if(what === 'dz-stitch-up'){
         return stitchUpOpen(async function(res){
-          D.dzVer(dd, m,
-            (res.files || []).map(function(f){ return Object.assign({}, f, { role:'machine' }); })
-              .concat((res.shots || []).map(function(f){ return Object.assign({}, f, { role:'shot' }); })),
-            res.note || '', null, 'stitch');
           /* ПЕРЕВІРКИ В B2C ПОКИ НЕМАЄ. Андрій: «як тільки вишивальник
              зробив роботу, одразу ці файли йдуть на виробництво». Здача і є
              готовність: статус міняється в менеджера, у вишивальника й у
-             цеху одночасно. */
-          D.dzOk(dd, m, 'auto', dd.vers.length);
-          D.dzSeen(dd, m, 'stitch');
+             цеху одночасно — для всієї картки разом (20.10). */
+          var зс = D.dzSubmit(job, du, dd, 'stitch', m, {
+            files: (res.files || []).map(function(f){ return Object.assign({}, f, { role:'machine' }); })
+              .concat((res.shots || []).map(function(f){ return Object.assign({}, f, { role:'shot' }); })),
+            note: res.note || '', place: null, role: 'stitch' }, function(su, sd){
+              D.dzOk(sd, m, 'auto', sd.vers.length);
+              D.dzSeen(sd, m, 'stitch');
+            });
+          if(зс && зс.held){
+            await save(job, o, 'Вишивку здано · піде у виробництво разом із позиціями ' + зс.left.join(', '));
+            return;
+          }
           await save(job, o, 'Вишивку здано — файли пішли у виробництво');
         });
       }
@@ -11617,11 +11716,14 @@
             var файли = зібр.files;
             var hEl2 = document.querySelector('[data-dzsay="' + dkey + '"]');
             var hTxt2 = hEl2 ? String(hEl2.value || '').trim() : '';
-            D.dzVer(dd, m, файли, hTxt2, зібр.place, dk);
-            dd.status = 'review';
+            var зд = D.dzSubmit(job, du, dd, dk, m, { files: файли, note: hTxt2, place: зібр.place, role: dk });
             dd.draft = null;
             if(hEl2) hEl2.value = '';
-            await save(job, o, 'Надіслано · ' + res.нанесень + ' нанесень');
+            if(зд && зд.held){
+              await save(job, o, 'Здано · піде менеджеру разом із позиціями ' + зд.left.join(', '));
+              return;
+            }
+            await save(job, o, 'Надіслано · ' + res.нанесень + ' нанесень' + (зд && зд.flushed > 1 ? ' · уся картка (' + зд.flushed + ' позиції)' : ''));
             /* Той самий ескіз на інших товарах (18.10) — розміщення слідом. */
             if(dk === 'graphic' && D.linksOf(job, du).length)
               linkChain(job, o, du, function(){ say('Ескіз розміщено на всіх товарах — версія на перевірці'); });
@@ -11700,11 +11802,11 @@
           if(f.orig && f.orig.url) awF.push({ name: f.orig.name || 'оригінал', url: f.orig.url, role:'orig' });
           if(f.svg && f.svg.url) awF.push({ name: f.svg.name, url: f.svg.url, role:'svg' });
         });
-        D.dzVer(dd, m, awF,
-          awTxt, { works: aw.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '', threads: f.threads || [] }; }),
-                   threads: threadsUnion(aw), spots: [], нанесень: 0, робіт: aw.length }, dk);
-        dd.status = 'review';
+        var зд0 = D.dzSubmit(job, du, dd, dk, m, { files: awF, note: awTxt, role: dk,
+          place: { works: aw.map(function(f){ return { name: f.name || '', url: f.url, hash: f.hash || '', threads: f.threads || [] }; }),
+                   threads: threadsUnion(aw), spots: [], нанесень: 0, робіт: aw.length } });
         if(awEl) awEl.value = '';
+        if(зд0 && зд0.held) return save(job, o, 'Здано · піде менеджеру разом із позиціями ' + зд0.left.join(', '));
         return save(job, o, 'Надіслано · робота без мокапу (виріб ще не обрано)');
       }
       if(what === 'dz-mock'){
