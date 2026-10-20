@@ -961,10 +961,16 @@ function crmOutId(res){
   const v = d && (d.id || d.messageId || d.message_id || d.uuid);
   return (v == null || v === '') ? '' : String(v);
 }
-function crmOutSent(o, res){
+/* `pic` — це відправка КАРТИНКИ (20.10). Без номера від Sitniks лише така
+   відправка має право забрати собі вкладення зі стрічки за часом. Текст,
+   надісланий без номера, вкладень не забирає: доти він забирав, і фото
+   клієнта, що прийшло в ту саму хвилину, ставало «нашим». */
+function crmOutSent(o, res, pic){
   if(!o) return '';
   const id = crmOutId(res);
-  crmOutPush(o, { t: id ? ('#' + id) : ('@' + Date.now()), by: myName() });
+  const rec = { t: id ? ('#' + id) : ('@' + Date.now()), by: myName() };
+  if(pic && !id) rec.f = 1;
+  crmOutPush(o, rec);
   return id;
 }
 function crmOutOwn(o, m, files, заЧасом){
@@ -990,7 +996,7 @@ function crmOutTimePick(o, arr){
   /* Одна відправка може лежати в памʼяті двічі (копія картки й жива) —
      рахуємо її один раз, інакше вона «забирала» б два фото. */
   const було = {};
-  const list = crmOutList(o).filter(r => r && String(r.t).charAt(0) === '@' && !було[r.t] && (було[r.t] = 1));
+  const list = crmOutList(o).filter(r => r && r.f && String(r.t).charAt(0) === '@' && !було[r.t] && (було[r.t] = 1));
   if(!list.length || !Array.isArray(arr)) return out;
   const peer = crmPeerKeys(o);
   const ids = {};
@@ -1780,7 +1786,7 @@ async function crmSendPic(o, url, blob, local){
     /* Чим упізнати цю картинку в стрічці: відповідь тримає номер
        створеного повідомлення. Адреси Cloudinary тут марні — Sitniks їх не
        переказує (див. crmOutOwn). */
-    const mid = crmOutSent(o, res);
+    const mid = crmOutSent(o, res, true);
     /* Фото — у стрічку одразу, не чекаючи, поки Sitniks його поверне. */
     const rec = (crmOutList(o) || []).slice(-1)[0];
     const e = local || crmPicsAdd(o, urls, 'pending');

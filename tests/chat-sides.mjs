@@ -302,6 +302,27 @@ ok(back.by && back.by.length > 0,
   'підпис загубився після перечитування');
 
 console.log('');
+console.log('═══ ТЕКСТ БЕЗ НОМЕРА НЕ ЗАБИРАЄ ФОТО КЛІЄНТА (20.10) ═══');
+/* Андрій: «клієнт відправляє фотку — читається, як будто це ми відправили».
+   Наш текст, на який Sitniks не повернув номера, лежав у памʼяті як
+   відправка «за часом» і забирав собі найближче вкладення — фото клієнта
+   в ту саму хвилину. Тепер за часом забирає лише відправка картинки. */
+const фото = await p.evaluate(() => {
+  const o = orders[0];
+  const now = Date.now();
+  crmOutSent(o, {});                       // текст, Sitniks без номера
+  const a = crmNormMsgs([{ id:'c1', createdAt: new Date(now + 20000).toISOString(),
+    attachments:[{ mediaType:'image', mediaUrl:'https://lookaside.fbsbx.com/ig/x1' }] }], o)[0] || {};
+  crmOutSent(o, {}, true);                 // наша картинка без номера
+  const b = crmNormMsgs([{ id:'c2', createdAt: new Date(now + 40000).toISOString(),
+    attachments:[{ mediaType:'image', mediaUrl:'https://lookaside.fbsbx.com/ig/x2' }] }], o)[0] || {};
+  return { текст: !!a.mine, картинка: !!b.mine };
+});
+console.log('  ' + JSON.stringify(фото));
+ok(!фото.текст, 'фото клієнта в ту саму хвилину, що й наш текст без номера, — ліворуч', JSON.stringify(фото));
+ok(фото.картинка, 'а після нашої картинки без номера найближче вкладення — праворуч, як і було', JSON.stringify(фото));
+
+console.log('');
 console.log('═══ СИРА ВІДПОВІДЬ — ЛИШЕ ДЛЯ НАЛАШТУВАННЯ ═══');
 const raw = await p.evaluate(async () => {
   const b = document.querySelector('[data-cw-raw]');
