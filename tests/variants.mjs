@@ -314,6 +314,61 @@ ok(крок5.зона && крок5.art === 'https://f/робота.png',
   'у панелі графічного дизайнера — «Варіанти на кількох виробах»; на варіант іде його робота з останньої версії',
   JSON.stringify(крок5));
 
+console.log('═══ 6. ДИЗАЙНЕР ЗДАЄ ВАРІАНТИ МЕНЕДЖЕРУ, КЛІЄНТУ — ЛИШЕ МЕНЕДЖЕР (20.10) ═══');
+const крок6 = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  document.querySelectorAll('.dz-cl, .dz-pick, .mko-wrap').forEach(x => x.remove());
+  const j = designJobs['2000103'], u = j.units[0];
+  const d = D.dzList(u, 'graphic')[0];
+  /* Два розміщені варіанти. */
+  u.variants = { list: [{ n:1, gid:'tee', name:'Футболка', color:'Білий', mock:'https://m/v1.png' }, { n:2, gid:'tee', name:'Футболка', color:'Чорний', mock:'https://m/v2.png' }] };
+  const root = document.getElementById('dzRoot');
+  U.setTab('graphic'); U.open('2000103'); U.render(root);
+  await new Promise(r => setTimeout(r, 300));
+  const кнопки = { клієнту: !!document.querySelector('.dz-panel [data-do="u-var-send"]'),
+                   менеджеру: !!document.querySelector('.dz-panel [data-do="u-var-hand"]'),
+                   обрав: !!document.querySelector('.dz-panel [data-do="u-var-pick"]') };
+  if(!кнопки.менеджеру) return { кнопки, html: ((document.querySelector('.dz-panel .dz-var') || {}).outerHTML || 'немає .dz-var').slice(0, 600), d: { st: d.status, v: d.vers.length, pend: !!d.pend } };
+  window.LQMock.variantsCard = async () => 'data:image/png;base64,iVBORw0KGgo=';
+  U.host.upload = async () => 'https://res/варіанти.png';
+  let клієнту = 0; U.host.tellPic = async () => { клієнту++; return true; };
+  const вер0 = d.vers.length;
+  document.querySelector('.dz-panel [data-do="u-var-hand"]').click();
+  for(let k = 0; k < 30 && d.vers.length === вер0; k++) await new Promise(r => setTimeout(r, 100));
+  const lv = d.vers[d.vers.length - 1];
+  U.render(root); await new Promise(r => setTimeout(r, 200));
+  const після = { нова: d.vers.length === вер0 + 1, стан: d.status, vars: !!(D.verParts(lv).vars), ескіз: D.verParts(lv).work.length,
+                  клієнту, закрито: !document.querySelector('.dz-panel [data-do="u-var-hand"]') && /Здано менеджеру/.test((document.querySelector('.dz-panel .dz-var') || {}).textContent || '') };
+  /* Менеджер: «Надіслати клієнту» — аркуш ескіза, потім картка варіантів, одним надсиланням. */
+  const пішло = [];
+  U.host.tellPic = async (o, url, txt) => { пішло.push({ url, txt }); return true; };
+  lv.files.push({ name:'аркуш-v' + lv.n + '.png', url:'https://res/аркуш.png', role:'sheet', v: 99 });
+  contentData.team = (contentData.team || []).map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
+  U.setTab('acct'); U.open('2000103'); U.render(root);
+  const сказано = []; const s0 = U.say; U.say = t => { сказано.push(t); try{ return s0 && s0(t); }catch(e){} };
+  let fin = 'чекає';
+  const go = U.act('dz-tell', root, { dz: u.id + '|graphic|0', v: lv.n }).then(() => { fin = 'завершилось'; }, e => { fin = 'помилка ' + e.message; });
+  for(let k = 0; k < 30 && !document.querySelector('.dz-cf [data-cf="yes"]'); k++) await new Promise(r => setTimeout(r, 100));
+  if(!document.querySelector('.dz-cf [data-cf="yes"]')) return { кнопки, після, err: 'вікно не відкрилось', fin, сказано, toast: (document.querySelector('#toast, .toast') || {}).textContent || '' };
+  const вікно = [...document.querySelectorAll('.dz-cf .dz-cf-i')].map(i => i.getAttribute('src'));
+  const текст = (document.querySelector('.dz-cf .dz-cf-t') || {}).value || '';
+  document.querySelector('.dz-cf [data-cf="yes"]').click();
+  await go;
+  return { кнопки, після, вікно: вікно.map(decodeURIComponent), текст, пішло: пішло.map(x => decodeURIComponent(x.url)) };
+});
+console.log('  ' + JSON.stringify(крок6));
+if(!крок6.після){ bad++; console.log('  ✗ немає кнопки здачі'); }
+else {
+ok(!крок6.кнопки.клієнту && крок6.кнопки.менеджеру && !крок6.кнопки.обрав,
+  'у дизайнера — лише «Здати менеджеру», ні «Надіслати клієнту», ні «Клієнт обрав»', JSON.stringify(крок6.кнопки));
+ok(крок6.після.нова && крок6.після.стан === 'review' && крок6.після.vars && крок6.після.ескіз > 0 && крок6.після.клієнту === 0 && крок6.після.закрито,
+  'здав — нова версія (ескіз + картка варіантів) на перевірці, клієнту нічого, зона закрита', JSON.stringify(крок6.після));
+ok(крок6.вікно.length === 2 && /аркуш/.test(крок6.вікно[0]) && /варіанти/.test(крок6.вікно[1]) && /номер/.test(крок6.текст),
+  'менеджер: у вікні першим — аркуш ескіза, другим — варіанти; у тексті просимо номер', JSON.stringify(крок6));
+ok(крок6.пішло.length === 2 && /аркуш/.test(крок6.пішло[0]) && /варіанти/.test(крок6.пішло[1]),
+  'клієнту пішло: ескіз, потім варіанти', JSON.stringify(крок6.пішло));
+}
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
 await browser.close(); srv.close();
