@@ -10618,15 +10618,25 @@
   function varLabel(v){
     return [(U.catItem(v.gid) || {}).name || v.name || 'виріб', v.color].filter(Boolean).join(' · ');
   }
+  /* Напис на картці варіантів і текст до них — із заготовок (20.10). */
+  function varCardText(job){
+    var o = (U.pairOf(job && job.orderId) || {}).o || {};
+    try{ return (host().scriptCard && host().scriptCard(o)) || { title: '', note: '' }; }catch(e){ return { title: '', note: '' }; }
+  }
+  function varText(o, u){
+    var list = U.varsOf(u).map(function(v){ return { n: v.n, label: varLabel(v) }; });
+    try{ return (host().script && host().script(o, 'vars', { list: list })) || ''; }catch(e){ return ''; }
+  }
   /* Зібрати картку варіантів і покласти в сховище. */
   async function varCard(job, u){
     var l = U.varsOf(u);
     if(!window.LQMock || !window.LQMock.variantsCard){ say('Картка варіантів не завантажилась'); return null; }
     say('Збираю картку варіантів…');
+    var напис = varCardText(job);
     var png = await window.LQMock.variantsCard({
-      title: 'Варіанти на вибір', no: U.unitNo(job, u),
+      title: напис.title, no: U.unitNo(job, u),
       items: l.map(function(v){ return { n: v.n, img: v.mock, label: varLabel(v) }; }),
-      note: 'Напишіть номер варіанта, який подобається більше'
+      note: напис.note
     });
     if(!png){ say('Картка варіантів не зібралась'); return null; }
     var up = await uploadDataUrl(png, 'варіанти-' + U.unitNo(job, u) + '.png');
@@ -10658,19 +10668,12 @@
     if(l.length < 2 || l.some(function(v){ return !v.mock; })) return say('Розмістіть дизайн на всіх варіантах (щонайменше 2)');
     if(!window.LQMock || !window.LQMock.variantsCard) return say('Картка варіантів не завантажилась');
     say('Збираю картку варіантів…');
-    var png = await window.LQMock.variantsCard({
-      title: 'Варіанти на вибір', no: U.unitNo(job, u),
-      items: l.map(function(v){ return { n: v.n, img: v.mock, label: varLabel(v) }; }),
-      note: 'Напишіть номер варіанта, який подобається більше'
-    });
-    if(!png) return say('Картка варіантів не зібралась');
-    var up = await uploadDataUrl(png, 'варіанти-' + U.unitNo(job, u) + '.png');
-    if(!up || !up.url) return say('Картка не зберіглась у сховищі');
+    var up = await varCard(job, u);
+    if(!up) return;
     u.variants.sheet = up.url; u.variants.sheetAt = new Date().toISOString();
     await save(job, o, '');
     if(!host().tellPic) return say('Картку зібрано — надіслати звідси не вийшло, скачайте її');
-    var txt = 'Підготували кілька варіантів — напишіть, будь ласка, номер, який подобається більше:\n' +
-      l.map(function(v){ return v.n + ' — ' + varLabel(v); }).join('\n');
+    var txt = varText(o, u);
     var ok = false;
     try{ ok = await host().tellPic(o, up.url, txt); }catch(e){ console.warn('варіанти', e); }
     return say(ok ? 'Картку варіантів 1–' + l.length + ' надіслано клієнту' : 'Картку зібрано, але не надіслано — спробуйте ще раз');
@@ -12299,9 +12302,9 @@
         var варі = D.verParts(tv).vars;
         if(варі && варі.url){
           дод.unshift({ u: du, d: dd, v: tv, url: варі.url, vars: true });
-          var лv = U.varsOf(du);
-          txt = (txt ? txt + '\n\n' : '') + 'Підготували кілька варіантів — напишіть, будь ласка, номер, який подобається більше:\n' +
-            лv.map(function(v){ return v.n + ' — ' + varLabel(v); }).join('\n');
+          /* Ескіз із варіантами — свій текст із заготовок «Варіанти на вибір». */
+          txt = varText(o, du) || txt;
+          ключСкр = 'vars';
         }
         var тов = дод.filter(function(x){ return !x.vars; }).length;
         var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n +
@@ -12528,11 +12531,10 @@
          побачити. Доти «Надіслано клієнту» означало «менеджер тепер має
          піти й надіслати» — і половину разів це «потім» тривало день. */
       var vc = D.verCur(o), pic = U.verPic(vc);
-      var txt = 'Макет за замовленням №' + (o.orderId || '') +
-                (vc ? ' (версія ' + vc.n + ')' : '') + '.' +
-                (pic ? '\n' + pic : '') +
-                '\nПодивіться, будь ласка: якщо все добре — запускаємо, ' +
-                'якщо треба щось змінити, напишіть що саме.';
+      /* Текст — із заготовок (20.10), як і в «Показати клієнту». */
+      var txt = '';
+      try{ txt = (U.host.script && U.host.script(o, (vc && vc.n > 1) ? 'design2' : 'design1', { v: vc ? vc.n : 1 })) || ''; }catch(e){}
+      txt = txt + (pic ? '\n' + pic : '');
       if(U.host.tell) U.host.tell(o, txt);
       return save(job, o, 'Надіслано клієнту');
     }
