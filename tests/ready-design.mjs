@@ -375,6 +375,56 @@ const плитка = await p.evaluate(() => {
 ok(/AIAAAP/.test(плитка) || /^l$/.test(плитка), 'плитка індивідуальної позиції — картинка з ТЗ (а після ескізу — ескіз), не фото одягу', плитка.slice(0, 60));
 
 console.log('');
+console.log('═══ 7. БАЗОВИЙ ДИЗАЙН З ПРАВКАМИ (20.10) ═══');
+const баз = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, D = window.LQDesign;
+  const j = designJobs['2000103'], o = orders.find(x => x.orderId === '2000103');
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Білий', size:'L', qty:1 });
+  j.units.push(u);
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const крт = document.querySelector('#dzRoot [data-open="2000103"]');
+  if(!крт) return { err: 'немає картки', є: [...document.querySelectorAll('#dzRoot [data-open]')].map(x => x.dataset.open), роль: (contentData.team || []).map(x => x.role) };
+  крт.click();
+  await new Promise(r => setTimeout(r, 400));
+  const кн = document.querySelector('.dz-panel [data-do="u-base-pick"][data-u="' + u.id + '"]');
+  if(!кн) return { err: 'немає кнопки «Базовий з правками»' };
+  const назваКн = кн.textContent;
+  кн.click();
+  await new Promise(r => setTimeout(r, 300));
+  document.querySelector('.dz-rdp [data-rdp-look="rd2"]').click();
+  await new Promise(r => setTimeout(r, 100));
+  document.querySelector('.dz-rdp [data-rdp-ok]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const ta = document.querySelector('.dz-fixw .dz-fix-t');
+  if(!ta) return { err: 'немає поля «що змінити»', назваКн };
+  ta.value = 'Додати напис «Олена 2025» під котиком';
+  document.querySelector('.dz-fixw [data-fix-go]').click();
+  await new Promise(r => setTimeout(r, 800));
+  const рядок = U.sumRows(j).filter(x => x.design === 'базовий з правками')[0] || null;
+  const html = U.unitsHtml(j, { o });
+  const handable = D.dzHandable(j, o);
+  D.dzHandOver(j, o, 'test@loomiq');
+  const черга = D.dzList(u, 'graphic').some(d => D.dzInQueue(d));
+  U.setTab('graphic'); U.render(document.getElementById('dzRoot'));
+  const уГраф = !!document.querySelector('#dzRoot [data-open="2000103"]');
+  if(уГраф){ document.querySelector('#dzRoot [data-open="2000103"]').click(); await new Promise(r => setTimeout(r, 400)); }
+  const панель = (document.querySelector('.dz-panel') || {}).textContent || '';
+  const дизБачить = /Основа · Котик/.test(панель) && /Олена 2025/.test(панель);
+  return { назваКн, base: u.base && u.base.name, note: u.base && u.base.note, ready: !!u.ready,
+           dst: u.base && u.base.files.length, ціна: рядок && рядок.price, kind: u.priceKind,
+           основа: /Основа · Котик/.test(html) && /Олена 2025/.test(html), handable, черга, уГраф, дизБачить };
+});
+console.log('  ' + JSON.stringify(баз));
+ok(/Базовий з правками/.test(баз.назваКн || ''), 'у перемикачі — кнопка «Базовий з правками»', JSON.stringify(баз));
+ok(баз.base === 'Котик' && /Олена 2025/.test(баз.note || '') && !баз.ready && баз.dst === 1,
+  'обрали «Котик» з бібліотеки, вписали правку — основа з DST у позиції, позиція не «готова»', JSON.stringify(баз));
+ok(баз.ціна === 450 && баз.kind === 'ready', 'ціна клієнту — як у готового дизайну (450, не 600)', JSON.stringify(баз));
+ok(баз.основа, 'у картці — «Основа · Котик» і текст правки', JSON.stringify(баз));
+ok(баз.handable > 0 && баз.черга && баз.уГраф, 'без «типу малюнка» йде графічному дизайнеру в чергу, як індивідуальний', JSON.stringify(баз));
+ok(баз.дизБачить, 'дизайнер у своїй картці бачить основу «Котик» і що змінити — шукати нічого не треба', JSON.stringify(баз));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
 await browser.close(); srv.close();

@@ -1002,6 +1002,7 @@
     if(!u) return false;
     var b = (job && job.brief) || {};
     return !!(String(u.note || '').trim() || (u.pics || []).length ||
+              (u.base && String(u.base.note || '').trim()) ||
               String(b.text || '').trim() || (b.pics || []).length);
   }
   /* Що робиться саме при кожному збереженні: лише вишивка після
@@ -1053,7 +1054,7 @@
      малюнок, портрет, портрет улюбленця… Позначка для дизайнера й
      аналітики, і без неї позиція в роботу не йде. */
   function kindMissing(u, o){
-    return !!(o && o.dir === 'b2c' && u && !u.ready && !String(u.artKind || '').trim());
+    return !!(o && o.dir === 'b2c' && u && !u.ready && !u.base && !String(u.artKind || '').trim());
   }
   function handMissing(job, o){
     var out = [];
@@ -1568,6 +1569,7 @@
   function readyAttach(u, rd){
     if(!u || !rd) return null;
     var arts = readyFiles(readyArts(rd), 'принт.png');
+    delete u.base;
     u.ready = { id: String(rd.id || ''), name: String(rd.name || ''), pic: String(rd.pic || ''),
                 art: arts[0] || null, arts: arts,
                 files: readyFiles(rd.files, 'файл'),
@@ -1575,6 +1577,24 @@
                 extras: readyFiles(rd.extras, 'файл'),
                 at: nowIso() };
     return u.ready;
+  }
+  /* БАЗОВИЙ ДИЗАЙН З ПРАВКАМИ (Андрій, 20.10): дизайн з бібліотеки за
+     основу + правка («додати напис, дату…»). Позиція лишається
+     ІНДИВІДУАЛЬНОЮ — іде графічному дизайнеру в чергу, далі вишивальному,
+     як звичайно; `u.base` — лише основа, щоб дизайнер нічого не шукав.
+     Ціна клієнту поки — як у готового дизайну. */
+  function baseAttach(u, rd, note, file){
+    if(!u || !rd) return null;
+    var arts = readyFiles(readyArts(rd), 'принт.png');
+    delete u.ready;
+    delete u.artKind; delete u.artKindName;
+    u.base = { id: String(rd.id || ''), name: String(rd.name || ''), pic: String(rd.pic || ''),
+               art: arts[0] || null, arts: arts,
+               files: readyFiles(rd.files, 'файл'), extras: readyFiles(rd.extras, 'файл'),
+               note: String(note || '').trim(),
+               noteFile: (file && file.url) ? { name: String(file.name || 'файл'), url: String(file.url) } : null,
+               at: nowIso() };
+    return u.base;
   }
   /* ГОТОВИЙ ДИЗАЙН ОНОВИЛИ В БІБЛІОТЦІ — ОНОВЛЮЄТЬСЯ Й У ЗАМОВЛЕННЯХ (20.10,
      Андрій: «змінив файли DST — щоб на виробництві бачили вже оновлені, а
@@ -1616,6 +1636,7 @@
     if(!u) return null;
     var f = from || {};
     var arts = readyFiles(f.arts, 'принт.png');
+    delete u.base;
     u.ready = { id: 'repeat', repeat: true, name: 'Повторний' + (f.fromNo ? ' · з ' + f.fromNo : ''),
                 pic: (arts[0] && arts[0].url) || '', art: arts[0] || null, arts: arts,
                 files: readyFiles(f.files, 'файл'), extras: readyFiles(f.extras, 'файл'),
@@ -1753,6 +1774,7 @@
   function linkAttach(u, main){
     if(!u || !main) return null;
     var arts = linkArts(main);
+    delete u.base;
     u.ready = { id: 'link', link: String(main.id), name: 'Той самий ескіз',
                 pic: (arts[0] && arts[0].url) || '', art: arts[0] || null, arts: arts,
                 files: [], extras: [], at: nowIso() };
@@ -2721,7 +2743,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
+    readyAttach: readyAttach, baseAttach: baseAttach, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -3431,23 +3453,25 @@
      Вікно лягає поверх картки, приймає текст і, якщо треба, файл — клієнти
      часто присилають «ось так має бути» картинкою, і переказувати її
      словами означає переказати не так. */
-  function fixOpen(onSend){
+  function fixOpen(onSend, opt){
+    opt = opt || {};
     pickClose();
     var el = document.createElement('div');
     el.className = 'dz-pick dz-fixw';
     el.innerHTML = '<div class="dz-fix-w">' +
-      '<div class="dz-fix-h"><b>Що поміняти</b>' +
+      '<div class="dz-fix-h"><b>' + esc(opt.title || 'Що поміняти') + '</b>' +
         '<button class="dz-x" data-fix-x>×</button></div>' +
       '<textarea class="dz-fix-t" rows="4" placeholder="Словами клієнта — так, ' +
         'як він написав. Переказ своїми словами дизайнер зрозуміє інакше."></textarea>' +
       '<div class="dz-fix-f"><span data-fix-name></span></div>' +
       '<div class="dz-fix-b">' +
         '<button class="dz-b" data-fix-file>⤒ Файл</button>' +
-        '<button class="dz-b pri" data-fix-go>Надіслати правку</button>' +
+        '<button class="dz-b pri" data-fix-go>' + esc(opt.go || 'Надіслати правку') + '</button>' +
       '</div>' +
     '</div>';
     var файл = null;
     var ta = el.querySelector('.dz-fix-t');
+    if(opt.text) ta.value = opt.text;
     var закрити = function(){
       document.removeEventListener('keydown', esk, true);
       if(el.parentNode) el.parentNode.removeChild(el);
@@ -4592,7 +4616,7 @@
   }
   function artKindHtml(u, ro, opt){
     var o = (opt && opt.o) || null;
-    if(!(o && o.dir === 'b2c') || u.ready) return '';
+    if(!(o && o.dir === 'b2c') || u.ready || u.base) return '';
     if(ro) return u.artKind ? '<div class="dz-u-kind is-ro"><i>Тип малюнка</i>' + esc(u.artKindName || u.artKind) + '</div>' : '';
     var l = artKindsOf().filter(function(k){ return !k.off || k.id === u.artKind; });
     if(u.artKind && !l.some(function(k){ return k.id === u.artKind; }))
@@ -4617,6 +4641,7 @@
     }
     var пов = !!(u.ready && u.ready.repeat);
     var гот = !!u.ready && !пов;
+    var баз = !u.ready && !!u.base;
     var зПогодж = !!u.ready && dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
     var зІнд = !u.ready && dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; });
     /* Власник перемикає завжди (19.10) — з підтвердженням у самій дії. */
@@ -4624,21 +4649,47 @@
     var закр = власник ? ((зПогодж || зІнд) ? ' title="Власник: перемкнути можна й у роботі — спитаємо підтвердження"' : '')
       : зПогодж ? ' disabled title="Дизайн уже погоджено"' : зІнд ? ' disabled title="Позицію вже передали графічному дизайнеру"' : '';
     return '<div class="dz-kind' + (власник && (зПогодж || зІнд) ? ' is-force' : '') + '">' +
-      '<button type="button" class="dz-kind-b' + (u.ready ? '' : ' on') + '" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
+      '<button type="button" class="dz-kind-b' + ((u.ready || баз) ? '' : ' on') + '" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
         (зПогодж && !власник ? ' disabled title="Дизайн уже погоджено"' : '') + '>Індивідуальний</button>' +
       '<button type="button" class="dz-kind-b' + (гот ? ' on' : '') + '" data-do="u-ready-pick" data-u="' + esc(u.id) + '"' +
         (гот ? '' : закр) + '>Готовий дизайн</button>' +
       '<button type="button" class="dz-kind-b' + (пов ? ' on' : '') + '" data-do="u-repeat" data-u="' + esc(u.id) + '"' +
         (пов ? '' : закр) + ' title="Дизайн, який ми вже робили: свої DST і принти — без дизайнерів">Повторний</button>' +
+      '<button type="button" class="dz-kind-b' + (баз ? ' on' : '') + '" data-do="u-base-pick" data-u="' + esc(u.id) + '"' +
+        (баз ? '' : (u.ready ? закр : '')) + ' title="Дизайн з бібліотеки за основу + правка (напис, дата…): іде дизайнерам, ціна — як у готового">Базовий з правками</button>' +
     '</div>';
+  }
+  /* Основа «Базового з правками» (20.10): що взяли з бібліотеки й що змінити.
+     Менеджер може поправити текст правки й змінити основу, поки дизайнер не
+     взявся; дизайнеру — те саме лише для читання, з файлами для скачування. */
+  function baseHtml(job, u, ro){
+    var b = u.base || {};
+    var взяли = kindBusyU(u);
+    return '<div class="dz-ready is-base">' +
+      '<div class="dz-ready-h">' +
+        (b.pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(b.pic) + '"><img src="' + esc(b.pic) + '" alt=""></button>' : '') +
+        '<span class="dz-ready-t"><b>Основа · ' + esc(b.name || 'базовий дизайн') + '</b>' +
+          '<i>базовий дизайн з правками · іде графічному дизайнеру, далі вишивальному</i></span>' +
+        ((!ro && !взяли) ? '<button type="button" class="dz-b" data-do="u-base-pick" data-u="' + esc(u.id) + '">Змінити основу</button>' : '') +
+      '</div>' +
+      '<div class="dz-w-note dz-base-note"><i>Що змінити</i>' + (b.note ? esc(b.note) : '<b class="dz-need-t">не написано — дизайнеру нема з чого починати</b>') +
+        (b.noteFile ? ' · <a href="' + esc(b.noteFile.url) + '" target="_blank" rel="noopener">' + esc(b.noteFile.name || 'файл') + '</a>' : '') +
+        (ro ? '' : ' <button type="button" class="dz-b" data-do="u-base-note" data-u="' + esc(u.id) + '">✎</button>') + '</div>' +
+      repeatFilesHtml(u, true, job, b) +
+    '</div>';
+  }
+  function kindBusyU(u){
+    return dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; }) ||
+           dzList(u, 'stitch').some(D.dzReal);
   }
   /* Файли «Повторного»: три списки з «+» і «×». Після вишивки (позиція в
      цеху) — лише читаються. */
-  function repeatFilesHtml(u, ro, job){
+  function repeatFilesHtml(u, ro, job, src){
     /* ТРИ ПЛИТКИ В РЯД (16.10): «Принти · DST · Додатково» поруч, а не
-       списками один під одним — блок не розтягується на пів картки. */
-    var r = u.ready || {};
-    var лок = ro || D.dzList(u, 'stitch').length > 0;
+       списками один під одним — блок не розтягується на пів картки.
+       `src` — чужий набір файлів лише для читання (основа «з правками»). */
+    var r = src || u.ready || {};
+    var лок = !!src || ro || D.dzList(u, 'stitch').length > 0;
     var основа = dlBase(job ? unitNo(job, u) : '', null);
     var СУФ = { arts: 'принт', files: '', extras: 'дод' };
     var плитка = function(k, назва, img){
@@ -5020,6 +5071,7 @@
       /* Індивідуальний чи готовий (13.10). Дизайнер свою половину бачить як
          раніше — перемикача в нього немає. */
       ((ro || only) ? '' : designKindHtml(u, job)) +
+      ((u.base && !u.ready && !only) ? baseHtml(job, u, ro) : '') +
       (u.ready && !only ? readyHtml(job, u, ro, opt) :
       /* Яку половину тримаємо відкритою. Дизайнеру показують лише його
          половину (`only`) — там вибору немає й смужки теж. */
@@ -5657,7 +5709,7 @@
      прайсом на цю мить. Кількість і колір ціни не міняють. */
   function priceLock(u, force){
     if(!u || !u.gid) return false;
-    var вид = u.ready ? 'ready' : '';
+    var вид = (u.ready || u.base) ? 'ready' : '';
     if(!force && u.priceAt && u.priceGid === u.gid && (u.priceKind || '') === вид) return false;
     u.price = retailOf(u.gid, вид); u.cost = costOf(u.gid, вид);
     u.priceGid = u.gid; u.priceKind = вид; u.priceAt = new Date().toISOString();
@@ -5752,17 +5804,17 @@
   function sumRows(job){
     return unitsOf(job).map(function(u){
       var g = catItem(u.gid);
-      var вид = u.ready ? 'ready' : '';
+      var вид = (u.ready || u.base) ? 'ready' : '';
       var зафікс = !!(u.priceAt && u.priceGid === u.gid && (u.priceKind || '') === вид);
       var прайс = retailOf(u.gid, вид), прайсС = costOf(u.gid, вид);
       var ціна = зафікс ? Math.max(0, Math.round(+u.price || 0)) : прайс;
       var соб = зафікс ? Math.max(0, Math.round(+u.cost || 0)) : прайсС;
       var к = Math.max(0, Math.round(+u.qty || 0));
       /* Вид дизайну — у назві рядка (15.10): «Футболка базова · повторний». */
-      var дизайн = !u.ready ? 'індивідуальний' : D.linkOf(u) ? 'той самий ескіз' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
+      var дизайн = u.base ? 'базовий з правками' : !u.ready ? 'індивідуальний' : D.linkOf(u) ? 'той самий ескіз' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
       /* Ціни «готовий ескіз» для виробу не вписано — береться індивідуальна;
          кажемо про це, щоб не дивувались сумі. */
-      var запас = !!(u.ready && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
+      var запас = !!((u.ready || u.base) && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
       return [{ name: (g && g.name) || u.name || 'без виробу', design: дизайн, fallback: запас,
                lockedAt: зафікс ? u.priceAt : '', nowPrice: (зафікс && прайс !== ціна) ? прайс : 0,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
@@ -6259,7 +6311,7 @@
     tab: function(){ return tab; },
     open: function(k){ openKey = k; },
     tabOpen: function(){ return openKey; },
-    esc: esc, dt: dt, nameOf: nameOf, say: say, verPic: verPic, dlExt: dlExt, dlFile: dlFile,
+    esc: esc, dt: dt, nameOf: nameOf, say: say, verPic: verPic, dlExt: dlExt, dlFile: dlFile, baseHtml: baseHtml,
     pairs: pairs, pairOf: pairOf,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
@@ -7636,6 +7688,8 @@
         /* Тип малюнка (16.10) — дизайнер одразу бачить, що саме робити. */
         (u.artKind && !u.ready ? '<div class="dz-w-note"><i>Тип малюнка</i>' +
                   esc(u.artKindName || u.artKind) + '</div>' : '') +
+        /* Базовий з правками (20.10): основа з бібліотеки й що змінити — одразу тут. */
+        ((u.base && !u.ready) ? U.baseHtml(x.job, u, true) : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                   esc(u.note) + '</div>' : '') +
         /* Той самий ескіз ще й на інших товарах (18.10). */
@@ -10983,6 +11037,29 @@
         say('Тепер оберіть одяг — і натисніть «Розмістити на одязі»');
       });
     }
+    /* ── БАЗОВИЙ ДИЗАЙН З ПРАВКАМИ (20.10) ── */
+    if(what === 'u-base-pick'){
+      var bu = U.unitAt(job, data && data.u);
+      if(!bu) return;
+      return U.readyPickOpen(function(rd){
+        if(bu.ready ? !D.readyDetach(bu) : (kindBusy(bu) && !(bu.base && String(bu.base.id) === String(rd.id)))){
+          if(!kindForceAsk(job, bu, 'base')) return;
+        }
+        U.fixOpen(async function(txt, file){
+          D.baseAttach(bu, rd, txt, file);
+          await save(job, o, 'Базовий з правками · ' + (rd.name || ''));
+        }, { title: 'Що змінити в «' + (rd.name || 'дизайні') + '»', go: 'Зберегти', text: (bu.base && bu.base.note) || '' });
+      });
+    }
+    if(what === 'u-base-note'){
+      var bnu = U.unitAt(job, data && data.u);
+      if(!bnu || !bnu.base) return;
+      return U.fixOpen(async function(txt, file){
+        bnu.base.note = String(txt || '').trim();
+        if(file && file.url) bnu.base.noteFile = { name: String(file.name || 'файл'), url: String(file.url) };
+        await save(job, o, 'Правку до основи збережено');
+      }, { title: 'Що змінити в «' + (bnu.base.name || 'дизайні') + '»', go: 'Зберегти', text: bnu.base.note || '' });
+    }
     /* ── ПОВТОРНИЙ ДИЗАЙН (15.10) ── */
     if(what === 'u-repeat'){
       var rpu = U.unitAt(job, data && data.u);
@@ -11025,6 +11102,13 @@
     }
     if(what === 'u-ready-off'){
       var ou = U.unitAt(job, data && data.u);
+      /* Базовий з правками → індивідуальний: знімаємо лише основу; робота
+         дизайнера та сама (позиція й так індивідуальна). */
+      if(ou && !ou.ready && ou.base){
+        try{ if(!window.confirm('Зробити позицію просто індивідуальною? Основу «' + (ou.base.name || '') + '» з неї знімемо, ціна — як в індивідуального.')) return; }catch(e){}
+        delete ou.base;
+        return save(job, o, 'Позиція індивідуальна');
+      }
       if(!ou || !ou.ready) return;
       try{ if(!window.confirm(D.linkOf(ou) ? 'Відвʼязати від ескізу головної позиції? Позиція стане окремою — зі своїм індивідуальним дизайном.'
           : 'Зробити позицію індивідуальною? ' + (ou.ready.repeat ? 'Повторний дизайн' : 'Готовий дизайн «' + (ou.ready.name || '') + '»') + ' з неї знімемо.')) return; }catch(e){}
