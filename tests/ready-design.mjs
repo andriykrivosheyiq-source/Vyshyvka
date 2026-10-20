@@ -449,6 +449,18 @@ ok(розм.n === 1 && розм.w === 24 && розм.h === 12 && розм.top ==
 ok(!розм.аркуш, 'старий аркуш зі старими цифрами прибрано — збереться заново', JSON.stringify(розм));
 ok(розм.warn && розм.ok, 'попередження лише понад 44 × 29 см', JSON.stringify(розм));
 
+const службове = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui;
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Білий', size:'M', qty:1 });
+  D.readyAttach(u, { id:'rdx', name:'Кіт', pic:'p', arts:[{ name:'a.png', url:'a' }], files:[{ name:'a.dst', url:'d' }] });
+  const st0 = D.dzNew(); D.dzList(u, 'stitch').push(st0); D.readyStitch(st0, u, 'boss@loomiq');
+  D.readySync(u, { id:'rdx', name:'Кіт', pic:'p', arts:[{ name:'a.png', url:'a' }], files:[{ name:'b.dst', url:'d2' }] }, 'boss@loomiq');
+  const n = ['graphic', 'stitch'].reduce((a, k) => a + D.dzList(u, k).reduce((b, d) => b + D.dzUnseen(d, 'mgr@loomiq', 'acct', k), 0), 0);
+  return { n, подій: D.dzList(u, 'stitch').reduce((a, d) => a + (d.thread || []).length, 0) };
+});
+console.log('  ' + JSON.stringify(службове));
+ok(службове.n === 0, 'службові події готового дизайну («оновлено в бібліотеці») не дають червоного «1» на картці', JSON.stringify(службове));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
