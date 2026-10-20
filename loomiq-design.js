@@ -9251,9 +9251,16 @@
   var BUY_SEL = {};          // позначене галочками: «замовлення|позиція»
   var BUY_OPEN = {};         // розгорнуті рядки й закупівлі
   var BUY_ALL = false;       // показати всю історію
-  function buys(){
+  /* ВИДАЛЕНІ ВЛАСНИКОМ (20.10): документ лишається (designJobs не
+     видаляються правилами), лише позначка `del`. «Скасовано» (`del.void`) —
+     не отриману закупівлю знято зовсім: її позиції знову «Треба замовити».
+     Отриману — лише прибрано зі списку: одяг є, замовлення його тримають. */
+  function buysAll(){
     try{ return ((host().buys && host().buys()) || []).filter(function(b){ return b && b.kind === 'buy'; }); }
     catch(e){ return []; }
+  }
+  function buys(){
+    return buysAll().filter(function(b){ return !(b.del && b.del.void); });
   }
   function buyByN(a, b){ return (+b.n || 0) - (+a.n || 0); }
   /* Порядок розмірів — із сітки товару: «M, L, XL», а не за абеткою. */
@@ -9639,6 +9646,7 @@
       '<div class="dz-buy-oh"><b>' + esc(buyTitle(b)) + '</b>' +
         (b.sup && b.sup.name ? '<span class="dz-buy-sn">' + esc(b.sup.name) + '</span>' : '') +
         '<i>' + esc(dt(b.at)) + (b.by ? ' · ' + esc(nameOf(b.by)) : '') + ' · ' + шт + ' шт</i>' +
+        (stockCan() ? '<button type="button" class="dz-buy-more dz-buy-del" data-do="buy-del" data-id="' + esc(b.id) + '" title="Видалити зі списку (лише власник)">🗑</button>' : '') +
         (b.stock ? (b.returned && !(b.rows || []).length ? '<span class="dz-cloth">Повернуто на склад</span>'
             : '<span class="dz-cloth is-got">Отримано</span>' +
               '<button type="button" class="dz-buy-more" data-do="stock-back" data-id="' + esc(b.id) + '">повернути на склад</button>')
@@ -9684,7 +9692,7 @@
   /* Оформлені — групами за датою: «Замовлення за 01.10», у ньому — по
      одному на підрядника, кожне зі своїм ТТН. */
   function buyScreenHtml(){
-    var l = buys().sort(function(a, b){ return String(b.at || '').localeCompare(String(a.at || '')); });
+    var l = buys().filter(function(b){ return !b.del; }).sort(function(a, b){ return String(b.at || '').localeCompare(String(a.at || '')); });
     var видно = BUY_ALL ? l : l.slice(0, 12);
     var днів = [], за = {};
     видно.forEach(function(b){
@@ -10954,7 +10962,7 @@
         (групи.length > 1 ? ', ' + групи.length + ' підрядники — у кожного своє' : '') + '?'); }catch(e){}
       if(!ок) return;
       var хто0 = (host().me && host().me()) || '';
-      var вже = buys().slice(), нові = [];
+      var вже = buysAll().slice(), нові = [];
       групи.forEach(function(gr){
         var bn = D.buyNew(вже, хто0, gr.rows);
         bn.sup = gr.key ? { id: gr.key, name: gr.name } : null;
@@ -10962,6 +10970,22 @@
       });
       BUY_SEL = {};
       return buySaveAll(нові, 'Оформлено · ' + нові.map(buyTitle).join(', '));
+    }
+    if(what === 'buy-del'){
+      var bd = buys().filter(function(x){ return x.id === (data && data.id); })[0];
+      if(!bd) return;
+      if(!stockCan()) return say('Видаляти закупівлі може лише власник');
+      var скас = !bd.stock && bd.status !== 'got';
+      var шт3 = (bd.rows || []).reduce(function(a, r){ return a + (+r.qty || 0); }, 0);
+      var ок3 = true;
+      try{ ок3 = window.confirm('Видалити «' + buyTitle(bd) + '» (' + шт3 + ' шт)? ' + (скас
+        ? 'Одяг ще не отримано — закупівлю скасуємо, позиції повернуться в «Треба замовити».'
+        : bd.stock ? 'Склад не зміниться: щоб повернути одяг, спершу «повернути на склад».'
+        : 'Одяг уже отримано — зі списку приберемо, у замовленнях він лишається.')); }catch(e){}
+      if(!ок3) return;
+      bd.del = { at: new Date().toISOString(), by: (host().me && host().me()) || '' };
+      if(скас) bd.del.void = true;
+      return buySave(bd, buyTitle(bd) + (скас ? ' · скасовано, позиції знову «Треба замовити»' : ' · прибрано зі списку'));
     }
     if(what === 'buy-tab'){ BUY_TAB = (data && data.k) === 'stock' ? 'stock' : 'order'; return render(root); }
     /* ВЗЯЛИ ЗІ СКЛАДУ: позначене праворуч списується одразу, позиції (чи їх
@@ -10976,7 +11000,7 @@
       try{ ок1 = window.confirm('Списати зі складу ' + шт1 + ' шт' + (сума1 ? ' на ' + грнК(сума1) : '') + '?'); }catch(e){}
       if(!ок1) return;
       var хто1 = (host().me && host().me()) || '';
-      var bs = D.buyNew(buys(), хто1, tk);
+      var bs = D.buyNew(buysAll(), хто1, tk);
       bs.stock = true; bs.n = 0; bs.sup = { id:'', name:'Склад' };
       D.buySetStatus(bs, 'got', хто1);
       for(var i1 = 0; i1 < tk.length; i1++){
