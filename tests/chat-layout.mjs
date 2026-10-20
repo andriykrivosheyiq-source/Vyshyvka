@@ -185,6 +185,44 @@ ok(картка.ліво >= картка.списокДо - 4,
   'і не налазить на список розмов — після закриття видно, де ви були',
   'картка накрила список розмов: край ' + картка.ліво + ', список до ' + картка.списокДо);
 
+console.log('');
+console.log('═══ ДІАЛОГ НА ВСЮ ШИРИНУ, «КАРТКА ▸» — ДІАЛОГ ЛІВОРУЧ, КАРТКА ПРАВОРУЧ (20.10) ═══');
+const сплит = await p.evaluate(async () => {
+  closeOrderDrawer();
+  await new Promise(r => setTimeout(r, 300));
+  const sec = document.getElementById('view-chatsc');
+  const main = document.querySelector('main').getBoundingClientRect();
+  const wrap = () => document.querySelector('.cw-wrap.cw-inline');
+  const w0 = wrap() && wrap().getBoundingClientRect();
+  const кнопка = () => document.querySelector('.cw-wrap.cw-inline [data-cw-cardb]');
+  const r = { відкрита: !!(wrap() && wrap().classList.contains('open')), праваяМежа: main.right - (w0 ? w0.right : 0),
+              кнопка: кнопка() ? кнопка().textContent.trim() : '' };
+  if(кнопка()) кнопка().click();
+  await new Promise(r2 => setTimeout(r2, 500));
+  const panel = document.querySelector('.od-wrap.open .od-panel');
+  const w1 = wrap() && wrap().getBoundingClientRect();
+  const pr = panel && panel.getBoundingClientRect();
+  r.картка = !!panel; r.затемнення = !!document.querySelector('.od-wrap.open .od-back') &&
+    getComputedStyle(document.querySelector('.od-wrap.open .od-back')).display !== 'none';
+  r.діалогДо = w1 ? Math.round(w1.right) : 0; r.карткаВід = pr ? Math.round(pr.left) : 0;
+  r.діалогШир = w1 ? Math.round(w1.width) : 0;
+  r.кнопка2 = кнопка() ? кнопка().textContent.trim() : '';
+  if(кнопка()) кнопка().click();
+  await new Promise(r2 => setTimeout(r2, 400));
+  const w2 = wrap() && wrap().getBoundingClientRect();
+  r.післяЗакриття = !!(wrap() && wrap().classList.contains('open')) && !document.querySelector('.od-wrap.open');
+  r.знову = w2 && w0 ? Math.abs(w2.right - w0.right) < 4 : false;
+  return r;
+});
+console.log('  ' + JSON.stringify(сплит));
+ok(сплит.відкрита && сплит.праваяМежа < 60, 'діалог тягнеться до правого краю розділу', 'діалог вузький: до краю ' + сплит.праваяМежа);
+ok(/Картка/.test(сплит.кнопка), 'у шапці діалогу — кнопка «Картка ▸»', 'кнопки немає: ' + сплит.кнопка);
+ok(сплит.картка && !сплит.затемнення && сплит.діалогДо <= сплит.карткаВід + 2 && сплит.діалогШир > 300,
+  'картка праворуч, діалог ліворуч поруч, без затемнення', 'поділу немає: ' + JSON.stringify(сплит));
+ok(/Сховати/.test(сплит.кнопка2) && сплит.післяЗакриття && сплит.знову,
+  '«Сховати картку» — картка закрилась, діалог лишився й знову на всю ширину', 'після закриття: ' + JSON.stringify(сплит));
+await p.screenshot({ path: '/tmp/claude-0/chat-split.png' }).catch(() => {});
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 2).join(' | '));
 await browser.close();
 srv.close();

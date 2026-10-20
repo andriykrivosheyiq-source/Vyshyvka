@@ -799,6 +799,10 @@
      що написав, коли. Число стоїть останнім, у тому самому кутку, що й на
      картці. */
   .chl{display:flex;flex-direction:column;gap:6px;max-width:900px;}
+  /* Розділ чатів — на всю ширину (20.10, Андрій: «діалог повинен бути на
+     всю праву сторону»): обмеження 900 px тримало розмову вузькою, а праворуч
+     лишалась порожнеча. */
+  #chatsRoot.chl,#chatscRoot.chl{max-width:none;}
   /* ── Чати: ліворуч список, праворуч переписка ─────────────────────────
      Так це влаштовано в Direct, у Telegram і скрізь, де листуються: око
      шукає наступну розмову там само, де щойно читало попередню. */
@@ -857,11 +861,23 @@
 
      Ширша за звичайну навмисно — у ній таблиця позицій, а колонка діалогу
      все одно ширша за 520 пікселів, і лишати їх порожніми нема за чим. */
+  /* ДІАЛОГ ЛІВОРУЧ, КАРТКА ПРАВОРУЧ (20.10). Андрій: «щоб був зліва
+     діалог, справа карточка, як в канбані». Картка в розділі чатів не
+     накриває екран затемненням, а стає праворуч; діалог стискається поруч
+     (ширину йому міряє chatSplitFit), і в обох можна працювати одночасно. */
   @media (min-width:1100px){
-    body.chat-view .od-panel{
-      width:min(calc(100vw - 220px - 340px - 64px), 860px);
+    body.chat-view .od-wrap{left:auto;width:min(620px,46vw);}
+    body.chat-view .od-back{display:none;}
+    /* Поки картка поруч — список розмов ховаємо: діалогу лишається місце,
+       як у канбані. Закрили картку — список знову ліворуч. */
+    .ch2.is-split{grid-template-columns:1fr;}
+    .ch2.is-split>.ch2-list{display:none;}
+    body.chat-view .od-panel{width:100%;
       border-top-left-radius:var(--r-card);border-bottom-left-radius:var(--r-card);}
   }
+  .cw-cardb{all:unset;cursor:pointer;flex:none;font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;
+    background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28);white-space:nowrap;}
+  .cw-cardb:hover,.cw-cardb.is-on{background:#fff;color:#1F2C44;}
   .ch2-none{margin:auto;text-align:center;padding:30px 24px;max-width:340px;
     display:flex;flex-direction:column;gap:7px;}
   .ch2-none b{font-size:14px;color:var(--ink);}
@@ -7845,33 +7861,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=05b954cdd7"></script>
-<script src="loomiq-fingerprint.js?v=05b954cdd7"></script>
-<script src="loomiq-pricing.js?v=05b954cdd7"></script>
+<script src="loomiq-select.js?v=902c7beebe"></script>
+<script src="loomiq-fingerprint.js?v=902c7beebe"></script>
+<script src="loomiq-pricing.js?v=902c7beebe"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=05b954cdd7"></script>
+<script src="loomiq-money-core.js?v=902c7beebe"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=05b954cdd7"></script>
-<script src="loomiq-bg.js?v=05b954cdd7"></script>
-<script src="loomiq-mock.js?v=05b954cdd7"></script>
+<script src="loomiq-design.js?v=902c7beebe"></script>
+<script src="loomiq-bg.js?v=902c7beebe"></script>
+<script src="loomiq-mock.js?v=902c7beebe"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=05b954cdd7"></script>
+<script src="imagetracer.js?v=902c7beebe"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=05b954cdd7"></script>
-<script src="loomiq-threads.js?v=05b954cdd7"></script>
+<script src="loomiq-chat.js?v=902c7beebe"></script>
+<script src="loomiq-threads.js?v=902c7beebe"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=05b954cdd7"></script>
+<script src="loomiq-cards.js?v=902c7beebe"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7916,7 +7932,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '05b954cdd7';
+var LQ_VER = '902c7beebe';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9317,6 +9333,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     /* Позначка на body — щоб картка замовлення знала, що її відкривають
        саме з розмови, і стала на місце діалогу, а не поверх усього. */
     document.body.classList.toggle('chat-view', вРозмовах);
+    try{ chatSplitFit(); }catch(e){}
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
     if(view==='settings') paintSitePricing();
     if(view==='b2c') paintB2c();
@@ -20950,10 +20967,33 @@ function closeOrderDrawer(){
   drawerOrderId = null;
   /* Картка відділу в панелі більше не жива — перемальовувати її нема куди. */
   try{ if(window.LQDesign && window.LQDesign.ui.soloOff) window.LQDesign.ui.soloOff(); }catch(e){}
+  /* У розділі чатів картка стоїть поруч із діалогом (20.10): закрили картку —
+     діалог лишається на всю ширину, і його стрічка живе далі. */
+  if(chatSplitOn()){ chatSplitFit(); try{ renderChatWin(); }catch(e){} return; }
   if(typeof chatClose === 'function') chatClose();
   if(typeof crmStopPoll === 'function') crmStopPoll();
   if(typeof tgUnwatch === 'function') tgUnwatch();
 }
+/* Діалог у розділі чатів відкритий — картка стає праворуч від нього. */
+function chatSplitOn(){
+  return document.body.classList.contains('chat-view') && typeof chatWin !== 'undefined' && !!(chatWin && chatWin.dir);
+}
+/* Діалог стискається рівно до лівого краю картки (на широкому екрані); без
+   картки — знову на всю праву частину. */
+function chatSplitFit(){
+  document.querySelectorAll('.ch2').forEach(g => {
+    const d = document.getElementById('orderDrawer');
+    const on = window.innerWidth >= 1100 && document.body.classList.contains('chat-view') &&
+               d && d.classList.contains('open');
+    const p = on ? d.querySelector('.od-panel') : null;
+    g.classList.toggle('is-split', !!p);
+    if(!p){ g.style.marginRight = ''; return; }
+    const пр = g.getBoundingClientRect().right - (g.style.marginRight ? -parseFloat(g.style.marginRight) : 0);
+    const ліво = p.getBoundingClientRect().left;
+    g.style.marginRight = Math.max(0, Math.round(пр - ліво + 12)) + 'px';
+  });
+}
+window.addEventListener('resize', ()=>{ try{ chatSplitFit(); }catch(e){} });
 async function openOrderDrawer(o){
   drawerOrderId = o.id;
   /* Відкрив картку — інші про це знають. Мітка оновлюється й далі, поки
@@ -21000,6 +21040,7 @@ async function openOrderDrawer(o){
   // розмова має бути на екрані разом із карткою.
   if(o.crmChatId && !crmChat[o.id]) crmLoadChat(o);
   renderBoard();
+  if(chatSplitOn()){ chatSplitFit(); try{ renderChatWin(); }catch(e){} }
 }
 /* Склад замовлення й гроші — головна зона картки. Кожна частина збирається
    окремо і під захистом: одна крива позиція (старий формат, битий макет,

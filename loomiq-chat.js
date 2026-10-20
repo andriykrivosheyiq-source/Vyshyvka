@@ -2429,6 +2429,11 @@ function renderChats(dir){
     const r = rows[+b.dataset.chl];
     if(!r || !r.o) return;
     chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm', { host: chatsHostId(dir), dir });
+    /* Картка праворуч відкрита — переходить на замовлення нової розмови. */
+    if(drawerOrderId && drawerOrderId !== r.o.id){
+      if(r.o.orderId){ try{ openOrderDrawer(r.o); }catch(e){ console.warn(e); } }
+      else { try{ closeOrderDrawer(); }catch(e){} }
+    }
     renderChats(dir);
   }));
 }
@@ -3688,6 +3693,11 @@ function renderChatWin(toBottom){
             title="${x.id === o.id ? 'Це замовлення відкрите' : 'Перейти на це замовлення'}">${
             escapeHtml(showNo(x))}<i>${orderDir(x) === 'b2c' ? 'B2C' : 'B2B'}</i></button>`).join('');
       })()}
+      ${/* «Картка ▸» у розділі чатів (20.10): діалог ліворуч, картка праворуч. */''}
+      ${(chatWin && chatWin.dir && o.orderId)
+        ? `<button class="cw-cardb${drawerOrderId === o.id ? ' is-on' : ''}" data-cw-card data-cw-cardb title="${
+            drawerOrderId === o.id ? 'Сховати картку' : 'Відкрити картку замовлення праворуч'}">${
+            drawerOrderId === o.id ? 'Сховати картку' : 'Картка ▸'}</button>` : ''}
       ${/* Що саме прислав Sitniks. Бік розмови й автор беруться з полів, назв
            яких у закритій документації немає, — тож коли підпис стає не з того
            боку, це єдиний спосіб побачити справжні назви замість здогадок.
@@ -3909,8 +3919,11 @@ function wireChatWin(box, o, focusIn){
   box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
   const seenB = box.querySelector('[data-cw-seen]');
   if(seenB) seenB.addEventListener('click', ()=> chatSeenToggle(o, chatWin.kind));
-  const card = box.querySelector('[data-cw-card]');
-  if(card) card.addEventListener('click', ()=>{ try{ openOrderDrawer(o); }catch(e){} });
+  box.querySelectorAll('[data-cw-card]').forEach(card => card.addEventListener('click', ()=>{
+    /* Кнопка «Картка ▸» — перемикач: друге натискання ховає картку, діалог лишається. */
+    if(card.hasAttribute('data-cw-cardb') && drawerOrderId === o.id){ try{ closeOrderDrawer(); }catch(e){} return; }
+    try{ openOrderDrawer(o); }catch(e){}
+  }));
   const rl = box.querySelector('[data-cw-reload]');
   if(rl) rl.addEventListener('click', ()=>{ crmCoolUntil = 0; crmLoadChat(o).then(()=> crmStartPoll(o)); });
   /* Перехід на інше замовлення тієї самої розмови. Переписку не
