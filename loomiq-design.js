@@ -7094,7 +7094,14 @@
         return String(н).toLowerCase() + (см ? ' ' + см : '');
       });
       var хто = (mine.filter(function(x){ return x.d.who; })[0] || {}).d;
+      /* ЧЕРГА ПО ПОРЯДКУ (Андрій, 20.10): найстаріші згори, нові знизу;
+         прострочені й термінові — нагору. Дата створення — на плитці. */
+      var ug = null;
+      try{ ug = U.acctUrg(p.job, p.o, false); }catch(e){}
+      var пильн = (лишок !== null && лишок < 0) || (ug && ug.kind === 'late') ? 0
+                : (ug && ug.kind === 'urgent') ? 1 : 2;
       return { id: p.o.orderId, step: крок, v2: true,
+        created: p.o.createdAt || p.job.createdAt || '', rank: пильн,
         pic: cardPic(p.job),
         /* ДЕ ЗАРАЗ ЗАМОВЛЕННЯ — НЕ ДИЗАЙНЕРУ (Андрій, 09.10: «в граф
            дизайнера забрати статуси де замовлення»). Його справа — свій
@@ -7116,7 +7123,13 @@
         /* Правка — найгучніша позначка на дошці: за неї сідають першою. */
         fix: st === 'revision',
         foot: (верс ? 'v' + верс : 'версій ще немає') + ' · ' + місця.join(', ') };
-    }).filter(Boolean);
+    }).filter(Boolean).sort(dzQueueOrd);
+  }
+  /* Прострочені (0) → термінові (1) → решта (2); усередині — від найстаршого. */
+  function dzQueueOrd(a, b){
+    if(a.rank !== b.rank) return a.rank - b.rank;
+    var ta = Date.parse(a.created || '') || 9e15, tb = Date.parse(b.created || '') || 9e15;
+    return ta - tb || String(a.id).localeCompare(String(b.id));
   }
   function stitchCards(filterStatus){
     var out = [];
