@@ -5799,6 +5799,10 @@
   .prob-x{all:unset;cursor:pointer;margin-left:auto;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:8px;background:#ECFDF3;color:#067647;border:1px solid #ABEFC6;}
   .prob-t{margin-top:6px;font-size:14px;white-space:pre-wrap;}
   .prob-none{color:var(--muted);padding:20px 4px;}
+  .dz-waitfor{margin-left:8px;font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);}
+  .dz-waitfor.on{border-color:#FDB022;background:#FFFAEB;color:#93370D;font-weight:700;}
+  .dz-m-need{background:#FFFAEB;color:#93370D;border:1px solid #FEDF89;}
+  .dz-c-ttn{display:block;margin:6px 0 0;padding:4px 8px;border-radius:8px;background:#FEF3F2;color:#B42318;border:1px solid #FDA29B;font-size:11.5px;font-weight:700;text-align:center;}
   .dz-ok.is-wait{background:#FFFAEB;border-color:#FEDF89;color:#93370D;margin-bottom:8px;}
   .dz-ok{background:#ECFDF3;border:1px solid #ABEFC6;border-radius:10px;padding:8px 10px;
     font-size:12px;color:#067647;margin-bottom:10px;}
@@ -7891,33 +7895,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f1390ad690"></script>
-<script src="loomiq-fingerprint.js?v=f1390ad690"></script>
-<script src="loomiq-pricing.js?v=f1390ad690"></script>
+<script src="loomiq-select.js?v=3385f1949d"></script>
+<script src="loomiq-fingerprint.js?v=3385f1949d"></script>
+<script src="loomiq-pricing.js?v=3385f1949d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f1390ad690"></script>
+<script src="loomiq-money-core.js?v=3385f1949d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f1390ad690"></script>
-<script src="loomiq-bg.js?v=f1390ad690"></script>
-<script src="loomiq-mock.js?v=f1390ad690"></script>
+<script src="loomiq-design.js?v=3385f1949d"></script>
+<script src="loomiq-bg.js?v=3385f1949d"></script>
+<script src="loomiq-mock.js?v=3385f1949d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f1390ad690"></script>
+<script src="imagetracer.js?v=3385f1949d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=f1390ad690"></script>
-<script src="loomiq-threads.js?v=f1390ad690"></script>
+<script src="loomiq-chat.js?v=3385f1949d"></script>
+<script src="loomiq-threads.js?v=3385f1949d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f1390ad690"></script>
+<script src="loomiq-cards.js?v=3385f1949d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7962,7 +7966,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f1390ad690';
+var LQ_VER = '3385f1949d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -28379,6 +28383,9 @@ function openDesign(){
     npRegistry: (sender, docs) => npRegistry(sender, docs),
     npPrint: (ref, sender) => npRegistryPdf(ref, sender),
     due: o => dueSum(o),
+    /* Дані для накладної є (20.10): отримувач, телефон, місто й відділення. */
+    shipDataOk: o => { try{ const v = shipVals(o);
+      return !!(String(v.name || '').trim() && String(v.phone || '').replace(/\D/g, '').length >= 10 && v.cityRef && v.whRef); }catch(e){ return false; } },
     /* Колонки виробничої дошки, які бачить роль (null — усі). */
     prodCols: () => { const d = roleDef(myRole()); return (d && Array.isArray(d.cols) && d.cols.length) ? d.cols : null; },
     /* Роль з колонками виробництва сидить на виробничій дошці. */

@@ -3132,7 +3132,8 @@
         /* Низ картки: Instagram — кнопкою ліворуч, як на картці B2B, мітки —
            праворуч (06.10: «нормальна кнопка всередині картки внизу, як у B2B»). Усередині
            картки-кнопки — тож не <button>, а span з роллю кнопки. */
-        ((c.wait || c.fix || c.chat || c.qTxt)
+        (c.noTtn ? '<span class="dz-c-ttn" title="Ескіз узгоджено, а накладної ще немає">ТТН не створена</span>' : '') +
+        ((c.wait || c.fix || c.chat || c.qTxt || c.waitTxt)
           ? '<span class="dz-c-foot">' +
             (c.chat ? '<span class="dz-card-ig is-in" role="button" tabindex="0" data-do="chat" data-id="' + esc(c.id) +
               '" title="Відкрити розмову з клієнтом">' + esc(c.chatTxt || 'Instagram') +
@@ -3140,6 +3141,7 @@
             '<span class="dz-card-m">' +
               (c.fix ? '<b class="dz-m-fix">' + esc(c.fixLabel || 'правка') + '</b>' : '') +
               (c.qTxt ? '<b class="dz-m-q" title="Скільки замовлення в черзі">' + esc(c.qTxt) + '</b>' : '') +
+              (c.waitTxt ? '<b class="dz-m-need" title="Чого ще чекаємо від клієнта">' + esc(c.waitTxt) + '</b>' : '') +
               (c.wait ? '<b class="dz-m-wait">чекають відповіді</b>' : '') +
             '</span></span>'
           : '') +
@@ -6200,6 +6202,34 @@
   /* Підписи зон. Кажуть головне, не змушуючи зону читати: «4 позиції ·
      12 шт», «ТТН 2045…», «даних бракує: 2». Порожній підпис нічого не
      означає — його просто немає. */
+  /* ЧОГО ЧЕКАЄМО ВІД КЛІЄНТА (20.10, лише B2C): менеджер ставить «Доплата»,
+     «Дані» чи обидва — і тег знімається сам: доплата — щойно залишку по
+     «Грошах» немає, дані — щойно в накладній є отримувач, телефон, місто й
+     відділення. Повертає те, що лишилось: 'pay' | 'data' | 'both' | ''. */
+  var WAIT_TXT = { pay: 'Чекаємо доплату', data: 'Чекаємо дані', both: 'Чекаємо доплату і дані' };
+  function waitOf(job, o){
+    var w = String((job && job.waitFor) || '');
+    if(!w || !(o && o.dir === 'b2c')) return '';
+    var плата = (w === 'pay' || w === 'both'), дані = (w === 'data' || w === 'both');
+    try{ if(плата && host.due && !((+host.due(o) || 0) > 5)) плата = false; }catch(e){}
+    try{ if(дані && host.shipDataOk && host.shipDataOk(o)) дані = false; }catch(e){}
+    return плата && дані ? 'both' : плата ? 'pay' : дані ? 'data' : '';
+  }
+  /* «ТТН не створена» — сама, від «Ескіз узгоджено» до відправки. */
+  function noTtn(job, o){
+    if(!(o && o.dir === 'b2c') || String(o.ttn || '').trim()) return false;
+    var keys = (D.CHAIN || []).map(function(x){ return x.key; });
+    var at = keys.indexOf(D.chainAt(job, o));
+    return at >= keys.indexOf('sketchok') && at >= 0 && at < keys.indexOf('shipped');
+  }
+  function waitSelHtml(job, o){
+    if(!(o && o.dir === 'b2c')) return '';
+    var cur = waitOf(job, o);
+    return '<select class="dz-waitfor' + (cur ? ' on' : '') + '" data-jwait title="Чого ще чекаємо від клієнта — знімається само, щойно внесли">' +
+      [['', 'Чекаємо: —'], ['pay', 'Доплата'], ['data', 'Дані'], ['both', 'Доплата і дані']].map(function(x){
+        return '<option value="' + x[0] + '"' + (cur === x[0] ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') +
+    '</select>';
+  }
   function shipSub(o){
     var ttn = String((o || {}).ttn || '').trim();
     if(ttn) return 'ТТН ' + ttn;
@@ -6433,6 +6463,7 @@
     orderCost: orderCost, sumRows: sumRows, netSum: netSum, priceLock: priceLock, priceLockJob: priceLockJob,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
+    waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen, prodView: prodView,
@@ -6871,6 +6902,9 @@
         wait: mk.wait, unseen: mk.unseen,
         /* Черга (19.10): скільки днів — кого дотискати першим. */
         qTxt: col === 'queue' ? '⏳ ' + (D.queueDays(p.job) ? D.queueDays(p.job) + ' дн.' : 'сьогодні') : '',
+        /* Чого бракує менеджеру (20.10): «чекаємо доплату / дані» і «ТТН не створена». */
+        waitTxt: U.WAIT_TXT[U.waitOf(p.job, p.o)] || '',
+        noTtn: U.noTtn(p.job, p.o),
         foot: стан };
     });
   }
@@ -7436,7 +7470,8 @@
         '<span class="dz-panel-id' + (b2c ? ' is-b2c' : '') + '">' +
           '<span class="dz-panel-l1"><b>' + U.jobNo(p.job) + '</b>' +
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
-          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) + '</span>' +
+          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) +
+          (b2c ? U.waitSelHtml(job, o) : '') + '</span>' +
           (b2c ? '<span class="dz-panel-who">' + U.clientHtml(o, job) + '</span>' : '') +
           U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</span>' +
         clockHtml(D.stageLeft(job, o, 'acct', termHours('acct'))) +
@@ -10108,6 +10143,15 @@
         D.dzPeers(c.job, u, k).forEach(function(x){ if(одна(x.d)) ще++; });
         if(!напис && !ще) return render(root);
         save(c.job, c.o, (напис || U.whoName(who)) + (ще ? ' · уся картка (' + (ще + 1) + ' позиції)' : ''));
+      };
+    });
+    root.querySelectorAll('[data-jwait]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var v = String(el.value || '');
+        if(v) c.job.waitFor = v; else delete c.job.waitFor;
+        var лиш = U.waitOf(c.job, c.o);
+        save(c.job, c.o, !v ? 'Тег знято' : лиш ? U.WAIT_TXT[лиш] : 'Уже внесено — тег не потрібен');
       };
     });
     root.querySelectorAll('[data-jf]').forEach(function(el){
