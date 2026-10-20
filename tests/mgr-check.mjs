@@ -556,6 +556,33 @@ ok(скількиПравок === 1,
   'і повернень рівно стільки, скільки їх було: ' + скількиПравок,
   'повернень нарахувало ' + скількиПравок + ' — питання дизайнера рахується як правка');
 
+console.log('\n═══ ФОТО ДИЗАЙНЕРУ — СКРІПКОЮ, КІЛЬКА (20.10) ═══');
+/* Андрій: «в діалозі з дизайнерами потрібно буде можливість прикріпляти
+   фото». 📎 біля «Написати»: вибрали два — обидва в розмові картинками,
+   підпис з поля — з першим. */
+await p.evaluate(() => { window.LQDesign.ui.host.upload = async f => 'https://x/up/' + f.name; });
+const [chooser] = await Promise.all([
+  p.waitForEvent('filechooser'),
+  p.evaluate(() => {
+    const t = document.querySelector('.dz-chk [data-dzsay]'); if(t) t.value = 'Ось фото від клієнта';
+    document.querySelector('.dz-chk [data-do="dz-note-pic"]').click();
+  })
+]);
+await chooser.setFiles([
+  { name:'кіт1.png', mimeType:'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') },
+  { name:'кіт2.png', mimeType:'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') }]);
+await p.waitForTimeout(1200);
+const фотоД = await p.evaluate(() => {
+  const d = window.LQDesign.dzList(designJobs['2000101'].units[0], 'graphic')[0];
+  const l = d.thread.slice(-2);
+  return { файли: l.map(m => (m.file || {}).url), тексти: l.map(m => m.text), ролі: l.map(m => m.role),
+           картинки: [...document.querySelectorAll('.dz-chk .dz-ch-m.own .dz-tiles img, .dz-chk .dz-ch-m.own .dz-tile img')].length };
+});
+console.log('  ' + JSON.stringify(фотоД));
+ok(chooser.isMultiple() && фотоД.файли.join() === 'https://x/up/кіт1.png,https://x/up/кіт2.png' && фотоД.тексти.join('|') === 'Ось фото від клієнта|' && фотоД.ролі.join() === 'acct,acct',
+  '📎 бере кілька файлів; обидва в розмові від менеджера, підпис — з першим', JSON.stringify(фотоД));
+ok(фотоД.картинки >= 2, 'у розмові вони показані картинками, не посиланнями', 'картинок: ' + фотоД.картинки);
+
 console.log('\n═══ ЗАГОТОВКИ РІЗНІ ДЛЯ НАПРЯМІВ ═══');
 /* Компанії пишуть «виставимо рахунок на ФОП»; приватній людині в Директ
    таке слати нема сенсу, і навпаки. */

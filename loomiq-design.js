@@ -4028,7 +4028,7 @@
          пропускаємо: версія каже все те саме й показує роботу. Але її
          позначки прочитаного — у події, звідти й беремо. */
       if(m.kind === 'ver') return;
-      потік.push({ at: m.at, by: m.by, kind: m.kind, text: m.text, file: m.file,
+      потік.push({ at: m.at, by: m.by, kind: m.kind, text: m.text, file: m.file, fwd: m.fwd,
                    who: m.who, seen: m.seen, role: D.msgRole(m, d, kind) });
     });
     (d.vers || []).forEach(function(v){
@@ -4063,6 +4063,9 @@
               '<span class="dz-ch-w">' + esc(whoName(m.by)) + ' · ' + esc(dt(m.at)) +
                 (v && v.sentToClient ? ' · клієнту ' + esc(dt(v.sentToClient)) : '') +
               '</span>' +
+              /* Переслане з переписки з клієнтом (20.10): видно, що це його
+                 слова чи фото, і коли він це написав. */
+              (m.fwd ? '<i class="dz-ch-fwd">↪ від клієнта' + (m.fwd.at ? ' · ' + esc(String(m.fwd.at).slice(0, 16)) : '') + '</i>' : '') +
               (v
                 ? '<b class="dz-ch-vn">Версія ' + v.n + '</b>' +
                   verTilesHtml(v, dlNames(номер, u, kind, i, v.n))
@@ -4479,6 +4482,10 @@
            «Правки», строк дизайнера починається заново. */
         '<button class="dz-b" data-do="dz-note" data-dz="' + key +
           '" title="Дизайнер отримає це як правку">Написати</button>' +
+        /* Фото дизайнеру (20.10, Андрій): скріпка — одне чи кілька, підпис
+           з поля йде з першим. Показуються в розмові картинками. */
+        '<button class="dz-b dz-quiet" data-do="dz-note-pic" data-dz="' + key +
+          '" title="Прикріпити фото чи файл — можна кілька">📎</button>' +
       '</div>';
   }
   function dzCardHtml(u, kind, d, i, job, o, key, ro){
@@ -7706,7 +7713,7 @@
       '<div class="dz-w-row">' +
         '<button class="dz-b" data-do="dz-msg" data-dz="' + key + '">Надіслати</button>' +
         '<button class="dz-b dz-quiet" data-do="dz-msg-file" data-dz="' + key +
-          '" title="Просто файл, без здачі версії">⤒ Файл</button>' +
+          '" title="Фото чи файл, без здачі версії — можна кілька">📎 Фото / файл</button>' +
       '</div>' +
     '</div>';
   }
@@ -10550,6 +10557,68 @@
     });
     document.body.appendChild(w);
   }
+  /* ── ПЕРЕСЛАТИ ПОВІДОМЛЕННЯ КЛІЄНТА ДИЗАЙНЕРУ (20.10, Андрій: «натиснули
+     в діалозі з клієнтом самольотик, вибрали передати дизайнеру графічному —
+     і воно в діалозі зʼявилося»). Куди можна: кожен живий запис дизайну
+     позиції (графіка чи вишивка), який уже передано. Один — одразу туди,
+     кілька — вибір. Лягає правкою від менеджера з позначкою «від клієнта». */
+  function fwdTargets(job){
+    var out = [];
+    U.unitsOf(job).forEach(function(u){
+      ['graphic', 'stitch'].forEach(function(kind){
+        D.dzList(u, kind).forEach(function(d, i){
+          if(!d || d.readyMade || !D.dzReal(d) || !d.sentAt) return;
+          out.push({ u: u, kind: kind, d: d, i: i,
+                     label: 'Позиція ' + U.unitNo(job, u) + ' · ' + (kind === 'stitch' ? 'Вишивка' : 'Графіка') +
+                            (d.who ? ' · ' + U.nameOf(d.who) : ' · черга відділу') });
+        });
+      });
+    });
+    return out;
+  }
+  function fwdPickOpen(targets, cb){
+    document.querySelectorAll('.dz-fwdw').forEach(function(x){ x.remove(); });
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-fwdw';
+    el.innerHTML = '<div class="dz-fix-w"><div class="dz-fix-h"><b>Кому переслати</b>' +
+      '<button class="dz-x" data-fwd-x>×</button></div>' +
+      '<div class="dz-fwd-l">' + targets.map(function(t, k){
+        return '<button type="button" class="dz-b wide" data-fwd-k="' + k + '">' + esc(t.label) + '</button>';
+      }).join('') + '</div></div>';
+    el.addEventListener('click', function(e){
+      if(e.target.closest('[data-fwd-x]') || e.target === el){ el.remove(); return; }
+      var b = e.target.closest('[data-fwd-k]');
+      if(b){ el.remove(); cb(targets[+b.dataset.fwdK]); }
+    });
+    document.body.appendChild(el);
+  }
+  async function forwardToDesigner(o, msgs){
+    var p = o && U.pairOf(o.orderId);
+    if(!p || !p.job) return say('Картка не у відділі дизайну');
+    var list = (msgs || []).filter(function(m){ return m && (m.text || (m.files || []).length); });
+    if(!list.length) return say('Нічого пересилати');
+    var targets = fwdTargets(p.job);
+    if(!targets.length) return say('Дизайнерам ще нічого не передано — спершу «Передати дизайнеру»');
+    var go = async function(t){
+      var me = (host().me && host().me()) || '';
+      list.forEach(function(m){
+        var файли = (m.files || []).filter(function(f){ return f && f.url && (f.kind === 'img' || f.kind === 'media'); });
+        var інше = (m.files || []).filter(function(f){ return f && f.url && файли.indexOf(f) < 0; }).map(function(f){ return f.url; });
+        var txt = [String(m.text || '').trim()].concat(інше).filter(Boolean).join('\n');
+        var at = String(m.at || '').replace('T', ' ').slice(0, 16);
+        if(!файли.length){ D.dzSay(t.d, me, txt, null, 'acct'); t.d.thread[t.d.thread.length - 1].fwd = { at: at }; return; }
+        файли.forEach(function(f, k){
+          D.dzSay(t.d, me, k ? '' : txt, { name: 'від клієнта', url: f.url }, 'acct');
+          t.d.thread[t.d.thread.length - 1].fwd = { at: at };
+        });
+      });
+      D.dzSeen(t.d, me, 'acct');
+      await save(p.job, p.o, 'Переслано · ' + t.label);
+    };
+    if(targets.length === 1) return go(targets[0]);
+    fwdPickOpen(targets, go);
+  }
+  U.forwardToDesigner = forwardToDesigner;
   /* ── ВЛАСНИК ПЕРЕМИКАЄ ВИД ДИЗАЙНУ ПОПРИ РОБОТУ (19.10) ── */
   function kindBusy(u){
     return D.dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; }) ||
@@ -11683,7 +11752,7 @@
        what === 'dz-take' || what === 'dz-no' || what === 'dz-hand' ||
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
        what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
-       what === 'dz-sheet' || what === 'dz-tail' || what === 'dz-note' ||
+       what === 'dz-sheet' || what === 'dz-tail' || what === 'dz-note' || what === 'dz-note-pic' ||
        what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' || what === 'dz-art-only' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
@@ -11747,14 +11816,16 @@
       if(what === 'dz-msg' || what === 'dz-msg-file'){
         var mEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var mTxt = mEl ? String(mEl.value || '').trim() : '';
-        var mF = null;
+        var mFs = [];
         if(what === 'dz-msg-file'){
-          mF = await upload('');
-          if(!mF) return;
+          mFs = await uploadMany('');
+          if(!mFs.length) return;
         }
-        if(!mTxt && !mF) return say('Напишіть щось або прикріпіть файл');
-        /* Слово дизайнера — не правка: стан роботи й строк воно не міняє. */
-        D.dzNote(dd, m, mTxt, mF, dk);
+        if(!mTxt && !mFs.length) return say('Напишіть щось або прикріпіть файл');
+        /* Слово дизайнера — не правка: стан роботи й строк воно не міняє.
+           Файлів може бути кілька (20.10) — підпис іде з першим. */
+        if(!mFs.length) D.dzNote(dd, m, mTxt, null, dk);
+        mFs.forEach(function(f, k){ D.dzNote(dd, m, k ? '' : mTxt, f, dk); });
         D.dzSeen(dd, m, dk);
         if(mEl) mEl.value = '';
         return save(job, o, 'Надіслано');
@@ -12449,6 +12520,16 @@
          потім і відновлюють, чому третя версія відрізняється від другої. */
       /* Слово менеджера, яке НЕ повертає роботу. Для повернення є «Правка»
          — окрема кнопка з окремим вікном, і саме вона рухає картку. */
+      if(what === 'dz-note-pic'){
+        var pEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var pTxt = pEl ? String(pEl.value || '').trim() : '';
+        var pfs = await uploadMany('');
+        if(!pfs.length) return;
+        pfs.forEach(function(f, k){ D.dzSay(dd, m, k ? '' : pTxt, f, 'acct'); });
+        D.dzSeen(dd, m, 'acct');
+        if(pEl) pEl.value = '';
+        return save(job, o, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру');
+      }
       if(what === 'dz-note'){
         var nEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var nTxt = nEl ? String(nEl.value || '').trim() : '';
