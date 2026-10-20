@@ -2137,6 +2137,11 @@
   function dzUnseen(d, email, role, kind){
     var me = String(email || '');
     if(!me || !d) return 0;
+    /* Готовий дизайн (readyMade) — без дизайнера: у його «розмові» лише
+       службові події («файли з бібліотеки», «оновлено в бібліотеці»), і
+       рахувати їх непрочитаним означало б червоне «1» на картці без жодного
+       повідомлення (20.10, #2000067). */
+    if(d.readyMade) return 0;
     var tok = role ? me + '|' + role : '';
     return (d.thread || []).filter(function(m){
       if(!role) return String(m.by || '') !== me && (m.seen || []).indexOf(me) < 0;
