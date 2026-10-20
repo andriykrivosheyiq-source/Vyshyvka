@@ -211,9 +211,9 @@ const картка = await p.evaluate(() => ({
   кнопки: [...document.querySelectorAll('.dz-w .dz-b')].map(b => b.textContent.trim()),
   відмова: !!document.querySelector('[data-do="dz-no"]') }));
 console.log('  ' + JSON.stringify(картка));
-/* Дві позиції замовлення в черзі (передано цілим) — по «Беру» на кожну. */
-ok(/черзі відділу/.test(картка.підказка) && картка.кнопки.every(t => t === 'Беру в роботу') && картка.кнопки.length === 2 && !картка.відмова,
-  'у картці сказано, що це черга, і одна дія на позицію — «Беру в роботу»; відмови немає',
+/* Дві позиції замовлення в черзі (передано цілим) — ОДНА «Беру» на всю картку (20.10). */
+ok(/черзі відділу/.test(картка.підказка) && картка.кнопки.every(t => t === 'Беру в роботу') && картка.кнопки.length === 1 && !картка.відмова,
+  'у картці сказано, що це черга, і одна кнопка «Беру в роботу» на всю картку; відмови немає',
   'картка черги не та: ' + JSON.stringify(картка));
 await p.evaluate(() => document.querySelector('[data-do="dz-take"]').click());
 await p.waitForTimeout(800);
@@ -229,7 +229,7 @@ const доДругої = взяла.воронка;
 await p.evaluate(() => { const b = document.querySelector('[data-do="dz-take"]'); if(b) b.click(); });
 await p.waitForTimeout(800);
 взяла.воронка = await p.evaluate(() => window.LQDesign.chainAt(__j1, __o1));
-ok(доДругої === 'new', 'поки другу позицію не взяли — картка ще «Нове» (за найвідсталішою)', 'воронка до другої: ' + доДругої);
+ok(доДругої === 'design', 'одне «Беру» — і вся картка (обидві позиції) пішла в роботу', 'воронка після «Беру»: ' + доДругої);
 console.log('  ' + JSON.stringify(взяла));
 ok(взяла.хто === 'test@loomiq' && взяла.стан === 'work' && !взяла.черга,
   'хто натиснув — той виконавець, і робота одразу «В роботі»',
@@ -360,6 +360,51 @@ console.log('  ' + JSON.stringify(ставки));
 ok(ставки.таблиць === 2 && ставки.гр === 320 && ставки.вш === 180 && ставки.дельта === -150,
   'налаштування: «± до ціни» типу й ставки графічним/вишивальним (рядок «За замовчуванням») зберігаються',
   'ставки: ' + JSON.stringify(ставки));
+
+console.log('');
+console.log('═══ 9. ВСЯ КАРТКА — ОДНОМУ ДИЗАЙНЕРУ: ЗДАЄ РАЗОМ (20.10) ═══');
+const разом = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui;
+  const job = { units: [U.unitNew(), U.unitNew(), Object.assign(U.unitNew(), { ready: { id:'rd', name:'Готовий' } })] };
+  const [a, b] = job.units;
+  [a, b].forEach(u => { const d = D.dzNew(); D.dzList(u, 'graphic').push(d); D.dzQueue(d, 'mgr@loomiq'); D.dzClaim(d, 'test@loomiq'); });
+  const da = D.dzList(a, 'graphic')[0], db = D.dzList(b, 'graphic')[0];
+  const пери = D.dzPeers(job, a, 'graphic').length;
+  const r1 = D.dzSubmit(job, a, da, 'graphic', 'test@loomiq', { files: [{ name:'a.png', url:'a', role:'work' }], note:'' });
+  const після1 = { a: da.status, верс: da.vers.length, pend: !!da.pend };
+  const r2 = D.dzSubmit(job, b, db, 'graphic', 'test@loomiq', { files: [{ name:'b.png', url:'b', role:'work' }], note:'' });
+  const після2 = { a: da.status, b: db.status, va: da.vers.length, vb: db.vers.length, pend: !!da.pend };
+  /* Правка однієї, коли друга вже на перевірці, — здається одразу. */
+  da.status = 'revision';
+  const r3 = D.dzSubmit(job, a, da, 'graphic', 'test@loomiq', { files: [{ name:'a2.png', url:'a2', role:'work' }], note:'' });
+  return { пери, r1, після1, r2, після2, r3, va: da.vers.length };
+});
+console.log('  ' + JSON.stringify(разом));
+ok(разом.пери === 1, 'готовий дизайн у «всю картку» не входить — лише позиції через дизайнера', JSON.stringify(разом));
+ok(разом.r1.held && разом.після1.верс === 0 && разом.після1.pend, 'здав першу — менеджер ще нічого не бачить: «чекає позиції 2»', JSON.stringify(разом));
+ok(разом.r2.flushed === 2 && разом.після2.a === 'review' && разом.після2.b === 'review' && разом.після2.va === 1 && разом.після2.vb === 1 && !разом.після2.pend,
+  'здав другу — обидві одночасно пішли менеджеру на перевірку', JSON.stringify(разом));
+ok(разом.r3.flushed === 1 && разом.va === 2, 'правка однієї позиції, коли решта вже здана, — здається одразу', JSON.stringify(разом));
+
+const призн = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
+  const j = designJobMake('2000103');
+  const u = x => Object.assign(U.unitNew(), { artKind:'kids', gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:1, note:'лого' }, x || {});
+  j.units = [u(), u(), u({ ready: { id:'rd', name:'Готовий' } })];
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const c = document.querySelector('#dzRoot [data-open="2000103"]'); if(c) c.click();
+  await new Promise(r => setTimeout(r, 500));
+  const sel = document.querySelector('.dz-panel [data-dzwho^="' + j.units[0].id + '|graphic"]');
+  if(!sel) return { err: 'немає вибору дизайнера' };
+  sel.value = 'p@loomiq'; sel.onchange();
+  await new Promise(r => setTimeout(r, 500));
+  const who = j.units.map(x => (D.dzList(x, 'graphic').filter(d => !d.readyMade)[0] || {}).who || '');
+  return { who };
+});
+console.log('  ' + JSON.stringify(призн));
+ok(призн.who && призн.who[0] === 'p@loomiq' && призн.who[1] === 'p@loomiq' && призн.who[2] === '',
+  'менеджер обрав дизайнера на одній позиції — він на всій картці (крім готового дизайну)', JSON.stringify(призн));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
