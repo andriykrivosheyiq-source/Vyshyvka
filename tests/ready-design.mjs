@@ -388,7 +388,7 @@ const баз = await p.evaluate(async () => {
   крт.click();
   await new Promise(r => setTimeout(r, 400));
   const кн = document.querySelector('.dz-panel [data-do="u-base-pick"][data-u="' + u.id + '"]');
-  if(!кн) return { err: 'немає кнопки «Базовий з правками»' };
+  if(!кн) return { err: 'немає кнопки «Готовий з правками»' };
   const назваКн = кн.textContent;
   кн.click();
   await new Promise(r => setTimeout(r, 300));
@@ -401,7 +401,7 @@ const баз = await p.evaluate(async () => {
   ta.value = 'Додати напис «Олена 2025» під котиком';
   document.querySelector('.dz-fixw [data-fix-go]').click();
   await new Promise(r => setTimeout(r, 800));
-  const рядок = U.sumRows(j).filter(x => x.design === 'базовий з правками')[0] || null;
+  const рядок = U.sumRows(j).filter(x => x.design === 'готовий з правками')[0] || null;
   const html = U.unitsHtml(j, { o });
   const handable = D.dzHandable(j, o);
   D.dzHandOver(j, o, 'test@loomiq');
@@ -416,7 +416,7 @@ const баз = await p.evaluate(async () => {
            основа: /Основа · Котик/.test(html) && /Олена 2025/.test(html), handable, черга, уГраф, дизБачить };
 });
 console.log('  ' + JSON.stringify(баз));
-ok(/Базовий з правками/.test(баз.назваКн || ''), 'у перемикачі — кнопка «Базовий з правками»', JSON.stringify(баз));
+ok(/Готовий з правками/.test(баз.назваКн || ''), 'у перемикачі — кнопка «Готовий з правками»', JSON.stringify(баз));
 ok(баз.base === 'Котик' && /Олена 2025/.test(баз.note || '') && !баз.ready && баз.dst === 1,
   'обрали «Котик» з бібліотеки, вписали правку — основа з DST у позиції, позиція не «готова»', JSON.stringify(баз));
 ok(баз.ціна === 450 && баз.kind === 'ready', 'ціна клієнту — як у готового дизайну (450, не 600)', JSON.stringify(баз));

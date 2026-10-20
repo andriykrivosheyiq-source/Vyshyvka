@@ -91,6 +91,29 @@ console.log('  ' + JSON.stringify(res));
 ok(res && res.length === 2 && res[0].color && res[0].color.name === 'Червоний' && res[0].data && !res[1].color,
   'у збереженні — перефарбована етикетка з кольором «Червоний», друга без кольору', 'збережено: ' + JSON.stringify(res));
 
+console.log('═══ 5. «✎ РОЗМІЩЕННЯ» ПІД ВЕРСІЄЮ — ТЕЖ З КОЛЬОРОМ, ВІДКРИВАЄТЬСЯ В ЗБЕРЕЖЕНОМУ ═══');
+await p.evaluate(() => {
+  const png = (w, h, c) => { const k = document.createElement('canvas'); k.width = w; k.height = h;
+    const x = k.getContext('2d'); x.fillStyle = c; x.fillRect(20, 10, 60, 40); return k.toDataURL('image/png'); };
+  const фото = (() => { const k = document.createElement('canvas'); k.width = 400; k.height = 500;
+    const x = k.getContext('2d'); x.fillStyle = '#334'; x.fillRect(0, 0, 400, 500); return k.toDataURL('image/png'); })();
+  const білий = png(100, 60, '#fff'), чорний = png(100, 60, '#111111');
+  window.__res = null;
+  /* Як «✎ Розміщення»: placeOnly без прапорця recolor, робота з розміщення версії. */
+  window.LQMock.openWork({ placeOnly: true, gid: 'hoodie', size: 'M', color: 'білий', name: 'v2',
+    sides: [{ key: 'front', label: 'Перед', url: фото }],
+    works: [{ name: 'принт.png', url: чорний, hash: 'ready:rd1', color: { hex: '#111111', name: 'Чорний', from: білий } }],
+    places: [{ side: 'front', work: 0, x: 0.5, y: 0.3, w: 0.2 }],
+    onDone: res => { window.__res = res; } });
+});
+await p.waitForTimeout(600);
+const v5 = await p.evaluate(() => ({ кн: (document.querySelector('[data-mko-clr]') || {}).textContent || '', назад: !!document.querySelector('[data-mko-clr-x]') }));
+ok(/Чорний/.test(v5.кн) && v5.назад, 'кнопка кольору є, принт відкрився чорним, «↩ Повернути колір» на місці', JSON.stringify(v5));
+await p.click('[data-mko-clr-x]');
+await p.waitForTimeout(500);
+const v5b = await p.evaluate(async () => __pix(document.querySelector('.mko-wk img').src));
+ok(v5b.in.slice(0, 3).join() === '255,255,255', '«↩ Повернути колір» — до білого оригіналу з бібліотеки', JSON.stringify(v5b));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');
 await browser.close(); srv.close();

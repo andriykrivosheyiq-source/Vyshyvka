@@ -431,7 +431,12 @@
     var шир = widthCm(opt.gid, opt.size);
 
     /* Що вже лежить: роботи (файли) і розміщення по сторонах. */
-    var works = (opt.works || []).slice();
+    var works = (opt.works || []).slice().map(function(w){
+      /* Уже перефарбований (колір лежить у розміщенні версії) — відкриваємо в
+         тому ж кольорі, і «↩ Повернути колір» знає, до чого повертати. */
+      if(w && w.color && w.color.from && !w.clrOrig) return Object.assign({}, w, { clrOrig: w.color.from });
+      return w;
+    });
     var places = {};
     сторони.forEach(function(s){ places[s.key] = []; });
     /* БИТІ ПОЛОЖЕННЯ З ВЕРСІЙ (баг 03.10, див. docs/BUGS.md).
@@ -547,11 +552,13 @@
     }
     var колірВідкр = false;
     function колірHtml(){
-      if(!opt.recolor) return '';
+      /* У КОЖНОМУ «Поправити розміщення» (20.10): доти кнопка була лише у
+         вікні з бібліотеки, а «✎ Розміщення» під версією її не мало. */
+      if(!opt.recolor && !opt.placeOnly) return '';
       var i = активна();
       if(i < 0) return '';
       var w = works[i];
-      return '<div class="mko-bg mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
+      return '<div class="mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
         '<button type="button" class="mko-bg-b' + (колірВідкр ? ' on' : '') + '" data-mko-clr>🎨 ' +
           esc(w.color ? w.color.name : 'Змінити колір') + '</button>' +
         (w.color ? '<button type="button" class="mko-bg-b" data-mko-clr-x>↩ Повернути колір</button>' : '') +
@@ -661,8 +668,11 @@
             }).join('') +
             (opt.placeOnly ? '' :
               '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>') +
+            /* Колір принта — у тому ж рядку, що й мініатюри: окремий рядок
+               зменшував би сцену з виробом. */
+            колірHtml() +
           '</div>' +
-          '<div data-mko-bgbox>' + фонHtml() + колірHtml() + '</div>' +
+          '<div data-mko-bgbox>' + фонHtml() + '</div>' +
           '<div class="mko-tabs">' + сторони.map(function(s){
             var n = (places[s.key] || []).length;
             return '<button type="button" class="mko-tab' + (s.key === бік ? ' on' : '') +

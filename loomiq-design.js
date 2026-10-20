@@ -4656,7 +4656,7 @@
       '<button type="button" class="dz-kind-b' + (пов ? ' on' : '') + '" data-do="u-repeat" data-u="' + esc(u.id) + '"' +
         (пов ? '' : закр) + ' title="Дизайн, який ми вже робили: свої DST і принти — без дизайнерів">Повторний</button>' +
       '<button type="button" class="dz-kind-b' + (баз ? ' on' : '') + '" data-do="u-base-pick" data-u="' + esc(u.id) + '"' +
-        (баз ? '' : (u.ready ? закр : '')) + ' title="Дизайн з бібліотеки за основу + правка (напис, дата…): іде дизайнерам, ціна — як у готового">Базовий з правками</button>' +
+        (баз ? '' : (u.ready ? закр : '')) + ' title="Дизайн з бібліотеки за основу + правка (напис, дата…): іде дизайнерам, ціна — як у готового">Готовий з правками</button>' +
     '</div>';
   }
   /* Основа «Базового з правками» (20.10): що взяли з бібліотеки й що змінити.
@@ -4669,7 +4669,7 @@
       '<div class="dz-ready-h">' +
         (b.pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(b.pic) + '"><img src="' + esc(b.pic) + '" alt=""></button>' : '') +
         '<span class="dz-ready-t"><b>Основа · ' + esc(b.name || 'базовий дизайн') + '</b>' +
-          '<i>базовий дизайн з правками · іде графічному дизайнеру, далі вишивальному</i></span>' +
+          '<i>готовий дизайн з правками · іде графічному дизайнеру, далі вишивальному</i></span>' +
         ((!ro && !взяли) ? '<button type="button" class="dz-b" data-do="u-base-pick" data-u="' + esc(u.id) + '">Змінити основу</button>' : '') +
       '</div>' +
       '<div class="dz-w-note dz-base-note"><i>Що змінити</i>' + (b.note ? esc(b.note) : '<b class="dz-need-t">не написано — дизайнеру нема з чого починати</b>') +
@@ -5811,7 +5811,7 @@
       var соб = зафікс ? Math.max(0, Math.round(+u.cost || 0)) : прайсС;
       var к = Math.max(0, Math.round(+u.qty || 0));
       /* Вид дизайну — у назві рядка (15.10): «Футболка базова · повторний». */
-      var дизайн = u.base ? 'базовий з правками' : !u.ready ? 'індивідуальний' : D.linkOf(u) ? 'той самий ескіз' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
+      var дизайн = u.base ? 'готовий з правками' : !u.ready ? 'індивідуальний' : D.linkOf(u) ? 'той самий ескіз' : u.ready.repeat ? 'повторний' : 'готовий дизайн';
       /* Ціни «готовий ескіз» для виробу не вписано — береться індивідуальна;
          кажемо про це, щоб не дивувались сумі. */
       var запас = !!((u.ready || u.base) && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
@@ -7688,7 +7688,7 @@
         /* Тип малюнка (16.10) — дизайнер одразу бачить, що саме робити. */
         (u.artKind && !u.ready ? '<div class="dz-w-note"><i>Тип малюнка</i>' +
                   esc(u.artKindName || u.artKind) + '</div>' : '') +
-        /* Базовий з правками (20.10): основа з бібліотеки й що змінити — одразу тут. */
+        /* Готовий з правками (20.10): основа з бібліотеки й що змінити — одразу тут. */
         ((u.base && !u.ready) ? U.baseHtml(x.job, u, true) : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                   esc(u.note) + '</div>' : '') +
@@ -8854,6 +8854,17 @@
        не вікно: дошка ліворуч має свою прокрутку й своє життя. */
     var _p = root.querySelector('.dz-panel-b');
     var _top = _p ? _p.scrollTop : 0;
+    /* ДОШКА НЕ СТРИБАЄ (20.10, Андрій: «канбан пригає туди-сюди»). Фонове
+       оновлення (повідомлення, платежі, обхід розмов) перебудовує дошку
+       цілком — і прокрутка дошки вбік та кожної колонки вниз скидалась на
+       початок. Запамʼятовуємо й повертаємо — як і прокрутку панелі. */
+    var _bd = root.querySelector('.dz-boards');
+    var _bl = _bd ? _bd.scrollLeft : 0;
+    var _cols = {};
+    root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
+      _cols[b.parentNode.getAttribute('data-col')] = b.scrollTop; });
+    var _main = root.closest ? root.closest('main') : null;
+    var _mt = _main ? _main.scrollTop : 0;
     healOld();
     var role = (U.host.role && U.host.role()) || '';
     var boss = U.isBoss(role);
@@ -8933,11 +8944,24 @@
       var _p2 = root.querySelector('.dz-panel-b');
       if(_p2) _p2.scrollTop = _top;
     }
+    var _bd2 = root.querySelector('.dz-boards');
+    if(_bd2 && _bl) _bd2.scrollLeft = _bl;
+    root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
+      var t = _cols[b.parentNode.getAttribute('data-col')];
+      if(t) b.scrollTop = t;
+    });
+    if(_main && _main.scrollTop !== _mt) _main.scrollTop = _mt;
+    /* До відкритої картки підкручуємо ЛИШЕ коли її щойно відкрили: доти це
+       робилось на кожному фоновому оновленні, і дошка смикалась до картки
+       саме тоді, коли людина прокрутила її подивитись інші. */
     var on = root.querySelector('.dz-card.on');
-    if(on && on.scrollIntoView){
+    var onId = on ? on.getAttribute('data-open') : '';
+    if(on && on.scrollIntoView && onId !== LAST_ON){
       try{ on.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){}
     }
+    LAST_ON = onId;
   }
+  var LAST_ON = '';
   /* Панель доручення. Усе потрібне для роботи лежить ТУТ: що зробити, від
      кого, до якого числа, чим закрити й де перепитати. Саме тому виконавцю
      не треба відкривати картку замовлення — і не треба роздавати доступ до
@@ -11047,7 +11071,7 @@
         }
         U.fixOpen(async function(txt, file){
           D.baseAttach(bu, rd, txt, file);
-          await save(job, o, 'Базовий з правками · ' + (rd.name || ''));
+          await save(job, o, 'Готовий з правками · ' + (rd.name || ''));
         }, { title: 'Що змінити в «' + (rd.name || 'дизайні') + '»', go: 'Зберегти', text: (bu.base && bu.base.note) || '' });
       });
     }
@@ -11102,7 +11126,7 @@
     }
     if(what === 'u-ready-off'){
       var ou = U.unitAt(job, data && data.u);
-      /* Базовий з правками → індивідуальний: знімаємо лише основу; робота
+      /* Готовий з правками → індивідуальний: знімаємо лише основу; робота
          дизайнера та сама (позиція й так індивідуальна). */
       if(ou && !ou.ready && ou.base){
         try{ if(!window.confirm('Зробити позицію просто індивідуальною? Основу «' + (ou.base.name || '') + '» з неї знімемо, ціна — як в індивідуального.')) return; }catch(e){}
