@@ -1968,7 +1968,7 @@
   function verParts(v){
     var fs = (v && v.files) || [];
     var хеш = fs.some(function(f){ return f && f.hash; });
-    var out = { work: [], mock: [], sheet: null, shot: [], machine: [], orig: [], svg: [], extra: [] };
+    var out = { work: [], mock: [], sheet: null, vars: null, shot: [], machine: [], orig: [], svg: [], extra: [] };
     fs.forEach(function(f, i){
       if(!f || !f.url) return;
       /* Вишивка: файл для машини (DST/EMB) і скрін дизайну з Wilcom. */
@@ -1980,6 +1980,8 @@
       /* Під нитки: оригінал до адаптації і SVG з тими самими нитками. */
       if(f.role === 'orig'){ out.orig.push(f); return; }
       if(f.role === 'svg'){ out.svg.push(f); return; }
+      /* Картка варіантів на вибір (20.10) — йде клієнту другою, після аркуша ескіза. */
+      if(f.role === 'vars'){ out.vars = f; return; }
       var r = f.role ||
         (/^аркуш/i.test(String(f.name || '')) ? 'sheet'
           : хеш ? (f.hash ? 'work' : 'mock')
@@ -5221,6 +5223,22 @@
         'title="Той самий дизайн на кількох виробах і кольорах — клієнт порівняє й обере">🎨 Варіанти на кількох виробах</button></div>';
     var pick = +((u.variants || {}).pick || 0);
     var готові = l.filter(function(v){ return v.mock; }).length;
+    /* ДИЗАЙНЕР — ЛИШЕ МЕНЕДЖЕРУ (20.10, Андрій: «дизайнери комунікують з
+       менеджерами, менеджери — з людьми»). Здані варіанти — це здача роботи:
+       на перевірці зона закрита, як і після здачі ескіза. */
+    var диз = !!(opt && opt.designer);
+    var dd0 = opt && opt.d;
+    var lv = dd0 && dd0.vers[dd0.vers.length - 1];
+    var vs = lv && D.verParts(lv).vars;
+    /* Закрито, коли варіанти вже здані й чекають менеджера (або погоджено). */
+    var закрито = диз && dd0 && (!!dd0.pend || (vs && (dd0.status === 'review' || dd0.status === 'approved')));
+    if(закрито){
+      return '<div class="dz-var"><div class="dz-var-h"><b>Варіанти на вибір</b><i>' + l.length + '</i></div>' +
+        '<div class="dz-ok">' + (dd0.pend ? 'Здано · піде менеджеру разом з іншими позиціями картки'
+          : 'Здано менеджеру · ескіз і варіанти 1–' + l.length + (dd0.status === 'approved' ? ' · погоджено' : ' · на перевірці')) + '</div>' +
+        (vs ? '<button type="button" class="dz-b" data-do="pic-open" data-url="' + esc(vs.url) + '">👁 Картка варіантів</button>' : '') +
+      '</div>';
+    }
     return '<div class="dz-var">' +
       '<div class="dz-var-h"><b>Варіанти на вибір</b><i>' + l.length + ' з ' + VAR_MAX + '</i>' +
         (pick ? '<span class="dz-var-ok">Клієнт обрав № ' + pick + '</span>' : '') + '</div>' +
@@ -5242,10 +5260,14 @@
       (l.length < VAR_MAX ? '<button type="button" class="dz-var-add" data-do="u-var-add" data-u="' + uid + '">＋<span>Варіант</span></button>' : '') +
       '</div>' +
       '<div class="dz-var-f">' +
-        '<button type="button" class="dz-b pri" data-do="u-var-send" data-u="' + uid + '"' +
-          (l.length >= 2 && готові === l.length ? '' : ' disabled title="Потрібно щонайменше 2 розміщені варіанти"') + '>Надіслати клієнту картку 1–' + l.length + '</button>' +
+        (диз
+          ? '<button type="button" class="dz-b pri" data-do="u-var-hand" data-u="' + uid + '"' +
+              (l.length >= 2 && готові === l.length ? '' : ' disabled title="Потрібно щонайменше 2 розміщені варіанти"') +
+              ' title="Ескіз і картка варіантів підуть менеджеру на перевірку">Здати менеджеру · ескіз + варіанти 1–' + l.length + '</button>'
+          : '<button type="button" class="dz-b pri" data-do="u-var-send" data-u="' + uid + '"' +
+              (l.length >= 2 && готові === l.length ? '' : ' disabled title="Потрібно щонайменше 2 розміщені варіанти"') + '>Надіслати клієнту картку 1–' + l.length + '</button>') +
         (u.variants.sheet ? '<button type="button" class="dz-b" data-do="pic-open" data-url="' + esc(u.variants.sheet) + '">👁 Картка</button>' : '') +
-        (l.length >= 2 ? '<button type="button" class="dz-b" data-do="u-var-pick" data-u="' + uid + '">' + (pick ? 'Змінити вибір' : 'Клієнт обрав…') + '</button>' : '') +
+        ((l.length >= 2 && !диз) ? '<button type="button" class="dz-b" data-do="u-var-pick" data-u="' + uid + '">' + (pick ? 'Змінити вибір' : 'Клієнт обрав…') + '</button>' : '') +
       '</div>' +
     '</div>';
   }
@@ -7893,7 +7915,7 @@
       /* ВАРІАНТИ НА КІЛЬКОХ ВИРОБАХ (16.10): в індивідуальному їх робить
          графічний дизайнер, коли є ескіз; акаунт-менеджер потім поправляє. */
       ((kind === 'graphic' && x.o && x.o.dir === 'b2c' && !u.ready && (d.vers || []).length)
-        ? U.zoneHtml('violet', '\uD83C\uDFA8', 'Варіанти на кількох виробах', '', U.variantsHtml(u, { o: x.o }))
+        ? U.zoneHtml('violet', '\uD83C\uDFA8', 'Варіанти на кількох виробах', '', U.variantsHtml(u, { o: x.o, designer: true, d: d }))
         : '') +
       U.zoneHtml('green', '\uD83D\uDCAC', 'Переписка', '',
         U.dzChatHtml(u, kind, d, D.dzList(u, kind).indexOf(d),
@@ -10317,7 +10339,7 @@
     /* Готовий дизайн (13.10) — робота менеджера зі складом, як вибір одягу. */
     'u-ready-pick':'art', 'u-ready-off':'art', 'u-ready-place':'art', 'dz-ready-place':'art', 'u-link-add':'art', 'queue-in':'art',
     'u-repeat':'art', 'u-rep-up':'art', 'u-rep-del':'art', 'u-rep-past':'art',
-    'u-var-add':'art', 'u-var-place':'art', 'u-var-art':'art', 'u-var-del':'art', 'u-var-send':'art', 'u-var-pick':'art',
+    'u-var-add':'art', 'u-var-place':'art', 'u-var-art':'art', 'u-var-del':'art', 'u-var-send':'art', 'u-var-pick':'art', 'u-var-hand':'art',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -10595,6 +10617,41 @@
   }
   function varLabel(v){
     return [(U.catItem(v.gid) || {}).name || v.name || 'виріб', v.color].filter(Boolean).join(' · ');
+  }
+  /* Зібрати картку варіантів і покласти в сховище. */
+  async function varCard(job, u){
+    var l = U.varsOf(u);
+    if(!window.LQMock || !window.LQMock.variantsCard){ say('Картка варіантів не завантажилась'); return null; }
+    say('Збираю картку варіантів…');
+    var png = await window.LQMock.variantsCard({
+      title: 'Варіанти на вибір', no: U.unitNo(job, u),
+      items: l.map(function(v){ return { n: v.n, img: v.mock, label: varLabel(v) }; }),
+      note: 'Напишіть номер варіанта, який подобається більше'
+    });
+    if(!png){ say('Картка варіантів не зібралась'); return null; }
+    var up = await uploadDataUrl(png, 'варіанти-' + U.unitNo(job, u) + '.png');
+    if(!up || !up.url){ say('Картка не зберіглась у сховищі'); return null; }
+    return up;
+  }
+  /* ДИЗАЙНЕР ЗДАЄ ВАРІАНТИ МЕНЕДЖЕРУ (20.10): нова версія — файли останньої
+     (ескіз, мокапи, аркуш) + картка варіантів; та сама здача, що й ескіза
+     (на перевірку, «уся картка разом»). Клієнту — лише менеджер. */
+  async function varHand(job, o, u, m){
+    var l = U.varsOf(u);
+    if(l.length < 2 || l.some(function(v){ return !v.mock; })) return say('Розмістіть дизайн на всіх варіантах (щонайменше 2)');
+    var g = D.dzList(u, 'graphic').filter(function(x){ return x && !x.readyMade; });
+    var d = g[g.length - 1];
+    var lv = d && d.vers[d.vers.length - 1];
+    if(!lv) return say('Спершу здайте сам ескіз');
+    var up = await varCard(job, u);
+    if(!up) return;
+    u.variants.sheet = up.url; u.variants.sheetAt = new Date().toISOString();
+    var files = (lv.files || []).filter(function(f){ return f && f.role !== 'vars'; })
+      .concat([{ name: up.name || 'варіанти.png', url: up.url, role: 'vars' }]);
+    var зд = D.dzSubmit(job, u, d, 'graphic', m, { files: files, note: 'Ескіз і варіанти на вибір 1–' + l.length,
+      place: lv.place || null, role: 'graphic' });
+    if(зд && зд.held) return save(job, o, 'Здано · піде менеджеру разом із позиціями ' + зд.left.join(', '));
+    return save(job, o, 'Ескіз і варіанти 1–' + l.length + ' здано менеджеру на перевірку');
   }
   async function varSend(job, o, u){
     var l = U.varsOf(u);
@@ -11308,7 +11365,7 @@
     }
     /* ── ВАРІАНТИ НА КІЛЬКОХ ВИРОБАХ ── */
     if(what === 'u-var-add' || what === 'u-var-place' || what === 'u-var-art' || what === 'u-var-del' ||
-       what === 'u-var-send' || what === 'u-var-pick'){
+       what === 'u-var-send' || what === 'u-var-pick' || what === 'u-var-hand'){
       var vu = U.unitAt(job, data && data.u);
       if(!vu) return;
       var vl = U.varsOf(vu), vn = +(data && data.v) || 0;
@@ -11352,6 +11409,7 @@
         return save(job, o, 'Варіант прибрано');
       }
       if(what === 'u-var-send') return varSend(job, o, vu);
+      if(what === 'u-var-hand') return varHand(job, o, vu, m);
       if(what === 'u-var-pick') return variantChoose(vu, function(x){
         varApply(job, vu, x, m, null);
         save(job, o, 'Клієнт обрав варіант ' + x.n + ' — виріб і колір позиції оновлено');
@@ -12237,8 +12295,18 @@
           if(ls && ls.url) дод.push({ u: лінки[lk], d: lg, v: lv, url: ls.url });
         }
         if(дод.length) await save(job, o, '');
+        /* Варіанти на вибір від дизайнера (20.10): другою картинкою, після ескіза. */
+        var варі = D.verParts(tv).vars;
+        if(варі && варі.url){
+          дод.unshift({ u: du, d: dd, v: tv, url: варі.url, vars: true });
+          var лv = U.varsOf(du);
+          txt = (txt ? txt + '\n\n' : '') + 'Підготували кілька варіантів — напишіть, будь ласка, номер, який подобається більше:\n' +
+            лv.map(function(v){ return v.n + ' — ' + varLabel(v); }).join('\n');
+        }
+        var тов = дод.filter(function(x){ return !x.vars; }).length;
         var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n +
-            (дод.length ? ' + ' + дод.length + ' ' + (дод.length === 1 ? 'товар' : 'товари') + ' з цим ескізом' : ''),
+            (варі && варі.url ? ' + варіанти на вибір' : '') +
+            (тов ? ' + ' + тов + ' ' + (тов === 1 ? 'товар' : 'товари') + ' з цим ескізом' : ''),
           host().scriptSave ? function(t){ return host().scriptSave(o, ключСкр, t, { v: tv.n }); } : null,
           дод.map(function(x){ return x.url; }));
         if(остаточно === null) return;
@@ -12252,7 +12320,8 @@
         for(var lx = 0; lx < дод.length; lx++){
           var ok2 = false;
           try{ ok2 = await host().tellPic(o, дод[lx].url, ''); }catch(e){ console.error(e); }
-          if(ok2){ дод[lx].v.sentToClient = new Date().toISOString(); D.dzTold(дод[lx].d, m, дод[lx].v.n); }
+          if(ok2){ if(дод[lx].vars){ du.variants.sentAt = new Date().toISOString(); continue; }
+                   дод[lx].v.sentToClient = new Date().toISOString(); D.dzTold(дод[lx].d, m, дод[lx].v.n); }
           else недійшло++;
         }
         /* `nowIso` живе в ядрі, не тут. Виняток ковтався й виглядав як
@@ -12262,7 +12331,7 @@
            рахувався б у історії поверненням роботи. */
         D.dzTold(dd, m, tv.n);
         return save(job, o, недійшло ? 'Надіслано, але ' + недійшло + ' аркуш(і) не дійшли — надішліть їх із позицій'
-                                     : 'Надіслано клієнту' + (дод.length ? ' · ' + (дод.length + 1) + ' аркуші' : ''));
+                                     : 'Надіслано клієнту' + (варі && варі.url ? ' · ескіз і варіанти на вибір' : '') + (тов ? ' · ' + (тов + 1) + ' аркуші' : ''));
       }
       /* ══════════ ПРАВКА — МАЛЕНЬКИМ ВІКНОМ ══════════
 
