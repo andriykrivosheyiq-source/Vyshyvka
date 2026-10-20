@@ -120,12 +120,23 @@ const b2c = await p.evaluate(async () => {
   if(bd()) bd().scrollLeft = 400;
   const ручна = bd() ? bd().scrollLeft : 0;
   for(let i = 0; i < 3; i++){ U.render(root); await new Promise(r => setTimeout(r, 50)); }
-  return { до, після, ручна, післяКартки: bd() ? bd().scrollLeft : 0, широка: bd() ? bd().scrollWidth > bd().clientWidth : false };
+  const післяКартки = bd() ? bd().scrollLeft : 0;
+  /* Закрили картку хрестиком (20.10, Андрій: «коли закриваю карточку, мене
+     одразу пригоняє в канбан») — дошка й сторінка лишаються, де були. */
+  main.scrollTop = 450;
+  const доЗакр = { m: main.scrollTop, b: bd() ? bd().scrollLeft : 0 };
+  const x = root.querySelector('.dz-panel [data-close]');
+  if(x) x.click();
+  await new Promise(r => setTimeout(r, 400));
+  const закр = { m: main.scrollTop, b: bd() ? bd().scrollLeft : 0, панель: !!root.querySelector('.dz-panel:not(.hide)'), x: !!x };
+  return { до, після, ручна, післяКартки, доЗакр, закр, широка: bd() ? bd().scrollWidth > bd().clientWidth : false };
 });
 console.log('  ' + JSON.stringify(b2c));
 ok(Math.abs(b2c.після.m - b2c.до.m) < 2 && Math.abs(b2c.після.b - b2c.до.b) < 2,
   'дошка B2C: сторінка й дошка вбік — на місці після оновлень', 'стрибнуло: ' + JSON.stringify(b2c));
 ok(Math.abs(b2c.післяКартки - b2c.ручна) < 2, 'відкрита картка не тягне дошку до себе на кожному оновленні', 'смикнуло: ' + JSON.stringify(b2c));
+ok(b2c.закр.x && !b2c.закр.панель && Math.abs(b2c.закр.m - b2c.доЗакр.m) < 2 && Math.abs(b2c.закр.b - b2c.доЗакр.b) < 2,
+  'закрили картку — сторінка й дошка на тому ж місці', 'після закриття: ' + JSON.stringify({ до: b2c.доЗакр, після: b2c.закр }));
 
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'канбан стоїть на місці');
