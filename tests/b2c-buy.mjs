@@ -352,8 +352,8 @@ await p.evaluate(() => { const D = window.LQDesign; const d = D.dzList(__j.units
 await p.waitForTimeout(400);
 const бриф = await p.evaluate(() => [...document.querySelectorAll('.dz-panel .dz-spot')].map(x => x.textContent.replace(/\s+/g, ' ')));
 console.log('  ' + JSON.stringify(бриф));
-ok(бриф.length && бриф.every(t => /^Ширина вишивки\s?21,7 см$/.test(t)) && !бриф.some(t => /горловини|виробу|52/.test(t)),
-  'у брифі вишивальника — лише ширина вишивки, без відступів і ширини виробу', 'бриф: ' + JSON.stringify(бриф));
+ok(бриф.length && бриф.every(t => /^Вишивка · розмір \w+\s?21,7 см × 21,7 см$/.test(t)) && !бриф.some(t => /горловини|виробу|52/.test(t)),
+  'у брифі вишивальника — розмір виробу й розмір вишивки, без відступів і ширини виробу', 'бриф: ' + JSON.stringify(бриф));
 await p.evaluate(() => document.querySelector('.dz-panel [data-do="dz-stitch-up"][data-dz^="' + __j.units[1].id + '|"]').click());
 await p.waitForTimeout(300);
 const [fc1] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(() => document.querySelector('.dz-su [data-su="file"]').click())]);

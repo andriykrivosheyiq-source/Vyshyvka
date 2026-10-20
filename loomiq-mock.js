@@ -84,6 +84,13 @@
     catch(e){ return 0; }
   }
 
+  /* Найбільше поле вишивки машини (20.10, як у КП): більше — лише попереджаємо. */
+  var EMB_MAX = { w: 44, h: 29 };
+  function bigEmb(w, h){ return (+w || 0) > EMB_MAX.w + 0.05 || (+h || 0) > EMB_MAX.h + 0.05; }
+  function embWarn(m){
+    return (m && bigEmb(m.wCm, m.hCm)) ? '<div class="mko-warn">Більше за ' + EMB_MAX.w + ' × ' + EMB_MAX.h +
+      ' см — перевірте, чи влізе в пяльця машини</div>' : '';
+  }
   /* Розмір, під який рахуємо (16.10): не вказали в позиції — рахуємо під M. */
   function sizeNote(opt){
     return opt && opt.sizeAssumed
@@ -218,7 +225,7 @@
         '<div class="mko-n"><span>Від центру</span><b>' +
           esc((m.sideCm >= 0 ? '' : '−') + см(Math.abs(m.sideCm))) + '</b></div>';
       /* 16.10: розмір і розмір вишивки — без розміру самого виробу (Андрій). */
-      note.innerHTML = sizeNote(opt) + ' · вишивка <b>' + esc(см(m.wCm)) + ' × ' + esc(см(m.hCm)) + '</b>';
+      note.innerHTML = sizeNote(opt) + ' · вишивка <b>' + esc(см(m.wCm)) + ' × ' + esc(см(m.hCm)) + '</b>' + embWarn(m);
     }
 
     /* ── Миша ── */
@@ -819,7 +826,11 @@
         '<div class="mko-n"><span>Висота</span><b>' + esc(см(m.hCm)) + '</b></div>' +
         '<div class="mko-n"><span>Від верху виробу</span><b>' + esc(см(m.topCm)) + '</b></div>' +
         (m.edgeCm != null ? '<div class="mko-n"><span>Від краю виробу</span><b>' + esc(см(m.edgeCm)) + '</b></div>' : '');
-      note.innerHTML = sizeNote(opt) + ' · вишивка <b>' + esc(см(m.wCm)) + ' × ' + esc(см(m.hCm)) + '</b>';
+      /* Від чого рахуємо (20.10): довжина виробу САМЕ цього розміру з
+         розмірної сітки адмінки — на 5XL той самий принт інший, ніж на XS. */
+      var зн = zoneOf(opt.gid, бік, opt.color, opt.size);
+      note.innerHTML = sizeNote(opt) + (зн && зн.H ? ' · довжина виробу <b>' + esc(см(зн.H)) + '</b>' : '') +
+        ' · вишивка <b>' + esc(см(m.wCm)) + ' × ' + esc(см(m.hCm)) + '</b>' + embWarn(m);
     }
 
     /* ── Миша, палець, перо ──
@@ -1941,7 +1952,7 @@
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
-    open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, variantsCard: variantsCard, cardV: CARD_V, prodCard: prodCard, close: close,
+    bigEmb: bigEmb, EMB_MAX: EMB_MAX, open: open, openWork: openWork, peek: function(){ return W && W.peek ? W.peek() : null; }, card: card, variantsCard: variantsCard, cardV: CARD_V, prodCard: prodCard, close: close,
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */
