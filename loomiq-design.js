@@ -2936,7 +2936,7 @@
        робоче місце знає, чиє це крісло. */
     try{ return (host.roleSeat && host.roleSeat(r)) || ''; }catch(e){ return ''; }
   }
-  function isBoss(r){ return !r || r === 'owner' || r === 'manager' || r === 'designmgr'; }
+  function isBoss(r){ return !r || r === 'owner' || r === 'manager' || r === 'designmgr' || r === 'managerb2c'; }
   var tab = 'acct', openKey = '';
 
   /* Пари «задача + замовлення». Замовлення лишається джерелом складу, задача

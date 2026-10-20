@@ -7895,33 +7895,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7e96df347f"></script>
-<script src="loomiq-fingerprint.js?v=7e96df347f"></script>
-<script src="loomiq-pricing.js?v=7e96df347f"></script>
+<script src="loomiq-select.js?v=6ab49153a9"></script>
+<script src="loomiq-fingerprint.js?v=6ab49153a9"></script>
+<script src="loomiq-pricing.js?v=6ab49153a9"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=7e96df347f"></script>
+<script src="loomiq-money-core.js?v=6ab49153a9"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7e96df347f"></script>
-<script src="loomiq-bg.js?v=7e96df347f"></script>
-<script src="loomiq-mock.js?v=7e96df347f"></script>
+<script src="loomiq-design.js?v=6ab49153a9"></script>
+<script src="loomiq-bg.js?v=6ab49153a9"></script>
+<script src="loomiq-mock.js?v=6ab49153a9"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=7e96df347f"></script>
+<script src="imagetracer.js?v=6ab49153a9"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=7e96df347f"></script>
-<script src="loomiq-threads.js?v=7e96df347f"></script>
+<script src="loomiq-chat.js?v=6ab49153a9"></script>
+<script src="loomiq-threads.js?v=6ab49153a9"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=7e96df347f"></script>
+<script src="loomiq-cards.js?v=6ab49153a9"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7966,7 +7966,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '7e96df347f';
+var LQ_VER = '6ab49153a9';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -28607,7 +28607,7 @@ async function designTell(o, text){
   return false;
 }
 
-const ROLES = { owner:'Власник', manager:'Менеджер',
+const ROLES = { owner:'Власник', manager:'Менеджер B2B', managerb2c:'Менеджер B2C',
                 designer:'Дизайнер', production:'Виробництво',
                 /* Акаунт-менеджер веде замовлення ВІД І ДО: він його
                    створює, призначає дизайнерів, показує клієнту, повертає
@@ -28647,7 +28647,7 @@ const PROD_COLS = [
 ];
 /* Ролі, які зʼявились після того, як список ролей уже зберегли: їх
    додаємо до збереженого, інакше їх ніде не можна було б призначити. */
-const ROLES_ADDED = ['operator', 'qcprod'];
+const ROLES_ADDED = ['operator', 'qcprod', 'managerb2c'];
 /* ══════════ НАПРЯМ ЖИВЕ В РОЛІ, А НЕ ПОРУЧ ІЗ НЕЮ ══════════════════════
    У компанії два різні бізнеси, і ролі в них різні: менеджер B2B і менеджер
    B2C — різні люди з різними обовʼязками. Якийсь час напрям зберігався
@@ -28908,11 +28908,18 @@ function preset(p){ return Object.assign({ navAll:ALL_NAV, canAll:ALL_CAN }, p);
 const ROLE_PRESET = {
   owner:      preset({ ui:'manager', nav:'*', boards:'*',
                 see:['client','chat','cost'], can:ALL_CAN.slice() }),
-  manager:    preset({ ui:'manager',
-                nav:['today','dash','board','chats','calc','photos','reviews','suppliers'],
+  /* НАПРЯМИ — РІЗНИМИ РОЛЯМИ (20.10, Андрій): менеджер B2B бачить лише
+     замовлення й чати B2B, менеджер B2C — лише B2C. Решту розділів додамо,
+     коли знадобляться. */
+  manager:    preset({ ui:'manager', nav:['board','chats'],
                 boards:'*', see:['client','chat'],
                 can:['new','edit','stage','assign','pay','write','files','quick','bind','art'] }),
-  designer:   preset({ ui:'designer', nav:['today','dash','board','design'], boards:['design'],
+  managerb2c: preset({ ui:'manager', nav:['design','chatsc'], boards:['acct'],
+                see:['client','chat'],
+                can:['new','edit','stage','assign','pay','write','files','quick','bind','art','approve','pack'] }),
+  /* Графічний і вишивальний дизайнер — лише «Замовлення B2C», кожен на своїй
+     дошці (20.10). */
+  designer:   preset({ ui:'designer', nav:['design'], boards:['design'],
                 see:[], can:['art','stage'] }),
   /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
      нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
@@ -28943,7 +28950,7 @@ const ROLE_PRESET = {
                 see:[], can:['stage','export'] }),
   /* Вишивальний дизайнер має свою дошку: він програмує машину, і це окрема
      робота з окремою чергою, а не частина графічного дизайну. */
-  embroidery: preset({ ui:'designer', nav:['today','dash','board','design'], boards:['embro'],
+  embroidery: preset({ ui:'designer', nav:['design'], boards:['embro'],
                 see:[], can:['stitch'] })
 };
 /* ── Розділи, яких не існувало, коли роль зберігали ─────────────────────
@@ -30350,6 +30357,38 @@ function wireTeamPane(box){
   if(rc) rc.addEventListener('click', ()=>{ rolesDraft = null; roleOpen = ''; renderTeamList(); });
   const rs = box.querySelector('.tr-save');
   if(rs) rs.addEventListener('click', rolesSave);
+}
+/* РОЛІ ПО НАПРЯМАХ — ОДИН РАЗ (20.10). Ролі лежать у базі, тож нові меню
+   до них самі не доходять: міняємо збережені рівно в цих чотирьох місцях —
+   «Менеджер B2B» (лише B2B), новий «Менеджер B2C», графічний і вишивальний
+   (лише «Замовлення B2C»). Права (що можна робити в картці) не чіпаємо. */
+const ROLES_SEED = 1;
+let rolesSeeding = false;
+async function rolesSeedOnce(){
+  if(rolesSeeding || !canSetup() || !contentLoaded) return;
+  if(+(contentData.rolesSeed || 0) >= ROLES_SEED) return;
+  const saved = contentData.roles;
+  rolesSeeding = true;
+  try{
+    if(Array.isArray(saved) && saved.length){
+      const list = JSON.parse(JSON.stringify(saved));
+      const set = (k, nav, name) => { const r = list.find(x => x && x.key === k); if(!r) return;
+        r.nav = nav.slice(); r.navAll = ZONE_NAV.map(z => z.key); if(name) r.name = name; };
+      set('manager', ['board','chats'], 'Менеджер B2B');
+      set('designer', ['design']);
+      set('embroidery', ['design']);
+      if(!list.some(x => x && x.key === 'managerb2c'))
+        list.push(Object.assign({ key:'managerb2c', name:'Менеджер B2C', navAll: ZONE_NAV.map(z => z.key) },
+          JSON.parse(JSON.stringify(ROLE_PRESET.managerb2c))));
+      await PHOTOS_DOC.set({ roles: list, rolesSeed: ROLES_SEED }, { merge:true });
+      contentData.roles = list;
+    }else{
+      await PHOTOS_DOC.set({ rolesSeed: ROLES_SEED }, { merge:true });
+    }
+    contentData.rolesSeed = ROLES_SEED;
+    try{ applyRoleUi(); }catch(e){}
+  }catch(e){ console.warn('ролі', e); }
+  rolesSeeding = false;
 }
 async function rolesSave(){
   if(!contentLoaded) return toast('Дані ще вантажаться — зачекайте секунду');
@@ -33255,6 +33294,7 @@ async function init(){
     if(!teamDirty){ teamDraft = null; teamPulled = {}; }
     try{ if(document.getElementById('view-team') &&
            document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
+    rolesSeedOnce();     // 20.10: ролі по напрямах — один раз
     applyRoleUi();
     qrSeedOnce();        // скрипти з картками доводимо й до налаштованого акаунта
     const bv = document.getElementById('view-board');
