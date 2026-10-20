@@ -179,6 +179,22 @@ ok(дошка[0] && /Черга відділу/.test(дошка[0].кол) && д
   'перша колонка — «Черга відділу», і в ній усі три замовлення',
   'черги на дошці немає: ' + JSON.stringify(дошка));
 
+/* ПО ПОРЯДКУ (20.10): найстаріше згори, дата створення — на плитці. */
+const порядок = await p.evaluate(() => {
+  const U = window.LQDesign.ui, o3 = orders.find(x => x.orderId === '2000103'), was = o3.createdAt;
+  o3.createdAt = '2026-09-20T08:00:00.000Z';
+  U.render(document.getElementById('dzRoot'));
+  const col = document.querySelector('.dz-col');
+  const r = { ids: [...col.querySelectorAll('[data-open]')].map(c => c.dataset.open),
+              дата: ((col.querySelector('.dz-c-date') || {}).textContent || '').trim() };
+  o3.createdAt = was; U.render(document.getElementById('dzRoot'));
+  return r;
+});
+console.log('  ' + JSON.stringify(порядок));
+ok(порядок.ids.join(',') === '2000103,2000101,2000102' && порядок.дата === '20.09',
+  'у черзі — від найстаршого замовлення, на плитці дата створення (лише день)',
+  'порядок: ' + JSON.stringify(порядок));
+
 console.log('');
 console.log('═══ 3. «БЕРУ» ═══');
 const open = async id => {
