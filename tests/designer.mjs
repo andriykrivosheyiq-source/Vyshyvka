@@ -48,7 +48,13 @@ const TEAM = [
   { email:'owner@loomiq',  name:'Андрій', role:'owner' },
   { email:'test@loomiq',   name:'Ірина',  role:'designer' }
 ];
-const CONTENT = { team:TEAM, sizecharts:{ tshirt:[{size:'Розмір'},{size:'S'},{size:'M'}] } };
+/* Роль зі СТАРИМ меню (з B2B-дошкою «Дизайн»): з 20.10 дизайнер за
+   замовчуванням бачить лише «Замовлення B2C», а ця перевірка — про саму
+   B2B-дошку дизайну, тож роль така, як у людини з власною роллю. */
+const CONTENT = { team:TEAM, sizecharts:{ tshirt:[{size:'Розмір'},{size:'S'},{size:'M'}] }, rolesSeed: 1,
+  roles: [{ key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*', see:['client','chat','cost'], can:['setup'] },
+          { key:'designer', name:'Дизайнер', ui:'designer', nav:['today','dash','board','design'], boards:['design'], see:[], can:['art','stage'],
+            navAll:['today','board','chats','chatsc','design','calc','settings','photos','reviews','suppliers','analytics','dash','team'] }] };
 
 const PAID = {
   id:'1', orderId:'1000601', type:'client', name:'Оксана', phone:'+380670000601',
