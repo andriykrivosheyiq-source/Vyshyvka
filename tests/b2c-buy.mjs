@@ -683,6 +683,44 @@ ok(пос.st2 === 'got' && пос.рядків === 1 && пос.пропало.jo
   'пропала позиція: прийняте — Отримано, пропале вийшло з закупівлі й видно «не прийшло»', JSON.stringify(пос));
 
 console.log('');
+console.log('═══ 8б. ВЛАСНИК ВИДАЛЯЄ ЗАКУПІВЛІ (20.10) ═══');
+/* Андрій: «щоб власник мав можливість видаляти список закупівель — те, що
+   вже були закупівлі». Не отриману — скасовуємо: позиції знову «Треба
+   замовити». Отриману — лише прибираємо зі списку: одяг у замовленнях лишається. */
+const вид = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const cf = window.confirm; window.confirm = () => true;
+  const b1 = Object.values(designBuys).find(x => x.n === 1 && !x.stock);
+  const b2 = Object.values(designBuys).find(x => x.n === 2 && !x.stock);
+  const пропале = Object.assign({}, b2.rows[0], { qty: 2 });
+  const bx = D.buyNew(Object.values(designBuys), 'test@loomiq', [Object.assign({}, пропале)]);
+  await U.host.buySave(bx);
+  U.setTab('supply'); U.open(''); U.render(document.getElementById('dzRoot'));
+  const q = s => document.querySelector(s);
+  const у = () => D.buyCovered(U.host.buys().filter(b => b.kind === 'buy' && !(b.del && b.del.void)), пропале.orderId, пропале.uid);
+  const доНе = у(), nx = bx.n;
+  const кнопка = !!q('[data-do="buy-del"][data-id="' + bx.id + '"]');
+  q('[data-do="buy-del"][data-id="' + bx.id + '"]').click();
+  await new Promise(r => setTimeout(r, 500));
+  const післяНе = у();
+  const стан1 = D.buyStateOf(U.host.buys().filter(b => b.kind === 'buy' && !(b.del && b.del.void)), b1.rows[0].orderId, b1.rows[0].uid).key;
+  q('[data-do="buy-del"][data-id="' + b1.id + '"]').click();
+  await new Promise(r => setTimeout(r, 500));
+  window.confirm = cf;
+  const заголовки = [...document.querySelectorAll('.dz-buy-o .dz-buy-oh b')].map(x => x.textContent);
+  const стан1п = D.buyStateOf(U.host.buys().filter(b => b.kind === 'buy' && !(b.del && b.del.void)), b1.rows[0].orderId, b1.rows[0].uid).key;
+  return { кнопка, доНе, післяНе, void: !!(bx.del && bx.del.void), hide: !!(b1.del && !b1.del.void), стан1, стан1п,
+           немаХ: !заголовки.some(t => t.indexOf('№' + nx + ' ') >= 0), немає1: !заголовки.some(t => /№1 від/.test(t)),
+           наступний: D.buyNew(Object.values(designBuys), 'x', []).n > nx };
+});
+console.log('  ' + JSON.stringify(вид));
+ok(вид.кнопка && вид.доНе - вид.післяНе === 2 && вид.void && вид.немаХ,
+  'не отриману закупівлю власник видаляє — скасовано, її штуки знову не покриті («Треба замовити»)', JSON.stringify(вид));
+ok(вид.hide && вид.немає1 && вид.стан1 === 'got' && вид.стан1п === 'got',
+  'отриману — прибрано зі списку, а в замовленні одяг лишається «Отримано»', JSON.stringify(вид));
+ok(вид.наступний, 'номер видаленої закупівлі не займає наступна', JSON.stringify(вид));
+
+console.log('');
 console.log('═══ 9. ЦЕХ: ПЕРЕТЯГНУТИ, «ГОТОВО» З ФОТО, ПОГОДЖЕННЯ З ТТН, ПЕРЕДРУК (06.10) ═══');
 const цехПотік = await p.evaluate(async () => {
   const D = window.LQDesign, U = D.ui, o = __o, j = __j, out = {};
