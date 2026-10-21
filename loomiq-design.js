@@ -3098,7 +3098,8 @@
             ? ' <em class="dz-c-paid">' + esc(c.unpaidTxt) + '</em>'
             : c.paidPct != null
             ? ' <em class="dz-c-paid">' + (c.paidPct >= 100 ? 'оплачено' : 'не оплачено') + '</em>'
-            : '') + '</span>'
+            : '') +
+          (c.payChk ? '<em class="dz-c-chk" title="Оплата на карту ще не підтверджена власником">!</em>' : '') + '</span>'
       : '';
     /* ОДИН СТІКЕР ТЕРМІНУ (06.10). Андрій обрав: лише найближчий строк —
        годинник етапу чи відправка клієнту, — а прострочений завжди перший. */
@@ -4885,12 +4886,18 @@
     var arts = D.linkArts(mn), pic = (arts[0] && arts[0].url) || r.pic || '';
     var stale = D.linkStale(job, u);
     var кнопка = function(t){ return '<button type="button" class="dz-b pri" data-do="u-ready-place" data-u="' + esc(u.id) + '">' + t + '</button>'; };
-    return '<div class="dz-ready is-link">' +
-      '<div class="dz-ready-h">' +
+    var sub = !!(opt && opt.sub);
+    var зПог = !!(d && d.ok);
+    return '<div class="dz-ready is-link' + (sub ? ' is-sub' : '') + '">' +
+      (sub
+        ? '<div class="dz-sub-t">🔗 Той самий ескіз, що й позиція ' + no +
+            '<button type="button" class="dz-kind-b" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
+              (зПог ? ' disabled title="Дизайн уже погоджено"' : ' title="Відвʼязати від ескізу — позиція стане окремою зі своїм дизайном"') + '>Свій дизайн</button></div>'
+        : '<div class="dz-ready-h">' +
         (pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(pic) + '"><img src="' + esc(pic) + '" alt=""></button>' : '') +
         '<span class="dz-ready-t"><b>Ескіз позиції ' + no + '</b>' +
           '<i>без нового ескізу й без оплати дизайнерам · вишивальний файл — той самий</i></span>' +
-      '</div>' +
+      '</div>') +
       (!mn ? '<div class="dz-miss">Головної позиції вже немає — натисніть «Свій дизайн».</div>'
         : !arts.length ? '<div class="dz-miss is-calm">Розмістимо, щойно буде ескіз позиції ' + no + '.</div>'
         : (!d || !(d.vers || []).length)
@@ -5029,6 +5036,67 @@
   function qtyHidden(o, u){
     return !!(o && o.dir === 'b2c') && !((Math.round(+((u || {}).qty) || 0)) > 1);
   }
+  /* Рядок виробу: [n] [Виріб] [Колір] [Розмір] [шт] ⧉ 🗑 — свій і для
+     головної позиції, і для товару з тим самим ескізом (підрядком у ній). */
+  function unitRowHtml(u, n, opt){
+    var g = catItem(u.gid);
+    return '<div class="dz-u-f">' +
+      '<i class="dz-u-n is-' + (dzColState(u, 'graphic') || 'none') + '" title="' +
+        (dzColState(u, 'graphic') === 'done' ? 'передано вишивальному дизайнеру'
+          : dzColState(u, 'graphic') === 'sent' ? 'передано графічному дизайнеру'
+          : 'ще нікому не передано') + '">' + n + '</i>' +
+      /* Графіку погоджено, а даних бракує — порожні поля світяться
+         червоним: саме їх і треба заповнити, щоб позиція пішла далі. */
+      (function(){
+        var треба = D.graphicDone(u) && !D.clothOk(u);
+        var need = function(v){ return (!v && треба) ? ' need' : ''; };
+        return '<button type="button" class="dz-pickb' + (u.gid ? ' on' : '') + need(u.gid) +
+        '" data-do="u-pick-gid" data-u="' + esc(u.id) + '">' +
+        esc((g && g.name) || u.name || 'Обрати виріб') + '</button>' +
+      '<button type="button" class="dz-pickb' + (u.color ? ' on' : '') + need(u.color) +
+        '" data-do="u-pick-color" data-u="' + esc(u.id) + '"' +
+        (u.gid ? '' : ' disabled') + '>' +
+        (u.colorHex ? '<i class="dz-sw" style="background:' + esc(u.colorHex) + '"></i>' : '') +
+        esc(u.color || 'Колір') + '</button>' +
+      '<button type="button" class="dz-pickb' + (u.size ? ' on' : '') + need(u.size) +
+        '" data-do="u-pick-size" data-u="' + esc(u.id) + '"' +
+        (u.gid ? '' : ' disabled') + '>' +
+        esc(u.size || 'Розмір') + '</button>' +
+      /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10).
+         У B2C поля немає зовсім (16.10, Андрій): там одиночні замовлення,
+         а дві-три речі — це окремі позиції. Стара позиція з 2+ шт поле
+         зберігає — інакше множник у сумі сидів би невидимим. */
+      (qtyHidden(opt.o, u) ? '' :
+      '<input class="dz-qty" type="number" min="1" step="1" title="Кількість" ' +
+        'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">');
+      })() +
+      /* Дії — у кінці того самого рядка. Значками, а не словами: вони
+         дрібні, повторювані й самі себе пояснюють. */
+      '<span class="dz-u-acts">' +
+        '<button class="dz-ib" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
+          'title="Те саме ще раз — далі міняєте колір чи розмір">⧉</button>' +
+        '<button class="dz-ib dz-ib-x" data-do="u-del" data-u="' + esc(u.id) + '" ' +
+          'title="Прибрати цей одяг">🗑</button>' +
+      '</span>' +
+      '</div>';
+  }
+  /* ТОВАРИ З ЦИМ ЕСКІЗОМ — ПІДРЯДКАМИ В ГОЛОВНІЙ ПОЗИЦІЇ (21.10). Андрій:
+     «під ним одразу футболка така-то повинна бути, а не створюватись нова
+     картка… два товари просто». Звʼязаний товар — не окрема картка внизу,
+     а рядок виробу під позицією з ескізом: свої лише виріб, колір, розмір,
+     послуги й розміщення. Ескіз, ТЗ і дизайнери — головної. */
+  function linkedRowsHtml(job, u, opt){
+    var l = D.linksOf(job, u);
+    if(!l.length) return '';
+    var all = unitsOf(job);
+    return l.map(function(x){
+      return '<div class="dz-u-sub" data-sub="' + esc(x.id) + '">' +
+        unitRowHtml(x, all.indexOf(x) + 1, opt) +
+        servicesHtml(x, false, opt) +
+        linkHtml(job, x, false, Object.assign({}, opt || {}, { sub: true })) +
+      '</div>';
+    }).join('');
+  }
   function unitHtml(job, u, n, opt){
     opt = opt || {};
     var ro = !!opt.ro, only = opt.only || '';
@@ -5069,47 +5137,9 @@
            КІЛЬКІСТЬ» над кнопками займав рядок і не додавав нічого: кнопка
            з назвою виробу і так каже, що це виріб, а порожня чесно просить
            обрати. */
-        : '<div class="dz-u-f">' +
-        '<i class="dz-u-n is-' + (dzColState(u, 'graphic') || 'none') + '" title="' +
-          (dzColState(u, 'graphic') === 'done' ? 'передано вишивальному дизайнеру'
-            : dzColState(u, 'graphic') === 'sent' ? 'передано графічному дизайнеру'
-            : 'ще нікому не передано') + '">' + n + '</i>' +
-        /* Графіку погоджено, а даних бракує — порожні поля світяться
-           червоним: саме їх і треба заповнити, щоб позиція пішла далі. */
-        (function(){
-          var треба = D.graphicDone(u) && !D.clothOk(u);
-          var need = function(v){ return (!v && треба) ? ' need' : ''; };
-          return '<button type="button" class="dz-pickb' + (u.gid ? ' on' : '') + need(u.gid) +
-          '" data-do="u-pick-gid" data-u="' + esc(u.id) + '">' +
-          esc((g && g.name) || u.name || 'Обрати виріб') + '</button>' +
-        '<button type="button" class="dz-pickb' + (u.color ? ' on' : '') + need(u.color) +
-          '" data-do="u-pick-color" data-u="' + esc(u.id) + '"' +
-          (u.gid ? '' : ' disabled') + '>' +
-          (u.colorHex ? '<i class="dz-sw" style="background:' + esc(u.colorHex) + '"></i>' : '') +
-          esc(u.color || 'Колір') + '</button>' +
-        '<button type="button" class="dz-pickb' + (u.size ? ' on' : '') + need(u.size) +
-          '" data-do="u-pick-size" data-u="' + esc(u.id) + '"' +
-          (u.gid ? '' : ' disabled') + '>' +
-          esc(u.size || 'Розмір') + '</button>' +
-        /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10).
-           У B2C поля немає зовсім (16.10, Андрій): там одиночні замовлення,
-           а дві-три речі — це окремі позиції. Стара позиція з 2+ шт поле
-           зберігає — інакше множник у сумі сидів би невидимим. */
-        (qtyHidden(opt.o, u) ? '' :
-        '<input class="dz-qty" type="number" min="1" step="1" title="Кількість" ' +
-          'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">');
-        })() +
-        /* Дії — у кінці того самого рядка. Значками, а не словами: вони
-           дрібні, повторювані й самі себе пояснюють. */
-        '<span class="dz-u-acts">' +
-          '<button class="dz-ib" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
-            'title="Те саме ще раз — далі міняєте колір чи розмір">⧉</button>' +
-          '<button class="dz-ib dz-ib-x" data-do="u-del" data-u="' + esc(u.id) + '" ' +
-            'title="Прибрати цей одяг">🗑</button>' +
-        '</span>' +
-      '</div>') +
+        : unitRowHtml(u, n, opt)) +
       servicesHtml(u, ro, opt) +
-      linksNoteHtml(job, u) +
+      (ro ? linksNoteHtml(job, u) : linkedRowsHtml(job, u, opt)) +
       /* 16.10, Андрій: коментар ліворуч, картинки праворуч — одним рядком,
          щоб позиція була нижчою. Картинок багато — права частина росте вниз. */
       '<div class="dz-u-np">' +
@@ -5691,9 +5721,14 @@
     if(g) return gateHtml(g);
     /* Заголовок пропускаємо, коли склад стоїть у зоні: зона вже підписана,
        і другий підпис того самого — це рядок, який нічого не додає. */
+    var ro = !!(opt && opt.ro);
     return ((opt && opt.bare) ? '' : '<div class="dz-h">Склад замовлення</div>') +
       (list.length
-        ? list.map(function(u, i){ return unitHtml(job, u, i + 1, opt); }).join('')
+        ? list.map(function(u, i){
+            /* Товар з цим ескізом живе підрядком у головній (21.10); окремою
+               карткою — лише коли головної вже немає (щоб його було видно). */
+            if(!ro && D.linkOf(u) && D.linkMain(job, u)) return '';
+            return unitHtml(job, u, i + 1, opt); }).join('')
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
       ((opt && opt.ro) ? '' : '<div class="dz-u-foot">' +
@@ -6053,9 +6088,20 @@
         ? свої.map(function(p, i){
             /* Без підпису: перший — передоплата, далі — доплата (15.10). */
             if(!p.tagSet) p.tag = i === 0 ? 'prepay' : 'final';
-            return '<div class="dz-pay-r">' +
+            /* Оплата на карту (21.10): «!» поки власник не підтвердив. */
+            var chk = p.check === 'wait'
+              ? ' <i class="dz-c-chk" title="Оплата на карту ще не підтверджена власником">!</i> не підтверджено' +
+                (p.shot ? ' <a class="pay-shot" href="' + esc(p.shot) + '" target="_blank" rel="noopener">скрін</a>' : '') +
+                ((host.payCanCheck && host.payCanCheck())
+                  ? '<button type="button" class="pay-chk-b" data-do="pay-check" data-p="' + esc(p.id) + '" data-st="ok">Підтверджено</button>' +
+                    '<button type="button" class="pay-chk-b" data-do="pay-check" data-p="' + esc(p.id) + '" data-st="no">Не дійшло</button>'
+                  : '')
+              : p.check === 'ok' ? ' · <span class="pay-chk-ok">✓ підтверджено</span>' + (p.shot ? ' <a class="pay-shot" href="' + esc(p.shot) + '" target="_blank" rel="noopener">скрін</a>' : '')
+              : p.check === 'no' ? ' · <span class="pay-chk-no">✕ не дійшло — не рахується</span>'
+              : '';
+            return '<div class="dz-pay-r' + (p.check === 'no' ? ' is-no' : '') + '">' +
               '<b>' + esc(грн(p.amount)) + '</b>' +
-              '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + '</span>' +
+              '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + (p.check && p.by ? ' · ' + esc(p.by) : '') + chk + '</span>' +
               '<select data-payt="' + esc(p.id) + '" title="Чим це є">' +
                 Object.keys(PAY_TAG).map(function(k){
                   return '<option value="' + k + '"' + (p.tag === k ? ' selected' : '') +
@@ -6910,6 +6956,8 @@
         what: whatOf(p.job, p.o),
         paidPct: сума ? Math.min(100, Math.round(оплачено / сума * 100)) : null,
         unpaidTxt: сума ? (оплачено >= сума ? 'оплачено' : 'не оплачено ' + money(сума - оплачено)) : null,
+        /* Оплата на карту ще не підтверджена (21.10) — «!» на плитці. */
+        payChk: !!(host().unverified && host().unverified(p.o).n),
         steps: { n: 5, at: at, labels: CHAIN_STEP_L, txt: CHAIN_STEP_L[at] },
         chain: stageMarks(p.job, p.o, всіЗ),
         who: хто ? nameOf(хто) : '', whoTitle: хто ? 'Зараз працює: ' + nameOf(хто) : '',
@@ -10901,6 +10949,19 @@
     };
     далі();
   }
+  /* ПОЛЕ РОЗМОВИ — ТЕ, У ЯКЕ ПИСАЛИ (21.10, Андрій: «переписка з дизайнером
+     падає, повідомлення не відсилається»). Картка живе в двох місцях одразу:
+     панель відділу (#dzRoot) і та сама картка праворуч від діалогу в «Чатах
+     B2C». Поле з тим самим ключем є в обох, а шукали по всьому документу —
+     і брали перше, порожнє, у схованій панелі: «Напишіть щось», хоч текст
+     набрано. Тепер — спершу в тому корені, де натиснули, і з-поміж кількох
+     полів те, у якому є текст. */
+  function dzSayEl(root, key){
+    var sel = '[data-dzsay="' + key + '"]';
+    var all = root ? [].slice.call(root.querySelectorAll(sel)) : [];
+    if(!all.length) all = [].slice.call(document.querySelectorAll(sel));
+    return all.filter(function(e){ return String(e.value || '').trim(); })[0] || all[0] || null;
+  }
   async function act(what, root, data){
     var need = ACT_CAN[what];
     if(need && !can(need))
@@ -11349,6 +11410,12 @@
             .then(function(){ render(document.getElementById('dzRoot')); })
             .catch(function(e){ console.error(e); say('Привʼязати не вдалось'); });
         });
+    }
+    if(what === 'pay-check'){
+      if(!host().payCheck) return say('Підтвердження оплати недоступне');
+      return Promise.resolve(host().payCheck((data && data.p) || '', (data && data.st) || 'ok'))
+        .then(function(){ render(document.getElementById('dzRoot')); })
+        .catch(function(e){ console.error(e); say('Не вдалось'); });
     }
     if(what === 'pay-off'){
       if(!host().payUnlink) return say('Відвʼязка платежів недоступна');
@@ -11830,7 +11897,7 @@
          Репліка дизайнера НЕ кидає дизайн у «правки»: це його слово, а не
          повернення роботи. Саме на цьому воно й плуталось. */
       if(what === 'dz-msg' || what === 'dz-msg-file'){
-        var mEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var mEl = dzSayEl(root, dkey);
         var mTxt = mEl ? String(mEl.value || '').trim() : '';
         var mFs = [];
         if(what === 'dz-msg-file'){
@@ -11865,7 +11932,7 @@
       /* Відповідь менеджера на питання дизайнера. Стан роботи від неї не
          міняється: це слово, а не повернення на правку. */
       if(what === 'dz-reply'){
-        var rEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var rEl = dzSayEl(root, dkey);
         var rTxt = rEl ? String(rEl.value || '').trim() : '';
         if(!rTxt) return say('Напишіть відповідь');
         D.dzSay(dd, m, rTxt, null, 'acct');
@@ -11994,7 +12061,7 @@
             var зібр = await workVer(res, du);
             if(!зібр) return;
             var файли = зібр.files;
-            var hEl2 = document.querySelector('[data-dzsay="' + dkey + '"]');
+            var hEl2 = dzSayEl(root, dkey);
             var hTxt2 = hEl2 ? String(hEl2.value || '').trim() : '';
             var зд = D.dzSubmit(job, du, dd, dk, m, { files: файли, note: hTxt2, place: зібр.place, role: dk });
             dd.draft = null;
@@ -12074,7 +12141,7 @@
           if(ad) aw.push(ad);
         }
         if(!aw.length) return say('Без адаптації під нитки роботу не здаємо');
-        var awEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var awEl = dzSayEl(root, dkey);
         var awTxt = awEl ? String(awEl.value || '').trim() : '';
         var awF = [];
         aw.forEach(function(f){
@@ -12130,7 +12197,7 @@
            виробі, а не файл на прозорому тлі — за ним не видно ні розміру,
            ні місця, і замість погодження починається листування. */
         if(!чер2.mock) return say('Без мокапу не надсилаємо — зробіть його');
-        var hEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var hEl = dzSayEl(root, dkey);
         var hTxt = hEl ? String(hEl.value || '').trim() : '';
         var файли = [Object.assign({}, чер2.art, { role:'work' }),
                      { name:'мокап.png', url: чер2.mock.png, role:'mock' }];
@@ -12540,7 +12607,7 @@
       /* Слово менеджера, яке НЕ повертає роботу. Для повернення є «Правка»
          — окрема кнопка з окремим вікном, і саме вона рухає картку. */
       if(what === 'dz-note-pic'){
-        var pEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var pEl = dzSayEl(root, dkey);
         var pTxt = pEl ? String(pEl.value || '').trim() : '';
         var pfs = await uploadMany('');
         if(!pfs.length) return;
@@ -12550,7 +12617,7 @@
         return save(job, o, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру');
       }
       if(what === 'dz-note'){
-        var nEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var nEl = dzSayEl(root, dkey);
         var nTxt = nEl ? String(nEl.value || '').trim() : '';
         if(!nTxt) return say('Напишіть щось');
         D.dzSay(dd, m, nTxt, null, 'acct');
@@ -12578,7 +12645,7 @@
         return save(job, o, 'Файл додано');
       }
       if(what === 'dz-say'){
-        var sEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var sEl = dzSayEl(root, dkey);
         var txt = sEl ? String(sEl.value || '').trim() : '';
         if(!txt) return say('Напишіть, що саме поміняти');
         D.dzSay(dd, m, txt, null, 'acct');

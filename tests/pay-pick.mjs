@@ -250,7 +250,7 @@ ok(к1.gate && !к1.додати && к1.ok.join() === 'true,false,false' && к1.
 const ман = await p.evaluate(async () => {
   document.querySelector('.dz-gate [data-do="pay-pick"]').click();
   await new Promise(r => setTimeout(r, 300));
-  const det = document.querySelector('.pp-man');
+  const det = document.querySelector('.pp-man:not(.pp-card)');
   if(!det) return { err: 'немає ручного платежу' };
   det.open = true;
   det.querySelector('[data-pm-sum]').value = '300';

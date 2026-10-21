@@ -4796,8 +4796,30 @@
   .fin-gs-r b.is-in{color:#0E9F6E;} .fin-gs-r b.is-out{color:#B42318;}
   .dz-svc-add{all:unset;cursor:pointer;font-size:12px;color:var(--accent-deep,#4338CA);padding:3px 8px;border:1px dashed #C7D2FE;border-radius:999px;}
   .dz-sum-r.is-svc span{padding-left:12px;color:var(--ink-soft);}
+  /* Оплата на карту з «!» (21.10). */
+  .pay-chk,.dz-c-chk,.tc-pay.p-chk{font-style:normal;font-weight:800;}
+  .pay-chk{display:inline-block;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;
+    background:#F59E0B;color:#fff;font-size:11px;margin:0 2px 0 4px;}
+  .pay-chk-ok{color:#0E9F6E;} .pay-chk-no{color:#B42318;}
+  .pay-chkrow{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--ink-soft);margin:-4px 0 6px 2px;}
+  .pay-shot{margin-left:4px;font-size:11.5px;color:var(--accent-deep,#4338CA);}
+  .pay-chk-b{all:unset;cursor:pointer;font-size:11.5px;padding:2px 8px;margin-left:6px;border-radius:999px;
+    border:1px solid #CBD5E1;background:#fff;color:var(--ink);}
+  .pay-chk-b:hover{border-color:#94A3B8;}
+  .tc-pay.p-chk{background:#FEF3C7;color:#92400E;}
+  .dz-c-chk{display:inline-block;min-width:15px;height:15px;line-height:15px;text-align:center;border-radius:50%;
+    background:#F59E0B;color:#fff;font-size:10.5px;margin-left:4px;}
+  .pp-card-n{font-size:12px;color:var(--ink-soft);flex-basis:100%;}
+  .fa-shot{font-size:12px;color:var(--accent-deep,#4338CA);margin-right:6px;}
+  .fa-wait{font-size:12px;color:var(--muted);}
   /* Товар з цим ескізом (18.10). */
   .dz-link-add{border-color:#A5B4FC;color:#4338CA;font-weight:600;}
+  .dz-u-sub{margin:6px 0 2px;padding:8px 10px;border:1px dashed #C7D2FE;border-radius:10px;background:#F8F9FF;}
+  .dz-u-sub .dz-u-n{background:#C7D2FE;color:#3730A3;}
+  .dz-u-sub .dz-u-svc{margin-top:4px;}
+  .dz-ready.is-link.is-sub{margin-top:6px;padding:6px 8px;}
+  .dz-sub-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#3730A3;}
+  .dz-sub-t .dz-kind-b{margin-left:auto;font-size:11.5px;}
   .dz-link-note{margin:4px 0 2px;font-size:12px;color:#3730A3;background:#EEF2FF;border-radius:8px;padding:5px 9px;}
   .dz-link-note b{display:inline-block;min-width:16px;text-align:center;border-radius:5px;background:#C7D2FE;font-size:11px;margin-right:2px;}
   .dz-kind.is-link{align-items:center;gap:8px;padding-left:10px;background:#EEF2FF;border-color:#C7D2FE;}
@@ -7916,33 +7938,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a3fec30762"></script>
-<script src="loomiq-fingerprint.js?v=a3fec30762"></script>
-<script src="loomiq-pricing.js?v=a3fec30762"></script>
+<script src="loomiq-select.js?v=a728e3df43"></script>
+<script src="loomiq-fingerprint.js?v=a728e3df43"></script>
+<script src="loomiq-pricing.js?v=a728e3df43"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=a3fec30762"></script>
+<script src="loomiq-money-core.js?v=a728e3df43"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a3fec30762"></script>
-<script src="loomiq-bg.js?v=a3fec30762"></script>
-<script src="loomiq-mock.js?v=a3fec30762"></script>
+<script src="loomiq-design.js?v=a728e3df43"></script>
+<script src="loomiq-bg.js?v=a728e3df43"></script>
+<script src="loomiq-mock.js?v=a728e3df43"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=a3fec30762"></script>
+<script src="imagetracer.js?v=a728e3df43"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=a3fec30762"></script>
-<script src="loomiq-threads.js?v=a3fec30762"></script>
+<script src="loomiq-chat.js?v=a728e3df43"></script>
+<script src="loomiq-threads.js?v=a728e3df43"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a3fec30762"></script>
+<script src="loomiq-cards.js?v=a728e3df43"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7987,7 +8009,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a3fec30762';
+var LQ_VER = 'a728e3df43';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11383,8 +11405,10 @@ function renderFinAudit(){
           ${x.fix === 'link' ? '<button class="pri" data-fa-fix="link">Привʼязати</button>' : ''}
           ${x.fix === 'unlink' ? '<button class="pri" data-fa-fix="unlink">Відвʼязати</button>' : ''}
           ${x.fix === 'own' ? '<button class="pri" data-fa-fix="own">Між своїми</button>' : ''}
+          ${x.fix === 'check' ? (x.payId && (payments || []).some(q => q.id === x.payId && q.shot) ? `<a class="fa-shot" href="${E(((payments || []).filter(q => q.id === x.payId)[0] || {}).shot)}" target="_blank" rel="noopener">скрін</a>` : '') +
+            (payCanCheck() ? '<button class="pri" data-fa-fix="ok">Підтверджено</button><button data-fa-fix="no">Не дійшло</button>' : '<span class="fa-wait">підтверджує власник</span>') : ''}
           ${x.kind === 'cod_orphan' ? `<button data-fa-more>${finAudit.more[key] ? 'сховати' : 'показати'}</button>` : ''}
-          ${x.kind !== 'cod_orphan' && !x.acc ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+          ${x.kind !== 'cod_orphan' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
         </div></div>`; }).join('')}</div>` : ''}`;
   box.onclick = async e => {
     if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
@@ -11402,6 +11426,7 @@ function renderFinAudit(){
         if(f === 'link') await payLinkSet(p, x.orderId, 'cod');
         if(f === 'unlink'){ if(!confirm('Відвʼязати платіж від #' + x.orderId + '?')) return; await payLinkSet(p, '', null); }
         if(f === 'own'){ await PAY_COL.doc(p.id).set({ tag: 'own', orderId: null }, { merge:true }); p.tag = 'own'; }
+        if(f === 'ok' || f === 'no'){ await payCheckSet(p.id, f); return renderFin(); }
         toast('Готово'); return renderFin();
       }
       if(e.target.closest('[data-fa-okay]')){
@@ -20596,6 +20621,7 @@ function ticketSummaryHtml(o){
         ? '<span class="tc-pay p-full">сплачено</span>'
         : (payState(o) === 'part'
             ? `<span class="tc-pay p-part">залишок ${fmt(dueSum(o))} ₴</span>` : '')}
+      ${cardWait(o).n ? '<span class="tc-pay p-chk" title="Оплата на карту ще не підтверджена власником">! оплата не перевірена</span>' : ''}
       ${o.mgrEmail ? `<span class="tc-mgr" title="Відповідальний менеджер">${
         escapeHtml(personName(o.mgrEmail))}</span>` : ''}
     </div>
@@ -21287,6 +21313,55 @@ function paidRows(o){ return LQMoney.paid(o, payPays()).rows; }
 function paidSum(o){ return LQMoney.paid(o, payPays()).sum; }
 function dueSum(o){ return LQMoney.due(o, payPays()); }
 function payState(o){ return LQMoney.state(o, payPays()); }
+/* ОПЛАТА НА КАРТУ (21.10). Андрій: «оплату на карту може вписувати будь-який
+   менеджер… зі скріном; підтверджують лише Андрій або Володимир; замовлення
+   йде по ланцюгу, а на ньому «!», поки не перевірено». Рахує все ядро
+   (`LQMoney`): неперевірена — як сплачено, «не дійшло» — ні. */
+function payCanCheck(){ return myRole() === 'owner'; }
+function cardWait(o){ return LQMoney.unverified(o, payPays()); }
+function cardAccounts(){ const all = finAccounts(); const c = all.filter(finIsCard); return c.length ? c : all; }
+/* Записати рух «на карту» у Фінанси — лише як «не перевірено»; привʼязка
+   далі йде звичайним шляхом (payLinkSet через onPick). */
+async function cardPayAdd(o, f){
+  const p = { id: 'card_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+              at: (f.at ? new Date(f.at + 'T12:00:00').toISOString() : new Date().toISOString()),
+              amount: Math.round(+f.sum || 0), ccy:'UAH', acc: f.acc || '',
+              counter: 'На карту · ' + (personName(myEmail()) || myEmail() || ''), desc: f.note || '',
+              src: LQMoney.CARD_SRC, by: myEmail() || '', shot: String(f.shot || ''),
+              check: { state: 'wait', at: new Date().toISOString() } };
+  const { id: _id, ...запис } = p;
+  await PAY_COL.doc(p.id).set(запис, { merge:true });
+  if(!(payments || []).some(x => x.id === p.id)) (payments || (payments = [])).push(p);
+  return p;
+}
+/* «Підтверджено» / «Не дійшло» — лише власник. */
+async function payCheckSet(id, state){
+  if(!payCanCheck()) return toast('Підтверджують оплату на карту лише власники');
+  const p = (payments || []).filter(x => x.id === id)[0];
+  if(!p || !LQMoney.isCard(p)) return toast('Це не оплата на карту');
+  if(state === 'no' && !confirm('Позначити «не дійшло»? Оплата ' + fmt(p.amount) + ' ₴ перестане рахуватись, у замовленні буде борг.')) return;
+  const check = { state: state === 'no' ? 'no' : 'ok', by: myEmail() || '', at: new Date().toISOString() };
+  try{
+    await PAY_COL.doc(p.id).set({ check }, { merge:true });
+    p.check = check;
+    toast(state === 'no' ? 'Позначено «не дійшло»' : 'Оплату підтверджено');
+  }catch(e){ console.error(e); return toast('Не збереглось: ' + (e.message || e)); }
+  try{ renderOrderDrawer(); }catch(e){}
+  try{ renderBoard(); }catch(e){}
+  try{ if(window.LQDesign && LQDesign.ui && document.getElementById('dzRoot')) LQDesign.ui.render(document.getElementById('dzRoot')); }catch(e){}
+  try{ renderFinAudit(); }catch(e){}
+}
+function cardCheckHtml(p, cls){
+  const E = escapeHtml;
+  if(!p || !p.check) return '';
+  const id = p.payId || p.id;
+  const shot = p.shot ? ' <a class="pay-shot" href="' + E(p.shot) + '" target="_blank" rel="noopener">скрін</a>' : '';
+  if(p.check === 'ok') return ' · <span class="pay-chk-ok">✓ підтверджено</span>' + shot;
+  if(p.check === 'no') return ' · <span class="pay-chk-no">✕ не дійшло</span>' + shot;
+  return ' <i class="pay-chk" title="Оплата на карту ще не підтверджена власником">!</i> не підтверджено' + shot +
+    (payCanCheck() ? ' <button type="button" class="pay-chk-b" data-pay-chk="' + E(id) + '|ok">Підтверджено</button>' +
+                     '<button type="button" class="pay-chk-b" data-pay-chk="' + E(id) + '|no">Не дійшло</button>' : '');
+}
 const PAY_KIND_UA = { prepay:'передоплата', final:'доплата', other:'оплата', cod:'контроль оплати' };
 function odMoneyHtml(o){
   const total = +o.totalPrice || 0, paid = paidSum(o), due = dueSum(o), st = payState(o);
@@ -21296,13 +21371,14 @@ function odMoneyHtml(o){
     <div class="pay-row${p.counted ? '' : ' pay-off'}" data-i="${i}">
       <span class="pay-d">${escapeHtml(dtUa(p.at))}</span>
       <span class="pay-k">${escapeHtml(PAY_KIND_UA[p.kind] || PAY_KIND_UA.other)}${
-        !p.counted ? ' · у Фінансах ' + (p.elsewhere ? 'привʼязаний до #' + escapeHtml(p.elsewhere) : 'відвʼязаний') + ' — не рахується'
+        p.src === 'card' ? ' · на карту' + (p.acc ? ' ' + escapeHtml(finAccName(p.acc)) : '') + (p.by ? ' · ' + escapeHtml(personName(p.by)) : '')
+        : !p.counted ? ' · у Фінансах ' + (p.elsewhere ? 'привʼязаний до #' + escapeHtml(p.elsewhere) : 'відвʼязаний') + ' — не рахується'
         : p.payId ? ' · з банку' + (p.acc ? ' · ' + escapeHtml(p.src === 'bank' ? finAccName(p.acc) : p.acc) : '') +
                     (p.ttn ? ' · ТТН ' + escapeHtml(p.ttn) : '')
         : (p.by ? ' · ' + escapeHtml(personName(p.by)) : '')}</span>
       <b class="pay-s">${fmt(p.sum)} ₴</b>
       <button class="pay-x" data-pay-del="${i}" title="${p.payId && p.counted ? 'Відвʼязати платіж від замовлення' : 'Прибрати запис'}">✕</button>
-    </div>`).join('');
+    </div>${p.src === 'card' ? '<div class="pay-chkrow">' + cardCheckHtml(p) + '</div>' : ''}`).join('');
   return `
     <div class="od-sec">Гроші</div>
     <div class="od-money">
@@ -21384,6 +21460,18 @@ function payPickOpen(o, onPick, opt){
       <div class="pp-list"></div>
       <div class="pp-f"><span class="pp-sel">Позначте платіж галочкою</span>
         <button type="button" class="dz-b pri" data-pp-go disabled>Привʼязати</button></div>
+      ${/* ОПЛАТА НА КАРТУ (21.10): будь-який менеджер, зі скріном; на
+           замовленні «!», поки власник не підтвердить. */
+        (o && o.orderId) ? `<details class="pp-man pp-card"><summary>💳 Клієнт переказав на карту</summary>
+        <div class="pp-man-f">
+          <label>Сума, ₴<input type="number" min="1" step="1" data-pc-sum placeholder="напр. 500"></label>
+          <label>Дата<input type="date" data-pc-at value="${new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10)}"></label>
+          <label>На яку карту<select data-pc-acc>${cardAccounts().map(a =>
+            `<option value="${E(a.id)}">${E(a.name || a.id)}</option>`).join('')}<option value="">інша карта</option></select></label>
+          <label class="pp-man-w">Скрін переказу (обовʼязково)<input type="file" accept="image/*" data-pc-shot></label>
+          <div class="pp-card-n">Запишеться як сплачено одразу — замовлення йде далі. Поки власник не звірить зі скріном, на замовленні стоїть «!».</div>
+          <button type="button" class="dz-b pri" data-pc-go>Записати оплату на карту</button>
+        </div></details>` : ''}
       ${/* РУЧНИЙ ПЛАТІЖ — ЛИШЕ ВЛАСНИК (20.10, Андрій: «тільки в мене — вписати
            суму самостійно й прикріпити», напр. гроші прийшли на інший банк). */
         (myRole() === 'owner' && o && o.orderId) ? `<details class="pp-man"><summary>＋ Вписати платіж вручну (власник)</summary>
@@ -21422,6 +21510,23 @@ function payPickOpen(o, onPick, opt){
   const esc = e => { if(e.key === 'Escape'){ e.stopPropagation(); close(); } };
   document.addEventListener('keydown', esc, true);
   d.addEventListener('click', e => { if(e.target === d || e.target.closest('[data-pp-x]')) close(); });
+  const pc = d.querySelector('[data-pc-go]');
+  if(pc) pc.addEventListener('click', async () => {
+    const сума = Math.round(+d.querySelector('[data-pc-sum]').value || 0);
+    if(!(сума > 0)) return toast('Впишіть суму');
+    const file = (d.querySelector('[data-pc-shot]').files || [])[0];
+    if(!file) return toast('Без скріна переказу оплату на карту не записуємо');
+    pc.disabled = true; pc.textContent = 'Записую…';
+    try{
+      const shot = await uploadCloudinaryAuto(file);
+      if(!shot) throw new Error('скрін не завантажився');
+      const p = await cardPayAdd(o, { sum: сума, at: d.querySelector('[data-pc-at]').value,
+                                      acc: d.querySelector('[data-pc-acc]').value, shot });
+      await onPick(p); привʼязано++;
+      toast('Оплату на карту ' + fmt(сума) + ' ₴ записано — чекає підтвердження власника');
+      close();
+    }catch(err){ console.error(err); toast('Не збереглось: ' + ((err && err.message) || err)); pc.disabled = false; pc.textContent = 'Записати оплату на карту'; }
+  });
   const pm = d.querySelector('[data-pm-go]');
   if(pm) pm.addEventListener('click', async () => {
     if(myRole() !== 'owner') return toast('Вписувати платіж вручну може лише власник');
@@ -24979,6 +25084,8 @@ function renderOrderDrawer(){
   }
   panel.querySelectorAll('[data-pay-del]').forEach(b=>
     b.addEventListener('click', ()=> removePayment(o, +b.dataset.payDel)));
+  panel.querySelectorAll('[data-pay-chk]').forEach(b=>
+    b.addEventListener('click', ()=>{ const [id, st] = b.dataset.payChk.split('|'); payCheckSet(id, st); }));
   const pp = panel.querySelector('[data-pay-pick]');
   if(pp) pp.addEventListener('click', ()=> payPickOpen(o, p => linkBankPayment(o, p)));
   // Нагадування: коментар, дата, час — і Enter у полі теж додає
@@ -28639,7 +28746,9 @@ function designHostInit(){
       const id = String((o && o.orderId) || '');
       const рядок = p => ({ id: p.id, amount: Math.round(+p.amount || 0),
         at: payDate(p.at), acc: finAccName(p.acc), tag: p.tag || 'prepay', tagSet: !!p.tag,
-        desc: [p.counter, p.desc].filter(Boolean).join(' · ') });
+        desc: [p.counter, p.desc].filter(Boolean).join(' · '),
+        /* Оплата на карту (21.10): стан перевірки і скрін. */
+        check: LQMoney.cardCheck(p), shot: p.shot || '', by: p.by ? personName(p.by) : '' });
       return {
         linked: (payments || []).filter(p => id && String(p.orderId || '') === id)
                                .map(рядок),
@@ -28665,6 +28774,9 @@ function designHostInit(){
     payUnlink: id => { const p = (payments || []).filter(x => x.id === id)[0];
       return p ? payLinkSet(p, '', null) : PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }); },
     payTag: (id, tag) => PAY_COL.doc(id).set({ tag: tag || null }, { merge:true }),
+    payCheck: (id, st) => payCheckSet(id, st),
+    payCanCheck: () => payCanCheck(),
+    unverified: o => cardWait(o),
     /* Як підписаний клієнт: нік і, якщо є, імʼя профілю. Читає це робоче
        місце — воно й ходить у Sitniks. */
     whoLabel: o => crmWhoLabel(o),

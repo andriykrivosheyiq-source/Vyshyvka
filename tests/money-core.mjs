@@ -180,5 +180,37 @@ console.log('═══ 9. КОНТРОЛЬ ОПЛАТИ ТТН = ЗАЛИШОК 
 }
 
 console.log('');
+console.log('═══ 10. ОПЛАТА НА КАРТУ З «!» (21.10) ═══');
+{
+  /* Андрій: вписує будь-який менеджер зі скріном; рахується як сплачено одразу
+     (і в контролі оплати ТТН); підтверджує лише власник; «не дійшло» — не
+     рахується; усе непідтверджене — у Звірці. */
+  const o = { orderId: 'C1', totalPrice: 3000, payments: [{ sum: 1000, payId: 'card_1', at: D + '1T10:00:00Z' }] };
+  const wait = { id: 'card_1', amount: 1000, orderId: 'C1', src: 'card', at: D + '1T10:00:00Z', acc: 'card1', by: 'olia@loomiq', shot: 'https://x/shot.png', check: { state: 'wait' } };
+  const pw = M.paid(o, [wait]);
+  ok(pw.sum === 1000 && pw.rows[0].src === 'card' && pw.rows[0].check === 'wait' && pw.rows[0].counted && pw.rows[0].shot,
+    'не перевірена оплата на карту рахується як сплачено (рядок card · wait · зі скріном)', JSON.stringify(pw));
+  ok(M.codFor(o, [wait]) === 2000 && M.state(o, [wait]) === 'part', 'контроль оплати ТТН = залишок з урахуванням неперевіреної (2 000)', 'codFor: ' + M.codFor(o, [wait]));
+  ok(M.unverified(o, [wait]).n === 1 && M.unverified(o, [wait]).sum === 1000 && M.unverified(o, [{ ...wait, check: { state: 'ok' } }]).n === 0,
+    'unverified: 1 × 1 000 ₴ поки не перевірено, 0 після «Підтверджено»', 'unverified');
+  ok(M.cardCheck(wait) === 'wait' && M.cardCheck({ ...wait, check: null }) === 'wait' && M.cardCheck({ ...wait, src: 'mono' }) === '',
+    'без check — «не перевірено»; для не-карти стану немає', 'cardCheck');
+  const no = { ...wait, check: { state: 'no', by: 'andriy@loomiq' } };
+  ok(M.paid(o, [no]).sum === 0 && !M.paid(o, [no]).rows[0].counted && M.codFor(o, [no]) === 3000,
+    '«Не дійшло» — не рахується, залишок знову 3 000', 'no: ' + M.paid(o, [no]).sum);
+  ok(M.paid(o, null).sum === 1000, 'рухи не завантажені — копія в картці рахується (як для банку)', 'null pays');
+  const au = (pp) => M.audit([o], pp, { now: NOW, np: {}, accs: [] }).filter(x => /^card_/.test(x.kind));
+  const a1 = au([wait]);
+  ok(a1.length === 1 && a1[0].kind === 'card_wait' && a1[0].sev === 'amber' && a1[0].fix === 'check' && a1[0].orderId === 'C1' && /olia@loomiq/.test(a1[0].text),
+    'Звірка: неперевірена — жовтим, із кнопками перевірки й хто вписав', JSON.stringify(a1));
+  const a2 = au([{ ...wait, shot: '' }]);
+  ok(a2.some(x => x.kind === 'card_noshot' && x.sev === 'red'), 'Звірка: без скріна — червоним', JSON.stringify(a2));
+  const a3 = au([no]);
+  ok(a3.length === 1 && a3[0].kind === 'card_no' && a3[0].sev === 'red', 'Звірка: «не дійшло» — червоним, і лише він', JSON.stringify(a3));
+  ok(!au([{ ...wait, check: { state: 'ok' } }]).length, 'підтверджена — Звірка мовчить', 'ok має пункт');
+  ok(au([{ ...wait, orderId: '' }]).some(x => x.kind === 'card_wait' && /нікуди/.test(x.text)), 'неперевірена без замовлення — теж у Звірці', 'orphan card');
+}
+
+console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);
