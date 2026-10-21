@@ -243,6 +243,7 @@ async function payment(env, p, batch) {
     desc: (p.desc || '').slice(0, 300),
     src: p.src || '',               // mono | privat | np — видно, звідки взялось
     ttn: p.ttn || undefined,        // номер накладної — за ним адмінка привʼязує рух до замовлення
+    sender: p.sender || undefined,  // чий відправник (код ФОПа) — щоб рух знав свого ФОПа
     /* Залишок після цього руху — коли банк його каже (Монобанк каже). */
     balAfter: p.balAfter == null ? undefined : kop(p.balAfter),
     /* Що це за рух за словами самого банку (NovaPay): pool — пул наложок
@@ -312,7 +313,8 @@ async function accounts(env) {
       id: (f.id && f.id.stringValue) || '',
       bank: (f.bank && f.bank.stringValue) || '',
       iban: ((f.iban && f.iban.stringValue) || '').replace(/\s+/g, ''),
-      name: (f.name && f.name.stringValue) || ''
+      name: (f.name && f.name.stringValue) || '',
+      sender: senderCode(f.sender && f.sender.stringValue)   // рахунок НП → відправник (21.10)
     });
   });
   return list.filter(a => a.id);
@@ -791,14 +793,14 @@ async function p24Poll(env, acc, raw){
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let NP_LAST = 0;
 const NP_GAP = 1200, NP_WAIT = [5000, 15000];
-async function np(env, model, method, props) {
+async function np(env, model, method, props, key) {
   for (let спроба = 0; ; спроба++) {
     const чекати = NP_LAST + NP_GAP - Date.now();
     if (чекати > 0) await sleep(чекати);
     NP_LAST = Date.now();
     const r = await fetch(NP_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: env.NP_API_KEY, modelName: model,
+      body: JSON.stringify({ apiKey: key || env.NP_API_KEY, modelName: model,
                              calledMethod: method, methodProperties: props || {} })
     });
     const d = await r.json().catch(() => null);
@@ -859,8 +861,72 @@ function npControl(x) {
     (!код && /^Відправлення отримано/i.test(String(x.Status || '')));
   return забрали ? сума : 0;
 }
-async function npPoll(env, accId) {
-  if (!env.NP_API_KEY) return { skip: 'немає секрета NP_API_KEY' };
+/* ══ ВІДПРАВНИКИ (21.10, Андрій: «надалі буде 2–3 ФОПи… головне, щоб
+   контроль оплати фіксувався») ══
+   Список відправників — із самої адмінки (Налаштування → Відправка), той
+   самий, з якого створюються накладні. Ключ кожного — секретом
+   NP_KEY_<код>, з тією ж назвою, що й у воркері накладних. Доти воркер
+   грошей питав Нову пошту ОДНИМ ключем (NP_API_KEY) — накладні другого
+   ФОПа він не бачив би взагалі, і їхній контроль оплати ніколи не потрапив
+   би у Фінанси. Відправників ще не заведено — старий шлях одним ключем. */
+function senderCode(id) { return String(id || '').replace(/[^A-Za-z0-9_]/g, ''); }
+async function senders(env) {
+  let doc = null;
+  try { doc = await fsGet(env, 'loomiq/photos'); } catch (e) { doc = null; }
+  const ship = doc && doc.ship;
+  const raw = ship && ship.senders && (ship.senders.arrayValue ? ship.senders.arrayValue.values : ship.senders.values);
+  const list = [];
+  (raw || []).forEach(v => {
+    const f = fplain((v.mapValue && v.mapValue.fields) || {});
+    const code = senderCode(f.id);
+    if (!code) return;
+    list.push({ id: code, name: String(f.name || code), key: env['NP_KEY_' + code] || '' });
+  });
+  if (!list.length) list.push({ id: '', name: 'відправник зі змінних воркера', key: env.NP_API_KEY || '' });
+  return list;
+}
+/* Рахунок, на який лягає контроль оплати цього відправника: рахунок НП,
+   привʼязаний до нього в адмінці (`sender`), інакше перший рахунок НП. */
+function npAccFor(accs, code, fallback) {
+  const свій = code ? accs.filter(a => a.bank === 'np' && a.sender === code)[0] : null;
+  return (свій || accs.filter(a => a.bank === 'np')[0] || {}).id || fallback || '';
+}
+/* Обхід Нової пошти по КОЖНОМУ відправнику. Помилка одного (немає ключа,
+   ключ протермінований) не зупиняє інших, і її видно: у Фінансах на
+   рахунку НП і в Налаштуваннях біля відправника (bankSync np_<код>). Стан
+   посилок (npState) збирається з усіх і пишеться один раз. */
+async function npPollAll(env, accs, fallbackAcc) {
+  const list = await senders(env);
+  const out = [], посилки = {}, марки = [];
+  for (const s of list) {
+    const acc = npAccFor(accs, s.id, fallbackAcc);
+    let r;
+    if (!s.key) r = { skip: s.id ? 'немає секрета NP_KEY_' + s.id + ' — ключ API Нової пошти цього відправника' : 'немає секрета NP_API_KEY' };
+    else {
+      try { r = await npPoll(env, acc, s.key, s.id, посилки); }
+      catch (e) { r = { error: String((e && e.message) || e) }; }
+    }
+    out.push(Object.assign({ sender: s.id || '-', acc }, r));
+    марки.push({ acc: 'np_' + (s.id || 'default'), src: 'np', error: r.error || '', skip: r.skip || '',
+                 рухів: (r.контроль_оплати && r.контроль_оплати.отримано) || 0 });
+  }
+  if (Object.keys(посилки).length) await fsCommit(env, [{ path: 'loomiq/npState', obj: посилки }]);
+  /* Рахунок НП у Фінансах — стан за всіма відправниками разом. */
+  const npAccs = accs.filter(a => a.bank === 'np');
+  (npAccs.length ? npAccs : [{ id: fallbackAcc }]).forEach(a => {
+    if (!a.id) return;
+    const свої = out.filter(x => npAccFor(accs, x.sender === '-' ? '' : x.sender, fallbackAcc) === a.id);
+    const погано = свої.filter(x => x.error || x.skip);
+    марки.push({ acc: a.id, src: 'np', error: погано.filter(x => x.error).map(x => (x.sender !== '-' ? x.sender + ': ' : '') + x.error).join('; '),
+                 skip: (погано.length && погано.length === свої.length) ? погано.map(x => x.skip || x.error).join('; ') : '',
+                 рухів: свої.reduce((n, x) => n + ((x.контроль_оплати && x.контроль_оплати.отримано) || 0), 0) });
+  });
+  await syncMark(env, марки);
+  return out.length === 1 && out[0].sender === '-' ? out[0] : out;
+}
+async function npPoll(env, accId, key, sender, посилки) {
+  key = key || env.NP_API_KEY;
+  if (!key) return { skip: 'немає секрета NP_API_KEY' };
   const пакет = [];
   /* Місяць назад: накладений платіж їде до нас тижнями, і вікно в кілька днів
      просто не побачило б половини виплат. */
@@ -872,7 +938,7 @@ async function npPoll(env, accId) {
     const docs = await np(env, 'InternetDocument', 'getDocumentList', {
       DateTimeFrom: npDate(від), DateTimeTo: npDate(до), GetFullList: '1',
       Page: String(page), Limit: '100'
-    });
+    }, key);
     let нових = 0;
     for (const d of docs) {
       const t = String(d.IntDocNumber || d.Number || '');
@@ -882,10 +948,11 @@ async function npPoll(env, accId) {
   }
   let n = 0, виплачено = 0, зНаложкою = 0, ко = 0, коСума = 0;
   const перевірити = [], оплачені = [], стани = {};
-  const посилки = {};   // loomiq/npState: стан кожної посилки з контролем оплати
+  const своє = !посилки;      // викликали напряму (старий шлях) — пишемо npState самі
+  посилки = посилки || {};    // loomiq/npState: стан кожної посилки з контролем оплати
   for (let i = 0; i < ttns.length; i += 100) {
     const part = ttns.slice(i, i + 100).map(t => ({ DocumentNumber: t, Phone: '' }));
-    const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part });
+    const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part }, key);
     for (const x of st) {
       /* КОНТРОЛЬ ОПЛАТИ (03.10). Гроші за такі посилки NovaPay переказує
          пулом — один платіж на 20–30 посилок, і розібрати його не можна, а
@@ -903,7 +970,7 @@ async function npPoll(env, accId) {
         const коли = String(x.RecipientDateTime || x.ActualDeliveryDate || '').trim();
         посилки['t' + String(x.Number).replace(/\D/g, '')] = {
           code: String(x.StatusCode || ''), status: String(x.Status || '').slice(0, 120),
-          at: коли ? npIso(коли) : '', cod: ко_план, seen: new Date().toISOString() };
+          at: коли ? npIso(коли) : '', cod: ко_план, seen: new Date().toISOString(), sender: sender || '' };
       }
       if (ко_сума > 0) {
         await payment(env, {
@@ -912,9 +979,10 @@ async function npPoll(env, accId) {
           amount: ко_сума,
           acc: accId || '',
           counter: 'NovaPay · ' + String(x.RecipientFullName || x.RecipientFullNameEW || '').replace(/\s+/g, ' ').trim(),
-          desc: 'Контроль оплати · ТТН ' + String(x.Number || ''),
+          desc: 'Контроль оплати · ТТН ' + String(x.Number || '') + (sender ? ' · ' + sender : ''),
           src: 'np',
-          ttn: String(x.Number || '')
+          ttn: String(x.Number || ''),
+          sender: sender || undefined
         }, пакет);
         ко++; коСума += ко_сума;
       }
@@ -946,12 +1014,13 @@ async function npPoll(env, accId) {
         counter: 'Нова пошта · ' + String(x.RecipientFullName || x.RecipientFullNameEW || ''),
         desc: 'Накладений платіж ' + String(x.Number || '') +
               ' · переказ ' + p.переказ + (p.стан ? ' · ' + p.стан : ''),
-        src: 'np'
+        src: 'np',
+        sender: sender || undefined
       }, пакет);
       виплачено += p.сума; n++;
     }
   }
-  if (Object.keys(посилки).length) пакет.push({ path: 'loomiq/npState', obj: посилки });
+  if (своє && Object.keys(посилки).length) пакет.push({ path: 'loomiq/npState', obj: посилки });
   await fsCommit(env, пакет);
   return { накладних: ttns.length, з_наложкою: зНаложкою,
            контроль_оплати: { отримано: ко, сума: Math.round(коСума) },
@@ -1411,7 +1480,7 @@ async function poll(env, opts) {
   }
   if (opts.np === false) out.np = { skip: 'за розкладом — раз на 30 хв' };
   else {
-    try { out.np = await npPoll(env, npAcc); }
+    try { out.np = await npPollAll(env, accs, npAcc); }
     catch (e) { out.np = { error: e.message }; }
   }
   return out;
@@ -1421,7 +1490,7 @@ async function poll(env, opts) {
    Саме тут і живуть помилки, яких не видно: дата, розібрана не тим форматом,
    і сума, у якої загубився знак, виглядають правильними доти, доки хтось не
    зведе підсумок. Cloudflare зайвий експорт ігнорує. */
-export const _pure = { md5hex, p24Row, novapayEnvelope, novapayUntil, novapayRow, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
+export const _pure = { npAccFor, senderCode, md5hex, p24Row, novapayEnvelope, novapayUntil, novapayRow, xmlTag, xmlTags, xmlFlat, xmlUnesc, kyivIso, privatIso, privatDate, npIso, npDate, npPayout, npCod, npDue, npControl, fval, fplain, monoPick,
                        privatBalPick, kop };
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -1512,9 +1581,12 @@ export default {
          імена полів, а не здогадуватись про них. */
       if (parts[0] === 'np' && parts[1] === 'probe') {
         if (!пускати()) return json({ ok: false, error: 'Немає доступу' }, 403);
+        /* ?sender=<код> — чиїм ключем питати; без нього — перший відправник. */
+        const sl = await senders(env);
+        const sn = sl.filter(x => x.id === senderCode(url.searchParams.get('sender')))[0] || sl.filter(x => x.key)[0] || sl[0];
         const d = await np(env, 'TrackingDocument', 'getStatusDocuments',
-          { Documents: [{ DocumentNumber: parts[2] || '', Phone: '' }] });
-        return json({ ok: true, сире: d[0] || null, розібрано: npPayout(d[0] || {}) });
+          { Documents: [{ DocumentNumber: parts[2] || '', Phone: '' }] }, sn && sn.key);
+        return json({ ok: true, відправник: sn ? sn.id : '', сире: d[0] || null, розібрано: npPayout(d[0] || {}) });
       }
       return json({ ok: false, error: 'Невідома адреса' }, 404);
     } catch (e) {
