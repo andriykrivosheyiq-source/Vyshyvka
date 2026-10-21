@@ -98,6 +98,28 @@
      Фіксована висота сцени в vh рахувалась від вікна БРАУЗЕРА, а конструктор
      тут живе у вужчій рамці всередині адмінки, тож макет обрізало. */
   .lq-embed #productModal .pm-stage img{max-height:100%;object-fit:contain;}
+/* МЕНЕДЖЕРУ — БЕЗ ВІТРИНИ (21.10). Під конструктором у прорахунку тягнулась
+     уся сторінка товару для покупця: розмірна сітка, доставка, відгуки, фото
+     моделей, «Замовляйте впевнено», FAQ, «Створіть свій мерч», підвал — 3½
+     екрани гортання повз потрібне. Розмірна сітка лишається у вкладці
+     «Розмір і кількість». */
+  .lq-embed #productModal .pm-rows, .lq-embed #productModal .pm-detail,
+  .lq-embed #productModal #pmModelSection, .lq-embed #productModal .pm-twocol,
+  .lq-embed #productModal .pm-recommended, .lq-embed #productModal .pm-footer,
+  .lq-embed #productModal .pm-float-telegram{display:none !important;}
+/* ══ ПРОРАХУНОК НА ТЕЛЕФОНІ (?solo=1, 21.10) ══
+     Виріб закріплений угорі: гортаєш шари, нанесення, ціну — а картинку,
+     яку змінюєш, видно весь час. Шапка теж закріплена: «←» у картку завжди
+     під пальцем. Кнопки — не нижчі за 40 px (палець, а не курсор). */
+  .lq-solo #productModal .catalog-modal-topbar{position:sticky;top:0;z-index:40;background:#fff;}
+.lq-solo #productModal .pm-stage{position:sticky;top:60px;z-index:30;height:38vh;min-height:230px;
+    background:rgb(233,230,231);}
+.lq-solo #productModal .pm-sheet{position:relative;z-index:1;
+    padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));}
+.lq-solo #productModal .pm-tab{min-height:40px;}
+.lq-solo #productModal .pm-seg-btn{min-height:40px;}
+.lq-solo #productModal .pm-mgr-tool{min-height:40px;}
+.lq-solo .pm-sticky-cart{max-width:none;}
 /* Логотипи замовлення: завантажені один раз у картці клієнта, доступні
      кожному товару. Навмисно НЕ ставимо їх на виріб самі — для футболки це
      груди, для кепки центр, для худі спина; вгадати за менеджера не можна. */

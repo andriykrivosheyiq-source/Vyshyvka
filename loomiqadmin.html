@@ -7912,33 +7912,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7669ef784c"></script>
-<script src="loomiq-fingerprint.js?v=7669ef784c"></script>
-<script src="loomiq-pricing.js?v=7669ef784c"></script>
+<script src="loomiq-select.js?v=904414000b"></script>
+<script src="loomiq-fingerprint.js?v=904414000b"></script>
+<script src="loomiq-pricing.js?v=904414000b"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=7669ef784c"></script>
+<script src="loomiq-money-core.js?v=904414000b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7669ef784c"></script>
-<script src="loomiq-bg.js?v=7669ef784c"></script>
-<script src="loomiq-mock.js?v=7669ef784c"></script>
+<script src="loomiq-design.js?v=904414000b"></script>
+<script src="loomiq-bg.js?v=904414000b"></script>
+<script src="loomiq-mock.js?v=904414000b"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=7669ef784c"></script>
+<script src="imagetracer.js?v=904414000b"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=7669ef784c"></script>
-<script src="loomiq-threads.js?v=7669ef784c"></script>
+<script src="loomiq-chat.js?v=904414000b"></script>
+<script src="loomiq-threads.js?v=904414000b"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=7669ef784c"></script>
+<script src="loomiq-cards.js?v=904414000b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7983,7 +7983,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '7669ef784c';
+var LQ_VER = '904414000b';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8309,7 +8309,7 @@ function presenceTouch(id){
   presenceAt[id] = now;
   const me = myName();
   if(!me) return;
-  try{ PRESENCE_DOC.set({ at: { [id]: { by: me, t: new Date().toISOString() } } },
+  try{ PRESENCE_DOC.set({ at: { [id]: { by: me, em: myEmail() || '', t: new Date().toISOString() } } },
                         { merge:true }).catch(e => console.warn('присутність', e)); }
   catch(e){ console.warn('присутність', e); }
 }
@@ -8318,6 +8318,10 @@ function presenceOther(id){
   const r = presenceMap && presenceMap[id];
   if(!r || !r.by) return null;
   if(String(r.by) === String(myName())) return null;
+  /* Та сама людина з іншої сторінки чи до перезавантаження (21.10): імʼя
+     могло бути ще не підтягнуте з команди, і вона бачила себе ж «іншою». */
+  const em = String(myEmail() || '');
+  if(em && (r.em === em || String(r.by) === em || String(r.by) === em.split('@')[0])) return null;
   const t = Date.parse(r.t || '');
   if(!t || Date.now() - t > PRESENCE_TTL) return null;
   return { by: String(r.by).split('@')[0], at: r.t };
@@ -8747,6 +8751,7 @@ function watchOrders(){
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     if(спір.length) ordersClash(спір);
     try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
+    try{ calcSoloReturn(); }catch(e){ console.warn('прорахунок з телефона', e); }
     webDupesFix();
     const board = document.getElementById('view-board');
     if(board && board.style.display !== 'none') renderBoard();
@@ -9521,6 +9526,79 @@ function calcRestore(){
   toast('Сторінка перезавантажилась — прорахунок для ' + calcTargetWho(o) + ' відкрито знову');
   return true;
 }
+/* ══ ПРОРАХУНОК НА ТЕЛЕФОНІ — ОКРЕМОЮ СТОРІНКОЮ (21.10, Андрій: «менеджери
+   B2B часто роблять КП з телефона») ══
+   В адмінці конструктор живе в iframe, тобто на телефоні одночасно відкриті
+   дві важкі сторінки, і Safari після вибору фото з галереї скидав обидві.
+   Тому на телефоні адмінку ЗАЛИШАЄМО: привʼязку й позицію кладемо в
+   localStorage і переходимо на конструктор (?solo=1) у тій самій вкладці.
+   Готову позицію конструктор кладе в IndexedDB і повертає на
+   loomiqadmin.html?calcSave=1 — записує в картку адмінка, тим самим
+   __adminSaveClientOrder, що й завжди. На компʼютері — як було. */
+function calcSoloWanted(){
+  try{
+    if(/[?&]calcSolo=0\b/.test(location.search)) return false;
+    return window.matchMedia('(max-width: 820px)').matches &&
+           (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+  }catch(e){ return false; }
+}
+function calcSoloGo(o){
+  calcForget();                    // повернення в адмінку не має відкривати iframe знову
+  try{
+    localStorage.setItem('lq_calc_solo', JSON.stringify({
+      target: window.__adminOfferTarget || null, seed: window.__adminSeedItem || null,
+      who: calcTargetWho(o), back: o.id, at: Date.now() }));
+  }catch(e){ toast('Не вдалось відкрити прорахунок: ' + (e && e.message || e)); return; }
+  location.href = 'index.html?manager=1&embed=1&solo=1&start=catalog&cart=new' +
+    (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
+}
+/* Сховище передачі: IndexedDB, бо макети в позиції — data:-картинки на
+   мегабайти, а localStorage тримає лише ~5 МБ. */
+function calcIdb(mode, fn){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('lq_handoff', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onerror = () => rej(r.error);
+    r.onsuccess = () => {
+      const tx = r.result.transaction('kv', mode), st = tx.objectStore('kv');
+      const q = fn(st);
+      tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error);
+    };
+  });
+}
+let calcSoloBusy = false;
+async function calcSoloReturn(){
+  const q = location.search;
+  const back = (q.match(/[?&]calcBack=([^&]+)/) || [])[1];
+  if(!/[?&]calcSave=1\b/.test(q) && !back) return;
+  if(calcSoloBusy) return;
+  const clean = () => { try{ history.replaceState(null, '', location.pathname + location.hash); }catch(e){} };
+  if(back && !/[?&]calcSave=1\b/.test(q)){
+    const o = (orders || []).find(x => x.id === decodeURIComponent(back));
+    if(!o) return;                 // картки ще не доїхали — спробуємо на знімку
+    clean();
+    try{ openOrderDrawer(o); }catch(e){}
+    return;
+  }
+  calcSoloBusy = true;
+  let payload = null;
+  try{ payload = await calcIdb('readonly', st => st.get('calc')); }catch(e){ console.warn('передача прорахунку', e); }
+  if(!payload){ calcSoloBusy = false; clean(); return; }
+  if(payload.targetId && !(orders || []).some(x => x.id === payload.targetId)){ calcSoloBusy = false; return; }
+  clean();
+  toast('Зберігаю позицію в картку…');
+  try{
+    await window.__adminSaveClientOrder(payload);
+    await calcIdb('readwrite', st => st.delete('calc'));
+    try{ localStorage.removeItem('lq_calc_solo'); }catch(e){}
+  }catch(e){
+    console.error(e);
+    /* Позиція не губиться: лежить у телефоні, поки не збережеться. */
+    toast('Не збереглось: ' + ((e && (e.code || e.message)) || 'помилка') + '. Позиція в телефоні — оновіть сторінку, щоб спробувати ще раз.');
+    try{ history.replaceState(null, '', location.pathname + '?calcSave=1' + location.hash); }catch(e2){}
+  }
+  calcSoloBusy = false;
+}
 function openCalcFor(o, editIdx, opt){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
@@ -9551,6 +9629,7 @@ function openCalcFor(o, editIdx, opt){
   } : null;
   closeOrderDrawer();
   paintCalcTarget();
+  if(calcSoloWanted()) return calcSoloGo(o);
   const btn = document.querySelector('.nav button[data-view="calc"]');
   if(btn) btn.click();
   // Кошик у конструкторі міг лишитись від попереднього прорахунку — відкриваємо
@@ -33315,6 +33394,7 @@ async function init(){
   renderApps();
   renderBoard();
   try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
+  try{ calcSoloReturn(); }catch(e){ console.warn('прорахунок з телефона', e); }
   watchOrders();      // жива синхронізація карток між пристроями
   watchOffers();      // дії клієнтів у персональних пропозиціях
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
