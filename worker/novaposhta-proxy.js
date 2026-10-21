@@ -148,21 +148,63 @@ function parcelOf(order) {
     description: String(order.description || 'Одяг з нанесенням').slice(0, 120)
   };
 }
+/* Телефон у форматі НП: 380XXXXXXXXX. «068…», «+38 (068)…», «68…» — усе туди. */
+function npPhone(v) {
+  let d = String(v || '').replace(/\D/g, '');
+  if (d.length === 10 && d[0] === '0') d = '38' + d;
+  else if (d.length === 9) d = '380' + d;
+  else if (d.length === 11 && d.startsWith('80')) d = '3' + d;
+  return d;
+}
+/* Імʼя з картки «Прізвище Імʼя [По батькові]» — як і підписане поле форми. */
+function nameParts(v) {
+  const p = String(v || '').trim().split(/\s+/).filter(Boolean);
+  return { last: p[0] || '', first: p[1] || p[0] || '', middle: p[2] || '' };
+}
+/* Дата відправки — сьогодні за Києвом, ДД.ММ.РРРР (порожня — НП сварилась). */
+function npToday() {
+  const s = new Date().toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric' });
+  return s.replace(/[^\d.]/g, '');
+}
+/* ОТРИМУВАЧ У НОВІЙ ПОШТІ (21.10, Андрій: «помилка при створенні ТТН» —
+   «CityRecipient not selected; Recipient not selected; ContactRecipient not
+   selected»). Накладну на відділення НП приймає лише з посиланнями на
+   отримувача: спершу його треба завести (Counterparty.save, приватна особа)
+   — НП віддає Ref отримувача і його контактної особи. Той самий телефон і
+   імʼя НП не дублює, а повертає наявного. */
+async function recipientRefs(env, order, key) {
+  const n = nameParts(order.name);
+  if (!n.last || !n.first) throw new Error('Вкажіть прізвище й імʼя отримувача');
+  const phone = npPhone(order.phone);
+  const d = await np(env, 'Counterparty', 'save', {
+    FirstName: n.first, MiddleName: n.middle, LastName: n.last, Phone: phone, Email: '',
+    CounterpartyType: 'PrivatePerson', CounterpartyProperty: 'Recipient'
+  }, key);
+  const c = d[0] || {};
+  if (!c.Ref) throw new Error('Нова пошта не завела отримувача');
+  let contact = ((((c.ContactPerson || {}).data) || [])[0] || {}).Ref || '';
+  if (!contact) {
+    const people = await np(env, 'Counterparty', 'getCounterpartyContactPersons', { Ref: c.Ref, Page: '1' }, key);
+    contact = (people[0] || {}).Ref || '';
+  }
+  if (!contact) throw new Error('Нова пошта не повернула контакт отримувача');
+  return { recipient: c.Ref, contactRecipient: contact };
+}
 /* Тіло InternetDocument.save. Окремо від мережі — щоб перевіряти без НП. */
 function saveProps(order, refs) {
-  const phone = String(order.phone || '').replace(/[^\d]/g, '');
-  if (phone.length < 10) throw new Error('Телефон отримувача неповний');
+  const phone = npPhone(order.phone);
+  if (phone.length !== 12) throw new Error('Телефон отримувача неповний');
   if (!order.cityRef) throw new Error('Не вибране місто отримувача');
   if (!order.warehouseRef) throw new Error('Не вибране відділення чи поштомат отримувача');
   if (!refs.citySender || !refs.addrSender) throw new Error('У відправника не задані місто й відділення відправки (Налаштування → Відправка)');
-  const parts = String(order.name || '').trim().split(/\s+/);
+  if (!refs.recipient || !refs.contactRecipient) throw new Error('Отримувача не заведено в Новій пошті');
   const p = parcelOf(order);
   const props = {
     PayerType: order.payer === 'sender' ? 'Sender' : 'Recipient',
     PaymentMethod: 'Cash',
     CargoType: 'Parcel',
     ServiceType: 'WarehouseWarehouse',
-    DateTime: order.date || '',
+    DateTime: order.date || npToday(),
     Description: p.description,
     Weight: p.weight,
     VolumeGeneral: p.volume,
@@ -174,18 +216,12 @@ function saveProps(order, refs) {
     SenderAddress: refs.addrSender,
     ContactSender: refs.contact,
     SendersPhone: String(refs.phone || '').replace(/[^\d]/g, ''),
-    RecipientCityName: order.cityName || '',
-    RecipientArea: '',
-    RecipientAddressName: order.warehouseNumber || '',
-    RecipientHouse: '',
-    RecipientName: String(order.name || 'Отримувач').slice(0, 80),
-    RecipientType: 'PrivatePerson',
-    RecipientsPhone: phone,
-    RecipientCity: order.cityRef,
+    CityRecipient: order.cityRef,
+    Recipient: refs.recipient,
+    ContactRecipient: refs.contactRecipient,
     RecipientAddress: order.warehouseRef,
-    FirstName: parts[0] || 'Отримувач',
-    LastName: parts[1] || parts[0] || 'Отримувач',
-    MiddleName: parts[2] || ''
+    RecipientsPhone: phone,
+    RecipientType: 'PrivatePerson'
   };
   /* Контроль оплати: отримувач платить на пошті, гроші йдуть нам на NovaPay. */
   const cod = Math.round(+order.cod || 0);
@@ -209,13 +245,16 @@ async function createTtn(env, order) {
     refs = { sender: env.NP_SENDER, contact: env.NP_SENDER_NAME || env.NP_SENDER,
              phone: env.NP_SENDER_PHONE || '', citySender: env.NP_SENDER_CITY, addrSender: env.NP_SENDER_ADDR };
   }
+  /* Спершу перевіряємо, чого бракує, — щоб не заводити отримувача марно. */
+  saveProps(order, Object.assign({}, refs, { recipient: '-', contactRecipient: '-' }));
+  Object.assign(refs, await recipientRefs(env, order, key));
   const data = await np(env, 'InternetDocument', 'save', saveProps(order, refs), key);
   const d = data[0] || {};
   return { ttn: String(d.IntDocNumber || ''), ref: String(d.Ref || ''),
            cost: +d.CostOnSite || 0, est: String(d.EstimatedDeliveryDate || '') };
 }
 
-export const _pure = { parcelOf, saveProps, senderCode };
+export const _pure = { parcelOf, saveProps, senderCode, npPhone, nameParts };
 
 export default {
   async fetch(request, env) {
