@@ -307,8 +307,8 @@ function crmSeekHtml(o){
      спершу видно, хто привʼязаний, і одразу поруч спосіб це скасувати. */
   const now = o.crmChatId
     ? `<div class="od-seek-now">
-         <span class="od-seek-who">${escapeHtml(crmWhoLabel(o) || ('чат ' + o.crmChatId))}</span>
-         <button class="od-crm-unlink">Відвʼязати</button>
+         <span class="od-seek-who">${crmWhoHtml(o)}</span>
+         ${crmCanUnlink() ? '<button class="od-crm-unlink">Відвʼязати</button>' : ''}
        </div>`
     : '';
   return `<div class="od-seek">
@@ -520,9 +520,9 @@ function crmBlockHtml(o){
   // чого, показуємо самого співрозмовника і спосіб відчепити його від картки.
   const head = o.crmChatId
     ? `<div class="od-crm-linked">
-         <span class="od-crm-who">${escapeHtml(crmWhoLabel(o) || ('чат ' + o.crmChatId))}</span>
+         <span class="od-crm-who">${crmWhoHtml(o)}</span>
          <button class="od-crm-load">Оновити</button>
-         <button class="od-crm-unlink">Відвʼязати</button>
+         ${crmCanUnlink() ? '<button class="od-crm-unlink">Відвʼязати</button>' : ''}
        </div>`
     : `<div class="od-crm-top">
          <input class="od-f od-crm-num" data-f="crmOrder" type="text" inputmode="numeric"

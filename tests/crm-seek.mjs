@@ -263,7 +263,8 @@ const back = await p.evaluate(() => {
   const box = document.querySelector('.od-seek');
   if(!box) return { err:'блок не відкривається, коли розмова вже привʼязана' };
   return { who: ((box.querySelector('.od-seek-who') || {}).textContent || '').trim(),
-           unlink: !!box.querySelector('.od-crm-unlink') };
+           unlink: !!box.querySelector('.od-crm-unlink'),
+           ig: (a => a ? a.getAttribute('href') : '')(box.querySelector('.od-seek-who a.od-crm-ig')) };
 });
 if(back.err){ console.log('  ' + back.err); bad++; }
 else {
@@ -271,8 +272,20 @@ else {
      міняють, нік — майже ніколи. Доти в підписі стояло тільки імʼя, і
      знайти ту саму розмову через тиждень не виходило. */
   ok(/@asia_dera/.test(back.who) && /Асія Дерещук/.test(back.who) && back.unlink,
-     'видно нік і імʼя привʼязаного, і поруч «Відвʼязати»: ' + back.who,
+     'видно нік і імʼя привʼязаного, і поруч «Відвʼязати» (власник): ' + back.who,
      'підпис привʼязаного неповний: ' + JSON.stringify(back));
+  ok(back.ig === 'https://instagram.com/asia_dera', 'нік — посилання на профіль Instagram (21.10)', 'посилання: ' + back.ig);
+  /* 21.10: менеджер «Відвʼязати» не бачить — щоб випадково не відчепити клієнта. */
+  const mgr = await p.evaluate(() => {
+    const was = contentData.team;
+    /* Команди в цьому тесті немає (усі — власники); заводимо себе менеджером. */
+    contentData.team = [{ email:'test@loomiq', name:'Марія', role:'manager' }, { email:'own@loomiq', name:'Андрій', role:'owner' }];
+    renderOrderDrawer();
+    const r = { unlink: !!document.querySelector('.od-seek .od-crm-unlink, .od-crm-linked .od-crm-unlink'), роль: myRole() };
+    contentData.team = was; renderOrderDrawer();
+    return r;
+  });
+  ok(mgr.роль === 'manager' && !mgr.unlink, 'менеджеру кнопки «Відвʼязати» немає — лише власнику', JSON.stringify(mgr));
   const off = await p.evaluate(async () => {
     document.querySelector('.od-crm-unlink').click();
     await new Promise(r => setTimeout(r, 600));
