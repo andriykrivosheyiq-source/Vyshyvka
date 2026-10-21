@@ -33,10 +33,28 @@ globalThis.fetch = async (url, opt) => {
     const k = b.apiKey;
     if(b.calledMethod === 'getCounterparties')
       return res({ success: true, data: [{ Ref: 'CP-' + k, Description: 'ФОП ' + k }] });
+    /* Отримувач: як справжня НП — приватна особа з імʼям і телефоном 380…,
+       у відповіді Ref і контактна особа. */
+    if(b.calledMethod === 'save' && b.modelName === 'Counterparty'){
+      const m = b.methodProperties || {};
+      if(m.CounterpartyProperty !== 'Recipient' || m.CounterpartyType !== 'PrivatePerson' || !m.FirstName || !m.LastName || !/^380\d{9}$/.test(m.Phone))
+        return res({ success: false, errors: ['Counterparty data invalid'] });
+      return res({ success: true, data: [{ Ref: 'RC-' + m.Phone, ContactPerson: { success: true, data: [{ Ref: 'RCP-' + m.Phone }] } }] });
+    }
     if(b.calledMethod === 'getCounterpartyContactPersons')
       return res({ success: true, data: [{ Ref: 'CT-' + k, Description: 'Контакт ' + k, Phones: '380631112233' }] });
-    if(b.calledMethod === 'save')
+    /* Накладна: як справжня НП 21.10 — без CityRecipient / Recipient /
+       ContactRecipient відмовляє саме цими словами. Доти підставна НП
+       приймала будь-що, і зламане тіло жило з зеленим тестом. */
+    if(b.calledMethod === 'save'){
+      const m = b.methodProperties || {}, err = [];
+      if(!m.CityRecipient) err.push('CityRecipient not selected');
+      if(!m.Recipient) err.push('Recipient not selected');
+      if(!m.ContactRecipient) err.push('ContactRecipient not selected');
+      if(!/^\d{2}\.\d{2}\.\d{4}$/.test(m.DateTime || '')) err.push('DateTime is set to current');
+      if(err.length) return res({ success: false, errors: err, warnings: [] });
       return res({ success: true, data: [{ IntDocNumber: '20450000000001', Ref: 'DOC1', CostOnSite: 85, EstimatedDeliveryDate: '06.10.2026' }] });
+    }
     if(b.calledMethod === 'getWarehouses')
       return res({ success: true, data: [
         { Ref: 'W1', Description: 'Відділення №1: вул. Соборна, 1', Number: '1', CategoryOfWarehouse: 'Branch' },
@@ -73,7 +91,8 @@ console.log('');
 console.log('═══ НАКЛАДНА ВІД ВИБРАНОГО ВІДПРАВНИКА ═══');
 calls.length = 0;
 const r = await call({ op: 'create', order: ORDER, idToken: 'good' });
-const save = calls.filter(c => c.calledMethod === 'save')[0] || {};
+const save = calls.filter(c => c.calledMethod === 'save' && c.modelName === 'InternetDocument')[0] || {};
+const recv = calls.filter(c => c.calledMethod === 'save' && c.modelName === 'Counterparty')[0] || {};
 const P = save.methodProperties || {};
 console.log('   ' + JSON.stringify({ ttn: r.ttn, key: save.apiKey, Sender: P.Sender, ContactSender: P.ContactSender,
   CitySender: P.CitySender, SenderAddress: P.SenderAddress, Weight: P.Weight, OptionsSeat: P.OptionsSeat, cod: P.AfterpaymentOnGoodsCost }));
@@ -88,11 +107,16 @@ ok(P.Weight === '1.4' && P.OptionsSeat && P.OptionsSeat[0].volumetricLength === 
   'вага 1,4 кг і габарити 40×30×10 — з картки (формат посилки), обʼєм 0,012 м³',
   'вага/габарити не ті: ' + JSON.stringify({ w: P.Weight, s: P.OptionsSeat, v: P.VolumeGeneral }));
 ok(P.AfterpaymentOnGoodsCost === '3100', 'контроль оплати на залишок — 3 100 ₴', 'контролю оплати немає: ' + P.AfterpaymentOnGoodsCost);
-ok(P.RecipientsPhone === '380688323228' && P.RecipientAddress === 'WH-K-1' && P.FirstName === 'Мороз',
-  'отримувач — телефон цифрами, відділення, імʼя', 'отримувач не той');
+ok(P.RecipientsPhone === '380688323228' && P.RecipientAddress === 'WH-K-1' && P.CityRecipient === 'CITY-K',
+  'отримувач — телефон 380…, місто й відділення посиланнями НП', 'отримувач не той: ' + JSON.stringify(P));
+ok(recv.methodProperties && recv.methodProperties.LastName === 'Мороз' && recv.methodProperties.FirstName === 'Євгенія' &&
+   P.Recipient === 'RC-380688323228' && P.ContactRecipient === 'RCP-380688323228',
+  'отримувача спершу заведено в НП («Прізвище Імʼя» → LastName/FirstName), накладна — з його Ref і контактом',
+  'отримувач у НП: ' + JSON.stringify({ recv: recv.methodProperties, R: P.Recipient, C: P.ContactRecipient }));
+ok(/^\d{2}\.\d{2}\.\d{4}$/.test(P.DateTime), 'дата відправки — сьогодні (' + P.DateTime + ')', 'дата: ' + P.DateTime);
 
 const r2 = await call({ op: 'create', order: Object.assign({}, ORDER, { cod: 0, sender: Object.assign({}, ORDER.sender, { id: 'maleeva' }) }), idToken: 'good' });
-const save2 = calls.filter(c => c.calledMethod === 'save').pop() || {};
+const save2 = calls.filter(c => c.calledMethod === 'save' && c.modelName === 'InternetDocument').pop() || {};
 ok(r2.ok && save2.apiKey === 'KEY-M' && !('AfterpaymentOnGoodsCost' in save2.methodProperties),
   'інший відправник — інший ключ; без контролю оплати поля немає зовсім',
   'другий відправник: ' + JSON.stringify({ key: save2.apiKey, cod: save2.methodProperties && save2.methodProperties.AfterpaymentOnGoodsCost }));
@@ -110,7 +134,7 @@ console.log('');
 console.log('═══ ЗАПАСНИЙ ШЛЯХ І ДОВІДНИК ═══');
 const old = { NP_API_KEY: 'KEY-OLD', NP_SENDER: 'S-OLD', NP_SENDER_CITY: 'C-OLD', NP_SENDER_ADDR: 'A-OLD', NP_SENDER_NAME: 'N-OLD' };
 const r6 = await call({ op: 'create', order: Object.assign({}, ORDER, { sender: null }), idToken: 'good' }, old);
-const save6 = calls.filter(c => c.calledMethod === 'save').pop() || {};
+const save6 = calls.filter(c => c.calledMethod === 'save' && c.modelName === 'InternetDocument').pop() || {};
 ok(r6.ok && save6.apiKey === 'KEY-OLD' && save6.methodProperties.Sender === 'S-OLD',
   'відправників ще не заведено — працює старий спосіб (змінні воркера)', 'запасний шлях: ' + JSON.stringify(r6));
 const wh = await call({ op: 'warehouses', city: 'CITY-K', q: '', sender: 'yukalchuk' });
