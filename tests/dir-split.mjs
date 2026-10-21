@@ -383,7 +383,8 @@ console.log('\n═══ ДАТА — ОДНА, І З КАЛЕНДАРЕМ ═�
 const дата = await p.evaluate(async () => {
   const o = orders.filter(x => x.dir === 'b2c')[0];
   const job = designJobs[o.orderId];
-  job.due = '2026-10-20'; job.dueSet = true;
+  /* Дата — завтра+2, а не фіксована: фіксована «20.10» 21-го ставала простроченою. */
+  const дд = new Date(Date.now() + 3 * 864e5); job.due = дд.toISOString().slice(0, 10); job.dueSet = true; window.__due = дд;
   renderOrderDrawer();
   await new Promise(r => setTimeout(r, 300));
   /* Вузол картки ОДИН на всю адмінку: відкрили друге замовлення — у ньому
@@ -401,7 +402,8 @@ const дата = await p.evaluate(async () => {
   return було;
 });
 console.log('  ' + JSON.stringify(дата));
-ok(/20\.10/.test(дата.b2c),
+const ддТ = await p.evaluate(() => { const d = window.__due; return String(d.getDate()).padStart(2, '0') + '\\.' + String(d.getMonth() + 1).padStart(2, '0'); });
+ok(new RegExp(ддТ).test(дата.b2c),
   'у роздрібній картці стоїть дата з відділу: ' + дата.b2c,
   'дата у картці замовлення не з відділу: ' + дата.b2c);
 ok(/лишилось/.test(дата.лишок),

@@ -7912,33 +7912,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5f2722b236"></script>
-<script src="loomiq-fingerprint.js?v=5f2722b236"></script>
-<script src="loomiq-pricing.js?v=5f2722b236"></script>
+<script src="loomiq-select.js?v=7669ef784c"></script>
+<script src="loomiq-fingerprint.js?v=7669ef784c"></script>
+<script src="loomiq-pricing.js?v=7669ef784c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=5f2722b236"></script>
+<script src="loomiq-money-core.js?v=7669ef784c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5f2722b236"></script>
-<script src="loomiq-bg.js?v=5f2722b236"></script>
-<script src="loomiq-mock.js?v=5f2722b236"></script>
+<script src="loomiq-design.js?v=7669ef784c"></script>
+<script src="loomiq-bg.js?v=7669ef784c"></script>
+<script src="loomiq-mock.js?v=7669ef784c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=5f2722b236"></script>
+<script src="imagetracer.js?v=7669ef784c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=5f2722b236"></script>
-<script src="loomiq-threads.js?v=5f2722b236"></script>
+<script src="loomiq-chat.js?v=7669ef784c"></script>
+<script src="loomiq-threads.js?v=7669ef784c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5f2722b236"></script>
+<script src="loomiq-cards.js?v=7669ef784c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7983,7 +7983,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5f2722b236';
+var LQ_VER = '7669ef784c';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8746,6 +8746,7 @@ function watchOrders(){
     ordersSaved = seen;
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     if(спір.length) ordersClash(спір);
+    try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
     webDupesFix();
     const board = document.getElementById('view-board');
     if(board && board.style.display !== 'none') renderBoard();
@@ -9497,9 +9498,33 @@ function paintCalcTarget(){
     ? 'Редагуємо позицію в картці <b>' + escapeHtml(calcTargetWho(o)) + '</b>'
     : 'Збираємо пропозицію для <b>' + escapeHtml(calcTargetWho(o)) + '</b>';
 }
-function openCalcFor(o, editIdx){
+/* ПРОРАХУНОК ПЕРЕЖИВАЄ ПЕРЕЗАВАНТАЖЕННЯ (21.10, Андрій: «глючить СРМ по
+   опту, не можу зробити прорахунок»). На телефоні Safari після вибору фото з
+   галереї нерідко перезавантажує важку сторінку (мало памʼяті) — і менеджер
+   опинявся на дошці, а не в конструкторі для своєї картки. Тому картку й
+   позицію памʼятаємо у sessionStorage і після старту відкриваємо знову; кошик
+   конструктора при цьому НЕ чистимо — він у IndexedDB і переживає теж. */
+function calcRemember(o, idx){
+  try{ sessionStorage.setItem('lq_calc', JSON.stringify({ id: o.id, idx: (idx == null ? null : +idx), at: Date.now() })); }catch(e){}
+}
+function calcForget(){ try{ sessionStorage.removeItem('lq_calc'); }catch(e){} }
+let calcRestored = false;
+function calcRestore(){
+  if(calcRestored) return true;
+  let m = null;
+  try{ m = JSON.parse(sessionStorage.getItem('lq_calc') || 'null'); }catch(e){}
+  if(!m || !m.id || !(m.at > Date.now() - 3 * 3600 * 1000)) return false;
+  const o = (orders || []).find(x => x && x.id === m.id);
+  if(!o) return false;              // картки ще не доїхали — спробуємо зі знімком
+  calcRestored = true;
+  openCalcFor(o, m.idx, { keepCart: true });
+  toast('Сторінка перезавантажилась — прорахунок для ' + calcTargetWho(o) + ' відкрито знову');
+  return true;
+}
+function openCalcFor(o, editIdx, opt){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
+  calcRemember(o, calcEdit);
   /* Рішення менеджера про вид дизайну — на шари ПЕРЕД тим, як позиція піде
      в конструктор. Мапа за відбитком лежить у замовленні, а конструктор
      читає вид із `config.logos`: без цього рядка позиція, збережена до того,
@@ -9531,18 +9556,19 @@ function openCalcFor(o, editIdx){
   // Кошик у конструкторі міг лишитись від попереднього прорахунку — відкриваємо
   // сторінку наново, щоб менеджер не додав чужі позиції в цю картку.
   const fr = document.getElementById('calc-only-frame');
-  if(fr){ fr.removeAttribute('src'); delete fr.dataset.failed; openCalcFrame(fr); }
+  if(fr){ fr.removeAttribute('src'); delete fr.dataset.failed; openCalcFrame(fr, !!(opt && opt.keepCart)); }
+  if(opt && opt.keepCart) return;
   toast(calcEdit != null
     ? ('Редагуємо «' + ((it && it.name) || 'позицію') + '»')
     : ('Конструктор відкрито для ' + calcTargetWho(o)));
 }
 document.addEventListener('click', function(e){
   if(!e.target.closest || !e.target.closest('#calc-target-off')) return;
-  calcTarget = null; paintCalcTarget();
+  calcTarget = null; calcForget(); paintCalcTarget();
   toast('Відвʼязано — наступний прорахунок створить нову картку');
 });
 
-function openCalcFrame(fr){
+function openCalcFrame(fr, keepCart){
   const box = fr.parentNode;
   let note = box.querySelector('.calc-frame-note');
   if(note) note.remove();
@@ -9555,7 +9581,7 @@ function openCalcFrame(fr){
        у IndexedDB і відновлює після перезавантаження; без цього прапорця
        в картку клієнта могли потрапити позиції з попереднього прорахунку.
        seed=1 — у кошик одразу кладеться позиція, яку відкрили на редагування. */
-    fr.src = 'index.html?manager=1&embed=1&start=catalog&cart=new' +
+    fr.src = 'index.html?manager=1&embed=1&start=catalog' + (keepCart ? '' : '&cart=new') +
       (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
   }catch(e){
     fail('Не вдалось скласти адресу сторінки: ' + (e && e.message || e));
@@ -14558,7 +14584,7 @@ window.__adminSaveClientOrder = async function(payload){
       throw new Error('запис у базу не пройшов');
     try{ await offerSave(target); }
     catch(e){ console.error('offer save failed', e); toast('Позиції додано, але сторінку КП не збережено'); }
-    calcTarget = null; paintCalcTarget();
+    calcTarget = null; calcForget(); paintCalcTarget();
     if(uploadFails.length){
       /* Кажемо прямо: скільки не долетіло і чому. Найчастіша причина — звʼязок,
          і тоді досить зберегти позицію ще раз. */
@@ -25284,7 +25310,7 @@ function closeCalcOver(){
   d.classList.remove('open');
   const f = d.querySelector('iframe');
   if(f) f.removeAttribute('src');
-  calcTarget = null; calcEdit = null; window.__adminSeedItem = null;
+  calcTarget = null; calcEdit = null; window.__adminSeedItem = null; calcForget();
   paintCalcTarget();
 }
 /* Підготувати позицію до редагування: насіння для конструктора й привʼязку
@@ -33288,6 +33314,7 @@ async function init(){
   refreshGarmentSelect();
   renderApps();
   renderBoard();
+  try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
   watchOrders();      // жива синхронізація карток між пристроями
   watchOffers();      // дії клієнтів у персональних пропозиціях
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
