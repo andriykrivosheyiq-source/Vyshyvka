@@ -137,6 +137,8 @@ const r = await p.evaluate(async () => {
   const panel = () => document.querySelector('#dzRoot .dz-panel');
   const who = panel().querySelector('.dz-own-who');
   const вигляд = { другийКлієнт: !!(who && who.querySelector('span')), вРяд: !!(who && who.classList.contains('is-row')),
+    ig: (a => a ? a.getAttribute('href') : '')(who && who.querySelector('a.od-crm-ig')),
+    unbind: !!(who && who.querySelector('[data-do="unbind"]')),
                    щоШиємо: /Що шиємо/i.test([...panel().querySelectorAll('.dz-u-cap')].map(x => x.textContent).join()),
                    qty: (panel().querySelector('.dz-qty') || {}).value,
                    полів: panel().querySelectorAll('.dz-qty').length };
@@ -177,6 +179,7 @@ const r = await p.evaluate(async () => {
 });
 console.log('  ' + JSON.stringify(r));
 ok(!r.вигляд.другийКлієнт && r.вигляд.вРяд, 'без другого «Клієнт»; нік і «Відвʼязати» — одним рядком', JSON.stringify(r.вигляд));
+ok(/instagram\.com\//.test(r.вигляд.ig || '') && r.вигляд.unbind, 'B2C: нік — посилання на Instagram; «Відвʼязати» є у власника (21.10)', JSON.stringify(r.вигляд));
 ok(!r.вигляд.щоШиємо, '«Що шиємо» прибрано', JSON.stringify(r.вигляд));
 ok(r.вигляд.qty === '2' || r.вигляд.qty === '1', 'кількість стоїть числом (за замовчуванням 1)', JSON.stringify(r.вигляд));
 ok(r.qty0 === 1, '0 у кількість — стає 1', 'кількість: ' + r.qty0);

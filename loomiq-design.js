@@ -3342,6 +3342,11 @@
     try{ if(host.whoLabel) return String(host.whoLabel(o) || ''); }catch(e){}
     return String((o && o.crmChatName) || '');
   }
+  /* Те саме HTML-ом: нік — посилання на профіль Instagram (21.10). */
+  function whoHtml(o){
+    try{ if(host.whoHtml) return String(host.whoHtml(o) || ''); }catch(e){}
+    return esc(whoLabel(o) || ('чат ' + ((o && o.crmChatId) || '')));
+  }
   /* Кнопка розмови внизу блока. Немає привʼязаної розмови — немає й
      кнопки: обіцяти дію, яка нічого не відкриє, гірше за її відсутність. */
   /* СМУЖКА INSTAGRAM ЗАКРІПЛЕНА ЗАВЖДИ. Андрій: «внизу інстаграма
@@ -3391,10 +3396,12 @@
         return '<div class="dz-own is-on">' +
           /* Без другого «Клієнт» (зона й так так підписана), «Відвʼязати» —
              праворуч у тому ж рядку (Андрій, 15.10). */
+          /* Нік — посиланням на профіль; «Відвʼязати» — лише власнику (21.10). */
           '<div class="dz-own-who is-row"><b>' +
-            esc(whoLabel(o) || ('чат ' + o.crmChatId)) + '</b>' +
-            '<button type="button" class="dz-b dz-own-un" data-do="unbind" ' +
-              'title="Знімемо розмову з картки — потім можна привʼязати іншу">🔗 Відвʼязати</button></div>' +
+            whoHtml(o) + '</b>' +
+            (((host.role && host.role()) || '') === 'owner'
+              ? '<button type="button" class="dz-b dz-own-un" data-do="unbind" ' +
+                'title="Знімемо розмову з картки — потім можна привʼязати іншу">🔗 Відвʼязати</button>' : '') + '</div>' +
         '</div>';
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
