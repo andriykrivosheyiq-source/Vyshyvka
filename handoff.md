@@ -32,8 +32,10 @@ GitHub Actions → «pages build and deployment»; допомагає насту
    діалог + усе фонове; людина лишається, де була).
 
 **Повний прогін:** `ls tests/*.mjs | grep -v money-rules | xargs -P3 -I{} sh -c 'node {} >/tmp/claude-0/t_$(basename {}).log 2>&1 || echo "FAIL {}"'`
-(170 тестів, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
-`card-weight`, `threads`; порти тестів мають бути унікальні — `grep -ho "PORT = [0-9]*" tests/*.mjs | sort | uniq -d`).
+(173 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
+`card-weight`, `threads`; `chat-calm` і `crm-pics` часом падають з «Execution
+context was destroyed» — це V8 «Promise was collected» під тиском памʼяті
+(сторінка жива, навігації немає; розібрано 21.10), перезапустити поодинці; порти тестів мають бути унікальні — `grep -ho "PORT = [0-9]*" tests/*.mjs | sort | uniq -d`).
 
 **Зроблено 21.10 (вечір), три фокуси Андрія:**
 - **Внутрішні розмови «не відсилається»** — поле бралось зі схованої копії
