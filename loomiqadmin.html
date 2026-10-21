@@ -4672,6 +4672,10 @@
   .pay-pick i{font-style:normal;font-weight:400;color:var(--muted);}
   .shf{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:6px;}
   .shf-wide{grid-column:1 / -1;}
+  .shf-link{all:unset;cursor:pointer;justify-self:start;font-size:12px;color:var(--muted);text-decoration:underline dotted;}
+  .shf-link:hover{color:var(--ink);}
+  .shf-abroad textarea{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;resize:vertical;}
+  .dz-ship-ab{font-size:12.5px;white-space:pre-line;color:var(--ink);}
   .shf-f{display:flex;flex-direction:column;gap:4px;min-width:0;}
   .shf-f > span{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
   .shf-f input,.shf-f select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;
@@ -7938,33 +7942,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a728e3df43"></script>
-<script src="loomiq-fingerprint.js?v=a728e3df43"></script>
-<script src="loomiq-pricing.js?v=a728e3df43"></script>
+<script src="loomiq-select.js?v=9a0627614a"></script>
+<script src="loomiq-fingerprint.js?v=9a0627614a"></script>
+<script src="loomiq-pricing.js?v=9a0627614a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=a728e3df43"></script>
+<script src="loomiq-money-core.js?v=9a0627614a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a728e3df43"></script>
-<script src="loomiq-bg.js?v=a728e3df43"></script>
-<script src="loomiq-mock.js?v=a728e3df43"></script>
+<script src="loomiq-design.js?v=9a0627614a"></script>
+<script src="loomiq-bg.js?v=9a0627614a"></script>
+<script src="loomiq-mock.js?v=9a0627614a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=a728e3df43"></script>
+<script src="imagetracer.js?v=9a0627614a"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=a728e3df43"></script>
-<script src="loomiq-threads.js?v=a728e3df43"></script>
+<script src="loomiq-chat.js?v=9a0627614a"></script>
+<script src="loomiq-threads.js?v=9a0627614a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a728e3df43"></script>
+<script src="loomiq-cards.js?v=9a0627614a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8009,7 +8013,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a728e3df43';
+var LQ_VER = '9a0627614a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -23381,6 +23385,11 @@ function inDesignDept(o){
   const jobs = (typeof designJobs === 'object' && designJobs) ? designJobs : null;
   return !!(jobs && jobs[o.orderId]);
 }
+/* ДОСТАВКА ЗА КОРДОН (21.10, Андрій: «ТТН не створюється, одне поле — куди
+   відправити; варіація, не основна»). Дані для відправки — текстом у
+   o.ship.abroadTo; накладної НП немає, контролю оплати теж: залишок має
+   бути закритий оплатою до відправки (Звірка покаже борг, як звичайно). */
+function shipAbroad(o){ const sh = o && o.ship; return !!(sh && sh.abroad && String(sh.abroadTo || '').trim()); }
 function shipGate(o){
   if(!o) return { ok:false, why:'картки немає' };
   /* Замовлення поза відділом воріт не має: вони частина нового ланцюга, а
@@ -23462,10 +23471,10 @@ function shipFold(o){
         o.ttnStatusAt ? ' · ' + escapeHtml(dtUa(o.ttnStatusAt)) : ''}</span>` : ''}
       ${npUrl() ? '<button class="art-b" data-ttn-track>Оновити статус</button>' : ''}
     </div>` : ''}
-    ${npUrl() && !has ? shipFormHtml(o) : ''}
+    ${(npUrl() || (o.ship && o.ship.abroad)) && !has ? shipFormHtml(o) : ''}
     ${!npUrl() ? '<div class="od-hint">Створення накладних вимкнене: у налаштуваннях не задана адреса воркера Нової пошти. Номер можна вписати руками — усе інше працює так само.</div>' : ''}`;
   return odFoldHtml('ship', 'Відправка',
-    has ? (o.ttnStatus || o.ttn) : 'накладної ще немає', body);
+    has ? (o.ttnStatus || o.ttn) : shipAbroad(o) ? '✈ за кордон' : 'накладної ще немає', body);
 }
 /* Вибір міста й відділення. Довідник Нової пошти величезний, тому нічого не
    зберігаємо: питаємо рівно те, що зараз набрали, і рівно тоді, коли набрали
@@ -23580,6 +23589,17 @@ function shipMissing(v){
 }
 function shipFormHtml(o){
   const v = shipVals(o), c = shipCfg(), E = escapeHtml;
+  const sh = (o.ship && typeof o.ship === 'object') ? o.ship : {};
+  if(sh.abroad){
+    return `<div class="shf shf-abroad" data-shipform>
+      <label class="shf-f shf-wide"><span>✈ За кордон — куди відправити</span>
+        <textarea data-shf="abroadTo" rows="3" placeholder="країна, місто, адреса, отримувач, телефон, служба доставки">${E(sh.abroadTo || '')}</textarea></label>
+      <div class="shf-note shf-wide">Накладна Нової пошти не створюється. Контролю оплати немає — залишок${
+        v.left ? ' (' + fmt(v.left) + ' ₴)' : ''} має бути сплачений до відправки.</div>
+      <button class="mk-copy shf-wide" data-shf-abroad-save${String(sh.abroadTo || '').trim() ? '' : ' disabled'}>${String(sh.abroadTo || '').trim() ? 'Збережено' : 'Зберегти'}</button>
+      <button type="button" class="shf-link shf-wide" data-shf-abroad="0">← Відправка Новою поштою</button>
+    </div>`;
+  }
   const gate = shipGate(o);
   const miss = shipMissing(v);
   const fmts = shipFormats(v.sender);
@@ -23610,6 +23630,7 @@ function shipFormHtml(o){
     ${!gate.ok ? `<div class="gate-sum shf-wide">🔒 ${E(gate.why)}</div>` : ''}
     ${miss.length ? `<div class="shf-miss shf-wide">Бракує: ${E(miss.join(', '))}</div>` : ''}
     <button class="mk-copy shf-wide" data-shf-make${(miss.length || !gate.ok) ? ' disabled' : ''}>Створити ТТН</button>
+    <button type="button" class="shf-link shf-wide" data-shf-abroad="1" title="Рідкий випадок: без накладної НП, лише куди відправити">✈ За кордон</button>
   </div>`;
 }
 /* Пошук міста й відділення в довіднику НП — одне на форму й на налаштування. */
@@ -23683,6 +23704,23 @@ function wireShipForm(box, o, persist){
         Object.assign(sh(), { whRef: x.ref, whName: x.name, whNumber: x.number || '', postomat: !!x.postomat });
         await keep(); redraw();
       });
+  }
+  box.querySelectorAll('[data-shf-abroad]').forEach(b => b.addEventListener('click', async () => {
+    sh().abroad = b.dataset.shfAbroad === '1';
+    await keep(); redraw();
+  }));
+  const ab = box.querySelector('[data-shf-abroad-save]');
+  if(ab){
+    const ta = box.querySelector('[data-shf="abroadTo"]');
+    if(ta) ta.addEventListener('input', () => { ab.disabled = !ta.value.trim(); ab.textContent = 'Зберегти'; });
+    ab.addEventListener('click', async () => {
+      const t = String((ta && ta.value) || '').trim();
+      if(!t) return toast('Впишіть, куди відправити');
+      sh().abroadTo = t; sh().abroadAt = sh().abroadAt || new Date().toISOString();
+      await keep(); toast('Відправку за кордон записано'); redraw();
+      try{ renderBoard(); renderOrderDrawer(); }catch(e){}
+      try{ if(window.LQDesign && document.getElementById('dzRoot')) LQDesign.ui.render(document.getElementById('dzRoot')); }catch(e){}
+    });
   }
   const make = box.querySelector('[data-shf-make]');
   if(make) make.addEventListener('click', async () => {
@@ -28644,7 +28682,8 @@ function designHostInit(){
        натиснути й написати. */
     /* Відправка — та сама форма, що й у картці B2B: одні дані (o.ship),
        один воркер, одні ворота. Відділ лише показує її у своїй зоні. */
-    shipForm: o => (npUrl() && !(o && o.ttn)) ? shipFormHtml(o) : '',
+    shipForm: o => ((npUrl() || shipAbroad(o) || (o && o.ship && o.ship.abroad)) && !(o && o.ttn)) ? shipFormHtml(o) : '',
+    shipAbroad: o => shipAbroad(o),
     shipWire: (el, o, persist) => wireShipForm(el, o, persist),
     shipTrack: o => shipTrack(o),
     hasChat: o => !!(o && (chanHasChat(o, 'ig') || chanHasChat(o, 'tg'))),
@@ -28692,7 +28731,7 @@ function designHostInit(){
     npPrint: (ref, sender) => npRegistryPdf(ref, sender),
     due: o => dueSum(o),
     /* Дані для накладної є (20.10): отримувач, телефон, місто й відділення. */
-    shipDataOk: o => { try{ const v = shipVals(o);
+    shipDataOk: o => { try{ if(shipAbroad(o)) return true; const v = shipVals(o);
       return !!(String(v.name || '').trim() && String(v.phone || '').replace(/\D/g, '').length >= 10 && v.cityRef && v.whRef); }catch(e){ return false; } },
     /* Колонки виробничої дошки, які бачить роль (null — усі). */
     prodCols: () => { const d = roleDef(myRole()); return (d && Array.isArray(d.cols) && d.cols.length) ? d.cols : null; },

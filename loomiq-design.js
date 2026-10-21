@@ -287,6 +287,7 @@
       if(ns) return ns;
       if(o.reg && o.reg.ref) return 'courier';
       if(старе) return 'done';
+      if(shipAbroad(o) && o.ship.abroadSentAt) return 'done';
       if(o.shipCol === 'reg') return 'reg';
       return 'ship';
     }
@@ -414,6 +415,10 @@
     { key:'shipped', label:'Відправлено',               color:'green', done:true }
   ];
   function trk(o, key){ return String(((o || {}).tracks || {})[key] || ''); }
+  /* За кордон (21.10): замість ТТН — текст «куди відправити». Там, де
+     ланцюг вимагає накладної, це вважається накладною. */
+  function shipAbroad(o){ var sh = o && o.ship; return !!(sh && sh.abroad && String(sh.abroadTo || '').trim()); }
+  function shipKnown(o){ return !!String((o && o.ttn) || '').trim() || shipAbroad(o); }
   /* Після цеху — за станом цеху (07.10): ТТН менеджер створює й до
      погодження, тож «є ТТН» більше не означає «відправлено». Відправлено —
      коли посилка в реєстрі / в Новій пошті. Старі замовлення з ТТН (до
@@ -1451,8 +1456,8 @@
      — неправда (Володимир: «обовʼязково повинен створити ТТН»). */
   function prodApprove(o, by){
     if(!o || !o.prodQc) return 'no-photos';
-    if(!String(o.ttn || '').trim()) return 'no-ttn';
-    if(o.shipOld && String(o.ttn) === o.shipOld) return 'old-ttn';
+    if(!shipKnown(o)) return 'no-ttn';
+    if(o.shipOld && String(o.ttn || '').trim() && String(o.ttn) === o.shipOld) return 'old-ttn';
     o.prodQc.ok = { at: nowIso(), by: String(by || '') };
     prodTrack(o, 'qc', 'ok', by);
     return 'ok';
@@ -2816,7 +2821,7 @@
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
-    PROD: PROD, prodAt: prodAt, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
+    PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
@@ -6299,7 +6304,7 @@
   }
   /* «ТТН не створена» — сама, від «Ескіз узгоджено» до відправки. */
   function noTtn(job, o){
-    if(!(o && o.dir === 'b2c') || String(o.ttn || '').trim()) return false;
+    if(!(o && o.dir === 'b2c') || D.shipKnown(o)) return false;
     var keys = (D.CHAIN || []).map(function(x){ return x.key; });
     var at = keys.indexOf(D.chainAt(job, o));
     return at >= keys.indexOf('sketchok') && at >= 0 && at < keys.indexOf('shipped');
@@ -6316,6 +6321,7 @@
     var ttn = String((o || {}).ttn || '').trim();
     if(ttn) return 'ТТН ' + ttn;
     var пош = (o || {}).ship || {};
+    if(пош.abroad) return D.shipAbroad(o) ? '✈ за кордон' : '✈ за кордон — впишіть, куди';
     /* Нова форма тримає місто й відділення посиланнями з довідника НП;
        імʼя й телефон вона бере із замовлення сама — тож бракувати може лише
        куди. */
@@ -6997,7 +7003,7 @@
   function stateOf(job, o, col, open){
     var доруч = open ? ' · доручень ' + open : '';
     if(col === 'queue'){ var дн = D.queueDays(job); return 'у черзі ' + (дн ? дн + ' дн.' : 'з сьогодні') + доруч; }
-    if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn : 'чекає ТТН') + доруч;
+    if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn : D.shipAbroad(o) ? 'за кордон' : 'чекає ТТН') + доруч;
     if(col === 'appr')    return 'фото з цеху — погодьте' + доруч;
     if(col === 'prod' || col === 'shipped'){
       var pk = D.prodAt(job, o);
@@ -7129,7 +7135,7 @@
     if(пк === 'redo') out[out.length - 1].st = 'bad';
     out.push(КРОК(після('appr'), пк === 'appr', 'Погодження', 'Погодження · фото з цеху'));
     out.push(КРОК(після('reg'), пк === 'ship' || пк === 'reg', 'Можна відправляти',
-      o && o.ttn ? 'Можна відправляти · ТТН ' + o.ttn : 'Можна відправляти · без ТТН'));
+      o && o.ttn ? 'Можна відправляти · ТТН ' + o.ttn : D.shipAbroad(o) ? 'Можна відправляти · за кордон' : 'Можна відправляти · без ТТН'));
     out.push(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'));
     out.push(КРОК(після('stuck'), пк === 'way' || пк === 'arrived' || пк === 'stuck', 'В дорозі',
       пк === 'arrived' ? 'У відділенні' : пк === 'stuck' ? 'У відділенні понад 3 дні' : 'В дорозі'));
@@ -8396,19 +8402,23 @@
       body = photosHtml(q.photos) + (q.note ? '<div class="dz-w-note"><i>Коментар цеху</i>' + esc(q.note) + '</div>' : '') +
         (as === 'acct'
           ? '<div class="dz-prod-acts">' +
-              (String(o.ttn || '').trim() ? '' : '<div class="dz-miss">Без ТТН погодити не можна — спершу створіть накладну.</div>' +
+              (D.shipKnown(o) ? '' : '<div class="dz-miss">Без ТТН погодити не можна — спершу створіть накладну.</div>' +
                 '<button type="button" class="dz-b" data-do="ship">Створити ТТН</button>') +
-              '<button type="button" class="dz-b pri" data-do="prod-ok"' + (String(o.ttn || '').trim() ? '' : ' disabled') + '>Погодити</button>' +
+              '<button type="button" class="dz-b pri" data-do="prod-ok"' + (D.shipKnown(o) ? '' : ' disabled') + '>Погодити</button>' +
               '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo" data-from="appr">Не погоджено — передрук</button></div>'
           : '<div class="dz-miss is-calm">Фото пішли акаунт-менеджеру на погодження.</div>');
     } else if(['ship', 'reg', 'courier', 'way', 'arrived', 'stuck', 'done', 'refused'].indexOf(at) >= 0){
       head = (D.PROD.filter(function(x){ return x.key === at; })[0] || {}).label || '';
       var np = o.npSt || {};
       body = (q ? '<div class="dz-ok">Фото погоджено' + (q.ok ? ' · ' + esc(dt(q.ok.at)) : '') + '</div>' + photosHtml(q.photos) : '') +
-        '<div class="dz-ttn">ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>') +
+        '<div class="dz-ttn">' + (D.shipAbroad(o)
+            ? '✈ За кордон: <span class="dz-ship-ab">' + esc(o.ship.abroadTo) + '</span>'
+            : 'ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>')) +
           (o.reg && o.reg.no ? ' · реєстр №' + esc(o.reg.no) : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
-        (at === 'ship' && as === 'prod' ? '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>' : '') +
+        (at === 'ship' && as === 'prod' ? (D.shipAbroad(o) && !o.ttn
+            ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-abroad-sent">✈ Відправлено за кордон</button></div>'
+            : '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>') : '') +
         reprintHtml(D.reprintOpen(o)) +
         ((o.losses || []).length ? '<div class="dz-redo">' + o.losses.map(function(l){
             return '<div>' + esc(l.kind === 'comp' ? 'Компенсація' : l.kind === 'refuse' ? 'Повна відмова' : 'Збиток') + ': <b>' + l.sum + ' ₴</b>' +
@@ -11410,6 +11420,11 @@
             .then(function(){ render(document.getElementById('dzRoot')); })
             .catch(function(e){ console.error(e); say('Привʼязати не вдалось'); });
         });
+    }
+    if(what === 'prod-abroad-sent'){
+      if(!D.shipAbroad(o)) return say('Це не відправка за кордон');
+      o.ship.abroadSentAt = new Date().toISOString(); o.ship.abroadSentBy = m;
+      return save(job, o, 'Відправлено за кордон');
     }
     if(what === 'pay-check'){
       if(!host().payCheck) return say('Підтвердження оплати недоступне');
