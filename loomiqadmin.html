@@ -4731,6 +4731,11 @@
   .dz-card .dz-c-stk.urg{background:#FFF1E6;color:#B54708;font-weight:800;}
   .dz-card .dz-c-row{display:flex;flex-wrap:wrap;gap:4px;}
   .dz-card .dz-c-date{font-style:normal;font-size:11px;font-weight:500;color:#98A2B3;margin-left:6px;}
+  /* Друк (DTF), 21.10: мітка на плитці, блоки закупки, вибір нанесення. */
+  .dz-c-tech{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.04em;color:#7C2D12;background:#FFEDD5;border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:1px;}
+  .dz-buy-tech{margin-bottom:10px;}
+  .dz-buy-techh{font-size:12px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin:4px 0 6px;}
+  .dz-u-tech{margin-top:4px;}
   .dz-card .dz-c-money{margin:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;}
   .dz-card .dz-c-chr{display:flex;align-items:center;gap:4px;margin:9px 0 0;min-width:0;}
   .dz-card .dz-c-chr .dz-c-chain.one{flex:1;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0;
@@ -5592,7 +5597,7 @@
   .rd-slot small{color:var(--ink-soft);font-size:11.5px;margin-top:-4px;}
   .rd-ed-a{display:flex;gap:8px;}
   /* Ціни B2C — таблиця (15.10): виріб · у B2C · 4 підписані колонки. */
-  .b2c-pt-head,.b2c-pt-row{display:grid;grid-template-columns:minmax(120px,1fr) 52px repeat(4,118px);gap:8px;align-items:center;}
+  .b2c-pt-head,.b2c-pt-row{display:grid;grid-template-columns:minmax(120px,1fr) 52px repeat(6,104px);gap:8px;align-items:center;}
   .b2c-pt-head{padding:0 0 8px;border-bottom:1px solid var(--line);font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);}
   .b2c-pt-head i{font-style:normal;text-align:right;line-height:1.25;}
   .b2c-pt-head i b{display:block;font-weight:600;text-transform:none;letter-spacing:0;font-size:11px;color:var(--ink-soft);}
@@ -5606,7 +5611,7 @@
   .b2c-pt-row input[type=number]::placeholder{color:#B4BCC8;font-size:12px;}
   .b2c-pt-row input[type=number]:focus{border-color:var(--accent);}
   /* Вузький екран — таблиця гортається вбік, підписи колонок лишаються над полями. */
-  #b2c-prices,.b2c-pt-head{min-width:640px;}
+  #b2c-prices,.b2c-pt-head{min-width:860px;}
   .b2c-pt-wrap{overflow-x:auto;}
 
   .dz-del-row{display:flex;justify-content:flex-end;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
@@ -6701,7 +6706,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <!-- 15.10: одна таблиця — виріб і «у B2C» ліворуч, чотири підписані колонки. -->
         <div class="b2c-pt-wrap"><div class="b2c-pt-head"><span>Виріб</span><span>у B2C</span>
           <i>Ціна<b>індивідуальний</b></i><i>Ціна<b>готовий / повторний</b></i>
-          <i>Собівартість<b>індивідуальний</b></i><i>Собівартість<b>готовий / повторний</b></i></div>
+          <i>Собівартість<b>індивідуальний</b></i><i>Собівартість<b>готовий / повторний</b></i>
+          <i>Ціна<b>друк (DTF)</b></i><i>Собівартість<b>друк (DTF)</b></i></div>
         <div id="b2c-prices"></div></div>
 
         <!-- ГОТОВІ ДИЗАЙНИ (13.10). Андрій: «базове нанесення — котик, булка,
@@ -7942,33 +7948,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9a0627614a"></script>
-<script src="loomiq-fingerprint.js?v=9a0627614a"></script>
-<script src="loomiq-pricing.js?v=9a0627614a"></script>
+<script src="loomiq-select.js?v=e1046c9be9"></script>
+<script src="loomiq-fingerprint.js?v=e1046c9be9"></script>
+<script src="loomiq-pricing.js?v=e1046c9be9"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9a0627614a"></script>
+<script src="loomiq-money-core.js?v=e1046c9be9"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9a0627614a"></script>
-<script src="loomiq-bg.js?v=9a0627614a"></script>
-<script src="loomiq-mock.js?v=9a0627614a"></script>
+<script src="loomiq-design.js?v=e1046c9be9"></script>
+<script src="loomiq-bg.js?v=e1046c9be9"></script>
+<script src="loomiq-mock.js?v=e1046c9be9"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9a0627614a"></script>
+<script src="imagetracer.js?v=e1046c9be9"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=9a0627614a"></script>
-<script src="loomiq-threads.js?v=9a0627614a"></script>
+<script src="loomiq-chat.js?v=e1046c9be9"></script>
+<script src="loomiq-threads.js?v=e1046c9be9"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9a0627614a"></script>
+<script src="loomiq-cards.js?v=e1046c9be9"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8013,7 +8019,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9a0627614a';
+var LQ_VER = 'e1046c9be9';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10271,7 +10277,8 @@ function readArtKinds(){
   });
 })();
 /* ОПЛАТА ДИЗАЙНЕРАМ (16.10): b2c.dzRates = { graphic|stitch: { email|'*': { типId: ₴ } } }. */
-const DZ_RATE_ROLES = [['graphic', 'Графічні дизайнери', 'designer'], ['stitch', 'Вишивальні дизайнери', 'embroidery']];
+const DZ_RATE_ROLES = [['graphic', 'Графічні дизайнери', 'designer'], ['stitch', 'Вишивальні дизайнери', 'embroidery'],
+                       ['dtf', 'DTF-дизайнери (друк)', 'dtf']];
 function b2cDzRates(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return (c.dzRates && typeof c.dzRates === 'object') ? c.dzRates : {};
@@ -12045,7 +12052,7 @@ function payPos(k){
 function payDept(k){ return PAY_DEPTS.filter(d => d.k === k)[0] || null; }
 /* Посада за замовчуванням — з ролі доступу: щоб у перший же день кожен
    стояв на своєму місці, а міняли тільки винятки. */
-const PAY_POS_OF_ROLE = { manager:'sales', designmgr:'proc', designer:'gd', embroidery:'sd',
+const PAY_POS_OF_ROLE = { manager:'sales', designmgr:'proc', designer:'gd', embroidery:'sd', dtf:'sd', print:'oper',
                           production:'oper', supply:'buy', owner:'owner' };
 function payCfg(){
   const p = (contentData && contentData.payroll && typeof contentData.payroll === 'object') ? contentData.payroll : {};
@@ -13293,6 +13300,7 @@ function paintB2cPrices(){
     const name = (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', '');
     const off = !!(prod.b2cOff || {})[g.id];
     const rr = prod.retailReady || {}, rc = prod.retailCostReady || {};
+    const dp = prod.retailDtf || {}, dc = prod.retailCostDtf || {};
     /* 15.10: один рядок на виріб. Підказки в порожніх полях — що візьметься,
        якщо не вписати: «з сайту: 830», «= індивідуальна», «не вписано». */
     return `<div class="b2c-pt-row${off ? ' is-off' : ''}">
@@ -13306,6 +13314,10 @@ function paintB2cPrices(){
         value="${cost[g.id] != null ? cost[g.id] : ''}" placeholder="не вписано">
       <input data-b2c-rcost="${escapeHtml(g.id)}" type="number" min="0" step="1" title="Собівартість · готовий / повторний"
         value="${rc[g.id] != null ? rc[g.id] : ''}" placeholder="як індив.">
+      <input data-b2c-dprice="${escapeHtml(g.id)}" type="number" min="0" step="1" title="Ціна · друк (DTF)"
+        value="${dp[g.id] != null ? dp[g.id] : ''}" placeholder="як вишивка">
+      <input data-b2c-dcost="${escapeHtml(g.id)}" type="number" min="0" step="1" title="Собівартість · друк (DTF)"
+        value="${dc[g.id] != null ? dc[g.id] : ''}" placeholder="як вишивка">
     </div>`;
   }).join('');
 }
@@ -13317,6 +13329,8 @@ function retailPrice(gid, kind){
   const prod = contentData.products || {};
   /* Готовий ескіз — своя (нижча) ціна; не вписана — як індивідуальний. */
   if(kind === 'ready'){ const r = (prod.retailReady || {})[gid]; if(+r > 0) return Math.round(+r); }
+  /* Друк (21.10): своя ціна; не вписана — як вишивка (індивідуальна). */
+  if(kind === 'dtf'){ const r = (prod.retailDtf || {})[gid]; if(+r > 0) return Math.round(+r); }
   const своя = (prod.retail || {})[gid];
   if(+своя > 0) return Math.round(+своя);
   const bp = (curSitePricing().basePrices) || {};
@@ -13366,6 +13380,7 @@ function readB2cCosts(){
    вписали, прибуток не рахуємо зовсім і кажемо про це прямо. */
 function retailCost(gid, kind){
   if(kind === 'ready'){ const r = ((contentData.products || {}).retailCostReady || {})[gid]; if(+r > 0) return Math.round(+r); }
+  if(kind === 'dtf'){ const r = ((contentData.products || {}).retailCostDtf || {})[gid]; if(+r > 0) return Math.round(+r); }
   const c = ((contentData.products || {}).retailCost || {})[gid];
   return (+c > 0) ? Math.round(+c) : 0;
 }
@@ -13399,16 +13414,19 @@ function retailCost(gid, kind){
     const собів = readB2cCosts();
     const DEL = firebase.firestore.FieldValue.delete();
     const гЦін = readB2cNum('data-b2c-rprice'), гСоб = readB2cNum('data-b2c-rcost'), вимк = readB2cOff();
-    const retail = {}, retailCost = {}, retailReady = {}, retailCostReady = {}, b2cOff = {};
+    const дЦін = readB2cNum('data-b2c-dprice'), дСоб = readB2cNum('data-b2c-dcost');
+    const retail = {}, retailCost = {}, retailReady = {}, retailCostReady = {}, retailDtf = {}, retailCostDtf = {}, b2cOff = {};
     allPhotoCfg().forEach(g => {
       retail[g.id] = (цін[g.id] > 0) ? цін[g.id] : DEL;
       retailCost[g.id] = (собів[g.id] > 0) ? собів[g.id] : DEL;
       retailReady[g.id] = (гЦін[g.id] > 0) ? гЦін[g.id] : DEL;
       retailCostReady[g.id] = (гСоб[g.id] > 0) ? гСоб[g.id] : DEL;
+      retailDtf[g.id] = (дЦін[g.id] > 0) ? дЦін[g.id] : DEL;
+      retailCostDtf[g.id] = (дСоб[g.id] > 0) ? дСоб[g.id] : DEL;
       b2cOff[g.id] = вимк[g.id] ? true : DEL;
     });
     try{
-      await PHOTOS_DOC.set({ b2c, products: { retail, retailCost, retailReady, retailCostReady, b2cOff } }, { merge:true });
+      await PHOTOS_DOC.set({ b2c, products: { retail, retailCost, retailReady, retailCostReady, retailDtf, retailCostDtf, b2cOff } }, { merge:true });
       contentData.b2c = b2c;
       threadsApply();
       try{ paintDzRates(); }catch(e){}
@@ -13418,6 +13436,8 @@ function retailCost(gid, kind){
       contentData.products.retailCost = собів;
       contentData.products.retailReady = гЦін;
       contentData.products.retailCostReady = гСоб;
+      contentData.products.retailDtf = дЦін;
+      contentData.products.retailCostDtf = дСоб;
       contentData.products.b2cOff = вимк;
       toast('Збережено');
     }catch(e){ console.error(e); toast('Не збереглось'); }
@@ -28809,7 +28829,7 @@ function designHostInit(){
     payLink: (o, id) => { const p = (payments || []).filter(x => x.id === id)[0];
       return p ? payLinkSet(p, String((o && o.orderId) || ''), payNextTag(o)) : Promise.reject(new Error('Платежу немає')); },
     retailExact: (gid, kind) => { const pr = contentData.products || {};
-      return kind === 'ready' ? +((pr.retailReady || {})[gid]) > 0 : +((pr.retail || {})[gid]) > 0; },
+      return kind === 'ready' ? +((pr.retailReady || {})[gid]) > 0 : kind === 'dtf' ? +((pr.retailDtf || {})[gid]) > 0 : +((pr.retail || {})[gid]) > 0; },
     payUnlink: id => { const p = (payments || []).filter(x => x.id === id)[0];
       return p ? payLinkSet(p, '', null) : PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }); },
     payTag: (id, tag) => PAY_COL.doc(id).set({ tag: tag || null }, { merge:true }),
@@ -28973,6 +28993,7 @@ const ROLES = { owner:'Власник', manager:'Менеджер B2B', managerb
                    «оцифрування»: оцифрування — це те, ЩО людина робить,
                    а в списку людей має стояти те, ХТО вона. */
                 designmgr:'Акаунт-менеджер', embroidery:'Вишивальний дизайнер',
+                dtf:'DTF-дизайнер', print:'Друк',
                 /* «Контроль файлів» прибрано (Андрій, 02.10): такої людини
                    немає — вишивальний здав, і файли одразу йдуть у цех. */
                 /* Закупівля поки що робота, а не людина: її виконує
@@ -28996,7 +29017,7 @@ const PROD_COLS = [
 ];
 /* Ролі, які зʼявились після того, як список ролей уже зберегли: їх
    додаємо до збереженого, інакше їх ніде не можна було б призначити. */
-const ROLES_ADDED = ['operator', 'qcprod', 'managerb2c'];
+const ROLES_ADDED = ['operator', 'qcprod', 'managerb2c', 'dtf', 'print'];
 /* ══════════ НАПРЯМ ЖИВЕ В РОЛІ, А НЕ ПОРУЧ ІЗ НЕЮ ══════════════════════
    У компанії два різні бізнеси, і ролі в них різні: менеджер B2B і менеджер
    B2C — різні люди з різними обовʼязками. Якийсь час напрям зберігався
@@ -29284,6 +29305,12 @@ const ROLE_PRESET = {
      (окремої колонки «Контроль якості» з 06.10 немає — це кнопка «Готово»). */
   qcprod:     preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
                 see:['chat'], can:['stage'], cols:['run','appr','ship'] }),
+  /* ДРУК (21.10, Андрій): DTF-дизайнер — як вишивальний, лише на дошці
+     друку; «Друк» — окреме виробництво зі своєю дошкою «друкується → готово». */
+  dtf:        preset({ ui:'designer', nav:['design'], boards:['embro'],
+                see:[], can:['stitch'] }),
+  print:      preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
+                see:['chat'], can:['stage'] }),
   /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
      до відправки, в обох напрямах. Собівартість лишається у власника — вона
      не потрібна нікому, хто не ухвалює рішення про ціну закупівлі, а зайве

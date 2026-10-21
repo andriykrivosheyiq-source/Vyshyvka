@@ -404,8 +404,8 @@
     /* Ескіз погоджено, позиція в черзі вишивального відділу, але ще ніхто
        не взяв. Андрій: окремий статус — інакше «у вишивального» брехало б,
        поки роботу ніхто не почав. */
-    { key:'stitchq', label:'Черга вишивки',             color:'amber'  },
-    { key:'stitch',  label:'У вишивального дизайнера',  color:'violet' },
+    { key:'stitchq', label:'Черга вишивки / друку',     color:'amber'  },
+    { key:'stitch',  label:'У вишивального / DTF',       color:'violet' },
     { key:'prod',    label:'Виробництво',               color:'cyan'   },
     /* Цех здав фото — тепер слово за акаунтом (Андрій, 07.10: «в акаунт
        менеджера повинна бути колонка… Чекає погодження»). Доти таке
@@ -415,6 +415,23 @@
     { key:'shipped', label:'Відправлено',               color:'green', done:true }
   ];
   function trk(o, key){ return String(((o || {}).tracks || {})[key] || ''); }
+  /* ДРУК (DTF) У B2C (21.10, Андрій: «принт іде з графічного DTF-дизайнеру,
+     закупки окремим блоком, виробництво окреме»). Нанесення позиції —
+     u.tech: 'emb' (вишивка, як було) або 'dtf'. Другий етап ('stitch' у
+     коді) той самий: для вишивки це вишивальний дизайнер і файл для
+     машини, для друку — DTF-дизайнер і файл(и) для друку. У замовленні
+     всі позиції однієї техніки. */
+  function techOf(u){ return (u && u.tech === 'dtf') ? 'dtf' : 'emb'; }
+  function jobTech(job){ return jobUnits(job).some(function(u){ return techOf(u) === 'dtf'; }) ? 'dtf' : 'emb'; }
+  function stitchRole(u){ return techOf(u) === 'dtf' ? 'dtf' : 'embroidery'; }
+  /* Друк готовий (цех друку, 21.10): без фото й погодження — одразу
+     «Можна відправляти». */
+  function printDone(o, by){
+    if(!o) return false;
+    o.prodQc = { photos: [], at: nowIso(), by: String(by || ''), print: true, ok: { at: nowIso(), by: String(by || '') } };
+    prodTrack(o, 'qc', 'ok', by);
+    return true;
+  }
   /* За кордон (21.10): замість ТТН — текст «куди відправити». Там, де
      ланцюг вимагає накладної, це вважається накладною. */
   function shipAbroad(o){ var sh = o && o.ship; return !!(sh && sh.abroad && String(sh.abroadTo || '').trim()); }
@@ -1590,7 +1607,7 @@
       l.push(d);
       dzQueue(d, by);
       d.auto = true;
-      d.thread[d.thread.length - 1].text = 'Ескіз погоджено — стало в чергу вишивки';
+      d.thread[d.thread.length - 1].text = techOf(u) === 'dtf' ? 'Ескіз погоджено — стало в чергу друку (DTF)' : 'Ескіз погоджено — стало в чергу вишивки';
       n++;
     });
     return n;
@@ -2821,7 +2838,7 @@
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
-    PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
+    PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
@@ -2947,7 +2964,9 @@
     { key:'acct',    label:'Акаунт-менеджер',      role:'designmgr'  },
     { key:'graphic', label:'Графічний дизайнер',   role:'designer'   },
     { key:'stitch',  label:'Вишивальний дизайнер', role:'embroidery' },
+    { key:'dtf',     label:'DTF-дизайнер',         role:'dtf'        },
     { key:'prod',    label:'Виробництво',          role:'production' },
+    { key:'print',   label:'Друк',                 role:'print'      },
     { key:'supply',  label:'Закупівля',            role:'supply'     }
   ];
   /* Чия це роль з точки зору прав. Власник і керівник бачать усе й
@@ -3143,7 +3162,8 @@
         '<span class="dz-c-top">' + pic +
           '<span class="dz-c-main">' +
             '<b>' + esc(c.title) + (c.created ? ' <i class="dz-c-date" title="Створено ' + esc(dt(c.created)) + '">' +
-              esc(dayOnly(c.created)) + '</i>' : '') + '</b>' +
+              esc(dayOnly(c.created)) + '</i>' : '') +
+              (c.tech === 'dtf' ? ' <em class="dz-c-tech" title="Друк (DTF)">DTF</em>' : '') + '</b>' +
             (c.nick && !c.chain ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
             (стікер ? '<span class="dz-c-row">' + стікер + '</span>' : '') +
             гроші +
@@ -4143,7 +4163,7 @@
     if(kind === 'stitch' && !D.graphicOk(u))
       return '<div class="dz-miss">Спершу треба затвердити графіку цього виробу — ' +
              'інакше оцифруємо те, що ще поміняється.</div>';
-    var role = kind === 'stitch' ? 'embroidery' : 'designer';
+    var role = kind === 'stitch' ? D.stitchRole(u) : 'designer';
     var готово = kind === 'stitch' || D.unitFilled(job, u);
     /* ЗАМІНИТИ ДИЗАЙНЕРА — ТИМ САМИМ СПИСКОМ. Обрав іншого, і він на місці
        попереднього: окрема дія «замінити» нічого б не додала, крім ще
@@ -4175,7 +4195,7 @@
 
      Тепер вибір і є дією: обрав зі списку — дизайнера прикріплено. */
   function dzAddHtml(u, kind){
-    var role = kind === 'stitch' ? 'embroidery' : 'designer';
+    var role = kind === 'stitch' ? D.stitchRole(u) : 'designer';
     return '<select class="dz-addwho" data-dzadd="' + esc(u.id) + '|' + kind + '">' +
       '<option value="">+ Додати дизайнера</option>' + teamOpts(role, '') +
     '</select>';
@@ -4282,11 +4302,11 @@
     var n = dzUnseenCol(u, kind);
     return '<button type="button" class="dz-u-rail' + (st ? ' is-' + st : '') +
       '" data-do="u-side" data-u="' + esc(u.id) + '" data-side="' + kind +
-      '" title="' + (kind === 'stitch' ? 'Вишивальний дизайн' : 'Графічний дизайн') +
+      '" title="' + (kind === 'stitch' ? (D.techOf(u) === 'dtf' ? 'Файл для друку (DTF)' : 'Вишивальний дизайн') : 'Графічний дизайн') +
       ' — розгорнути">' +
       '<span class="dz-u-rail-i">' + SIDE_ICO[kind] + '</span>' +
       (n ? '<span class="dz-u-rail-n">' + n + '</span>' : '') +
-      '<span class="dz-u-rail-t">' + SIDE_NM[kind] + '</span>' +
+      '<span class="dz-u-rail-t">' + ((kind === 'stitch' && D.techOf(u) === 'dtf') ? 'Файл для друку' : SIDE_NM[kind]) + '</span>' +
     '</button>';
   }
   /* У ШАПЦІ ЗОНИ — ХТО РОБИТЬ, А НЕ СЛОВО ПРО СТАН.
@@ -4308,9 +4328,9 @@
   }
   function dzColHtml(u, kind, ro){
     var st = dzColState(u, kind);
-    var назва = kind === 'stitch' ? 'Вишивальний дизайн' : 'Графічний дизайн';
+    var назва = kind === 'stitch' ? (D.techOf(u) === 'dtf' ? 'Файл для друку (DTF)' : 'Вишивальний дизайн') : 'Графічний дизайн';
     var d = dzList(u, kind)[0];
-    var роль = kind === 'stitch' ? 'embroidery' : 'designer';
+    var роль = kind === 'stitch' ? D.stitchRole(u) : 'designer';
     var key = esc(u.id) + '|' + kind + '|0';
     var хто;
     /* Черга відділу — лише в графіки. Вишивальників переведемо на нову
@@ -4410,7 +4430,7 @@
   function designRowHtml(u, kind, d, i, ro, job, o, всього){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
-    var роль = kind === 'stitch' ? 'embroidery' : 'designer';
+    var роль = kind === 'stitch' ? D.stitchRole(u) : 'designer';
     /* Дизайнер може і здати роботу, і просто спитати. Беремо його останнє
        слово, якщо воно НЕ прочитане: прочитане вже відпрацювали, і тримати
        його на видноті означає щодня перечитувати вчорашнє. */
@@ -4748,6 +4768,20 @@
         '<option value=""' + (u.artKind ? '' : ' selected') + '>— оберіть —</option>' +
         l.map(function(k){ return '<option value="' + esc(k.id) + '"' + (k.id === u.artKind ? ' selected' : '') + '>' +
           esc(k.name) + '</option>'; }).join('') +
+      '</select></label>';
+  }
+  /* НАНЕСЕННЯ: вишивка чи друк (DTF) — лише B2C, лише індивідуальний
+     (готових і базових для друку немає). Після фіксації не міняється. */
+  function techHtml(u, ro, opt, job){
+    var o = (opt && opt.o) || null;
+    if(!(o && o.dir === 'b2c') || u.ready || u.base || D.linkOf(u)) return '';
+    var t = D.techOf(u);
+    if(ro) return t === 'dtf' ? '<div class="dz-u-kind is-ro"><i>Нанесення</i>Друк (DTF)</div>' : '';
+    var lock = dzList(u, 'stitch').length > 0;
+    return '<label class="dz-u-kind dz-u-tech"><span>Нанесення</span>' +
+      '<select data-uf="' + esc(u.id) + '|tech"' + (lock ? ' disabled title="Після фіксації не міняється"' : '') + '>' +
+        '<option value="emb"' + (t === 'emb' ? ' selected' : '') + '>Вишивка</option>' +
+        '<option value="dtf"' + (t === 'dtf' ? ' selected' : '') + '>Друк (DTF)</option>' +
       '</select></label>';
   }
   function designKindHtml(u, job){
@@ -5165,7 +5199,7 @@
         '<textarea rows="1" data-grow data-uf="' + esc(u.id) + '|note" ' +
           'placeholder="Коментар — словами клієнта">' + esc(u.note || '') +
         '</textarea></label>') +
-      artKindHtml(u, ro, opt) +
+      artKindHtml(u, ro, opt) + techHtml(u, ro, opt, job) +
       '</div>' +
       /* Картинки саме до цього типу одягу. У замовленні буває два різні
          стилі, і референси до них різні: спільна купа зверху змушує
@@ -5970,16 +6004,18 @@
     if(pay && pay.sum != null) return { sum: pay.sum, src: 'paid', who: pay.who };
     var l = dzList(u, role).filter(function(d){ return d && d.who; });
     var d = l[l.length - 1];
-    if(d){ var r = rateOf(role, d.who, u.artKind); if(r != null) return { sum: r, src: 'rate', who: d.who }; }
+    /* Друк: ставки DTF-дизайнерів — свій рядок у налаштуваннях (21.10). */
+    var rr = (role === 'stitch' && D.techOf(u) === 'dtf') ? 'dtf' : role;
+    if(d){ var r = rateOf(rr, d.who, u.artKind); if(r != null) return { sum: r, src: 'rate', who: d.who }; }
     var est = (u.dzEst || {})[role];
     if(est && est.sum != null && est.kind === u.artKind) return { sum: est.sum, src: 'avg' };
-    var a = avgOf(role, u.artKind);
+    var a = avgOf(rr, u.artKind);
     return a == null ? null : { sum: a, src: 'avg' };
   }
   function sumRows(job){
     return unitsOf(job).map(function(u){
       var g = catItem(u.gid);
-      var вид = (u.ready || u.base) ? 'ready' : '';
+      var вид = (u.ready || u.base) ? 'ready' : (D.techOf(u) === 'dtf' ? 'dtf' : '');
       var зафікс = !!(u.priceAt && u.priceGid === u.gid && (u.priceKind || '') === вид);
       var прайс = retailOf(u.gid, вид), прайсС = costOf(u.gid, вид);
       var ціна = зафікс ? Math.max(0, Math.round(+u.price || 0)) : прайс;
@@ -5990,7 +6026,9 @@
       /* Ціни «готовий ескіз» для виробу не вписано — береться індивідуальна;
          кажемо про це, щоб не дивувались сумі. */
       var запас = !!((u.ready || u.base) && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
-      return [{ name: (g && g.name) || u.name || 'без виробу', design: дизайн, fallback: запас,
+      /* Друк: ціни на друк ще не вписано — береться індивідуальна (21.10). */
+      var запасДрук = !!(вид === 'dtf' && u.gid && host.retailExact && !host.retailExact(u.gid, 'dtf'));
+      return [{ name: (g && g.name) || u.name || 'без виробу', design: дизайн + (вид === 'dtf' ? ' · друк' : ''), fallback: запас, fallbackDtf: запасДрук,
                lockedAt: зафікс ? u.priceAt : '', nowPrice: (зафікс && прайс !== ціна) ? прайс : 0,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
                cost: соб, costSum: соб * к,
@@ -6005,7 +6043,7 @@
                               kindDelta: true, qty: к, price: дельта, sum: дельта * к, cost: 0, costSum: 0, нема: false });
         DZ_ROLES.forEach(function(role){
           var c = dzCostOf(u, role);
-          out.push({ name: role === 'graphic' ? 'графічний дизайн' : 'вишивальний дизайн', dzCost: role,
+          out.push({ name: role === 'graphic' ? 'графічний дизайн' : (D.techOf(u) === 'dtf' ? 'файл для друку (DTF)' : 'вишивальний дизайн'), dzCost: role,
                      src: c ? c.src : '', qty: 1, price: 0, sum: 0,
                      cost: c ? c.sum : 0, costSum: c ? c.sum : 0, costKnown: !!c, нема: false });
         });
@@ -6161,6 +6199,10 @@
           (rows.some(function(r){ return r.fallback; })
             ? '<div class="dz-miss">Для виробу ще не вписано ціни «готовий ескіз» — для готового й повторного ' +
               'дизайну взято індивідуальну. Впишіть її в Налаштуваннях B2C → Ціни виробів.</div>'
+            : '') +
+          (rows.some(function(r){ return r.fallbackDtf; })
+            ? '<div class="dz-miss">Ціни на друк (DTF) для виробу ще не вписано — взято ціну вишивки. ' +
+              'Впишіть її в Налаштуваннях B2C → Ціни виробів, колонка «друк».</div>'
             : '') +
           (rows.some(function(r){ return r.нема; })
             ? '<div class="dz-miss">Для виділених виробів роздрібної ціни ще ' +
@@ -6956,7 +6998,7 @@
       /* Клієнт просить зміни — червоним, як правка в дизайнера: це те, що
          губилось найчастіше. */
       var правки = col === 'fixes';
-      return { id: p.o.orderId, step: col, v2: true,
+      return { id: p.o.orderId, step: col, v2: true, tech: D.jobTech(p.job),
         pic: cardPic(p.job),
         /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
         what: whatOf(p.job, p.o),
@@ -6964,7 +7006,9 @@
         unpaidTxt: сума ? (оплачено >= сума ? 'оплачено' : 'не оплачено ' + money(сума - оплачено)) : null,
         /* Оплата на карту ще не підтверджена (21.10) — «!» на плитці. */
         payChk: !!(host().unverified && host().unverified(p.o).n),
-        steps: { n: 5, at: at, labels: CHAIN_STEP_L, txt: CHAIN_STEP_L[at] },
+        tech: D.jobTech(p.job),
+        steps: { n: 5, at: at, labels: D.jobTech(p.job) === 'dtf' ? CHAIN_STEP_L_DTF : CHAIN_STEP_L,
+                 txt: (D.jobTech(p.job) === 'dtf' ? CHAIN_STEP_L_DTF : CHAIN_STEP_L)[at] },
         chain: stageMarks(p.job, p.o, всіЗ),
         who: хто ? nameOf(хто) : '', whoTitle: хто ? 'Зараз працює: ' + nameOf(хто) : '',
         /* «Правки клієнта» — без таблетки (08.10): колонка й так про це каже. */
@@ -7147,6 +7191,7 @@
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
   var CHAIN_STEP = { queue:0, new:0, design:0, sketch:0, client:0, sketchok:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
   var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
+  var CHAIN_STEP_L_DTF = ['Графіка', 'Файл DTF', 'Друк', 'До відправки', 'Відправлено'];
   function cmTxt(mm){
     if(!mm || !(+mm.w > 0)) return '';
     var r = function(v){ return String(Math.round(+v / 10)); };
@@ -7346,12 +7391,13 @@
   /* ВИШИВАЛЬНІ — ТАК САМО, ЯК ГРАФІЧНІ. Андрій: «те саме, що ми зробили для
      графічних, зробимо для вишивальних». Одна дошка на дві ролі: черга
      відділу, нові, в роботі, на перевірці, правки, готово — по позиціях. */
-  function graphicCards(kind){
+  function graphicCards(kind, tech){
     kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var всіГ = buys();
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
     return U.pairs().map(function(p){
+      if(tech && D.jobTech(p.job) !== tech) return null;
       var mine = myDz(p.job, kind, only ? m : '');
       if(!mine.length) return null;
       var st = dzStep(mine);
@@ -7384,7 +7430,7 @@
       try{ ug = U.acctUrg(p.job, p.o, false); }catch(e){}
       var пильн = (лишок !== null && лишок < 0) || (ug && ug.kind === 'late') ? 0
                 : (ug && ug.kind === 'urgent') ? 1 : 2;
-      return { id: p.o.orderId, step: крок, v2: true,
+      return { id: p.o.orderId, step: крок, v2: true, tech: D.jobTech(p.job),
         created: p.o.createdAt || p.job.createdAt || '', rank: пильн,
         pic: cardPic(p.job),
         /* ДЕ ЗАРАЗ ЗАМОВЛЕННЯ — НЕ ДИЗАЙНЕРУ (Андрій, 09.10: «в граф
@@ -8392,6 +8438,11 @@
     } else if(at === 'ready' && as === 'prod'){
       head = 'Готово до роботи';
       body = '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-move" data-to="run">На станки</button>' + tg + '</div>';
+    } else if(at === 'run' && as === 'prod' && D.jobTech(job) === 'dtf'){
+      head = 'Друкується';
+      body = '<div class="dz-prod-acts">' +
+        '<button type="button" class="dz-b pri" data-do="prod-print-done">✓ Надруковано — готово</button>' +
+        '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>' + tg + '</div>';
     } else if(at === 'run' && as === 'prod'){
       head = 'На станках';
       body = '<div class="dz-prod-acts">' +
@@ -8752,9 +8803,9 @@
       return D.buyReady(u) || !!D.buyOf(всі, p.o.orderId, u.id); });
     return !!String(((p.o || {}).tracks || {}).supply || '');
   }
-  function prodCards(){
+  function prodCards(tech){
     var всі = buys();
-    return U.pairs().filter(atProd).map(function(p){
+    return U.pairs().filter(atProd).filter(function(p){ return !tech || D.jobTech(p.job) === tech; }).map(function(p){
       var r = D.packReady(p.job, p.o);
       /* Позиції відділу: під карткою — де одяг і чи готова вишивка, а не
          стара перевірка пакета, яка тут завжди казала б «не погоджено». */
@@ -8833,8 +8884,21 @@
     /* Вишивальнику — без «На перевірці» й «Правок»: перевірки в B2C немає,
        здане одразу «Готово». */
     if(seat === 'stitch')  return { steps: D.GRAPHIC.filter(function(x){ return x.key !== 'review'; }),
-                                    cards: graphicCards('stitch') };
+                                    cards: graphicCards('stitch', 'emb') };
+    /* DTF-дизайнер (21.10): та сама дошка другого етапу, лише замовлення з друком. */
+    if(seat === 'dtf')     return { steps: D.GRAPHIC.filter(function(x){ return x.key !== 'review'; }),
+                                    cards: graphicCards('stitch', 'dtf') };
+    /* Друк (21.10, Андрій: «окреме виробництво… друкується → готово»):
+       без «Чекає погодження» — «Готово» одразу «Можна відправляти». */
+    if(seat === 'print'){
+      var pk = D.PROD.filter(function(x){ return x.key !== 'appr' && !x.hide; }).map(function(x){
+        return x.key === 'run' ? Object.assign({}, x, { label: 'Друкується' })
+             : x.key === 'ready' ? Object.assign({}, x, { label: 'Готово до друку' })
+             : x.key === 'ship' ? Object.assign({}, x, { label: 'Готово · можна відправляти' }) : x; });
+      return { steps: pk, cards: prodCards('dtf') };
+    }
     if(seat === 'prod'){
+      /* Друк — на своїй дошці (21.10); тут лише вишивка. */
       /* Ролі виробництва бачать свої колонки (Андрій, 06.10): оператори —
          від «Передруку» до «На станках», контроль якості — від «На станках»
          до «Можна відправляти», загальна роль — усе. Список колонок живе в
@@ -8848,7 +8912,7 @@
          а не лише кнопкою вгорі: кнопку не помічали (Андрій, 07.10: «де
          ця зона?»). */
       var сховані = кроки.filter(function(x){ return x.hide; });
-      var всіКарти = prodCards();
+      var всіКарти = prodCards('emb');
       if(!PROD_DELIV){
         кроки = кроки.filter(function(x){ return !x.hide; });
         if(сховані.length){
@@ -9181,7 +9245,7 @@
        там усередині обирає, чий саме графік. На своїй дошці кнопка йому ні
        до чого: строки акаунта, закупівлі й виробництва вихідних не мають,
        і графік там нічого не міняє. */
-    var графік = (seat === 'graphic' || seat === 'stitch')
+    var графік = (seat === 'graphic' || seat === 'stitch' || seat === 'dtf')
       ? '<button class="dz-b dz-shift" data-do="shift" title="Які дні працюємо — ' +
         'у вихідні годинник стоїть">🗓 Графік</button>' : '';
     /* «+ Нове замовлення» — лише на дошці акаунт-менеджера: дизайнери й цех
@@ -9621,8 +9685,20 @@
       (l.length > видно.length ? '<button type="button" class="dz-b" data-do="stock-log-more">Показати ще</button>' : '') +
     '</div>';
   }
+  function buyTechOf(r){
+    var p = r && U.pairOf(r.orderId);
+    return p ? D.jobTech(p.job) : 'emb';
+  }
+  /* ЗАКУПКА: ВИШИВКА Й ДРУК — ОКРЕМИМИ БЛОКАМИ (21.10, Андрій). Є друк —
+     список ділиться на два блоки з підписами; немає — як було. */
   function buyNeedHtml(rows){
     rows = rows || buySplitNow().buy;
+    var друк = rows.filter(function(r){ return buyTechOf(r) === 'dtf'; });
+    if(друк.length && друк.length < rows.length){
+      var виш = rows.filter(function(r){ return buyTechOf(r) !== 'dtf'; });
+      return '<div class="dz-buy-tech"><div class="dz-buy-techh">🧵 Вишивка</div>' + buyNeedHtml(виш) + '</div>' +
+             '<div class="dz-buy-tech"><div class="dz-buy-techh">🖨 Друк (DTF)</div>' + buyNeedHtml(друк) + '</div>';
+    }
     var обрано = rows.filter(function(r){ return BUY_SEL[r.key]; });
     var шт = обрано.reduce(function(a, r){ return a + r.qty; }, 0);
     var всього = rows.reduce(function(a, r){ return a + r.qty; }, 0);
@@ -9895,7 +9971,8 @@
     if(seat === 'supply')  return supplyPanel(pr);
     if(seat === 'prod')    return packPanel(pr);
     /* Вишивальні — на тій самій схемі, що й графічні: по позиціях. */
-    if(seat === 'stitch') return graphicPanel(pr, 'stitch');
+    if(seat === 'stitch' || seat === 'dtf') return graphicPanel(pr, 'stitch');
+    if(seat === 'print')   return packPanel(pr);
     return queuePanel(pr);           // акаунт-менеджер
   }
 
@@ -11262,6 +11339,11 @@
       if(!D.prodMove(job, o, до, m)) return say('Так перенести не можна');
       if(до === 'run') prodToTelegram(job, o, true);     // карта — у Telegram цеху автоматично
       return save(job, o, до === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
+    }
+    if(what === 'prod-print-done'){
+      if(D.jobTech(job) !== 'dtf') return say('Це не друк');
+      D.printDone(o, m);
+      return save(job, o, 'Надруковано — можна відправляти');
     }
     if(what === 'prod-done') return prodModal('done', job, o);
     if(what === 'prod-redo') return prodModal('redo', job, o,

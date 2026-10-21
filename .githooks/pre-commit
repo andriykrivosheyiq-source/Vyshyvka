@@ -65,6 +65,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ внутрішні розмови живі"
 fi
+# ДРУК (DTF) У B2C (21.10). Нанесення позиції, черга DTF-дизайнера, ціни
+# друку, закупка блоками, «Друк»: друкується → готово.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/dtf\.mjs)'; then
+  node tests/dtf.mjs >/tmp/lq-dtf.log 2>&1 || {
+    echo "✗ Друк (DTF) зламано — коміт зупинено. Подробиці: /tmp/lq-dtf.log"
+    grep '✗' /tmp/lq-dtf.log
+    exit 1
+  }
+  echo "✓ друк (DTF) цілий"
+fi
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —
