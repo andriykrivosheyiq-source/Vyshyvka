@@ -4885,12 +4885,18 @@
     var arts = D.linkArts(mn), pic = (arts[0] && arts[0].url) || r.pic || '';
     var stale = D.linkStale(job, u);
     var кнопка = function(t){ return '<button type="button" class="dz-b pri" data-do="u-ready-place" data-u="' + esc(u.id) + '">' + t + '</button>'; };
-    return '<div class="dz-ready is-link">' +
-      '<div class="dz-ready-h">' +
+    var sub = !!(opt && opt.sub);
+    var зПог = !!(d && d.ok);
+    return '<div class="dz-ready is-link' + (sub ? ' is-sub' : '') + '">' +
+      (sub
+        ? '<div class="dz-sub-t">🔗 Той самий ескіз, що й позиція ' + no +
+            '<button type="button" class="dz-kind-b" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
+              (зПог ? ' disabled title="Дизайн уже погоджено"' : ' title="Відвʼязати від ескізу — позиція стане окремою зі своїм дизайном"') + '>Свій дизайн</button></div>'
+        : '<div class="dz-ready-h">' +
         (pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(pic) + '"><img src="' + esc(pic) + '" alt=""></button>' : '') +
         '<span class="dz-ready-t"><b>Ескіз позиції ' + no + '</b>' +
           '<i>без нового ескізу й без оплати дизайнерам · вишивальний файл — той самий</i></span>' +
-      '</div>' +
+      '</div>') +
       (!mn ? '<div class="dz-miss">Головної позиції вже немає — натисніть «Свій дизайн».</div>'
         : !arts.length ? '<div class="dz-miss is-calm">Розмістимо, щойно буде ескіз позиції ' + no + '.</div>'
         : (!d || !(d.vers || []).length)
@@ -5029,6 +5035,67 @@
   function qtyHidden(o, u){
     return !!(o && o.dir === 'b2c') && !((Math.round(+((u || {}).qty) || 0)) > 1);
   }
+  /* Рядок виробу: [n] [Виріб] [Колір] [Розмір] [шт] ⧉ 🗑 — свій і для
+     головної позиції, і для товару з тим самим ескізом (підрядком у ній). */
+  function unitRowHtml(u, n, opt){
+    var g = catItem(u.gid);
+    return '<div class="dz-u-f">' +
+      '<i class="dz-u-n is-' + (dzColState(u, 'graphic') || 'none') + '" title="' +
+        (dzColState(u, 'graphic') === 'done' ? 'передано вишивальному дизайнеру'
+          : dzColState(u, 'graphic') === 'sent' ? 'передано графічному дизайнеру'
+          : 'ще нікому не передано') + '">' + n + '</i>' +
+      /* Графіку погоджено, а даних бракує — порожні поля світяться
+         червоним: саме їх і треба заповнити, щоб позиція пішла далі. */
+      (function(){
+        var треба = D.graphicDone(u) && !D.clothOk(u);
+        var need = function(v){ return (!v && треба) ? ' need' : ''; };
+        return '<button type="button" class="dz-pickb' + (u.gid ? ' on' : '') + need(u.gid) +
+        '" data-do="u-pick-gid" data-u="' + esc(u.id) + '">' +
+        esc((g && g.name) || u.name || 'Обрати виріб') + '</button>' +
+      '<button type="button" class="dz-pickb' + (u.color ? ' on' : '') + need(u.color) +
+        '" data-do="u-pick-color" data-u="' + esc(u.id) + '"' +
+        (u.gid ? '' : ' disabled') + '>' +
+        (u.colorHex ? '<i class="dz-sw" style="background:' + esc(u.colorHex) + '"></i>' : '') +
+        esc(u.color || 'Колір') + '</button>' +
+      '<button type="button" class="dz-pickb' + (u.size ? ' on' : '') + need(u.size) +
+        '" data-do="u-pick-size" data-u="' + esc(u.id) + '"' +
+        (u.gid ? '' : ' disabled') + '>' +
+        esc(u.size || 'Розмір') + '</button>' +
+      /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10).
+         У B2C поля немає зовсім (16.10, Андрій): там одиночні замовлення,
+         а дві-три речі — це окремі позиції. Стара позиція з 2+ шт поле
+         зберігає — інакше множник у сумі сидів би невидимим. */
+      (qtyHidden(opt.o, u) ? '' :
+      '<input class="dz-qty" type="number" min="1" step="1" title="Кількість" ' +
+        'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">');
+      })() +
+      /* Дії — у кінці того самого рядка. Значками, а не словами: вони
+         дрібні, повторювані й самі себе пояснюють. */
+      '<span class="dz-u-acts">' +
+        '<button class="dz-ib" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
+          'title="Те саме ще раз — далі міняєте колір чи розмір">⧉</button>' +
+        '<button class="dz-ib dz-ib-x" data-do="u-del" data-u="' + esc(u.id) + '" ' +
+          'title="Прибрати цей одяг">🗑</button>' +
+      '</span>' +
+      '</div>';
+  }
+  /* ТОВАРИ З ЦИМ ЕСКІЗОМ — ПІДРЯДКАМИ В ГОЛОВНІЙ ПОЗИЦІЇ (21.10). Андрій:
+     «під ним одразу футболка така-то повинна бути, а не створюватись нова
+     картка… два товари просто». Звʼязаний товар — не окрема картка внизу,
+     а рядок виробу під позицією з ескізом: свої лише виріб, колір, розмір,
+     послуги й розміщення. Ескіз, ТЗ і дизайнери — головної. */
+  function linkedRowsHtml(job, u, opt){
+    var l = D.linksOf(job, u);
+    if(!l.length) return '';
+    var all = unitsOf(job);
+    return l.map(function(x){
+      return '<div class="dz-u-sub" data-sub="' + esc(x.id) + '">' +
+        unitRowHtml(x, all.indexOf(x) + 1, opt) +
+        servicesHtml(x, false, opt) +
+        linkHtml(job, x, false, Object.assign({}, opt || {}, { sub: true })) +
+      '</div>';
+    }).join('');
+  }
   function unitHtml(job, u, n, opt){
     opt = opt || {};
     var ro = !!opt.ro, only = opt.only || '';
@@ -5069,47 +5136,9 @@
            КІЛЬКІСТЬ» над кнопками займав рядок і не додавав нічого: кнопка
            з назвою виробу і так каже, що це виріб, а порожня чесно просить
            обрати. */
-        : '<div class="dz-u-f">' +
-        '<i class="dz-u-n is-' + (dzColState(u, 'graphic') || 'none') + '" title="' +
-          (dzColState(u, 'graphic') === 'done' ? 'передано вишивальному дизайнеру'
-            : dzColState(u, 'graphic') === 'sent' ? 'передано графічному дизайнеру'
-            : 'ще нікому не передано') + '">' + n + '</i>' +
-        /* Графіку погоджено, а даних бракує — порожні поля світяться
-           червоним: саме їх і треба заповнити, щоб позиція пішла далі. */
-        (function(){
-          var треба = D.graphicDone(u) && !D.clothOk(u);
-          var need = function(v){ return (!v && треба) ? ' need' : ''; };
-          return '<button type="button" class="dz-pickb' + (u.gid ? ' on' : '') + need(u.gid) +
-          '" data-do="u-pick-gid" data-u="' + esc(u.id) + '">' +
-          esc((g && g.name) || u.name || 'Обрати виріб') + '</button>' +
-        '<button type="button" class="dz-pickb' + (u.color ? ' on' : '') + need(u.color) +
-          '" data-do="u-pick-color" data-u="' + esc(u.id) + '"' +
-          (u.gid ? '' : ' disabled') + '>' +
-          (u.colorHex ? '<i class="dz-sw" style="background:' + esc(u.colorHex) + '"></i>' : '') +
-          esc(u.color || 'Колір') + '</button>' +
-        '<button type="button" class="dz-pickb' + (u.size ? ' on' : '') + need(u.size) +
-          '" data-do="u-pick-size" data-u="' + esc(u.id) + '"' +
-          (u.gid ? '' : ' disabled') + '>' +
-          esc(u.size || 'Розмір') + '</button>' +
-        /* Кількість — 1 за замовчуванням, менше 1 не буває (15.10).
-           У B2C поля немає зовсім (16.10, Андрій): там одиночні замовлення,
-           а дві-три речі — це окремі позиції. Стара позиція з 2+ шт поле
-           зберігає — інакше множник у сумі сидів би невидимим. */
-        (qtyHidden(opt.o, u) ? '' :
-        '<input class="dz-qty" type="number" min="1" step="1" title="Кількість" ' +
-          'placeholder="шт" data-uf="' + esc(u.id) + '|qty" value="' + Math.max(1, Math.round(+u.qty || 0) || 1) + '">');
-        })() +
-        /* Дії — у кінці того самого рядка. Значками, а не словами: вони
-           дрібні, повторювані й самі себе пояснюють. */
-        '<span class="dz-u-acts">' +
-          '<button class="dz-ib" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
-            'title="Те саме ще раз — далі міняєте колір чи розмір">⧉</button>' +
-          '<button class="dz-ib dz-ib-x" data-do="u-del" data-u="' + esc(u.id) + '" ' +
-            'title="Прибрати цей одяг">🗑</button>' +
-        '</span>' +
-      '</div>') +
+        : unitRowHtml(u, n, opt)) +
       servicesHtml(u, ro, opt) +
-      linksNoteHtml(job, u) +
+      (ro ? linksNoteHtml(job, u) : linkedRowsHtml(job, u, opt)) +
       /* 16.10, Андрій: коментар ліворуч, картинки праворуч — одним рядком,
          щоб позиція була нижчою. Картинок багато — права частина росте вниз. */
       '<div class="dz-u-np">' +
@@ -5691,9 +5720,14 @@
     if(g) return gateHtml(g);
     /* Заголовок пропускаємо, коли склад стоїть у зоні: зона вже підписана,
        і другий підпис того самого — це рядок, який нічого не додає. */
+    var ro = !!(opt && opt.ro);
     return ((opt && opt.bare) ? '' : '<div class="dz-h">Склад замовлення</div>') +
       (list.length
-        ? list.map(function(u, i){ return unitHtml(job, u, i + 1, opt); }).join('')
+        ? list.map(function(u, i){
+            /* Товар з цим ескізом живе підрядком у головній (21.10); окремою
+               карткою — лише коли головної вже немає (щоб його було видно). */
+            if(!ro && D.linkOf(u) && D.linkMain(job, u)) return '';
+            return unitHtml(job, u, i + 1, opt); }).join('')
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
       ((opt && opt.ro) ? '' : '<div class="dz-u-foot">' +

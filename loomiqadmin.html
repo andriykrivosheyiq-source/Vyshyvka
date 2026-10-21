@@ -4798,6 +4798,12 @@
   .dz-sum-r.is-svc span{padding-left:12px;color:var(--ink-soft);}
   /* Товар з цим ескізом (18.10). */
   .dz-link-add{border-color:#A5B4FC;color:#4338CA;font-weight:600;}
+  .dz-u-sub{margin:6px 0 2px;padding:8px 10px;border:1px dashed #C7D2FE;border-radius:10px;background:#F8F9FF;}
+  .dz-u-sub .dz-u-n{background:#C7D2FE;color:#3730A3;}
+  .dz-u-sub .dz-u-svc{margin-top:4px;}
+  .dz-ready.is-link.is-sub{margin-top:6px;padding:6px 8px;}
+  .dz-sub-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#3730A3;}
+  .dz-sub-t .dz-kind-b{margin-left:auto;font-size:11.5px;}
   .dz-link-note{margin:4px 0 2px;font-size:12px;color:#3730A3;background:#EEF2FF;border-radius:8px;padding:5px 9px;}
   .dz-link-note b{display:inline-block;min-width:16px;text-align:center;border-radius:5px;background:#C7D2FE;font-size:11px;margin-right:2px;}
   .dz-kind.is-link{align-items:center;gap:8px;padding-left:10px;background:#EEF2FF;border-color:#C7D2FE;}
@@ -7916,33 +7922,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1c5196cd68"></script>
-<script src="loomiq-fingerprint.js?v=1c5196cd68"></script>
-<script src="loomiq-pricing.js?v=1c5196cd68"></script>
+<script src="loomiq-select.js?v=6af29b2cdc"></script>
+<script src="loomiq-fingerprint.js?v=6af29b2cdc"></script>
+<script src="loomiq-pricing.js?v=6af29b2cdc"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=1c5196cd68"></script>
+<script src="loomiq-money-core.js?v=6af29b2cdc"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1c5196cd68"></script>
-<script src="loomiq-bg.js?v=1c5196cd68"></script>
-<script src="loomiq-mock.js?v=1c5196cd68"></script>
+<script src="loomiq-design.js?v=6af29b2cdc"></script>
+<script src="loomiq-bg.js?v=6af29b2cdc"></script>
+<script src="loomiq-mock.js?v=6af29b2cdc"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1c5196cd68"></script>
+<script src="imagetracer.js?v=6af29b2cdc"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=1c5196cd68"></script>
-<script src="loomiq-threads.js?v=1c5196cd68"></script>
+<script src="loomiq-chat.js?v=6af29b2cdc"></script>
+<script src="loomiq-threads.js?v=6af29b2cdc"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1c5196cd68"></script>
+<script src="loomiq-cards.js?v=6af29b2cdc"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7987,7 +7993,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1c5196cd68';
+var LQ_VER = '6af29b2cdc';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

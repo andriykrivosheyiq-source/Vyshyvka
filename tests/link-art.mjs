@@ -131,19 +131,24 @@ const add = await p.evaluate(async () => {
   U.render(document.getElementById('dzRoot'));
   const html = U.unitsHtml(__j, { o: __o });
   const box = document.createElement('div'); box.innerHTML = html;
+  /* 21.10: звʼязаний товар — підрядок у головній позиції, а не окрема картка. */
   const us = box.querySelectorAll('.dz-u');
+  const sub = us[0] && us[0].querySelector('.dz-u-sub');
   return { n: __j.units.length, link: D.linkOf(l) === __j.units[0].id, gid: l.gid,
-           linkBlock: !!us[1].querySelector('.dz-ready.is-link'), kind: !!us[1].querySelector('[data-uf$="|artKind"]'),
+           cards: us.length, inMain: !!sub,
+           subRow: !!(sub && sub.querySelector('.dz-u-f [data-do="u-pick-color"][data-u="' + l.id + '"]')),
+           linkBlock: !!(sub && sub.querySelector('.dz-ready.is-link')), kind: !!(sub && sub.querySelector('[data-uf$="|artKind"]')),
            mainKind: !!us[0].querySelector('[data-uf$="|artKind"]'),
-           note: (us[0].querySelector('.dz-link-note') || {}).textContent || '',
-           noAdd: !us[1].querySelector('[data-do="u-link-add"]'),
-           wait: /Розмістимо, щойно буде ескіз позиції 1/.test(us[1].textContent),
+           note: (sub && sub.querySelector('.dz-sub-t') || {}).textContent || '',
+           noAdd: !(sub && sub.querySelector('[data-do="u-link-add"]')),
+           wait: /Розмістимо, щойно буде ескіз позиції 1/.test((sub || {}).textContent || ''),
            hand: D.handMissing(__j, __o) };
 });
 console.log('  ' + JSON.stringify(add));
 ok(add.n === 2 && add.link && add.gid === 'tee', 'кнопка під позицією: нова позиція звʼязана з ескізом позиції 1, одразу вибір виробу', JSON.stringify(add));
-ok(add.linkBlock && !add.kind && add.mainKind && add.noAdd, 'у звʼязаної — блок «Ескіз позиції 1», без типу малюнка й без своєї кнопки', JSON.stringify(add));
-ok(/Цей ескіз також на: 2 Футболка/.test(add.note) && add.wait, 'на головній — «Цей ескіз також на: 2 Футболка…»; у звʼязаної — «розмістимо, щойно буде ескіз»', JSON.stringify(add));
+ok(add.cards === 1 && add.inMain && add.subRow, 'товар з ескізом — рядок виробу одразу під позицією 1, а не окрема картка', JSON.stringify(add));
+ok(add.linkBlock && !add.kind && add.mainKind && add.noAdd, 'у підрядку — «Той самий ескіз», без типу малюнка й без своєї кнопки', JSON.stringify(add));
+ok(/Той самий ескіз, що й позиція 1/.test(add.note) && add.wait, 'у підрядку — «Той самий ескіз, що й позиція 1» і «розмістимо, щойно буде ескіз»', JSON.stringify(add));
 
 console.log('');
 console.log('═══ 2. ЦІНА: «ГОТОВИЙ / ПОВТОРНИЙ», ДИЗАЙНЕРАМ — НІЧОГО ═══');
