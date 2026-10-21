@@ -32,4 +32,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js
   }
   echo "✓ діалог цілий"
 fi
+# СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
+# ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
+# конструктор, діалог + усе фонове (знімки, лічильники, доведення) —
+# людина лишається там, де була.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-chat\.js|index\.html|tests/stay-put\.mjs)'; then
+  node tests/stay-put.mjs >/tmp/lq-stay-put.log 2>&1 || {
+    echo "✗ Щось вибиває людину з розділу — коміт зупинено. Подробиці: /tmp/lq-stay-put.log"
+    grep '✗' /tmp/lq-stay-put.log
+    exit 1
+  }
+  echo "✓ нікуди не вибиває"
+fi
 exit 0

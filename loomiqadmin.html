@@ -7912,33 +7912,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=904414000b"></script>
-<script src="loomiq-fingerprint.js?v=904414000b"></script>
-<script src="loomiq-pricing.js?v=904414000b"></script>
+<script src="loomiq-select.js?v=0cfba6ab8f"></script>
+<script src="loomiq-fingerprint.js?v=0cfba6ab8f"></script>
+<script src="loomiq-pricing.js?v=0cfba6ab8f"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=904414000b"></script>
+<script src="loomiq-money-core.js?v=0cfba6ab8f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=904414000b"></script>
-<script src="loomiq-bg.js?v=904414000b"></script>
-<script src="loomiq-mock.js?v=904414000b"></script>
+<script src="loomiq-design.js?v=0cfba6ab8f"></script>
+<script src="loomiq-bg.js?v=0cfba6ab8f"></script>
+<script src="loomiq-mock.js?v=0cfba6ab8f"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=904414000b"></script>
+<script src="imagetracer.js?v=0cfba6ab8f"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=904414000b"></script>
-<script src="loomiq-threads.js?v=904414000b"></script>
+<script src="loomiq-chat.js?v=0cfba6ab8f"></script>
+<script src="loomiq-threads.js?v=0cfba6ab8f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=904414000b"></script>
+<script src="loomiq-cards.js?v=0cfba6ab8f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7983,7 +7983,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '904414000b';
+var LQ_VER = '0cfba6ab8f';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9513,15 +9513,18 @@ function calcRemember(o, idx){
   try{ sessionStorage.setItem('lq_calc', JSON.stringify({ id: o.id, idx: (idx == null ? null : +idx), at: Date.now() })); }catch(e){}
 }
 function calcForget(){ try{ sessionStorage.removeItem('lq_calc'); }catch(e){} }
-let calcRestored = false;
+let calcRestored = false, calcRestorePending = false;
 function calcRestore(){
-  if(calcRestored) return true;
+  /* Лише після перезавантаження сторінки (прапорець з init). Знімок
+     замовлень посеред роботи не має права відкривати конструктор наново —
+     саме це й скидало все зібране, щойно хтось десь міняв картку (21.10). */
+  if(calcRestored || !calcRestorePending) return calcRestored;
   let m = null;
   try{ m = JSON.parse(sessionStorage.getItem('lq_calc') || 'null'); }catch(e){}
   if(!m || !m.id || !(m.at > Date.now() - 3 * 3600 * 1000)) return false;
   const o = (orders || []).find(x => x && x.id === m.id);
   if(!o) return false;              // картки ще не доїхали — спробуємо зі знімком
-  calcRestored = true;
+  calcRestored = true; calcRestorePending = false;
   openCalcFor(o, m.idx, { keepCart: true });
   toast('Сторінка перезавантажилась — прорахунок для ' + calcTargetWho(o) + ' відкрито знову');
   return true;
@@ -29804,7 +29807,7 @@ function applyRoleUi(){
   try{ paintTaskBadge(); }catch(e){}
   const nav = (myAcc() || {}).nav;
   const all = nav === '*' || !Array.isArray(nav);
-  let firstOk = null;
+  let firstOk = null, calcOk = false;
   document.querySelectorAll('.nav button[data-view]').forEach(b=>{
     let on = all || nav.indexOf(b.dataset.view) >= 0;
     /* «Команда й доступи» — розділ адміністратора, і тільки його. Право
@@ -29813,6 +29816,12 @@ function applyRoleUi(){
     if(b.dataset.view === 'team' && !canSetup()) on = false;
     /* «Проблемні замовлення» — лише власнику (20.10). */
     if(b.dataset.view === 'problems') on = myRole() === 'owner';
+    /* «Прорахунок» — не пункт меню, а продовження картки замовлення (21.10,
+       Андрій: «вибиває із замовлення»). Доти він не входив у nav менеджера
+       B2B — і кожне фонове оновлення документа контенту (лічильник Gemini,
+       чужа правка заготовок) бачило «людина в закритому розділі» та
+       викидало її з конструктора на дошку посеред прорахунку. */
+    if(b.dataset.view === 'calc') calcOk = all || nav.indexOf('board') >= 0 || nav.indexOf('calc') >= 0;
     /* НАПРЯМ ТУТ І ЗАДАЄТЬСЯ: Канбан і «Чати B2B» — це B2B, «B2C» і «Чати
        B2C» — це B2C. Окремого поля «напрям» більше немає: воно вмикало рівно
        ці чотири розділи, тобто було другим вимикачем на ті самі двері, і
@@ -29834,8 +29843,15 @@ function applyRoleUi(){
   try{ renderSeeAsPick(); }catch(e){}
   /* Людина стоїть у розділі, який їй закрили, — переводимо в перший
      дозволений. Порожній екран без пояснень гірший за будь-який інший. */
+  /* Переводимо ЛИШЕ коли доступи справді змінились (або розділу ще немає).
+     Фонове оновлення з тими самими доступами не має права зрушити людину з
+     місця — ні з конструктора, ні з картки, ні з діалогу. */
   const cur = document.querySelector('.nav button[data-view].active');
-  if(firstOk && (!cur || cur.hidden)) firstOk.click();
+  const sig = JSON.stringify([myEmail() || '', nav, myRole(), canSetup()]);
+  const змінилось = applyRoleUi.sig !== sig;
+  applyRoleUi.sig = sig;
+  const уПрорахунку = cur && cur.dataset.view === 'calc' && calcOk;   // пункт меню схований, але розділ свій
+  if(firstOk && (!cur || (cur.hidden && змінилось && !уПрорахунку))) firstOk.click();
 }
 /* Дизайнеру не потрібен телефон клієнта, а виробництву — маржа. Це не про
    секретність, а про те, що зайве поле на екрані — це поле, яке хтось колись
@@ -33393,6 +33409,7 @@ async function init(){
   refreshGarmentSelect();
   renderApps();
   renderBoard();
+  try{ calcRestorePending = !!sessionStorage.getItem('lq_calc'); }catch(e){}
   try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
   try{ calcSoloReturn(); }catch(e){ console.warn('прорахунок з телефона', e); }
   watchOrders();      // жива синхронізація карток між пристроями
