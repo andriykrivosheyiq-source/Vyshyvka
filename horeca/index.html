@@ -1160,6 +1160,30 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Фіксована висота сцени в vh рахувалась від вікна БРАУЗЕРА, а конструктор
      тут живе у вужчій рамці всередині адмінки, тож макет обрізало. */
   .lq-embed #productModal .pm-stage img{max-height:100%;object-fit:contain;}
+  /* МЕНЕДЖЕРУ — БЕЗ ВІТРИНИ (21.10). Під конструктором у прорахунку тягнулась
+     уся сторінка товару для покупця: розмірна сітка, доставка, відгуки, фото
+     моделей, «Замовляйте впевнено», FAQ, «Створіть свій мерч», підвал — 3½
+     екрани гортання повз потрібне. Розмірна сітка лишається у вкладці
+     «Розмір і кількість». */
+  .lq-embed #productModal .pm-rows, .lq-embed #productModal .pm-detail,
+  .lq-embed #productModal #pmModelSection, .lq-embed #productModal .pm-twocol,
+  .lq-embed #productModal .pm-recommended, .lq-embed #productModal .pm-footer,
+  .lq-embed #productModal .pm-float-telegram{display:none !important;}
+
+  /* ══ ПРОРАХУНОК НА ТЕЛЕФОНІ (?solo=1, 21.10) ══
+     Виріб закріплений угорі: гортаєш шари, нанесення, ціну — а картинку,
+     яку змінюєш, видно весь час. Шапка теж закріплена: «←» у картку завжди
+     під пальцем. Кнопки — не нижчі за 40 px (палець, а не курсор). */
+  .lq-solo #productModal .catalog-modal-topbar{position:sticky;top:0;z-index:40;background:#fff;}
+  .lq-solo #productModal .pm-stage{position:sticky;top:60px;z-index:30;height:38vh;min-height:230px;
+    background:rgb(233,230,231);}
+  .lq-solo #productModal .pm-sheet{position:relative;z-index:1;
+    padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));}
+  .lq-solo #productModal .pm-tab{min-height:40px;}
+  .lq-solo #productModal .pm-seg-btn{min-height:40px;}
+  .lq-solo #productModal .pm-mgr-tool{min-height:40px;}
+  .lq-solo .lq-solo-who{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw;}
+  .lq-solo .pm-sticky-cart{max-width:none;}
   /* Логотипи замовлення: завантажені один раз у картці клієнта, доступні
      кожному товару. Навмисно НЕ ставимо їх на виріб самі — для футболки це
      груди, для кепки центр, для худі спина; вгадати за менеджера не можна. */
@@ -2590,6 +2614,62 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      кудись на сайт. Прапорець ставимо ДО стилів і розмітки, щоб нічого не
      встигло блимнути. */
   if(/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('lq-embed');
+  /* ?solo=1 — ПРОРАХУНОК НА ТЕЛЕФОНІ ОКРЕМОЮ СТОРІНКОЮ (21.10). Адмінка
+     поклала привʼязку до картки й позицію в localStorage і пішла зі сторінки
+     (дві важкі сторінки разом Safari скидав після вибору фото). Тут стаємо
+     «господарем» самі: __lqAdminHost знайде ці поля у власному вікні.
+     Зберегти = покласти позицію в IndexedDB і повернутись в адмінку
+     (loomiqadmin.html?calcSave=1) — записує вона, як і раніше. */
+  (function(){
+    if(!/[?&]solo=1\b/.test(location.search)) return;
+    var h = null;
+    try{ h = JSON.parse(localStorage.getItem('lq_calc_solo') || 'null'); }catch(e){}
+    if(!h || !h.target) return;
+    document.documentElement.classList.add('lq-solo');
+    window.__lqSolo = h;
+    window.__adminOfferTarget = h.target;
+    window.__adminSeedItem = h.seed || null;
+    /* Safari перезавантажив саму сторінку конструктора — кошик не чистимо:
+       те, що вже зібрали, лежить в IndexedDB і має лишитись. */
+    try{
+      if(sessionStorage.getItem('lq_solo_at') === String(h.at))
+        history.replaceState(null, '', location.pathname + location.search.replace(/[?&](cart=new|seed=1)\b/g, '').replace(/^&/, '?'));
+      sessionStorage.setItem('lq_solo_at', String(h.at));
+    }catch(e){}
+    window.__adminSaveClientOrder = function(payload){
+      return new Promise(function(res, rej){
+        var r = indexedDB.open('lq_handoff', 1);
+        r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); };
+        r.onerror = function(){ rej(r.error); };
+        r.onsuccess = function(){
+          var tx = r.result.transaction('kv', 'readwrite');
+          tx.objectStore('kv').put(payload, 'calc');
+          tx.oncomplete = function(){ res(); };
+          tx.onerror = function(){ rej(tx.error); };
+        };
+      }).then(function(){
+        window.__cartSaving = false;          // інакше «Покинути сторінку?»
+        location.href = 'loomiqadmin.html?calcSave=1';
+        return new Promise(function(){});     // сторінка вже йде — далі нічого
+      });
+    };
+    window.__lqSoloBack = function(){
+      location.href = 'loomiqadmin.html?calcBack=' + encodeURIComponent(h.back || '');
+    };
+    /* Окремої смуги не додаємо — вона знову зʼїла б висоту. Шапка модалок і
+       так є: замість «Loomiq» у ній пишемо, для кого КП, а «←» каталогу
+       веде назад у картку (а не на порожню сторінку сайту). */
+    document.addEventListener('DOMContentLoaded', function(){
+      document.querySelectorAll('.catalog-modal-topbar .logo').forEach(function(el){
+        el.textContent = 'КП · ' + (h.who || '');
+        el.classList.add('lq-solo-who');
+      });
+      var cb = document.getElementById('catalogUnifiedBack');
+      if(cb) cb.addEventListener('click', function(e){
+        e.stopImmediatePropagation(); e.preventDefault(); window.__lqSoloBack();
+      }, true);
+    });
+  })();
   /* Конструктор може жити на два поверхи вглиб: адмінка → сторінка КП →
      конструктор усередині картки товару. Тоді window.parent — це вже сторінка
      КП, а не адмінка, і привʼязка до замовлення губилась. Шукаємо того, хто
@@ -6895,14 +6975,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=7669ef784c"></script>
+<script src="/loomiq-select.js?v=904414000b"></script>
 <script src="/loomiq-fingerprint.js?v=028efa303e"></script>
 <script src="/loomiq-pricing.js?v=028efa303e"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
 <!-- Прибирання фону: перевірка «рівне тло / чи прибрався фон» (08.10). Модель
      тут не вантажиться — клієнту фон прибирає PhotoRoom. -->
-<script src="/loomiq-bg.js?v=7669ef784c"></script>
+<script src="/loomiq-bg.js?v=904414000b"></script>
 <script src="loomiq-constructor.js?v=028efa303e"></script>
 
 <script>
