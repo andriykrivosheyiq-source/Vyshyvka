@@ -5243,6 +5243,8 @@
   .dz-chk-sent{margin-left:auto;font-size:11.5px;font-weight:600;color:#0A6B4A;
     background:#EDF9F3;border-radius:7px;padding:5px 9px;}
   /* ── Вікно правки ── */
+  .shs-ks{display:block;margin-top:4px;font-weight:600;}
+  .shs-ks.is-ok{color:#0A6B4A;} .shs-ks.is-err{color:#B8322A;} .shs-ks.is-off{color:var(--ink-soft);font-weight:500;}
   .dz-fixw .dz-fix-w,.dz-fwdw .dz-fix-w{background:var(--paper);border-radius:14px;width:min(460px,100%);
     padding:14px;display:flex;flex-direction:column;gap:9px;
     box-shadow:0 20px 60px rgba(15,32,52,.32);}
@@ -7912,33 +7914,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0dc9cf3d53"></script>
-<script src="loomiq-fingerprint.js?v=0dc9cf3d53"></script>
-<script src="loomiq-pricing.js?v=0dc9cf3d53"></script>
+<script src="loomiq-select.js?v=708391cd22"></script>
+<script src="loomiq-fingerprint.js?v=708391cd22"></script>
+<script src="loomiq-pricing.js?v=708391cd22"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=0dc9cf3d53"></script>
+<script src="loomiq-money-core.js?v=708391cd22"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=0dc9cf3d53"></script>
-<script src="loomiq-bg.js?v=0dc9cf3d53"></script>
-<script src="loomiq-mock.js?v=0dc9cf3d53"></script>
+<script src="loomiq-design.js?v=708391cd22"></script>
+<script src="loomiq-bg.js?v=708391cd22"></script>
+<script src="loomiq-mock.js?v=708391cd22"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=0dc9cf3d53"></script>
+<script src="imagetracer.js?v=708391cd22"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=0dc9cf3d53"></script>
-<script src="loomiq-threads.js?v=0dc9cf3d53"></script>
+<script src="loomiq-chat.js?v=708391cd22"></script>
+<script src="loomiq-threads.js?v=708391cd22"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=0dc9cf3d53"></script>
+<script src="loomiq-cards.js?v=708391cd22"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7983,7 +7985,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '0dc9cf3d53';
+var LQ_VER = '708391cd22';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11756,6 +11758,10 @@ function finAccEdit(id){
       <label class="fin-f"><span>IBAN</span>
         <input id="fa-iban" value="${escapeHtml(a.iban || '')}"
           placeholder="UA00 3220 0100 0000 0000 0000 0000"></label>
+      ${a.bank === 'np' ? `<label class="fin-f"><span>Відправник (чий контроль оплати сюди лягає)</span>
+        <select id="fa-sender"><option value="">— усі відправники —</option>${(shipCfg().senders || []).map(x =>
+          `<option value="${escapeHtml(x.id)}"${a.sender === x.id ? ' selected' : ''}>${escapeHtml(x.name || x.id)}</option>`).join('')}</select></label>
+      <div class="fin-note">Коли ФОПів кілька і в кожного свій рахунок NovaPay — у кожного свій рахунок НП тут, зі своїм відправником. Один ФОП — лишіть «усі».</div>` : ''}
       <div class="fin-note">Поки банк не підключено, залишок рахується від цього числа
         плюс усі рухи, які ми знаємо. Коли підключимо — його казатиме сам банк.</div>
       <div class="fin-l">Підключення банку</div>
@@ -11844,6 +11850,8 @@ function finAccEdit(id){
       a.pick = d.querySelector('#fa-pick').checked;
       const ow = d.querySelector('#fa-owner');
       if(ow) a.owner = ow.value || '-';
+      const sn = d.querySelector('#fa-sender');
+      if(sn){ if(sn.value) a.sender = sn.value; else delete a.sender; }
       await finAccsSave(accs);
       toast('Збережено');
       return закрити();
@@ -23585,6 +23593,32 @@ function shipDraftNow(){
   if(!shipDraft) shipDraft = JSON.parse(JSON.stringify(shipCfg()));
   return shipDraft;
 }
+/* КЛЮЧ ВІДПРАВНИКА — ЧИ ЖИВИЙ (21.10). Ключ Нової пошти лежить лише в
+   Cloudflare (секрет NP_KEY_<код>) — в обох воркерах: накладних (loomiq-np)
+   і грошей (loomiq-money). Сервер грошей раз на пів години обходить Нову
+   пошту кожного відправника і пише стан у bankSync під np_<код>: звідси
+   видно, чи секрет є і чи ключ приймається, без жодної кнопки. */
+function shipKeyStateHtml(x){
+  const E = escapeHtml, code = String(x.id || '');
+  const st = code && bankSync && bankSync['np_' + code];
+  const секрет = '<code>NP_KEY_' + E(code || 'код') + '</code>';
+  let стан;
+  if(!code) стан = '<span class="shs-ks is-off">вкажіть назву — код для секрета зʼявиться сам</span>';
+  else if(!st) стан = '<span class="shs-ks is-off">сервер грошей ще не перевіряв цього відправника (перевіряє раз на пів години)</span>';
+  else if(st.skip) стан = '<span class="shs-ks is-err">❌ ' + E(st.skip) + ' · ' + E(payDate(st.at)) + '</span>';
+  else if(st.error) стан = '<span class="shs-ks is-err">❌ ключ не приймається: ' + E(String(st.error).slice(0, 200)) + ' · ' + E(payDate(st.at)) + '</span>';
+  else стан = '<span class="shs-ks is-ok">✅ ключ працює · перевірено ' + E(payDate(st.at)) + (st.n ? ' · контроль оплати: ' + st.n : '') + '</span>';
+  return 'Ключ API Нової пошти цього ФОПа — <b>лише</b> секретом ' + секрет + ' у <b>двох</b> воркерах Cloudflare: ' +
+    '<b>loomiq-np</b> (накладні) і <b>loomiq-money</b> (контроль оплати).<br>' + стан;
+}
+/* Код відправника з назви — латиницею, щоб назва секрета в Cloudflare і код
+   у CRM ніколи не розходились (саме так загубився ключ 21.10). */
+function shipCodeOf(name){
+  const T = { а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ie',ж:'zh',з:'z',и:'y',і:'i',ї:'i',й:'i',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ь:'',ю:'iu',я:'ia' };
+  const слова = String(name || '').toLowerCase().replace(/фоп|тов|пп|«|»|"/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const w = слова.slice(0, 2).map(x => x.split('').map(c => T[c] != null ? T[c] : c).join('').replace(/[^a-z0-9]/g, ''));
+  return w.filter(Boolean).map((x, i) => i ? x.charAt(0).toUpperCase() + x.slice(1) : x).join('').slice(0, 40);
+}
 function renderShipSettings(){
   const box = document.getElementById('ship-set');
   if(!box) return;
@@ -23596,7 +23630,7 @@ function renderShipSettings(){
     ${d.senders.map((x, i) => `<div class="shs-s" data-si="${i}">
       <div class="shs-row">
         <label class="shf-f"><span>Назва</span><input data-ss="name" value="${E(x.name || '')}" placeholder="ФОП Юкальчук"></label>
-        <label class="shf-f"><span>Код (для секрета NP_KEY_…)</span><input data-ss="id" value="${E(x.id || '')}" placeholder="yukalchuk"></label>
+        <label class="shf-f"><span>Код (для секрета NP_KEY_…)</span><input data-ss="id" value="${E(x.id || '')}" placeholder="сам з назви"${(bankSync && bankSync['np_' + x.id] && !bankSync['np_' + x.id].skip) ? ' readonly title="Ключ під цим кодом уже працює — міняти код означало б загубити його"' : ''}></label>
         <label class="shf-f"><span>Телефон відправника</span><input data-ss="phone" value="${E(x.phone || '')}" placeholder="380…"></label>
         <label class="shs-def"><input type="radio" name="shs-def" data-ss-def${x.def ? ' checked' : ''}> за замовчуванням</label>
         <button class="pc-btn reset" data-ss-del title="Прибрати відправника">×</button>
@@ -23615,8 +23649,7 @@ function renderShipSettings(){
         <input data-sf2="maxKg" type="number" min="0.1" step="0.1" value="${E(String(f.maxKg || ''))}" placeholder="до, кг">
         <button class="pc-btn reset" data-sf2-del>×</button></div>`).join('')}
       <button class="pc-btn" data-sf2-add>+ Формат</button>
-      <div class="shs-key">Ключ API Нової пошти цього ФОПа — <b>лише</b> секретом воркера:
-        <code>npx wrangler secret put NP_KEY_${E(x.id || 'код')}</code></div>
+      <div class="shs-key">${shipKeyStateHtml(x)}</div>
     </div>`).join('')}
     <button class="pc-btn" id="ship-sender-add">+ Відправник</button>
     <div class="shs-h">Вага товарів, грамів за штуку</div>
@@ -23631,7 +23664,9 @@ function renderShipSettings(){
       let v = el.value.trim();
       if(el.dataset.ss === 'id') v = v.replace(/[^A-Za-z0-9_]/g, '');
       S(i)[el.dataset.ss] = v;
-      if(el.dataset.ss === 'id') renderShipSettings();
+      /* Назву вписали, коду ще немає — код з назви сам. */
+      if(el.dataset.ss === 'name' && !S(i).id) S(i).id = shipCodeOf(v);
+      if(el.dataset.ss === 'id' || el.dataset.ss === 'name') renderShipSettings();
     }));
     const def = row.querySelector('[data-ss-def]');
     if(def) def.addEventListener('change', () => { d.senders.forEach((x, k) => { x.def = k === i; }); });

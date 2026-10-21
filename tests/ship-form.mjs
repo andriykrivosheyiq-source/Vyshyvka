@@ -154,6 +154,28 @@ const keyHint = await p.evaluate(() => (document.querySelector('.shs-key') || {}
 const keyField = await p.evaluate(() => !!document.querySelector('#ship-set input[placeholder*="ключ" i], #ship-set input[data-ss="key"]'));
 ok(/NP_KEY_yukalchuk/.test(keyHint) && !keyField,
   'ключ API — лише підказкою про секрет воркера, поля для ключа в адмінці немає', 'підказка: ' + keyHint);
+/* 21.10: код з назви сам; стан ключа — від сервера грошей (bankSync np_<код>). */
+const авто = await p.evaluate(() => {
+  shipDraft.senders.push({ id:'', name:'', phone:'', cityRef:'', cityName:'', whRef:'', whName:'', formats:[] });
+  renderShipSettings();
+  const rows = document.querySelectorAll('.shs-s');
+  const n = rows[rows.length - 1].querySelector('[data-ss="name"]');
+  n.value = 'ФОП Малєєва Ольга'; n.dispatchEvent(new Event('change'));
+  const код = shipDraft.senders[shipDraft.senders.length - 1].id;
+  shipDraft.senders.pop(); 
+  bankSync = { np_yukalchuk: { at: new Date().toISOString(), ok: true, n: 3 }, np_x: { at: new Date().toISOString(), ok: false, skip: 'немає секрета NP_KEY_x — ключ API Нової пошти цього відправника' } };
+  renderShipSettings();
+  const стан = (document.querySelector('.shs-key') || {}).textContent || '';
+  const ro = !!document.querySelector('.shs-s [data-ss="id"][readonly]');
+  bankSync = { np_yukalchuk: { at: new Date().toISOString(), ok: false, error: 'API key is invalid' } };
+  renderShipSettings();
+  const пом = (document.querySelector('.shs-key') || {}).textContent || '';
+  bankSync = {};
+  return { код, стан, ro, пом };
+});
+ok(авто.код === 'malieievaOlha', 'код для секрета — сам з назви латиницею («ФОП Малєєва Ольга» → malieievaOlha)', 'код: ' + авто.код);
+ok(/✅ ключ працює/.test(авто.стан) && /loomiq-money/.test(авто.стан) && авто.ro, 'сервер грошей перевірив ключ — «✅ ключ працює», код більше не правиться', 'стан: ' + авто.стан);
+ok(/❌ ключ не приймається: API key is invalid/.test(авто.пом), 'ключ відхилений Новою поштою — видно словами біля відправника', 'стан: ' + авто.пом);
 
 console.log('');
 console.log('═══ КАРТКА B2B: ФОРМА ВІДПРАВКИ ═══');

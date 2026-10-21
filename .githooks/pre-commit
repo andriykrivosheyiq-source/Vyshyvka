@@ -21,6 +21,18 @@ if git diff --cached --name-only | grep -qE '^(loomiq-money-core\.js|loomiqadmin
   fi
   echo "✓ грошове ядро ціле"
 fi
+# КОНТРОЛЬ ОПЛАТИ ПО ФОПАХ (21.10): зміна воркера грошей чи накладних —
+# прогін підставної Нової пошти по двох відправниках і воркера накладних.
+if git diff --cached --name-only | grep -qE '^(worker/money\.js|worker/novaposhta-proxy\.js|tests/np-cod\.mjs|tests/np-ship\.mjs|tests/money-worker\.mjs)'; then
+  for t in np-cod np-ship money-worker; do
+    node tests/$t.mjs >/tmp/lq-$t.log 2>&1 || {
+      echo "✗ Нова пошта / гроші зламано ($t) — коміт зупинено. Подробиці: /tmp/lq-$t.log"
+      grep '✗' /tmp/lq-$t.log
+      exit 1
+    }
+  done
+  echo "✓ контроль оплати по ФОПах цілий"
+fi
 # СТОРОЖ ДІАЛОГУ (19.10). Андрій: «постійні проблеми з діалогом, коли я
 # зміни вношу». Зміна адмінки — прогін справжнього коду переписки з
 # підміненим Sitniks: історія, помилки вголос, текст, повтор, нове, фото.
