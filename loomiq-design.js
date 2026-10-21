@@ -10901,6 +10901,19 @@
     };
     далі();
   }
+  /* ПОЛЕ РОЗМОВИ — ТЕ, У ЯКЕ ПИСАЛИ (21.10, Андрій: «переписка з дизайнером
+     падає, повідомлення не відсилається»). Картка живе в двох місцях одразу:
+     панель відділу (#dzRoot) і та сама картка праворуч від діалогу в «Чатах
+     B2C». Поле з тим самим ключем є в обох, а шукали по всьому документу —
+     і брали перше, порожнє, у схованій панелі: «Напишіть щось», хоч текст
+     набрано. Тепер — спершу в тому корені, де натиснули, і з-поміж кількох
+     полів те, у якому є текст. */
+  function dzSayEl(root, key){
+    var sel = '[data-dzsay="' + key + '"]';
+    var all = root ? [].slice.call(root.querySelectorAll(sel)) : [];
+    if(!all.length) all = [].slice.call(document.querySelectorAll(sel));
+    return all.filter(function(e){ return String(e.value || '').trim(); })[0] || all[0] || null;
+  }
   async function act(what, root, data){
     var need = ACT_CAN[what];
     if(need && !can(need))
@@ -11830,7 +11843,7 @@
          Репліка дизайнера НЕ кидає дизайн у «правки»: це його слово, а не
          повернення роботи. Саме на цьому воно й плуталось. */
       if(what === 'dz-msg' || what === 'dz-msg-file'){
-        var mEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var mEl = dzSayEl(root, dkey);
         var mTxt = mEl ? String(mEl.value || '').trim() : '';
         var mFs = [];
         if(what === 'dz-msg-file'){
@@ -11865,7 +11878,7 @@
       /* Відповідь менеджера на питання дизайнера. Стан роботи від неї не
          міняється: це слово, а не повернення на правку. */
       if(what === 'dz-reply'){
-        var rEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var rEl = dzSayEl(root, dkey);
         var rTxt = rEl ? String(rEl.value || '').trim() : '';
         if(!rTxt) return say('Напишіть відповідь');
         D.dzSay(dd, m, rTxt, null, 'acct');
@@ -11994,7 +12007,7 @@
             var зібр = await workVer(res, du);
             if(!зібр) return;
             var файли = зібр.files;
-            var hEl2 = document.querySelector('[data-dzsay="' + dkey + '"]');
+            var hEl2 = dzSayEl(root, dkey);
             var hTxt2 = hEl2 ? String(hEl2.value || '').trim() : '';
             var зд = D.dzSubmit(job, du, dd, dk, m, { files: файли, note: hTxt2, place: зібр.place, role: dk });
             dd.draft = null;
@@ -12074,7 +12087,7 @@
           if(ad) aw.push(ad);
         }
         if(!aw.length) return say('Без адаптації під нитки роботу не здаємо');
-        var awEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var awEl = dzSayEl(root, dkey);
         var awTxt = awEl ? String(awEl.value || '').trim() : '';
         var awF = [];
         aw.forEach(function(f){
@@ -12130,7 +12143,7 @@
            виробі, а не файл на прозорому тлі — за ним не видно ні розміру,
            ні місця, і замість погодження починається листування. */
         if(!чер2.mock) return say('Без мокапу не надсилаємо — зробіть його');
-        var hEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var hEl = dzSayEl(root, dkey);
         var hTxt = hEl ? String(hEl.value || '').trim() : '';
         var файли = [Object.assign({}, чер2.art, { role:'work' }),
                      { name:'мокап.png', url: чер2.mock.png, role:'mock' }];
@@ -12540,7 +12553,7 @@
       /* Слово менеджера, яке НЕ повертає роботу. Для повернення є «Правка»
          — окрема кнопка з окремим вікном, і саме вона рухає картку. */
       if(what === 'dz-note-pic'){
-        var pEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var pEl = dzSayEl(root, dkey);
         var pTxt = pEl ? String(pEl.value || '').trim() : '';
         var pfs = await uploadMany('');
         if(!pfs.length) return;
@@ -12550,7 +12563,7 @@
         return save(job, o, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру');
       }
       if(what === 'dz-note'){
-        var nEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var nEl = dzSayEl(root, dkey);
         var nTxt = nEl ? String(nEl.value || '').trim() : '';
         if(!nTxt) return say('Напишіть щось');
         D.dzSay(dd, m, nTxt, null, 'acct');
@@ -12578,7 +12591,7 @@
         return save(job, o, 'Файл додано');
       }
       if(what === 'dz-say'){
-        var sEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var sEl = dzSayEl(root, dkey);
         var txt = sEl ? String(sEl.value || '').trim() : '';
         if(!txt) return say('Напишіть, що саме поміняти');
         D.dzSay(dd, m, txt, null, 'acct');
