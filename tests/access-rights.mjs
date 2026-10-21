@@ -273,7 +273,7 @@ const ролезона = await p.evaluate(async () => {
 console.log('   ' + JSON.stringify(ролезона));
 /* + оператори й контроль якості (06.10): вбудовані ролі цеху додаються до
    збереженого списку, якщо їх там ще немає. */
-ok(ролезона.ролей === ROLE_DEFS.length + ['operator','qcprod','managerb2c'].filter(k => !ROLE_DEFS.some(r => r.key === k)).length &&
+ok(ролезона.ролей === ROLE_DEFS.length + ['operator','qcprod','managerb2c','dtf','print'].filter(k => !ROLE_DEFS.some(r => r.key === k)).length &&
    ролезона.назва && ролезона.нова,
   'роль — окремий запис: її видно списком, її можна назвати й завести нову',
   'ролі не стали сутністю: ' + JSON.stringify(ролезона));

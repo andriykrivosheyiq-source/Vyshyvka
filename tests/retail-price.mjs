@@ -55,7 +55,7 @@ ok(/id="b2c-prices"/.test(H) && /function paintB2cPrices\(/.test(H),
    на головне питання, чи ми на цьому заробили. А заводити її окремим
    списком означає, що два списки колись розійдуться складом: у першому
    виріб є, у другому його забули. */
-ok(/products: \{ retail, retailCost(, retailReady, retailCostReady, b2cOff)? \}/.test(H),
+ok(/products: \{ retail, retailCost(, retailReady, retailCostReady(, retailDtf, retailCostDtf)?, b2cOff)? \}/.test(H),
   'а пишуться вони туди ж, де й лежать — у картку товару, разом із собівартістю',
   'список цін завів собі друге сховище: два числа, і невідомо, яке справжнє');
 ok(/data-b2c-cost=/.test(H) && /function retailCost\(/.test(H),

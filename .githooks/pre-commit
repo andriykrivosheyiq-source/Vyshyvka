@@ -32,8 +32,8 @@ if git diff --cached --name-only | grep -qE '^(loomiq-money-core\.js|loomiqadmin
 fi
 # КОНТРОЛЬ ОПЛАТИ ПО ФОПАХ (21.10): зміна воркера грошей чи накладних —
 # прогін підставної Нової пошти по двох відправниках і воркера накладних.
-if git diff --cached --name-only | grep -qE '^(worker/money\.js|worker/novaposhta-proxy\.js|tests/np-cod\.mjs|tests/np-ship\.mjs|tests/money-worker\.mjs)'; then
-  for t in np-cod np-ship money-worker; do
+if git diff --cached --name-only | grep -qE '^(worker/money\.js|worker/novaposhta-proxy\.js|tests/np-cod\.mjs|tests/np-ship\.mjs|tests/money-worker\.mjs|tests/ship-abroad\.mjs)'; then
+  for t in np-cod np-ship money-worker ship-abroad; do
     node tests/$t.mjs >/tmp/lq-$t.log 2>&1 || {
       echo "✗ Нова пошта / гроші зламано ($t) — коміт зупинено. Подробиці: /tmp/lq-$t.log"
       grep '✗' /tmp/lq-$t.log
@@ -64,6 +64,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
     exit 1
   }
   echo "✓ внутрішні розмови живі"
+fi
+# ДРУК (DTF) У B2C (21.10). Нанесення позиції, черга DTF-дизайнера, ціни
+# друку, закупка блоками, «Друк»: друкується → готово.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/dtf\.mjs)'; then
+  node tests/dtf.mjs >/tmp/lq-dtf.log 2>&1 || {
+    echo "✗ Друк (DTF) зламано — коміт зупинено. Подробиці: /tmp/lq-dtf.log"
+    grep '✗' /tmp/lq-dtf.log
+    exit 1
+  }
+  echo "✓ друк (DTF) цілий"
 fi
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
