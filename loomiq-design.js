@@ -3098,7 +3098,8 @@
             ? ' <em class="dz-c-paid">' + esc(c.unpaidTxt) + '</em>'
             : c.paidPct != null
             ? ' <em class="dz-c-paid">' + (c.paidPct >= 100 ? 'оплачено' : 'не оплачено') + '</em>'
-            : '') + '</span>'
+            : '') +
+          (c.payChk ? '<em class="dz-c-chk" title="Оплата на карту ще не підтверджена власником">!</em>' : '') + '</span>'
       : '';
     /* ОДИН СТІКЕР ТЕРМІНУ (06.10). Андрій обрав: лише найближчий строк —
        годинник етапу чи відправка клієнту, — а прострочений завжди перший. */
@@ -6087,9 +6088,20 @@
         ? свої.map(function(p, i){
             /* Без підпису: перший — передоплата, далі — доплата (15.10). */
             if(!p.tagSet) p.tag = i === 0 ? 'prepay' : 'final';
-            return '<div class="dz-pay-r">' +
+            /* Оплата на карту (21.10): «!» поки власник не підтвердив. */
+            var chk = p.check === 'wait'
+              ? ' <i class="dz-c-chk" title="Оплата на карту ще не підтверджена власником">!</i> не підтверджено' +
+                (p.shot ? ' <a class="pay-shot" href="' + esc(p.shot) + '" target="_blank" rel="noopener">скрін</a>' : '') +
+                ((host.payCanCheck && host.payCanCheck())
+                  ? '<button type="button" class="pay-chk-b" data-do="pay-check" data-p="' + esc(p.id) + '" data-st="ok">Підтверджено</button>' +
+                    '<button type="button" class="pay-chk-b" data-do="pay-check" data-p="' + esc(p.id) + '" data-st="no">Не дійшло</button>'
+                  : '')
+              : p.check === 'ok' ? ' · <span class="pay-chk-ok">✓ підтверджено</span>' + (p.shot ? ' <a class="pay-shot" href="' + esc(p.shot) + '" target="_blank" rel="noopener">скрін</a>' : '')
+              : p.check === 'no' ? ' · <span class="pay-chk-no">✕ не дійшло — не рахується</span>'
+              : '';
+            return '<div class="dz-pay-r' + (p.check === 'no' ? ' is-no' : '') + '">' +
               '<b>' + esc(грн(p.amount)) + '</b>' +
-              '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + '</span>' +
+              '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + (p.check && p.by ? ' · ' + esc(p.by) : '') + chk + '</span>' +
               '<select data-payt="' + esc(p.id) + '" title="Чим це є">' +
                 Object.keys(PAY_TAG).map(function(k){
                   return '<option value="' + k + '"' + (p.tag === k ? ' selected' : '') +
@@ -6944,6 +6956,8 @@
         what: whatOf(p.job, p.o),
         paidPct: сума ? Math.min(100, Math.round(оплачено / сума * 100)) : null,
         unpaidTxt: сума ? (оплачено >= сума ? 'оплачено' : 'не оплачено ' + money(сума - оплачено)) : null,
+        /* Оплата на карту ще не підтверджена (21.10) — «!» на плитці. */
+        payChk: !!(host().unverified && host().unverified(p.o).n),
         steps: { n: 5, at: at, labels: CHAIN_STEP_L, txt: CHAIN_STEP_L[at] },
         chain: stageMarks(p.job, p.o, всіЗ),
         who: хто ? nameOf(хто) : '', whoTitle: хто ? 'Зараз працює: ' + nameOf(хто) : '',
@@ -11396,6 +11410,12 @@
             .then(function(){ render(document.getElementById('dzRoot')); })
             .catch(function(e){ console.error(e); say('Привʼязати не вдалось'); });
         });
+    }
+    if(what === 'pay-check'){
+      if(!host().payCheck) return say('Підтвердження оплати недоступне');
+      return Promise.resolve(host().payCheck((data && data.p) || '', (data && data.st) || 'ok'))
+        .then(function(){ render(document.getElementById('dzRoot')); })
+        .catch(function(e){ console.error(e); say('Не вдалось'); });
     }
     if(what === 'pay-off'){
       if(!host().payUnlink) return say('Відвʼязка платежів недоступна');

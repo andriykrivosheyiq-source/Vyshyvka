@@ -30,6 +30,15 @@
    тиша. Адмінка привʼязує рух до замовлення лише за ТТН (`payAutoLinkTtn`
    → `payLinkSet`). Код відправника після того, як ключ запрацював, не
    міняється. Перевіряє `tests/np-cod.mjs` (у pre-commit).
+7. **Оплата на карту — лише через рух `src:'card'` з `check.state`** (21.10).
+   Вписує будь-хто з правом «оплата» (`cardPayAdd` → `payLinkSet`), і
+   лише як `wait` зі скріном (`shot`); «Підтверджено»/«Не дійшло» ставить
+   лише власник (`payCheckSet`; у `firestore.rules` — `cardNew`, зміна
+   `check`/`shot` тільки з правом «налаштування»). `wait` рахується як
+   сплачено (і в `codFor`), `no` — ні; обидва — пункти Звірки
+   (`card_wait`/`card_no`/`card_noshot`); знак «!» — лише з
+   `LQMoney.unverified`. Перевіряють `tests/money-core.mjs` §10,
+   `tests/money-rules.mjs`, `tests/card-pay.mjs` (у pre-commit).
 
 Перед комітом: `git config core.hooksPath .githooks` (один раз на клон) —
 хук `.githooks/pre-commit` запускає `tests/money-core.mjs` і не пустить

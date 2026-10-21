@@ -348,6 +348,14 @@ service cloud.firestore {
     function bankSrc(d) {
       return d.get('src', '') in ['mono', 'privat', 'np', 'novapay'];
     }
+    // ОПЛАТА НА КАРТУ (21.10): вписує будь-хто з правом «оплата», але
+    // лише як «не перевірено» (check.state = wait); «Підтверджено» чи
+    // «Не дійшло» ставить лише власник (право «налаштування»). Інакше
+    // менеджер сам би й вписав, і підтвердив.
+    function cardNew(d) {
+      return d.get('src', '') != 'card'
+        || d.get('check', {}).get('state', 'wait') == 'wait';
+    }
     function payFixed() {
       return ['amount', 'at', 'acc', 'ccy', 'src', 'ttn', 'counter', 'desc', 'balAfter', 'flow'];
     }
@@ -361,13 +369,15 @@ service cloud.firestore {
     match /payments/{id} {
       allow read: if known() && (may('pay') || may('setup'));
       allow create: if known() && (may('pay') || may('setup'))
-        && !bankSrc(request.resource.data);
+        && !bankSrc(request.resource.data)
+        && (may('setup') || cardNew(request.resource.data));
       allow delete: if known() && (may('pay') || may('setup'))
         && !bankSrc(resource.data);
       allow update: if known() && (may('pay') || may('setup'))
         && !bankSrc(request.resource.data) == !bankSrc(resource.data)
         && (!bankSrc(resource.data)
             || !request.resource.data.diff(resource.data).affectedKeys().hasAny(payFixed()))
+        && (may('setup') || !touched(['check', 'shot']))
         && noSteal();
     }
 

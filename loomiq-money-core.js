@@ -30,6 +30,15 @@
   /* Звідки беруться банківські рухи. Їх пише лише грошовий воркер; адмінка
      їх не створює, не видаляє й суму не править (так само в firestore.rules). */
   var BANK_SRC = ['mono', 'privat', 'np', 'novapay'];
+  /* ОПЛАТА НА КАРТУ (21.10). Андрій: «оплату на карту може вписувати
+     будь-який менеджер… зі скріном; підтверджують лише Андрій або
+     Володимир; замовлення йде по ланцюгу, а на ньому знак «!», поки не
+     перевірено». Такий рух (src 'card') лежить у Фінансах на рахунку
+     картки, привʼязується до замовлення як будь-який інший і має
+     check.state: 'wait' — не перевірено (рахується як сплачено, щоб робота
+     не стояла, але Звірка й картка показують «!»), 'ok' — підтверджено,
+     'no' — не дійшло (не рахується; Звірка червоним). */
+  var CARD_SRC = 'card';
   /* Після отримання посилки з контролем оплати — стільки днів чекаємо гроші,
      далі Звірка бʼє тривогу (Андрій: «2 дні звичайні»). */
   var COD_DAYS = 2;
@@ -43,6 +52,13 @@
   function ttnOf(v){ return String(v || '').replace(/\D/g, ''); }
   function r(n){ return Math.round(+n || 0); }
   function isBank(p){ return !!p && BANK_SRC.indexOf(String(p.src || '')) >= 0; }
+  function isCard(p){ return !!p && String(p.src || '') === CARD_SRC; }
+  /* Стан перевірки оплати на карту: '' для всього, що не з карти. */
+  function cardCheck(p){
+    if(!isCard(p)) return '';
+    var st = p.check && p.check.state;
+    return (st === 'ok' || st === 'no') ? st : 'wait';
+  }
   function грн(n){ return String(r(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴'; }
   function time(s){ var t = Date.parse(s || ''); return isNaN(t) ? 0 : t; }
 
@@ -87,9 +103,12 @@
         if(!p || id(p.orderId) !== oid) return;
         var s = r(p.amount);
         if(s <= 0) return;   // витрата, привʼязана до замовлення, — не оплата клієнта
-        rows.push({ src:'bank', idx: bySel[p.id] == null ? -1 : bySel[p.id], payId:p.id, sum:s, at:p.at,
+        var chk = cardCheck(p);
+        rows.push({ src: chk ? 'card' : 'bank', idx: bySel[p.id] == null ? -1 : bySel[p.id], payId:p.id, sum:s, at:p.at,
                     kind: p.tag === 'cod' ? 'cod' : (p.tag || 'prepay'), acc:p.acc, counter:p.counter,
-                    ttn: p.ttn || '', counted:true });
+                    ttn: p.ttn || '', by: p.by || '', check: chk, shot: p.shot || '',
+                    /* «Не дійшло» — не рахується; «не перевірено» — рахується. */
+                    counted: chk !== 'no' });
       });
     }
     rows.sort(function(a, b){ return String(a.at || '').localeCompare(String(b.at || '')); });
@@ -131,6 +150,11 @@
     return '';
   }
 
+  /* Непідтверджені оплати на карту в замовленні — для знака «!» на картці. */
+  function unverified(o, pays){
+    var l = paid(o, pays).rows.filter(function(x){ return x.check === 'wait'; });
+    return { n: l.length, sum: l.reduce(function(a, x){ return a + x.sum; }, 0), rows: l };
+  }
   /* Сума контролю оплати для нової ТТН — рівно залишок; більше не можна. */
   function codFor(o, pays, total){ return due(o, pays, total); }
 
@@ -238,6 +262,21 @@
     pays.forEach(function(p){
       if(!p || !p.id) return;
       var s = r(p.amount);
+      /* Оплата на карту: не перевірена — жовтим, поки власник не скаже
+         «Підтверджено» чи «Не дійшло»; без скріна чи «не дійшло» — червоним. */
+      if(isCard(p)){
+        var chk = cardCheck(p), де = id(p.orderId) ? ' у #' + id(p.orderId) : ' (нікуди не привʼязана)';
+        var хто = p.by ? ' · вписав ' + p.by : '';
+        if(!p.shot && chk !== 'no')
+          out.push({ kind:'card_noshot', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s,
+            text: 'Оплата на карту ' + грн(s) + де + ' вписана без скріна переказу' + хто + '. Попросіть скрін або позначте «Не дійшло».' });
+        if(chk === 'wait')
+          out.push({ kind:'card_wait', sev:'amber', payId:p.id, orderId:id(p.orderId), sum:s, fix:'check',
+            text: 'Оплата на карту ' + грн(s) + де + хто + ' — ще не підтверджена; рахується як сплачено. Звірте зі скріном: «Підтверджено» або «Не дійшло».' });
+        if(chk === 'no')
+          out.push({ kind:'card_no', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s,
+            text: 'Оплату на карту ' + грн(s) + де + ' позначено «не дійшло» — вона не рахується, у замовленні борг. Домовтесь із клієнтом або приберіть запис.' });
+      }
       /* Привʼязаний до замовлення, якого немає. */
       if(opt.ordersLoaded !== false && id(p.orderId) && !ordersById[id(p.orderId)] && s > 0)
         out.push({ kind:'lost_order', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s, fix:'unlink',
@@ -303,7 +342,8 @@
 
   function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || '') ; }
 
-  var api = { BANK_SRC:BANK_SRC, COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
+  var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
+              COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
               paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, audit:audit,
               ttnsOf:ttnsOf, ttnOf:ttnOf, isBank:isBank, keyOf:keyOf };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -19,6 +19,15 @@ if git diff --cached --name-only | grep -qE '^(loomiq-money-core\.js|loomiqadmin
       exit 1
     }
   fi
+  # Оплата на карту з «!» (21.10): справжня адмінка — менеджер вписує,
+  # власник підтверджує, «не дійшло» не рахується.
+  if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-money-core\.js|tests/card-pay\.mjs)'; then
+    node tests/card-pay.mjs >/tmp/lq-card-pay.log 2>&1 || {
+      echo "✗ Оплата на карту зламана — коміт зупинено. Подробиці: /tmp/lq-card-pay.log"
+      grep '✗' /tmp/lq-card-pay.log
+      exit 1
+    }
+  fi
   echo "✓ грошове ядро ціле"
 fi
 # КОНТРОЛЬ ОПЛАТИ ПО ФОПАХ (21.10): зміна воркера грошей чи накладних —

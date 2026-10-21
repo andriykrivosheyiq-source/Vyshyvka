@@ -97,6 +97,21 @@ ok(await can(setDoc(doc(fin, 'payments/man_1'), { amount: -9500 }, { merge: true
 ok(!(await can(getDoc(doc(art, 'payments/mono_1')))) && !(await can(setDoc(doc(art, 'payments/x'), { amount: 1, src: 'manual' }))),
   'без права «Записувати оплату» — ні читати, ні писати', 'дизайнер бачить гроші!');
 
+console.log('═══ ОПЛАТА НА КАРТУ (21.10) ═══');
+/* Менеджер із правом «оплата» вписує оплату на карту — лише як «не
+   перевірено»; підтвердити чи позначити «не дійшло» може лише власник. */
+const own = env.authenticatedContext('u3', { email: 'boss@loomiq' }).firestore();
+await env.withSecurityRulesDisabled(async c => {
+  await setDoc(doc(c.firestore(), 'loomiq/photos'), { acl: { test_loomiq: { pay: true }, art_loomiq: { edit: true }, boss_loomiq: { pay: true, setup: true } } });
+});
+const картка = { at: '2026-10-21T10:00:00Z', amount: 500, acc: 'card1', src: 'card', by: 'test@loomiq', shot: 'https://x/s.png', check: { state: 'wait' } };
+ok(await can(setDoc(doc(fin, 'payments/card_1'), картка)), 'менеджер вписує оплату на карту зі скріном (не перевірено)', 'оплата на карту не записалась');
+ok(!(await can(setDoc(doc(fin, 'payments/card_2'), { ...картка, check: { state: 'ok' } }))), 'менеджер не може вписати одразу «підтверджено»', 'менеджер сам підтвердив');
+ok(!(await can(setDoc(doc(fin, 'payments/card_1'), { check: { state: 'ok', by: 'test@loomiq' } }, { merge: true }))), 'менеджер не може підтвердити', 'менеджер підтвердив');
+ok(await can(setDoc(doc(fin, 'payments/card_1'), { orderId: '2000777', tag: 'prepay' }, { merge: true })), 'а привʼязати до замовлення — може', 'не привʼязалось');
+ok(await can(setDoc(doc(own, 'payments/card_1'), { check: { state: 'ok', by: 'boss@loomiq' } }, { merge: true })), 'власник підтверджує', 'власник не зміг');
+ok(await can(setDoc(doc(own, 'payments/card_1'), { check: { state: 'no', by: 'boss@loomiq' } }, { merge: true })), 'власник позначає «не дійшло»', 'власник не зміг «не дійшло»');
+
 await env.cleanup();
 emu.kill();
 console.log('');
