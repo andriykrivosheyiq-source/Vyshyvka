@@ -2429,7 +2429,7 @@ function chatsHtml(dir){
       chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
       <span class="chl-who">${escapeHtml(r.who)}</span>
       <span class="chl-ch">${escapeHtml(r.channel)}${
-        r.o && r.o.orderId ? ' · ' + escapeHtml(r.o.orderId) : ''}</span>
+        r.o && r.o.orderId ? ' · ' + escapeHtml(showNo(r.o)) : ''}</span>
       <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}

@@ -170,13 +170,19 @@ console.log('═══ СТРІЧКА НЕ ПЕРЕБИРАЄТЬСЯ ДАРМА
 /* Головне тут — САМ ВУЗОЛ стрічки. Коли нічого не змінилось, він має
    лишитись тим самим елементом: тоді картинки в ньому вже завантажені,
    прокрутка ціла, і нічого не смикається. */
-const спокій = await p.evaluate(async (відп) => {
+/* Крок розбито на синхронні частини з паузою в самому тесті: очікування
+   всередині сторінки (await у evaluate) Chromium тут часом обриває
+   «Promise was collected» — сторінка жива, навігації немає (22.10). */
+await p.evaluate((відп) => {
   const o = orders[0];
   crmChat[o.id] = { chatId:'c83', clientName:'Марта Паращук', msgs:null };
   o.crmOut = []; o.crmGone = [];
   crmChat[o.id].msgs = crmNormMsgs(відп, o);
   chatOpen(o, 'crm');
-  await new Promise(r => setTimeout(r, 300));
+}, ВІДПОВІДЬ);
+await p.waitForTimeout(300);
+const спокій = await p.evaluate((відп) => {
+  const o = orders[0];
   const узяти = () => document.querySelector('#chatWin .cw-feed');
   const перший = узяти();
   if(!перший) return { є:false };
