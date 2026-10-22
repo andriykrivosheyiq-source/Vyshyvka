@@ -220,12 +220,28 @@ async function прогін(role, назва){
   await p.evaluate(() => { const d = window.LQDesign.dzList(J().units[0], 'graphic')[0];
     d.draft = { works:[{ name:'лого-нитки.png', url: __IMG.logo, hash:'h1', threads:[{ code:'1133', hex:'#E4572E' }] }],
                 places:[{ side:'front', work:0, x:0.5, y:0.3, w:0.26 }, { side:'back', work:0, x:0.5, y:0.2, w:0.4 }] }; });
+  /* Здає ДИЗАЙНЕР (22.10: акаунт-менеджер на чужу дошку не перемикається —
+     перемикач лише у власника), править — менеджер. Дві різні людини. */
+  const як = r => p.evaluate(r => { contentData.team[0].role = r; applyRoleUi();
+    /* Зміна ролі перезбирає гачки відділу — підставні сховище й сторони повертаємо. */
+    const U = window.LQDesign.ui;
+    U.host.upload = async f => URL.createObjectURL(f);
+    U.host.sides = () => [{ key:'front', label:'Перед', url: window.__IMG.front }, { key:'back', label:'Спина', url: window.__IMG.back }];
+    U.host.zone = () => ({ T:0.08, B:0.94, L:0.2, R:0.8, H:72 });
+    window.LQMock.host.zone = () => ({ T:0.08, B:0.94, L:0.2, R:0.8, H:72 });
+  }, r);
+  if(role !== 'owner'){
+    /* Здає той дизайнер, на кого призначено: він бачить лише своє. */
+    await p.evaluate(() => { window.LQDesign.dzList(J().units[0], 'graphic')[0].who = 'test@loomiq'; });
+    await як('designer');
+  }
   await панель('graphic');
   await p.evaluate(() => document.querySelector('[data-do="dz-work"]').click());
   for(let k = 0; k < 30 && !(await відкрито()); k++) await p.waitForTimeout(100);
   await p.waitForTimeout(500);
   await обидві('вікно дизайнера');
   await зберегти('дизайнер здав');
+  if(role !== 'owner') await як(role);
   await панель('acct');
   ok(await p.evaluate(() => !!document.querySelector('[data-do="dz-place"]')), 'у менеджера є «✎ Розміщення»', 'кнопки «✎ Розміщення» немає');
   await розміщення();

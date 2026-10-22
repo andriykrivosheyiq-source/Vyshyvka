@@ -185,11 +185,14 @@ ok(adj.qty === 7 && adj.m === 'adj:-1:брак', 'перерахунок: 3 → 
 
 console.log('');
 console.log('═══ 4. НЕ ВЛАСНИК — ЛИШЕ ДИВИТЬСЯ ═══');
-const ro = await p.evaluate(() => { const U = window.LQDesign.ui; const old = U.host.role; U.host.role = () => 'buyer';
+/* 22.10: дошка бере крісла з усіх ролей людини (host.roles) — підставляємо
+   справжню роль закупівлі, а не вигадану. */
+const ro = await p.evaluate(() => { const U = window.LQDesign.ui; const old = U.host.role, oldR = U.host.roles;
+  U.host.role = () => 'supply'; U.host.roles = () => ['supply'];
   U.render(document.getElementById('dzRoot'));
   const r = { add: !!document.querySelector('[data-do="stock-form"]'), edit: !!document.querySelector('[data-do="stock-edit"]'),
-              hint: /править власник/.test(document.querySelector('.dz-stk').textContent) };
-  U.host.role = old; U.render(document.getElementById('dzRoot')); return r; });
+              hint: /править власник/.test((document.querySelector('.dz-stk') || {}).textContent || '') };
+  U.host.role = old; U.host.roles = oldR; U.render(document.getElementById('dzRoot')); return r; });
 ok(!ro.add && !ro.edit && ro.hint, 'закупник бачить склад і ціни, але заповнити й перерахувати може лише власник', 'не власник: ' + JSON.stringify(ro));
 
 console.log('');

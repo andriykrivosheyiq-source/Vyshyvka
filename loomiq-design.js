@@ -2972,6 +2972,9 @@
   /* Чия це роль з точки зору прав. Власник і керівник бачать усе й
      перемикаються вручну; решта прив'язана до своєї. */
   function roleSeat(r){
+    /* Менеджери обох напрямів працюють на дошці акаунта (22.10): без свого
+       крісла їх кидало на дошку графіка. */
+    if(r === 'managerb2c' || r === 'manager' || r === 'owner') return 'acct';
     for(var i = 0; i < ROLES.length; i++) if(ROLES[i].role === r) return ROLES[i].key;
     /* Ролі, заведені поруч із вбудованими (оператори, контроль якості), —
        робоче місце знає, чиє це крісло. */
@@ -7397,7 +7400,8 @@
     kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var всіГ = buys();
     var only = host().onlyMine && host().onlyMine();
-    var m = (host().me && host().me()) || '';
+    /* Чиї це дизайни: у режимі «дивитись очима людини» — її, не власника. */
+    var m = (host().boardMe && host().boardMe()) || (host().me && host().me()) || '';
     return U.pairs().map(function(p){
       if(tech && D.jobTech(p.job) !== tech) return null;
       var mine = myDz(p.job, kind, only ? m : '');
@@ -9177,6 +9181,8 @@
     if(_top){ var _p2 = root.querySelector('.dz-panel-b'); if(_p2) _p2.scrollTop = _top; }
     return !!html;
   }
+  /* Де стояла дошка без відкритої картки — по кріслу (22.10). */
+  var BOARD_AT = {}, BOARD_OPEN_X = {}, BOARD_MOVED = {};
   function render(root){
     if(!root) return;
     if(SOLO && root === SOLO.root){
@@ -9206,6 +9212,18 @@
     var _cols = {};
     root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
       _cols[b.parentNode.getAttribute('data-col')] = b.scrollTop; });
+    /* ЗАКРИВ КАРТКУ — ДОШКА ТАМ, ДЕ БУЛА (22.10, Андрій: «перекидає на самий
+       початок воронок… кожен раз шукати, де зупинився»). З відкритою
+       карткою дошка вужча й убік часто не гортається — браузер ставить
+       прокрутку на нуль, і закриття «згадувало» вже цей нуль. Тепер
+       памʼятаємо, де стояла дошка БЕЗ картки, і повертаємо туди. */
+    var _key = 'b:' + U.tab();
+    var _was = !!root.querySelector('.dz-panel:not(.hide)');
+    /* Відкриття підкручує дошку до картки — це не рух людини. Якщо ж людина
+       сама посунула дошку з відкритою карткою, після закриття лишаємо там,
+       куди посунула. */
+    if(_bd && !_was){ BOARD_AT[_key] = { x: _bl, cols: _cols }; BOARD_MOVED[_key] = false; }
+    else if(_bd && _was && BOARD_OPEN_X[_key] != null && Math.abs(_bl - BOARD_OPEN_X[_key]) > 2) BOARD_MOVED[_key] = true;
     var _main = root.closest ? root.closest('main') : null;
     var _mt = _main ? _main.scrollTop : 0;
     /* І прокрутка самого вікна (20.10, Андрій: «закриваю картку — пригоняє
@@ -9214,13 +9232,23 @@
     var _wy = window.pageYOffset || 0;
     healOld();
     var role = (U.host.role && U.host.role()) || '';
-    var boss = U.isBoss(role);
-    /* Перемикач ролей — тільки у власника. Співробітник заходить одразу у
-       свою дошку: дай йому вибір — колись перемкнеться й пів дня
-       працюватиме не на своєму екрані. */
-    var seat = boss ? U.tab() : (U.roleSeat(role) || U.tab());
+    /* Перемикач дошок — ТІЛЬКИ у власника (22.10, Андрій: «акаунт-менеджер
+       повинен бачити тільки свою дошку»). Доти його мали й менеджери. */
+    var boss = !role || role === 'owner';
+    /* ДВІ РОЛІ — ДВІ ДОШКИ (22.10, Андрій: «закупка і виробництво — щоб і
+       те, і те бачив»). Крісла людини — з усіх її ролей; їх більше одного —
+       перемикач лише між ними. */
+    var ролі = [];
+    try{ ролі = (U.host.roles && U.host.roles()) || []; }catch(e){}
+    if(!ролі.length && role) ролі = [role];
+    var крісла = [];
+    ролі.forEach(function(r){ var k = U.roleSeat(r); if(k && крісла.indexOf(k) < 0) крісла.push(k); });
+    /* Співробітник заходить одразу у свою дошку: дай йому вибір — колись
+       перемкнеться й пів дня працюватиме не на своєму екрані. */
+    var seat = boss ? U.tab() : (крісла.indexOf(U.tab()) >= 0 ? U.tab() : (крісла[0] || U.roleSeat(role) || U.tab()));
     if(!U.ROLES.some(function(r){ return r.key === seat; })) seat = boss ? 'acct' : 'graphic';
     if(seat !== U.tab()) U.setTab(seat);
+    var свої = boss ? U.ROLES : U.ROLES.filter(function(r){ return крісла.indexOf(r.key) >= 0; });
     var b = boardOf(seat);
     /* Фільтр накладаємо тут, на готові картки: колонки лишаються на місці
        разом із лічильниками, просто в них видно те, що шукали. Прибирати
@@ -9255,21 +9283,23 @@
     /* Доставка після «Передано курʼєру» — сховані колонки (07.10). */
     if(seat === 'prod') графік += '<button type="button" class="dz-b dz-deliv' + (PROD_DELIV ? ' on' : '') +
       '" data-do="prod-deliv" title="Показати / сховати колонки доставки">Доставка ' + (PROD_DELIV ? '▴' : '▾') + '</button>';
-    var headHtml = boss
-      ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
-        seekHtml(шук) + графік +
-        '<label class="dz-as"><span>Дивлюсь як</span>' +
-          '<select class="dz-as-sel" data-seat>' + U.ROLES.map(function(r){
+    var перемикач = (boss || свої.length > 1)
+      ? '<label class="dz-as"><span>' + (boss ? 'Дивлюсь як' : 'Дошка') + '</span>' +
+          '<select class="dz-as-sel" data-seat>' + свої.map(function(r){
             return '<option value="' + r.key + '"' + (r.key === seat ? ' selected' : '') + '>' +
                    esc(r.label) + '</option>';
           }).join('') + '</select></label>'
+      : '';
+    var headHtml = boss
+      ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
+        seekHtml(шук) + графік + перемикач
       /* Співробітнику не пишемо, хто він. Дошка в нього одна, зайти на чужу
          він не може — і підпис «Моя дошка · Графічний дизайнер» просто
          повторював те, що він і так про себе знає. Андрій: «чому він тут
          бачить, що це є — графічний дизайнер він».
 
          А пошук йому потрібен так само: своїх карток теж буває багато. */
-      : (seekHtml(шук) + графік);
+      : (seekHtml(шук) + графік + перемикач);
     root.innerHTML =
       '<div class="dz-top">' + headHtml + '</div>' +
       /* Закупівля — без канбана: список «треба замовити», оформлені
@@ -9292,6 +9322,8 @@
       if(_p2) _p2.scrollTop = _top;
     }
     var _bd2 = root.querySelector('.dz-boards');
+    var _back = (_was && !root.querySelector('.dz-panel:not(.hide)') && !BOARD_MOVED[_key]) ? BOARD_AT[_key] : null;
+    if(_back){ _bl = _back.x; _cols = _back.cols || _cols; }
     if(_bd2 && _bl) _bd2.scrollLeft = _bl;
     root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
       var t = _cols[b.parentNode.getAttribute('data-col')];
@@ -9312,6 +9344,9 @@
       try{ on.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){}
     }
     LAST_ON = onId;
+    var _bd3 = root.querySelector('.dz-boards');
+    if(openId && _bd3) BOARD_OPEN_X[_key] = _bd3.scrollLeft;
+    else { delete BOARD_OPEN_X[_key]; BOARD_MOVED[_key] = false; }
   }
   var LAST_ON = '';
   /* Панель доручення. Усе потрібне для роботи лежить ТУТ: що зробити, від

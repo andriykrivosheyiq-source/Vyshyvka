@@ -3750,6 +3750,12 @@ function renderChatWin(toBottom){
   const stick = toBottom || !feedOld ||
     (feedOld.scrollHeight - feedOld.scrollTop - feedOld.clientHeight < 60);
   const oldTop = feedOld ? feedOld.scrollTop : 0;
+  /* СКРИПТИ НЕ СТРИБАЮТЬ (22.10, Андрій: «кручу скрипти, і вони пригають»).
+     Вікно перемальовується на кожному такті опитування й на кожну подію, і
+     панель заготовок будувалась заново з прокруткою на нулі. Тепер тримаємо
+     прокрутку — як і в стрічки. */
+  const qrOld = box.querySelector('.cw-qr');
+  const qrTop = qrOld ? qrOld.scrollTop : 0;
   /* Перемальовування не має виривати людину з-під рук. Вікно оновлюється й
      тоді, коли прийшло нове повідомлення, — а менеджер у цю мить може дописувати
      лист на три абзаци. Тому запамʼятовуємо, де стояли фокус і каретка, і
@@ -3999,6 +4005,8 @@ function renderChatWin(toBottom){
   /* ВІДКРИЛИ — ЩЕ НЕ ПРОЧИТАЛИ (Андрій, 15.10): «поки ми не натиснули
      глазик, воно висить новим, як непрочитане», і в «Чатах», і на картці
      канбану. Гасне лише око 👁 або наша відповідь клієнту. */
+  const qrEl = box.querySelector('.cw-qr');
+  if(qrEl && qrOld && qrTop && Math.abs(qrEl.scrollTop - qrTop) > 1) qrEl.scrollTop = qrTop;
   wireChatWin(box, o, first || !!keep);
   if(keep){
     const el = box.querySelector('.cw-inp');
