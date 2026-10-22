@@ -75,6 +75,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ друк (DTF) цілий"
 fi
+# ОДИН НОМЕР УСЮДИ (22.10): номер картки в Проблемних, Звірці, Фінансах,
+# і перехід з нього в саму картку.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-chat\.js|loomiq-money-core\.js|tests/order-no\.mjs)'; then
+  node tests/order-no.mjs >/tmp/lq-order-no.log 2>&1 || {
+    echo "✗ Номер замовлення розходиться — коміт зупинено. Подробиці: /tmp/lq-order-no.log"
+    grep '✗' /tmp/lq-order-no.log
+    exit 1
+  }
+  echo "✓ номер замовлення один"
+fi
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —

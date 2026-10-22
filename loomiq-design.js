@@ -9333,7 +9333,7 @@
         (t.due ? '<span class="dz-chip">до ' + esc(t.due) + '</span>' : '') +
         (age ? '<span class="dz-chip">' + esc(U.hm(age)) + '</span>' : '') +
       '</div>' +
-      '<div class="dz-row"><span>Замовлення</span><b>#' + esc(pr.o.orderId) + '</b></div>' +
+      '<div class="dz-row"><span>Замовлення</span><b>' + esc(U.jobNo(pr.job)) + '</b></div>' +
       '<div class="dz-row"><span>Кому</span><b>' + esc(nameOf(t.to)) + '</b></div>' +
       '<div class="dz-row"><span>Видав</span><b>' + esc(nameOf(t.by)) + '</b></div>' +
       (t.closedBy ? '<div class="dz-row"><span>Закрито</span><b>' + esc(t.closedBy) + '</b></div>' : '') +

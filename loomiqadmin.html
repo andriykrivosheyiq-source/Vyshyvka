@@ -4672,6 +4672,7 @@
   .pay-pick i{font-style:normal;font-weight:400;color:var(--muted);}
   .shf{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:6px;}
   .shf-wide{grid-column:1 / -1;}
+  .fin-goto{all:unset;cursor:pointer;font-weight:800;color:var(--accent-deep,#4338CA);text-decoration:underline dotted;}
   .shf-link{all:unset;cursor:pointer;justify-self:start;font-size:12px;color:var(--muted);text-decoration:underline dotted;}
   .shf-link:hover{color:var(--ink);}
   .shf-abroad textarea{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;resize:vertical;}
@@ -7948,33 +7949,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5f4fae5186"></script>
-<script src="loomiq-fingerprint.js?v=5f4fae5186"></script>
-<script src="loomiq-pricing.js?v=5f4fae5186"></script>
+<script src="loomiq-select.js?v=77e0ebb2fb"></script>
+<script src="loomiq-fingerprint.js?v=77e0ebb2fb"></script>
+<script src="loomiq-pricing.js?v=77e0ebb2fb"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=5f4fae5186"></script>
+<script src="loomiq-money-core.js?v=77e0ebb2fb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5f4fae5186"></script>
-<script src="loomiq-bg.js?v=5f4fae5186"></script>
-<script src="loomiq-mock.js?v=5f4fae5186"></script>
+<script src="loomiq-design.js?v=77e0ebb2fb"></script>
+<script src="loomiq-bg.js?v=77e0ebb2fb"></script>
+<script src="loomiq-mock.js?v=77e0ebb2fb"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=5f4fae5186"></script>
+<script src="imagetracer.js?v=77e0ebb2fb"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=5f4fae5186"></script>
-<script src="loomiq-threads.js?v=5f4fae5186"></script>
+<script src="loomiq-chat.js?v=77e0ebb2fb"></script>
+<script src="loomiq-threads.js?v=77e0ebb2fb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5f4fae5186"></script>
+<script src="loomiq-cards.js?v=77e0ebb2fb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8019,7 +8020,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5f4fae5186';
+var LQ_VER = '77e0ebb2fb';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9210,8 +9211,8 @@ function tracksLive(o){
 const STAGE_MSG = {
   test_ask:  o => 'Ми зробили тестовий відшив і виклали фото на вашій сторінці замовлення. ' +
                   'Погляньте, будь ласка, і натисніть «погоджую» або «потрібні правки»: ' + (offerUrl(o) || ''),
-  prod_work: o => 'Ваше замовлення № ' + (o.orderId || '') + ' пішло в тираж.',
-  ship_sent: o => 'Замовлення № ' + (o.orderId || '') + ' відправлено.' +
+  prod_work: o => 'Ваше замовлення № ' + showNo(o) + ' пішло в тираж.',
+  ship_sent: o => 'Замовлення № ' + showNo(o) + ' відправлено.' +
                   (o.ttn ? ' Накладна: ' + o.ttn : '')
 };
 async function notifyStage(o, key){
@@ -10847,7 +10848,7 @@ function renderFinHist(){
         '<span class="fin-link">' +
           (p.orderId
             ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
-              escapeHtml('#' + p.orderId + (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) + '</button>'
+              escapeHtml('#' + noOf(p.orderId) + (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) + '</button>'
             : дохід ? finChkChip(p)
             : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
         '</span>' +
@@ -10974,7 +10975,7 @@ async function payLinkSet(p, orderId, tag, opt){
   opt = opt || {};
   const to = String(orderId || '');
   const from = String(p.orderId || '');
-  const why = LQMoney.linkCheck(p, to, opt);
+  const why = LQMoney.linkCheck(p, to, Object.assign({ noOf: noOf }, opt));
   if(why) throw new Error(why);
   const by = opt.by || myEmail() || '';
   const at = new Date().toISOString();
@@ -11385,7 +11386,7 @@ function orderTotalOf(o){
 }
 function moneyAudit(){
   if(!payLoaded) return [];
-  return LQMoney.audit(orders || [], payments || [], { np: npState, totalOf: orderTotalOf,
+  return LQMoney.audit(orders || [], payments || [], { np: npState, totalOf: orderTotalOf, noOf: noOf,
     accs: finAccounts(), ordersLoaded: (orders || []).length > 0, bal: bankBal, sync: bankSync });
 }
 function renderFinAudit(){
@@ -11412,7 +11413,7 @@ function renderFinAudit(){
       return `<div class="fa-i ${x.sev}" data-fa="${i}">
         <div class="fa-x">${E(x.text)}${sub}</div>
         <div class="fa-b">
-          ${x.orderId && (orders || []).some(o => String(o.orderId) === x.orderId) ? `<button data-fa-open="${E(x.orderId)}">#${E(x.orderId)}</button>` : ''}
+          ${x.orderId && (orders || []).some(o => String(o.orderId) === x.orderId) ? `<button data-fa-open="${E(x.orderId)}" title="Відкрити картку замовлення">#${E(noOf(x.orderId))}</button>` : ''}
           ${x.fix === 'link' ? '<button class="pri" data-fa-fix="link">Привʼязати</button>' : ''}
           ${x.fix === 'unlink' ? '<button class="pri" data-fa-fix="unlink">Відвʼязати</button>' : ''}
           ${x.fix === 'own' ? '<button class="pri" data-fa-fix="own">Між своїми</button>' : ''}
@@ -11428,14 +11429,14 @@ function renderFinAudit(){
     const key = LQMoney.keyOf(x);
     const p = x.payId ? (payments || []).filter(q => q.id === x.payId)[0] : null;
     const o = x.orderId ? (orders || []).filter(q => String(q.orderId) === x.orderId)[0] : null;
-    if(e.target.closest('[data-fa-open]')){ if(o) openOrderDrawer(o); return; }
+    if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
     try{
       const fix = e.target.closest('[data-fa-fix]');
       if(fix && p){
         const f = fix.dataset.faFix;
         if(f === 'link') await payLinkSet(p, x.orderId, 'cod');
-        if(f === 'unlink'){ if(!confirm('Відвʼязати платіж від #' + x.orderId + '?')) return; await payLinkSet(p, '', null); }
+        if(f === 'unlink'){ if(!confirm('Відвʼязати платіж від #' + noOf(x.orderId) + '?')) return; await payLinkSet(p, '', null); }
         if(f === 'own'){ await PAY_COL.doc(p.id).set({ tag: 'own', orderId: null }, { merge:true }); p.tag = 'own'; }
         if(f === 'ok' || f === 'no'){ await payCheckSet(p.id, f); return renderFin(); }
         toast('Готово'); return renderFin();
@@ -11555,7 +11556,7 @@ function renderFin(){
       '<span class="fin-link">' +
         (p.orderId
           ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
-            escapeHtml('#' + p.orderId +
+            escapeHtml('#' + noOf(p.orderId) +
               (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) +
             (o ? '' : ' <i>картки немає</i>') + '</button>'
           : свої[p.id] ? '<button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '"' +
@@ -11588,7 +11589,7 @@ function finOpen(id){
       ${p.counter || p.desc ? `<div class="fin-desc">${escapeHtml(p.counter || '')}${
         p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : ''}</div>` : ''}
       ${p.orderId ? `<div class="fin-now">Зараз привʼязано до
-        <b>#${escapeHtml(p.orderId)}</b>
+        <button class="fin-goto" data-fin-goto="${escapeHtml(p.orderId)}" title="Відкрити картку замовлення">#${escapeHtml(noOf(p.orderId))}</button>
         <button class="dz-b" data-fin-unlink>Відвʼязати</button></div>` : ''}
       ${guess.length ? `<div class="fin-l">Схоже на ці замовлення</div>
         <div class="fin-guess">${guess.map(g => `
@@ -11677,6 +11678,8 @@ function finOpen(id){
         закрити(); return renderFin();
       }catch(err){ console.error(err); return toast('Не збереглось'); }
     }
+    const goto = e.target.closest && e.target.closest('[data-fin-goto]');
+    if(goto){ const id = goto.dataset.finGoto; закрити(); return openByNo(id); }
     const pick = e.target.closest && e.target.closest('[data-fin-pick]');
     if(pick){ обране = pick.dataset.finPick; await зберегти(); return закрити(); }
     if(e.target.hasAttribute('data-fin-unlink')){ обране = ''; тег = '';
@@ -12805,7 +12808,7 @@ function dashRedoHtml(m){
         '<div class="an-c"><span>Штук</span><b>' + шт + '</b></div>' +
         Object.keys(REDO_UA).map(k => '<div class="an-c"><span>' + E(REDO_UA[k]) + '</span><b>' + (по[k] || 0) + '</b></div>').join('') + '</div>' +
         '<table class="an-t"><thead><tr><th>Коли</th><th>Замовлення</th><th>Провина</th><th>Шт</th><th>Що сталось</th><th>Фото</th></tr></thead><tbody>' +
-        list.map(x => '<tr><td>' + E(String(x.r.at).slice(8, 10) + '.' + String(x.r.at).slice(5, 7)) + '</td><td>№' + E(x.o.orderId || '') + '</td>' +
+        list.map(x => '<tr><td>' + E(String(x.r.at).slice(8, 10) + '.' + String(x.r.at).slice(5, 7)) + '</td><td>№' + E(showNo(x.o)) + '</td>' +
           '<td>' + E(REDO_UA[x.r.blame] || x.r.blame || '') + (x.r.from === 'appr' ? ' · не погодив акаунт' : '') + '</td>' +
           '<td>' + (+x.r.n || 0) + '</td><td style="white-space:pre-wrap;max-width:420px;">' + E(String(x.r.note || '').slice(0, 300)) + '</td>' +
           '<td>' + (x.r.photos || []).slice(0, 3).map(u => '<a href="' + E(u) + '" target="_blank" rel="noopener"><img src="' + E(u) +
@@ -12829,7 +12832,7 @@ function dashLossHtml(m){
         Object.keys(KIND).map(k => '<div class="an-c"><span>' + E(KIND[k]) + '</span><b>' +
           fmt(list.filter(x => x.l.kind === k).reduce((a, x) => a + (+x.l.sum || 0), 0)) + ' ₴</b></div>').join('') + '</div>' +
         '<table class="an-t"><thead><tr><th>Коли</th><th>Замовлення</th><th>Що</th><th>Сума</th><th>З чого</th></tr></thead><tbody>' +
-        list.map(x => '<tr><td>' + E(String(x.l.at).slice(8, 10) + '.' + String(x.l.at).slice(5, 7)) + '</td><td>№' + E(x.o.orderId || '') + '</td>' +
+        list.map(x => '<tr><td>' + E(String(x.l.at).slice(8, 10) + '.' + String(x.l.at).slice(5, 7)) + '</td><td>№' + E(showNo(x.o)) + '</td>' +
           '<td>' + E(KIND[x.l.kind] || x.l.kind) + '</td><td><b>' + fmt(+x.l.sum || 0) + ' ₴</b></td><td>' +
           E(x.l.kind === 'refuse' ? 'собівартість ' + fmt(+x.l.cost || 0) + ' + недоплачено ' + fmt(+x.l.unpaid || 0) : (x.l.note || '')) + '</td></tr>').join('') +
         '</tbody></table>'
@@ -14733,7 +14736,7 @@ window.__adminSaveClientOrder = async function(payload){
       toast('Не завантажилось макетів: ' + uploadFails.length + ' (' + why + '). ' +
             'Збережіть позицію ще раз.');
     } else
-    toast('Позиції додано в картку ' + (target.instagram || target.name || target.orderId));
+    toast('Позиції додано в картку ' + (target.instagram || target.name || showNo(target)));
     const boardBtn = document.querySelector('.nav button[data-view="board"]');
     if(boardBtn) boardBtn.click();
     renderBoard();
@@ -14785,7 +14788,7 @@ window.__adminSaveClientOrder = async function(payload){
   // Telegram НЕ чіпаємо: сповіщення потрібне, коли замовлення прийшло з сайту
   // саме по собі. Картку тут завів менеджер — він і так її бачить, а зайве
   // повідомлення в чаті виглядає як нове замовлення від клієнта.
-  toast('Картку «'+(order.instagram||order.name||order.orderId)+'» створено в Канбані');
+  toast('Картку «'+(order.instagram||order.name||showNo(order))+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
   return order;
 };
@@ -14867,6 +14870,35 @@ function showNo(o){
     if(j && j.no) return String(j.no);
   }
   return String(o.orderId || '');
+}
+/* ОДИН НОМЕР УСЮДИ (22.10, Андрій: «щоб везде писався один номер… щоб
+   більше не було збоїв»). Ключ у базі (`orderId`) не чіпаємо — на ньому
+   тримаються платежі, накладні й переписка. Людині ж показуємо рівно той
+   номер, що в її картці: B2B — з одинички, B2C — номер відділу з двійки.
+   Усі екрани питають тут, маючи на руках лише ключ. */
+function noOf(id){
+  const k = String(id == null ? '' : id).trim();
+  if(!k) return '';
+  const o = (typeof orders !== 'undefined' && orders || []).find(x => x && String(x.orderId) === k);
+  if(o) return showNo(o);
+  const j = (typeof designJobs === 'object' && designJobs) ? designJobs[k] : null;
+  return (j && j.no) ? String(j.no) : k;
+}
+/* Номер — кнопка в саму картку: B2C — картка відділу, B2B — картка B2B.
+   Перехід робить людина натиском, тож розділ міняється законно. */
+function openByNo(id){
+  const k = String(id == null ? '' : id).trim();
+  const o = (orders || []).find(x => x && String(x.orderId) === k);
+  if(!o){ toast('Замовлення ' + noOf(k) + ' не знайдено'); return false; }
+  if(orderDir(o) === 'b2c' && window.LQDesign && LQDesign.ui){
+    const b = document.querySelector('.nav button[data-view="design"]');
+    if(b) b.click();
+    try{ LQDesign.ui.setTab('acct'); LQDesign.ui.open(o.orderId); }catch(e){}
+    try{ openDesign(); }catch(e){}
+    return true;
+  }
+  openOrderDrawer(o);
+  return true;
 }
 function dirIsC(dir){ return dir === 'b2c'; }
 function dirMin(dir){ return dirIsC(dir) ? ORDER_ID_MIN_C : ORDER_ID_MIN; }
@@ -15321,7 +15353,7 @@ function renderStatusEditor(){
     }
     renderBoard();
     openOrderDrawer(o);   // одразу відкриваємо — вписати контакт треба зараз
-    toast('Картку ' + o.orderId + ' створено');
+    toast('Картку ' + showNo(o) + ' створено');
   });
 })();
 
@@ -18611,7 +18643,7 @@ async function renderKP(order, item){
 
   y = H - 52;
   x.fillStyle = '#9AA5B5'; x.font = '400 13px Inter, system-ui, sans-serif';
-  x.fillText('Пропозиція № ' + (order.orderId || '—') + ' · ціни дійсні 14 днів', 64, y);
+  x.fillText('Пропозиція № ' + (showNo(order) || '—') + ' · ціни дійсні 14 днів', 64, y);
   x.textAlign = 'right'; x.fillText('loomiq.net', DOC_W-64, y); x.textAlign = 'left';
   return cv.toDataURL('image/png');
 }
@@ -18638,7 +18670,7 @@ async function renderEstimate(order){
   x.fillStyle = '#0F2034'; x.font = '700 38px Inter, system-ui, sans-serif';
   x.fillText('Кошторис', 64, y);
   x.fillStyle = '#7C8798'; x.font = '400 15px Inter, system-ui, sans-serif';
-  x.fillText('№ ' + (order.orderId || '—') + (order.name ? ' · ' + order.name : ''), 64, y+26);
+  x.fillText('№ ' + (showNo(order) || '—') + (order.name ? ' · ' + order.name : ''), 64, y+26);
   y += 62;
 
   x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
@@ -18690,7 +18722,7 @@ async function renderEstimate(order){
 
   y = H - 52;
   x.fillStyle = '#9AA5B5'; x.font = '400 13px Inter, system-ui, sans-serif';
-  x.fillText('Кошторис № ' + (order.orderId || '—') + ' · ціни дійсні 14 днів', 64, y);
+  x.fillText('Кошторис № ' + (showNo(order) || '—') + ' · ціни дійсні 14 днів', 64, y);
   x.textAlign = 'right'; x.fillText('loomiq.net', DOC_W-64, y); x.textAlign = 'left';
   return cv.toDataURL('image/png');
 }
@@ -19151,7 +19183,7 @@ function orderHaystack(o){
   /* Код із сайту теж шукається: у Telegram приходить саме він, і картку
      знаходять, вставивши його в пошук. Без цього рядка код у чаті був би
      мертвим — його нікуди прикласти. */
-  return [o.orderId, o.siteRef, o.name, o.phone, o.company, o.instagram,
+  return [o.orderId, showNo(o), o.siteRef, o.name, o.phone, o.company, o.instagram,
           chanHandle(o, 'tg'), chanHandle(o, 'ig'), chanHandle(o, 'viber'),
           personName(o.mgrEmail), items, tasks, o.note,
           o.totalPrice, (window.lqChannel && window.lqChannel.label(o.an)) || '']
@@ -19814,7 +19846,7 @@ function markSideText(p){
 /* Технічна картка простим текстом — те, що менеджер вставляє дизайнеру. */
 function markTextOf(o, it){
   const head = [
-    '#' + (o.orderId || ''),
+    '#' + showNo(o),
     [it.name || '', it.color || '', ((+it.qty || 0) ? (+it.qty) + ' шт' : '')]
       .filter(Boolean).join(' · ')
   ].filter(Boolean).join('  ');
@@ -20576,7 +20608,7 @@ function ticketSummaryHtml(o){
   const chLabel = (window.lqChannel && window.lqChannel.label(o.an)) || null;
   return `
     <div class="tc-top">
-      ${o.orderId?`<span class="t-oid">${escapeHtml(o.orderId)}</span>`:''}
+      ${o.orderId?`<span class="t-oid">${escapeHtml(showNo(o))}</span>`:''}
       <span class="tc-date">${escapeHtml(date)}</span>
       ${/* Скільки картка стоїть у цій колонці. Жовтіє, коли час нагадати,
             червоніє, коли її забули. Саме це й заміняє колонку «Думає»:
@@ -20672,7 +20704,7 @@ function floorTicketHtml(o){
   const cur = artCur(o);
   return `
     <div class="tc-top">
-      <span class="t-oid">${escapeHtml(o.orderId || '')}</span>
+      <span class="t-oid">${escapeHtml(showNo(o))}</span>
       ${due ? `<span class="tc-due ${due.cls}">до ${escapeHtml(due.label)}</span>` : ''}
       <span class="tc-spacer"></span>
       ${cur ? `<span class="tc-ch">v${escapeHtml(String(cur.n))}</span>` : ''}
@@ -21474,7 +21506,7 @@ function payPickOpen(o, onPick, opt){
      платив частинами). */
   d.innerHTML = `<div class="fin-w pp-w">
     <div class="fin-h"><b>${E(opt.title || 'Привʼязати платіж')}</b>
-      <span>${opt.sub != null ? E(opt.sub) : E(orderName ? (orderName(o) || '') : '') + ' · #' + E(o.orderId || '')}</span>
+      <span>${opt.sub != null ? E(opt.sub) : E(orderName ? (orderName(o) || '') : '') + ' · #' + E(showNo(o))}</span>
       <button class="dz-x" data-pp-x>×</button></div>
     <div class="fin-b">
       ${opt.note ? '<div class="pp-note">' + E(opt.note) + '</div>' : ''}
@@ -23248,7 +23280,7 @@ async function repeatOrder(o){
   }
   renderBoard();
   openOrderDrawer(n);
-  toast('Повтор ' + n.orderId + ' створено — макет успадковано з ' + (o.orderId || ''));
+  toast('Повтор ' + showNo(n) + ' створено — макет успадковано з ' + showNo(o));
 }
 /* Успадковане погодження діє, поки виріб той самий. Змінили одяг, колір або
    розмір нанесення — тест умикається назад, і ворота знову його вимагають. */
@@ -24363,7 +24395,7 @@ function odProdHtml(o){
   };
   return `
     <div class="od-head">
-      <div class="od-cl-nm">Замовлення ${escapeHtml(o.orderId || '')}</div>
+      <div class="od-cl-nm">Замовлення ${escapeHtml(showNo(o))}</div>
       <div class="od-meta">
         <span title="Коли здавати">${ICO.cal}Здати до <b>${
           escapeHtml(o.dueAt ? dayUa(o.dueAt) : '—')}</b>${
@@ -24442,7 +24474,7 @@ function odDesignerHtml(o){
   const c = STATUS_COLORS[cur.color] || STATUS_COLORS.gray;
   return `
     <div class="od-head">
-      <div class="od-cl-nm">Замовлення ${escapeHtml(o.orderId || '')}</div>
+      <div class="od-cl-nm">Замовлення ${escapeHtml(showNo(o))}</div>
       <div class="od-meta">
         <span title="Коли здавати">${ICO.cal}Здати до <b>${
           escapeHtml(o.dueAt ? dayUa(o.dueAt) : '—')}</b>${
@@ -24737,7 +24769,7 @@ function allOrdersHtml(o){
         const c = statusColor(x.status);
         return `
         <button class="ao-row${x.id === o.id ? ' is-cur' : ''}" data-open="${escapeHtml(x.id)}">
-          <span class="ao-oid">${escapeHtml(x.orderId || 'без номера')}</span>
+          <span class="ao-oid">${escapeHtml(showNo(x) || 'без номера')}</span>
           <span class="ao-st" style="background:${c.bg};color:${c.head};">${escapeHtml(st.label)}</span>
           <span class="ao-d">${escapeHtml(x.createdAt
             ? new Date(x.createdAt).toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit',year:'2-digit'})
@@ -25035,7 +25067,7 @@ function renderOrderDrawer(){
     console.error('картка: шаблон не зібрався', e);
     odHtml = `
       <div class="od-head">
-        <div class="od-head-top"><span class="od-pill od-pill-oid">${escapeHtml(o.orderId || '—')}</span></div>
+        <div class="od-head-top"><span class="od-pill od-pill-oid">${escapeHtml(showNo(o) || '—')}</span></div>
         <div class="od-sub">картка показана скорочено — ${escapeHtml(String(e && e.message || e))}</div>
         <button class="od-prob-x" data-act="problem" title="Щось незрозуміло чи не виходить у CRM — позначте, керівник побачить">!</button><button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
       </div>
@@ -27038,7 +27070,7 @@ function renderOfferEd(){
      сторінці, там, де воно й видно. */
   d.querySelector('.oe-head').innerHTML = `
     <div class="oe-title">
-      <b>КП ${escapeHtml(o.orderId || '')}</b>
+      <b>КП ${escapeHtml(showNo(o))}</b>
       <span>${escapeHtml(o.company || o.name || o.instagram || 'клієнт')}</span>
     </div>
     ${/* Дії — окремою групою: на телефоні вона йде другим рядком і гортається,
@@ -28328,7 +28360,7 @@ async function designDeleteOrder(o){
   await storeSet('orders', orders);
   try{ const U = window.LQDesign.ui; U.open && U.open(''); U.render(document.getElementById('dzRoot')); }catch(e){ console.warn(e); }
   renderBoard();
-  toast('Замовлення ' + (o.orderId || '') + ' видалено');
+  toast('Замовлення ' + showNo(o) + ' видалено');
 }
 function designUnbindChat(o){
   if(!o) return;
@@ -28936,7 +28968,7 @@ function designHostInit(){
        привʼязано діалог і передоплату (див. b2cGate у відділі). */
     newOrder: async ()=>{
       const made = await designJobNew();
-      toast('Замовлення ' + made.orderId + ' заведено — привʼяжіть діалог і передоплату');
+      toast('Замовлення ' + noOf(made.orderId) + ' заведено — привʼяжіть діалог і передоплату');
       try{
         window.LQDesign.ui.setTab('queue');
         window.LQDesign.ui.open(made.orderId);
@@ -30010,7 +30042,7 @@ function renderProblems(){
   root.innerHTML = rows.length ? rows.map(r => `
     <div class="prob-row" data-prob="${escapeHtml(r.p.id)}">
       <div class="prob-h">
-        <button class="prob-no" data-prob-open title="Відкрити замовлення">#${escapeHtml(r.p.orderId)}</button>
+        <button class="prob-no" data-prob-open title="Відкрити картку замовлення">#${escapeHtml(noOf(r.p.orderId))}</button>
         <span class="prob-who">${escapeHtml(r.o ? (orderName(r.o) || '') : '')}</span>
         <span class="prob-at">${escapeHtml(personName(r.p.by) || r.p.by || '—')} · ${escapeHtml(dtUa(r.p.at))}${днів(r.p.at) ? ' · висить ' + днів(r.p.at) + ' дн.' : ''}</span>
         <button class="prob-x" data-prob-close>✓ Зняти</button>
@@ -30023,7 +30055,7 @@ function renderProblems(){
     const p = problems[id] || {};
     const o = (orders || []).find(x => x && x.orderId === p.orderId);
     const op = row.querySelector('[data-prob-open]');
-    if(op) op.addEventListener('click', () => { if(o) openOrderDrawer(o); else toast('Замовлення не знайдено'); });
+    if(op) op.addEventListener('click', () => openByNo(p.orderId));
     const cl = row.querySelector('[data-prob-close]');
     if(cl) cl.addEventListener('click', async () => {
       let how = '';

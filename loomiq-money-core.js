@@ -141,8 +141,10 @@
   function linkCheck(p, orderId, opt){
     if(!p || !p.id) return 'Платежу немає';
     var cur = id(p.orderId), to = id(orderId);
+    /* Номер для людини — той, що в картці (22.10): ключ і показ різні в B2C. */
+    var no = (opt && typeof opt.noOf === 'function') ? opt.noOf : id;
     if(to && cur && cur !== to && !(opt && opt.move))
-      return 'Цей платіж уже привʼязаний до #' + cur + '. Спершу відвʼяжіть його там.';
+      return 'Цей платіж уже привʼязаний до #' + no(cur) + '. Спершу відвʼяжіть його там.';
     if(to && p.tag === 'own') return 'Це переказ між своїми рахунками — до замовлення його не привʼязують.';
     /* Пул наложок NovaPay: ці гроші вже лежать у замовленнях поштучно, за
        ТТН. Привʼязати пул до замовлення — порахувати їх двічі. */
@@ -165,6 +167,8 @@
             ordersLoaded:true } */
   function audit(orders, pays, opt){
     opt = opt || {};
+    /* Номер для тексту пункту — як у картці (opt.noOf); ключ лишається orderId. */
+    var no = typeof opt.noOf === 'function' ? function(k){ return opt.noOf(k) || k; } : id;
     var now = opt.now || Date.now();
     var np = opt.np || {};
     var totalOf = opt.totalOf || function(o){ return +o.totalPrice || 0; };
@@ -247,7 +251,7 @@
         if(x.src === 'stale')
           out.push({ kind:'stale', sev:'red', orderId:oid, payId:x.payId, sum:x.sum,
             text: 'У картці записано оплату ' + грн(x.sum) + ' з банку, а у Фінансах цей платіж ' +
-              (x.elsewhere ? 'привʼязаний до #' + x.elsewhere : 'відвʼязаний') + '. Її не рахуємо.' });
+              (x.elsewhere ? 'привʼязаний до #' + no(x.elsewhere) : 'відвʼязаний') + '. Її не рахуємо.' });
       });
       /* Те саме двічі: записали руками, а потім прийшло з банку. */
       var руками = pd.rows.filter(function(x){ return x.src === 'hand' && x.sum > 0; });
@@ -265,7 +269,7 @@
       /* Оплата на карту: не перевірена — жовтим, поки власник не скаже
          «Підтверджено» чи «Не дійшло»; без скріна чи «не дійшло» — червоним. */
       if(isCard(p)){
-        var chk = cardCheck(p), де = id(p.orderId) ? ' у #' + id(p.orderId) : ' (нікуди не привʼязана)';
+        var chk = cardCheck(p), де = id(p.orderId) ? ' у #' + no(id(p.orderId)) : ' (нікуди не привʼязана)';
         var хто = p.by ? ' · вписав ' + p.by : '';
         if(!p.shot && chk !== 'no')
           out.push({ kind:'card_noshot', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s,
@@ -280,7 +284,7 @@
       /* Привʼязаний до замовлення, якого немає. */
       if(opt.ordersLoaded !== false && id(p.orderId) && !ordersById[id(p.orderId)] && s > 0)
         out.push({ kind:'lost_order', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s, fix:'unlink',
-          text: 'Платіж ' + грн(s) + ' (' + (p.counter || '—') + ') привʼязаний до #' + id(p.orderId) +
+          text: 'Платіж ' + грн(s) + ' (' + (p.counter || '—') + ') привʼязаний до #' + no(id(p.orderId)) +
             ', а такого замовлення немає. Відвʼяжіть і привʼяжіть до правильного.' });
       if(id(p.orderId) || s <= 0 || p.tag === 'own' || p.tag === 'notown' || p.flow) return;
       /* Переказ із NovaPay на банк: гроші за наложки вже пораховані на

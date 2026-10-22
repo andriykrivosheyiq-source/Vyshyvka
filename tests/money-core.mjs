@@ -212,5 +212,20 @@ console.log('═══ 10. ОПЛАТА НА КАРТУ З «!» (21.10) ══�
 }
 
 console.log('');
+console.log('═══ 11. НОМЕР У ТЕКСТАХ — ЯК У КАРТЦІ (22.10) ═══');
+{
+  /* Ключ B2C з пʼятірки, людина бачить номер відділу з двійки. Ядро
+     рахує за ключем, а в текст ставить номер з opt.noOf. */
+  const o = { orderId: '5000034', totalPrice: 1000, payments: [] };
+  const c = { id: 'card_n', amount: 500, orderId: '5000034', src: 'card', at: D + '1T10:00:00Z', shot: '', check: { state: 'wait' } };
+  const noOf = k => k === '5000034' ? '2000043' : k;
+  const l = M.audit([o], [c], { now: NOW, np: {}, accs: [], noOf }).filter(x => /^card_/.test(x.kind));
+  ok(l.length && l.every(x => /#2000043/.test(x.text) && !/5000034/.test(x.text) && x.orderId === '5000034'),
+    'текст Звірки — «#2000043», а ключ пункту лишається 5000034', JSON.stringify(l.map(x => x.text)));
+  ok(/#2000043/.test(M.linkCheck(c, '1000501', { noOf })) && /#5000034/.test(M.linkCheck(c, '1000501')),
+    '«уже привʼязаний до #…» — номер з noOf; без нього — ключ, як було', M.linkCheck(c, '1000501', { noOf }));
+}
+
+console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);
