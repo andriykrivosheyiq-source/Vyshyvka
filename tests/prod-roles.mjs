@@ -154,6 +154,32 @@ for(const [role, w] of Object.entries(ЧЕКАЮ)){
 }
 
 console.log('');
+console.log('═══ 3. ВЛАСНИК «ДИВИТЬСЯ ЯК» РОЛЬ — ЗЛІВА, СПРАВА, СКРІЗЬ ═══');
+const наРоль = async role => p.evaluate(async role => {
+  seeAsSet(role);
+  await new Promise(r => setTimeout(r, 80));
+  const nav = [...document.querySelectorAll('.nav button[data-view]')].filter(b => !b.hidden && b.offsetParent !== null).map(b => b.dataset.view);
+  const b = document.querySelector('.nav button[data-view="design"]'); if(b) b.click();
+  const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot'));
+  const cols = [...document.querySelectorAll('#dzRoot .dz-col-h, #dzRoot .dz-colh, #dzRoot .dz-col > h3, #dzRoot .dz-col-t')]
+    .map(x => x.textContent.replace(/\d+$/, '').trim()).filter(Boolean);
+  return { nav, seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]'), chat: canSeeChat(), cols,
+           bar: !!document.getElementById('seeAsBar') };
+}, role);
+await p.evaluate(() => { contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x); applyRoleUi(); });
+const вОп = await наРоль('operator');
+console.log('   ' + JSON.stringify(вОп));
+ok(вОп.bar && вОп.nav.join() === 'design' && вОп.seat === 'prod' && !вОп.as &&
+   ['Передрук','На станках'].every(c => вОп.cols.some(x => x.indexOf(c) === 0)) && !вОп.cols.some(x => /погодження/i.test(x)),
+  'очима Операторів: зліва лише «Замовлення B2C», їхня дошка цеху з їхніми колонками, без перемикача', JSON.stringify(вОп));
+const вЗак = await наРоль('supply');
+ok(вЗак.nav.join() === 'design' && вЗак.seat === 'supply' && !вЗак.as && !вЗак.chat, 'очима Закупівлі: лише закупівля, листування не видно', JSON.stringify(вЗак));
+const вДр = await наРоль('print');
+ok(вДр.seat === 'print' && !вДр.as && вДр.cols.some(x => /Друкується/.test(x)), 'очима Друку: дошка «Друк»', JSON.stringify(вДр));
+const назад = await наРоль('');
+ok(!назад.bar && назад.as && назад.nav.length > 1, 'вийшов з перегляду — свої розділи й перемикач «Дивлюсь як» на місці', JSON.stringify({ bar: назад.bar, as: назад.as, nav: назад.nav.length }));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
 console.log(bad ? 'розходжень: ' + bad : 'виробничі ролі — лише B2C, кожна на своїй дошці');
