@@ -3289,6 +3289,7 @@
      вигадуємо його на льоту й не підставляємо чужий: пишемо риску. Номер
      видасть робоче місце, один раз і назавжди. */
   function jobNo(job){
+    if(job && job.draft) return 'Нове замовлення';
     var n = job && job.no;
     return n ? ('#' + n) : '#—';
   }
@@ -3389,11 +3390,25 @@
     try{ є = !!(host.hasChat && host.hasChat(o)); }catch(e){}
     try{ n = +((host.clientUnread && host.clientUnread(o)) || 0) || 0; }catch(e){}
     if(!o) return '';
-    return '<div class="dz-write' + (є ? '' : ' is-off') + '">' +
+    /* СТВОРИТИ ЗАМОВЛЕННЯ (22.10): у чернетці праворуч — кнопка; спить,
+       поки бракує діалогу, передоплати чи одягу, і каже чого. Створили —
+       галочка «Замовлення створено», далі все зберігається само. */
+    var створ = '';
+    if(o.draft){
+      var бракує = [];
+      try{ бракує = (host.draftMissing && host.draftMissing(o)) || []; }catch(e){}
+      створ = '<span class="dz-create">' +
+        (бракує.length ? '<i class="dz-create-n">бракує: ' + esc(бракує.join(', ')) + '</i>' : '') +
+        '<button type="button" class="dz-b pri dz-create-b" data-do="order-create"' + (бракує.length ? ' disabled' : '') + '>Створити замовлення</button></span>';
+    } else if(host.draftJust && host.draftJust(o.orderId)){
+      створ = '<span class="dz-create is-done">✓ Замовлення створено</span>';
+    }
+    return '<div class="dz-write' + (є ? '' : ' is-off') + (створ ? ' has-create' : '') + '">' +
       (є ? '<button class="dz-ig" data-do="chat">Написати в Instagram' +
              (n ? '<span class="dz-ig-n" title="Клієнт написав, не прочитано">' + n + '</span>' : '') +
            '</button>'
          : '<span class="dz-write-off">Розмову з клієнтом не привʼязано</span>') +
+      створ +
     '</div>';
   }
   function clientHtml(o, job){
@@ -5775,7 +5790,8 @@
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
       ((opt && opt.ro) ? '' : '<div class="dz-u-foot">' +
-        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' + handOverHtml(job, opt && opt.o) + queueHtml(job, opt && opt.o) + '</div>');
+        '<button class="dz-b" data-do="u-add">+ Додати одяг</button>' +
+        ((opt && opt.o && opt.o.draft) ? '' : handOverHtml(job, opt && opt.o) + queueHtml(job, opt && opt.o)) + '</div>');
   }
   /* ЧЕРГА (19.10): «⏳ У чергу» для замовлення, яке ще нікуди не пішло;
      у черзі — скільки днів і як вийти («Передати дизайнеру»). */
@@ -6162,6 +6178,7 @@
               : p.check === 'ok' ? ' · <span class="pay-chk-ok">✓ підтверджено</span>' + (p.shot ? ' <a class="pay-shot" href="' + esc(p.shot) + '" target="_blank" rel="noopener">скрін</a>' : '')
               : p.check === 'no' ? ' · <span class="pay-chk-no">✕ не дійшло — не рахується</span>'
               : '';
+            if(p.draft) chk = ' · <i class="dz-pay-draft">буде привʼязано при «Створити замовлення»</i>';
             return '<div class="dz-pay-r' + (p.check === 'no' ? ' is-no' : '') + '">' +
               '<b>' + esc(грн(p.amount)) + '</b>' +
               '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + (p.check && p.by ? ' · ' + esc(p.by) : '') + chk + '</span>' +
@@ -7006,7 +7023,8 @@
   function chainCards(){
     var m = (host().me && host().me()) || '';
     var всіЗ = buys();
-    return U.pairs().map(function(p){
+    /* Чернетка нового замовлення (22.10) на дошці не стоїть — до «Створити». */
+    return U.pairs().filter(function(p){ return !(p.o && p.o.draft); }).map(function(p){
       var col = D.chainAt(p.job, p.o);
       var open = D.taskOpen(p.job).length;
       var mk = cardMarks(p.job, m);
@@ -9219,6 +9237,10 @@
        не вікно: дошка ліворуч має свою прокрутку й своє життя. */
     var _p = root.querySelector('.dz-panel-b');
     var _top = _p ? _p.scrollTop : 0;
+    /* Чернетка нового замовлення живе, поки відкрита саме вона (22.10):
+       закрили чи відкрили іншу картку — чернетки немає, обраний платіж
+       лишився вільним. */
+    try{ if(host().draftDrop) host().draftDrop((U.tabOpen && U.tabOpen()) || ''); }catch(e){}
     /* ДОШКА НЕ СТРИБАЄ (20.10, Андрій: «канбан пригає туди-сюди»). Фонове
        оновлення (повідомлення, платежі, обхід розмов) перебудовує дошку
        цілком — і прокрутка дошки вбік та кожної колонки вниз скидалась на
@@ -10614,7 +10636,7 @@
      єдине місце, де вони звіряються. Замок стоїть на самій дії, а не лише
      на кнопці: кнопку можна сховати, дію — ні. */
   var ACT_CAN = {
-    'order-new':'new',
+    'order-new':'new', 'order-create':'new',
     'take':'art', 'start':'art', 'ver-new':'art', 'ver-file':'art',
     'ver-prev':'art', 'to-review':'art', 'u-add':'art', 'u-dup':'art',
     'u-del':'art', 'dz-add':'art', 'dz-del':'art', 'u-svc-add':'art', 'u-svc-del':'art', 'price-refresh':'art',
@@ -11527,7 +11549,7 @@
       /* Вікно рядків із пошуком — робочого місця (те саме, що в B2B). */
       return host().payPick(o, function(info){
         render(document.getElementById('dzRoot'));
-        queueAsk(job, o, info);
+        if(!(info && info.draft)) queueAsk(job, o, info);
       });
     }
     if(what === 'queue-in'){
@@ -11555,6 +11577,13 @@
             .then(function(){ render(document.getElementById('dzRoot')); })
             .catch(function(e){ console.error(e); say('Привʼязати не вдалось'); });
         });
+    }
+    if(what === 'order-create'){
+      if(!o.draft) return say('Замовлення вже створено');
+      return Promise.resolve(host().draftCommit && host().draftCommit(o)).then(function(id){
+        if(!id) return render(root);
+        U.open(id); render(document.getElementById('dzRoot') || root);
+      });
     }
     if(what === 'prod-abroad-sent'){
       if(!D.shipAbroad(o)) return say('Це не відправка за кордон');

@@ -233,12 +233,15 @@ const нове0 = await p.evaluate(async () => {
   const o = orders[0];
   window.__nov = o;
   window.LQDesign.ui.open(o.orderId); window.LQDesign.ui.render(document.getElementById('dzRoot'));
-  return { стало: orders.length - було, dir: o.dir, вікно: !!document.querySelector('.pp-w') };
+  return { стало: orders.length - було, dir: o.dir, вікно: !!document.querySelector('.pp-w'), чернетка: !!o.draft };
 });
+const __novDraft = нове0.чернетка;
 const к0 = await крок();
 console.log('   ' + JSON.stringify({ нове0, к0 }));
-ok(нове0.стало === 1 && нове0.dir === 'b2c' && !нове0.вікно,
-  '«+ Нове замовлення» створює замовлення одразу, без вікна платежу', 'нове: ' + JSON.stringify(нове0));
+/* 22.10: «+ Нове замовлення» — чернетка праворуч (у базу — кнопкою «Створити
+   замовлення», див. tests/new-draft.mjs). */
+ok(нове0.стало === 1 && нове0.dir === 'b2c' && !нове0.вікно && __novDraft,
+  '«+ Нове замовлення» відкриває чернетку одразу, без вікна платежу', 'нове: ' + JSON.stringify(нове0));
 /* 20.10, Андрій: передоплата ЗНОВУ обовʼязкова (знімали 18.10). */
 ok(к0.gate && !к0.додати && к0.ok.join() === 'false,false,false' && !к0.платіж,
   'склад закритий: спершу діалог, потім передоплата, потім товар', 'крок 0: ' + JSON.stringify(к0));
@@ -258,13 +261,14 @@ const ман = await p.evaluate(async () => {
   det.querySelector('[data-pm-go]').click();
   await new Promise(r => setTimeout(r, 800));
   window.LQDesign.ui.render(document.getElementById('dzRoot'));
-  const p = (payments || []).filter(x => x.ownerManual && x.orderId === __nov.orderId)[0];
-  return { p: p && { amount: p.amount, src: p.src, by: p.by, counter: p.counter }, paid: paidSum(__nov), open: !!document.querySelector('.pp-w') };
+  /* Чернетка: платіж записано у Фінанси й обрано, а привʼязка — при «Створити». */
+  const p = (payments || []).filter(x => x.ownerManual && (__nov.draftPays || []).indexOf(x.id) >= 0)[0];
+  return { p: p && { amount: p.amount, src: p.src, by: p.by, counter: p.counter, orderId: p.orderId || '' }, paid: window.LQDesign.ui.host.paid(__nov), open: !!document.querySelector('.pp-w') };
 });
 const к2 = await крок();
 console.log('   ' + JSON.stringify({ ман, к2 }));
-ok(ман.p && ман.p.amount === 300 && ман.p.src === 'manual' && ман.paid === 300 && !ман.open,
-  'власник вписав 300 ₴ вручну — платіж записано (src manual, хто вписав) і привʼязано', JSON.stringify(ман));
+ok(ман.p && ман.p.amount === 300 && ман.p.src === 'manual' && !ман.p.orderId && ман.paid === 300 && !ман.open,
+  'власник вписав 300 ₴ вручну — платіж записано (src manual, хто вписав), у чернетці обрано; привʼяжеться при «Створити»', JSON.stringify(ман));
 ok(!к2.gate && к2.додати, 'передоплату привʼязано — склад відкрився', 'крок 2: ' + JSON.stringify(к2));
 
 console.log('');
