@@ -95,6 +95,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ ролі виробництва цілі"
 fi
+# B2C НІКОЛИ НЕ ПОКАЗУЄ B2B-КАРТКУ (22.10): картка відділу або чесна
+# панель з причиною; зламана зона — лише вона; номер від 2 000 001 = B2C.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-chat\.js|tests/dept-only\.mjs)'; then
+  node tests/dept-only.mjs >/tmp/lq-dept-only.log 2>&1 || {
+    echo "✗ B2C показує не свою картку — коміт зупинено. Подробиці: /tmp/lq-dept-only.log"
+    grep '✗' /tmp/lq-dept-only.log
+    exit 1
+  }
+  echo "✓ B2C — лише картка відділу"
+fi
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —

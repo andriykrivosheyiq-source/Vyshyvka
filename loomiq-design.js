@@ -5869,6 +5869,8 @@
      заходити зовсім. */
   var FOLD = {};
   function foldHtml(колір, значок, назва, підпис, вміст){
+    if(typeof вміст === 'function') вміст = safeZone(назва, вміст);
+    if(typeof підпис === 'function'){ try{ підпис = підпис(); }catch(e){ підпис = ''; } }
     if(!вміст) return '';
     var від = !!FOLD[назва];
     return '<section class="dz-z z-' + колір + ' is-fold' + (від ? ' open' : '') + '">' +
@@ -5881,7 +5883,21 @@
       (від ? '<div class="dz-z-b">' + вміст + '</div>' : '') +
     '</section>';
   }
+  /* ЗОНА НЕ ВАЛИТЬ КАРТКУ (22.10, Андрій: «щоб такого більше ніколи не
+     було»). Кожна зона картки збирається окремо: зламалась одна — лише вона
+     показує, що саме сталось, решта (фіксація, передача дизайнеру, гроші)
+     працює далі. Вміст передають функцією — щоб помилку було де спіймати. */
+  function safeZone(назва, fn){
+    try{ return fn(); }
+    catch(e){
+      console.warn('зона «' + назва + '»', e);
+      return '<div class="dz-miss dz-zone-fail">Зона «' + esc(назва) + '» не відкрилась: ' +
+        esc(String((e && e.message) || e)) + '</div>';
+    }
+  }
   function zoneHtml(колір, значок, назва, підпис, вміст){
+    if(typeof вміст === 'function') вміст = safeZone(назва, вміст);
+    if(typeof підпис === 'function'){ try{ підпис = підпис(); }catch(e){ підпис = ''; } }
     if(!вміст) return '';
     return '<section class="dz-z z-' + колір + '">' +
       '<div class="dz-z-h"><i class="dz-z-i">' + значок + '</i>' +
@@ -6589,7 +6605,7 @@
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
        картку з них, а не малюють кожна свій варіант того самого. */
-    zoneHtml: zoneHtml, foldHtml: foldHtml, FOLD: FOLD, chainHtml: chainHtml,
+    zoneHtml: zoneHtml, foldHtml: foldHtml, safeZone: safeZone, FOLD: FOLD, chainHtml: chainHtml,
     unitsSub: unitsSub, shipSub: shipSub,
     moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum, paidOf: paidOf,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
@@ -7620,20 +7636,20 @@
         U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b is-zones">' +
-        (b2c ? U.taskBlockHtml(p, 'acct') : U.zoneHtml('blue', '👤', 'Клієнт', '',
-          U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct'))) +
+        (b2c ? U.safeZone('Доручення', function(){ return U.taskBlockHtml(p, 'acct'); })
+             : U.zoneHtml('blue', '👤', 'Клієнт', '', function(){ return U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct'); })) +
         /* Склад — одразу під клієнтом: це перше, що питають про
            замовлення, і перше, що заповнюють, коли його заводять. */
-        U.zoneHtml('violet', '👕', 'Склад і дизайн', U.unitsSub(job),
-          U.unitsHtml(job, { bare:true, o:o })) +
+        U.zoneHtml('violet', '👕', 'Склад і дизайн', function(){ return U.unitsSub(job); },
+          function(){ return U.unitsHtml(job, { bare:true, o:o }); }) +
         /* Замовлення в цеху — розмова з виробництвом тут же, у тому самому
            вигляді, що з дизайнерами. */
         /* Фото від цеху на погодження / передрук — над розмовою з цехом. */
-        (уЦеху ? prodActsZone(job, o, 'acct') : '') +
+        (уЦеху ? U.safeZone('Виробництво · дії', function(){ return prodActsZone(job, o, 'acct'); }) : '') +
         (уЦеху ? U.zoneHtml('green', '🏭', 'Виробництво',
-          (function(){ var n = D.prodUnseen(job, (host().me && host().me()) || '', 'acct');
-                       return n ? n + ' нових' : ''; })(),
-          prodChatHtml(job, 'acct')) : '') +
+          function(){ var n = D.prodUnseen(job, (host().me && host().me()) || '', 'acct');
+                       return n ? n + ' нових' : ''; },
+          function(){ return prodChatHtml(job, 'acct'); }) : '') +
         /* ЗОНИ «ПОГОДЖЕННЯ» БІЛЬШЕ НЕМАЄ.
 
            Вона показувала старі версії `o.art` із позначками «погоджено
@@ -7652,16 +7668,16 @@
            раз, коли прийшла оплата, адресу — раз, коли пакують. Підпис зони
            каже головне й складеною: скільки лишилось доплатити й чого
            бракує для накладної. */
-        U.foldHtml('green', '₴', 'Гроші', U.moneySub(o, job), U.moneyBody(o, job)) +
-        U.foldHtml('amber', '📦', 'Відправка', U.shipSub(o), U.shipBody(p)) +
+        U.foldHtml('green', '₴', 'Гроші', function(){ return U.moneySub(o, job); }, function(){ return U.moneyBody(o, job); }) +
+        U.foldHtml('amber', '📦', 'Відправка', function(){ return U.shipSub(o); }, function(){ return U.shipBody(p); }) +
         /* Історія — в самому низу. Її читають не щодня, але коли читають —
            читають усю, і місце їй саме там, де вона нікому не заважає. */
-        U.foldHtml('gray', '🕘', 'Історія', U.histSub(job, o), U.histHtml(job, o) +
+        U.foldHtml('gray', '🕘', 'Історія', function(){ return U.histSub(job, o); }, function(){ return U.histHtml(job, o) +
           /* ВИДАЛИТИ — лише власнику (Андрій, 15.10), унизу історії: дія
              рідкісна й остаточна, і місце їй там, де випадково не натиснеш. */
           (((U.host.role && U.host.role()) === 'owner' && host().deleteOrder)
             ? '<div class="dz-del-row"><button type="button" class="dz-b dz-del" data-do="order-del" ' +
-              'title="Видалити замовлення назавжди — лише власник">🗑 Видалити замовлення</button></div>' : '')) +
+              'title="Видалити замовлення назавжди — лише власник">🗑 Видалити замовлення</button></div>' : ''); }) +
       '</div>' +
       /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
          У картці десяток блоків, і кнопка в кінці означає «догортайте до
