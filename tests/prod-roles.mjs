@@ -191,19 +191,21 @@ const мен = await p.evaluate(async () => {
   applyRoleUi(); await new Promise(r => setTimeout(r, 60));
   document.querySelector('.nav button[data-view="design"]').click();
   const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot'));
-  const a = { seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]') };
+  const нове = () => !!document.querySelector('#dzRoot [data-do="order-new"]');
+  const a = { seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]'), new: нове() };
   contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'managerb2c' }) : x);
   applyRoleUi(); await new Promise(r => setTimeout(r, 60));
   U.render(document.getElementById('dzRoot'));
-  const b = { seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]') };
+  const b = { seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]'), new: нове() };
   contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
   applyRoleUi(); await new Promise(r => setTimeout(r, 60));
   U.render(document.getElementById('dzRoot'));
-  const c = { as: !!document.querySelector('#dzRoot [data-seat]') };
+  const c = { as: !!document.querySelector('#dzRoot [data-seat]'), new: нове() };
   return { a, b, c };
 });
 ok(мен.a.seat === 'acct' && !мен.a.as && мен.b.seat === 'acct' && !мен.b.as && мен.c.as,
   'акаунт-менеджер і менеджер B2C — дошка акаунта без перемикача; перемикач лише у власника', JSON.stringify(мен));
+ok(мен.a.new && мен.b.new && мен.c.new, '«+ Нове замовлення» є в акаунт-менеджера, менеджера B2C і власника (22.10: зникало разом із перемикачем)', JSON.stringify(мен));
 /* Три замовлення: графіка в p@ (Петро), у d@ (інший дизайнер), і в черзі відділу. */
 const дз = await p.evaluate(async () => {
   const D = window.LQDesign, U = D.ui;

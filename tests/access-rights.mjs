@@ -237,7 +237,13 @@ const стани = await p.evaluate(async () => {
   const конверти = document.querySelectorAll('#team-list [data-inv]').length;
   tmSub = 'team'; renderTeamList();
   const безКонвертів = document.querySelectorAll('#team-list [data-inv]').length;
-  return { працюють, чекають, лист, конверти, безКонвертів,
+  const підказка = [...document.querySelectorAll('#team-list [data-inv]')].map(b => b.title).join('|');
+  /* Запрошували, заходила, пароля не дозберегла (профілю немає). */
+  contentData.accessLog.push({ at:'2026-10-22T09:00:00.000Z', by:'test@loomiq', kind:'invite', text:'надіслав запрошення: owner@loomiq' });
+  renderTeamList();
+  const незаверш = [...document.querySelectorAll('#team-list .tu-row')].map(r => (r.querySelector('.tm-mail') || {}).value + ':' + !!r.querySelector('.tu-half')).join();
+  contentData.accessLog.pop(); renderTeamList();
+  return { працюють, чекають, лист, конверти, безКонвертів, підказка, незаверш,
            перетин: працюють.filter(e => чекають.indexOf(e) >= 0) };
 });
 console.log('   ' + JSON.stringify(стани));
@@ -250,9 +256,13 @@ ok(!стани.перетин.length,
 ok(стани.лист.join() === '21.09.2026',
   'видно, коли листа вже надсилали — інакше його шлють удруге й утретє',
   'дати листа немає: ' + JSON.stringify(стани.лист));
-ok(стани.конверти === 1 && стани.безКонвертів === 0,
-  'конверт стоїть лише в того, кого ще не бачили',
-  'запрошення пропонують і тим, хто тут працює: ' + JSON.stringify(стани));
+ok(стани.конверти === 1, 'у «Ще не заходили» — конверт у того, кого ще не бачили', JSON.stringify(стани));
+/* 22.10, Андрій: людина зайшла за посиланням, випадково вийшла — і
+   повторно лист не відправити. Тепер конверт є і в «Уже працюють». */
+ok(стани.безКонвертів === 2 && /заново придумає пароль/.test(стани.підказка),
+  'у «Уже працюють» теж ✉ — «лист для входу: людина заново придумає пароль»', JSON.stringify(стани));
+ok(стани.незаверш === 'owner@loomiq:true,test@loomiq:false',
+  'запрошували, а пароля не зберегла — «вхід не завершено»; у себе самого — ні', стани.незаверш);
 
 /* Роль — запис зі своїм набором прав, а не рядок у коді: її можна
    перейменувати, змінити й завести нову, не чіпаючи нікого з людей. */
