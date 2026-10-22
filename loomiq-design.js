@@ -2042,6 +2042,40 @@
      «третім» ставала робота: картка показувала її замість аркуша, а
      клієнту їхав голий файл. Тепер кожен файл знає, що він такое (`role`),
      а старі версії розпізнаються за тим, як їх клала своя здача. */
+  /* З ПОЗИЦІЇ — У БАЗОВІ (22.10, Андрій: «ескізи, які роблять наші
+     дизайнери, люди хочуть такі самі… зробити базовим»). Що з позиції йде
+     в готовий дизайн: заставка — картинка, яку погодив клієнт (мокап
+     погодженої версії); принт — робочий PNG графічного дизайнера; файли
+     — вишивальні (DST, EMB…) або файл друку з останньої здачі; додатково —
+     решта файлів тієї здачі. Чого бракує — у `need`. */
+  function baseFrom(u){
+    var out = { pic: '', arts: [], files: [], extras: [], need: [] };
+    if(!u || u.ready) { out.need.push('позиція вже з готовим дизайном'); return out; }
+    var бери = function(d){
+      var vs = (d && d.vers) || [];
+      if(!vs.length) return null;
+      var n = d.ok && d.ok.ver;
+      return vs.filter(function(v){ return v.n === n; })[0] || vs[vs.length - 1];
+    };
+    var уже = {};
+    var клади = function(l, f){ if(f && f.url && !уже[f.url]){ уже[f.url] = 1; l.push({ name: String(f.name || 'файл'), url: String(f.url) }); } };
+    var gl = dzList(u, 'graphic').filter(function(x){ return x && x.ok; });
+    gl.forEach(function(g){
+      var p = verParts(бери(g));
+      if(!out.pic) out.pic = ((p.mock[0] || p.sheet || p.work[0]) || {}).url || '';
+      p.work.forEach(function(f){ клади(out.arts, f); });
+    });
+    var sl = dzList(u, 'stitch').filter(function(x){ return x && (x.vers || []).length; });
+    sl.forEach(function(s){
+      var p = verParts(бери(s));
+      p.machine.forEach(function(f){ клади(out.files, f); });
+      p.extra.concat(p.shot, p.svg, p.orig).forEach(function(f){ клади(out.extras, f); });
+    });
+    if(!gl.length) out.need.push('ескіз ще не погоджено');
+    else if(!out.arts.length) out.need.push('немає робочого PNG у погодженій версії');
+    if(!out.files.length) out.need.push(techOf(u) === 'dtf' ? 'немає файлу друку' : 'немає вишивальних файлів');
+    return out;
+  }
   function verParts(v){
     var fs = (v && v.files) || [];
     var хеш = fs.some(function(f){ return f && f.hash; });
@@ -2891,7 +2925,7 @@
     /* Строк дизайнера й дві його відповіді на передачу. */
     dzTake: dzTake, dzDecline: dzDecline,
     dzInQueue: dzInQueue, dzQueue: dzQueue, dzClaim: dzClaim, dzRecall: dzRecall,
-    verParts: verParts, verSpots: verSpots, msgRole: msgRole,
+    verParts: verParts, baseFrom: baseFrom, verSpots: verSpots, msgRole: msgRole,
     unitMissing: unitMissing, graphicDone: graphicDone, placeLocked: placeLocked,
     clothOk: clothOk, clothConfirm: clothConfirm, dzReal: dzReal,
     BUY_ST: BUY_ST, buyReady: buyReady, buyKey: buyKey, buyQty: buyQty, buyOf: buyOf, buyStateOf: buyStateOf,
@@ -5235,6 +5269,21 @@
   /* 22.10 (Андрій): рядок на тому ж рівні, без «Той самий ескіз, що й
      позиція 1» — це й так видно з того, де він стоїть. «＋ Товар з цим
      ескізом» — під останнім рядком групи, а не під позицією 1. */
+  /* «★ Зробити базовим» (22.10) — лише власнику, лише в B2C, лише для
+     позиції зі своїм дизайном. Уже зроблено — «✓ У базових», відкриває його. */
+  function baseMakeHtml(job, u, opt){
+    if(!(opt && opt.o && opt.o.dir === 'b2c') || u.ready || D.linkOf(u)) return '';
+    if(((host.role && host.role()) || '') !== 'owner') return '';
+    var є = null;
+    try{ є = host.readyFrom ? host.readyFrom(opt.o.orderId, u.id) : null; }catch(e){}
+    if(є) return '<div class="dz-base-mk"><button type="button" class="dz-b dz-base-b is-done" data-do="u-base-make" data-u="' + esc(u.id) + '" ' +
+      'title="Відкрити готовий дизайн «' + esc(є.name || '') + '»">✓ У базових</button></div>';
+    var f = D.baseFrom(u);
+    var ок = !f.need.length;
+    return '<div class="dz-base-mk"><button type="button" class="dz-b dz-base-b" data-do="u-base-make" data-u="' + esc(u.id) + '"' +
+      (ок ? ' title="Покласти ескіз і файли цієї позиції в готові дизайни"' : ' disabled title="Ще не можна: ' + esc(f.need.join('; ')) + '"') +
+      '>★ Зробити базовим</button>' + (ок ? '' : '<i class="dz-base-why">' + esc(f.need.join('; ')) + '</i>') + '</div>';
+  }
   function linkedRowsHtml(job, u, opt){
     var l = D.linksOf(job, u);
     if(!l.length) return '';
@@ -5366,6 +5415,7 @@
       '</div>' +
       /* ── ДИЗАЙН: хто малює й що вже намальовано ── */
       capHtml('Дизайн') +
+      ((ro || only) ? '' : baseMakeHtml(job, u, opt)) +
       /* Індивідуальний чи готовий (13.10). Дизайнер свою половину бачить як
          раніше — перемикача в нього немає. */
       ((ro || only) ? '' : designKindHtml(u, job)) +
@@ -11254,6 +11304,23 @@
         render(document.getElementById('dzRoot'));
         if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
       }, { title: 'Яка проблема? Побачить керівник', go: 'Позначити' });
+    }
+    /* ── З ПОЗИЦІЇ — У БАЗОВІ (22.10): лише власник ── */
+    if(what === 'u-base-make'){
+      var bu = null, bo = null, bj = null;
+      if(data && data.u){
+        U.pairs().some(function(p){ var x = U.unitsOf(p.job).filter(function(z){ return z.id === data.u; })[0];
+          if(x){ bu = x; bo = p.o; bj = p.job; return true; } return false; });
+      }
+      if(!bu || !bo) return say('Позицію не знайдено');
+      if(((host().role && host().role()) || '') !== 'owner') return say('Робити базовим може лише власник');
+      var був = host().readyFrom ? host().readyFrom(bo.orderId, bu.id) : null;
+      if(був){ if(host().readyOpen) host().readyOpen(був.id); return; }
+      var ф = D.baseFrom(bu);
+      if(ф.need.length) return say('Ще не можна: ' + ф.need.join('; '));
+      if(!host().readyMake) return say('Готові дизайни доступні з робочого місця');
+      return host().readyMake({ name: 'Ескіз ' + U.jobNo(bj), tags: '', pic: ф.pic, arts: ф.arts, files: ф.files, extras: ф.extras,
+        from: { orderId: bo.orderId, unit: bu.id } });
     }
     /* ── ВІДМОВА (22.10): акаунт і власник; повернути — ті самі ── */
     if(what === 'refuse' || what === 'refuse-back'){

@@ -32,7 +32,7 @@ GitHub Actions → «pages build and deployment»; допомагає насту
    діалог + усе фонове; людина лишається, де була).
 
 **Повний прогін:** `ls tests/*.mjs | grep -v money-rules | xargs -P3 -I{} sh -c 'node {} >/tmp/claude-0/t_$(basename {}).log 2>&1 || echo "FAIL {}"'`
-(184 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
+(185 тестів, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
 `card-weight`, `threads`; `crm-pics` часом падає з «Execution context was
 destroyed» — це Chromium «Promise was collected» на await усередині
 `page.evaluate` (сторінка жива, навігації немає; розібрано 21–22.10),
@@ -162,6 +162,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   акаунта. `D.REFUSE_REASONS / refusalOf / refuseGuess`, `pairsLive`,
   `b2cRefuse / b2cRefuseBack`, `o.refusal`, `o.refuseHist`. Аналітики
   відмов ще немає — дані для неї вже пишуться. `tests/refuse.mjs`.
+- **«★ Зробити базовим»** (22.10): власник у позиції B2C зі своїм дизайном
+  (погоджений ескіз + вишивальні файли / файл друку) — вікно готового
+  дизайну поверх картки, заповнене: заставка = мокап погодженої клієнтом
+  версії, принт = робочий PNG, файли = DST/EMB, додатково = скрін/SVG.
+  `D.baseFrom(u)`, `baseMakeHtml`, act `u-base-make`; адмінка `rdMakeFrom /
+  rdOpenPop / rdFromOf`, `#rd-pop`, поле `from {orderId, unit}` — без
+  дублів («✓ У базових»). `tests/base-make.mjs`.
 
 **Відкриті питання Андрія (чекають відповіді/рішення):**
 - **«Підсумки по таблетках»** — не уточнено, про які таблетки.
