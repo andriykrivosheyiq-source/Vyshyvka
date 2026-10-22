@@ -32,7 +32,7 @@ GitHub Actions → «pages build and deployment»; допомагає насту
    діалог + усе фонове; людина лишається, де була).
 
 **Повний прогін:** `ls tests/*.mjs | grep -v money-rules | xargs -P3 -I{} sh -c 'node {} >/tmp/claude-0/t_$(basename {}).log 2>&1 || echo "FAIL {}"'`
-(173 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
+(181 тест, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
 `card-weight`, `threads`; `crm-pics` часом падає з «Execution context was
 destroyed» — це Chromium «Promise was collected» на await усередині
 `page.evaluate` (сторінка жива, навігації немає; розібрано 21–22.10),
@@ -124,6 +124,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `draftNew`/`draftCommit`/`draftDrop`/`draftMissing` у `loomiqadmin.html`,
   кнопка «Створити замовлення» й «✓ Замовлення створено» в нижній смузі
   (`writeHtml`, act `order-create`). `tests/new-draft.mjs`.
+- **Заслона доступів** (22.10, «перші секунди відкривається все»): до
+  приходу `loomiq/photos` — `#acc-gate` «Завантажую доступи…», `myAccReal`
+  → `ACC_NONE`, `myRole` → `''`; 20 с без документа — «не вдалось» +
+  «Спробувати ще раз» (`accGate`, `ACC_WAIT_MS`, `window.LQ_ACC_WAIT_MS`
+  для тестів). Правило в `CLAUDE.md`. `tests/acc-gate.mjs`.
 
 **Відкриті питання Андрія (чекають відповіді/рішення):**
 - **«Підсумки по таблетках»** — не уточнено, про які таблетки.
