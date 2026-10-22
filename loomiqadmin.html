@@ -7949,33 +7949,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=77e0ebb2fb"></script>
-<script src="loomiq-fingerprint.js?v=77e0ebb2fb"></script>
-<script src="loomiq-pricing.js?v=77e0ebb2fb"></script>
+<script src="loomiq-select.js?v=87f5736cf3"></script>
+<script src="loomiq-fingerprint.js?v=87f5736cf3"></script>
+<script src="loomiq-pricing.js?v=87f5736cf3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=77e0ebb2fb"></script>
+<script src="loomiq-money-core.js?v=87f5736cf3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=77e0ebb2fb"></script>
-<script src="loomiq-bg.js?v=77e0ebb2fb"></script>
-<script src="loomiq-mock.js?v=77e0ebb2fb"></script>
+<script src="loomiq-design.js?v=87f5736cf3"></script>
+<script src="loomiq-bg.js?v=87f5736cf3"></script>
+<script src="loomiq-mock.js?v=87f5736cf3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=77e0ebb2fb"></script>
+<script src="imagetracer.js?v=87f5736cf3"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=77e0ebb2fb"></script>
-<script src="loomiq-threads.js?v=77e0ebb2fb"></script>
+<script src="loomiq-chat.js?v=87f5736cf3"></script>
+<script src="loomiq-threads.js?v=87f5736cf3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=77e0ebb2fb"></script>
+<script src="loomiq-cards.js?v=87f5736cf3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8020,7 +8020,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '77e0ebb2fb';
+var LQ_VER = '87f5736cf3';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -29328,21 +29328,25 @@ const ROLE_PRESET = {
      колись переплутають із потрібним. */
   /* Переписку з клієнтом цех бачить (05.10) — щоб звірити, що домовлено;
      писати клієнту — ні (права 'write' немає). */
-  production: preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
+  /* ВИРОБНИЧІ РОЛІ — ЛИШЕ B2C (22.10, Андрій: «прибрати задачі й дашборди,
+     доступ тільки до B2C»). Зліва один розділ «Замовлення B2C», у ньому —
+     своя дошка (цех, закупівля, друк, DTF). Листування з клієнтом — лише
+     читати, і лише цеху; закупівлі, друку й DTF — нічого про клієнта. */
+  production: preset({ ui:'production', nav:['design'], boards:['prod'],
                 see:['chat'], can:['stage'] }),
   /* Оператори: передрук, нове, очікуємо одяг, готово до роботи, на станках. */
-  operator:   preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
+  operator:   preset({ ui:'production', nav:['design'], boards:['prod'],
                 see:['chat'], can:['stage'], cols:['redo','new','wait','ready','run'] }),
   /* Контроль якості: на станках, чекає погодження, можна відправляти
      (окремої колонки «Контроль якості» з 06.10 немає — це кнопка «Готово»). */
-  qcprod:     preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
+  qcprod:     preset({ ui:'production', nav:['design'], boards:['prod'],
                 see:['chat'], can:['stage'], cols:['run','appr','ship'] }),
   /* ДРУК (21.10, Андрій): DTF-дизайнер — як вишивальний, лише на дошці
      друку; «Друк» — окреме виробництво зі своєю дошкою «друкується → готово». */
   dtf:        preset({ ui:'designer', nav:['design'], boards:['embro'],
                 see:[], can:['stitch'] }),
-  print:      preset({ ui:'production', nav:['today','dash','board'], boards:['prod'],
-                see:['chat'], can:['stage'] }),
+  print:      preset({ ui:'production', nav:['design'], boards:['prod'],
+                see:[], can:['stage'] }),
   /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
      до відправки, в обох напрямах. Собівартість лишається у власника — вона
      не потрібна нікому, хто не ухвалює рішення про ціну закупівлі, а зайве
@@ -29354,7 +29358,7 @@ const ROLE_PRESET = {
                      'art','approve','pack'] }),
   /* Закупівля бачить рівно свою дошку: що, якого кольору, яких розмірів,
      скільки й до якого числа. Ні макетів, ні клієнта, ні цін продажу. */
-  supply:     preset({ ui:'production', nav:['today','dash','board'], boards:['supply'],
+  supply:     preset({ ui:'production', nav:['design'], boards:['supply'],
                 see:[], can:['stage','export'] }),
   /* Вишивальний дизайнер має свою дошку: він програмує машину, і це окрема
      робота з окремою чергою, а не частина графічного дизайну. */
@@ -30783,11 +30787,12 @@ function wireTeamPane(box){
    до них самі не доходять: міняємо збережені рівно в цих чотирьох місцях —
    «Менеджер B2B» (лише B2B), новий «Менеджер B2C», графічний і вишивальний
    (лише «Замовлення B2C»). Права (що можна робити в картці) не чіпаємо. */
-const ROLES_SEED = 1;
+const ROLES_SEED = 2;
 let rolesSeeding = false;
 async function rolesSeedOnce(){
   if(rolesSeeding || !canSetup() || !contentLoaded) return;
-  if(+(contentData.rolesSeed || 0) >= ROLES_SEED) return;
+  const було = +(contentData.rolesSeed || 0);
+  if(було >= ROLES_SEED) return;
   const saved = contentData.roles;
   rolesSeeding = true;
   try{
@@ -30795,12 +30800,35 @@ async function rolesSeedOnce(){
       const list = JSON.parse(JSON.stringify(saved));
       const set = (k, nav, name) => { const r = list.find(x => x && x.key === k); if(!r) return;
         r.nav = nav.slice(); r.navAll = ZONE_NAV.map(z => z.key); if(name) r.name = name; };
-      set('manager', ['board','chats'], 'Менеджер B2B');
-      set('designer', ['design']);
-      set('embroidery', ['design']);
-      if(!list.some(x => x && x.key === 'managerb2c'))
-        list.push(Object.assign({ key:'managerb2c', name:'Менеджер B2C', navAll: ZONE_NAV.map(z => z.key) },
-          JSON.parse(JSON.stringify(ROLE_PRESET.managerb2c))));
+      if(було < 1){
+        set('manager', ['board','chats'], 'Менеджер B2B');
+        set('designer', ['design']);
+        set('embroidery', ['design']);
+        if(!list.some(x => x && x.key === 'managerb2c'))
+          list.push(Object.assign({ key:'managerb2c', name:'Менеджер B2C', navAll: ZONE_NAV.map(z => z.key) },
+            JSON.parse(JSON.stringify(ROLE_PRESET.managerb2c))));
+      }
+      /* 22.10: виробничі ролі — лише «Замовлення B2C» і що бачать у картці.
+         Галочки «може» й колонки не чіпаємо — їх Андрій правив руками. */
+      if(було < 2){
+        ['production','operator','qcprod','supply','print','dtf'].forEach(k => {
+          const pr = ROLE_PRESET[k]; if(!pr) return;
+          /* Лише ті, що вже є: прибрану роль не воскрешаємо. Відсутні
+             вбудовані (оператори, контроль, друк, DTF) підставляє roleDefs
+             з пресету — уже з новими доступами. */
+          const r = list.find(x => x && x.key === k);
+          if(!r) return;
+          /* Права «може» фіксуємо рівно як є: без canAll roleFill сам
+             дописав би їх із нових розділу й «бачить» (погоджувати,
+             пакувати, писати клієнту) — цього ніхто не давав. */
+          if(!Array.isArray(r.canAll)){
+            const cur = r.can === '*' ? ZONE_CAN.map(z => z.key) : (Array.isArray(r.can) ? r.can.slice() : []);
+            r.can = cur; r.canAll = ZONE_CAN.map(z => z.key);
+          }
+          r.nav = ['design']; r.navAll = ZONE_NAV.map(z => z.key);
+          r.see = (pr.see || []).slice();
+        });
+      }
       await PHOTOS_DOC.set({ roles: list, rolesSeed: ROLES_SEED }, { merge:true });
       contentData.roles = list;
     }else{

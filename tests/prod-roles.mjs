@@ -1,11 +1,11 @@
-/* Ролі цеху на виробничій дошці B2C (Андрій, 06.10).
+/* РОЛІ ВИРОБНИЦТВА — ЛИШЕ B2C (22.10).
 
-   Оператори — Передрук, Нове, Очікуємо одяг, Готово до роботи, На станках.
-   Контроль якості — На станках, Контроль якості, Чекає погодження, Можна
-   відправляти. Виробництво (загальне) — уся дошка. Партія в браку стоїть у
-   новій колонці «Передрук».
+   Андрій: «прибрати задачі й дашборди, доступ тільки до B2C. Виробництво,
+   оператори, контроль — цех; закупівля — лише дошка закупівлі; друк — своя
+   дошка; DTF-дизайнер — дошка DTF. Листування — лише читати, і лише цеху;
+   закупівлі, друку й DTF про клієнта нічого».
 
-   Запуск:  node tests/prod-roles.mjs  */
+   Запуск:  node tests/prod-roles.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'node:fs';
 import { createServer } from 'node:http';
@@ -13,10 +13,10 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const PORT = 8893;
-const MIME = { '.html':'text/html; charset=utf-8', '.js':'application/javascript; charset=utf-8',
-               '.css':'text/css', '.json':'application/json', '.svg':'image/svg+xml',
-               '.png':'image/png', '.webp':'image/webp' };
+const PORT = 8953;
+const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css',
+               '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
+               '.webp':'image/webp' };
 const srv = createServer(async (req, res) => {
   const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, ''));
   try{
@@ -32,43 +32,41 @@ let bad = 0;
 const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong + ' ✗')); if(!c) bad++; };
 const errs = [];
 
-/* Замовлення, як його бачить відділ: худі з вишивкою спереду й ззаду —
-   це ДВА різні файли, — і футболки з друком, яких вишивка не стосується. */
-const ORDER = {
-  id:'d1', orderId:'1003100', type:'client', name:'Андрій', company:'ARMORIX',
-  phone:'+380670003100', status:'kp', site:'main', payments:[], offerToken:'tokdz',
-  createdAt:'2026-09-10T09:00:00.000Z', hist:[], offerDays:7,
-  items:[
-    { kind:'main', name:'Худі базове', garmentId:'hoodie', color:'Чорний', qty:20,
-      sizes:'M × 20', print:'Вишивка', unitPrice:1200, price:24000,
-      desc:{ method:'embro' },
-      prints:[
-        { side:'front', sideLabel:'Перед', technique:'Вишивка', widthMm:80, heightMm:45,
-          mark:{ topMm:210, centerMm:0 }, file:'https://cdn.test/logo.png' },
-        { side:'back',  sideLabel:'Спина', technique:'Вишивка', widthMm:240, heightMm:120,
-          mark:{ topMm:180, centerMm:0 }, file:'https://cdn.test/logo.png' }
-      ] },
-    { kind:'main', name:'Футболка базова', garmentId:'tshirt', color:'Білий', qty:30,
-      sizes:'M × 30', print:'Друк', unitPrice:400, price:12000,
-      desc:{ method:'dtf' },
-      prints:[ { side:'front', sideLabel:'Перед', technique:'DTF', widthMm:200, heightMm:260,
-                 file:'https://cdn.test/logo.png' } ] },
-    { kind:'reco', name:'Кепка', garmentId:'cap', qty:10, unitPrice:300, price:3000,
-      prints:[ { side:'front', sideLabel:'Перед', technique:'Вишивка', widthMm:60, heightMm:40 } ] }
-  ]
+const CONTENT = {
+  team: [{ email:'test@loomiq', name:'Оля',       role:'owner' },
+         { email:'p@loomiq',    name:'Петро',     role:'designer' },
+         { email:'e@loomiq',    name:'Віра',      role:'embroidery' },
+         { email:'d@loomiq',    name:'Данило',    role:'dtf' },
+         { email:'r@loomiq',    name:'Роман',     role:'print' }],
+  b2c: {},
+  rolesSeed: 1,
+  roles: [{ key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*', see:['client','chat','cost'], can:'*' },
+          { key:'production', name:'Виробництво', ui:'production', nav:['today','dash','board'], navAll:['today','dash','board'],
+            boards:['prod'], see:['chat','client'], can:['stage','files'] },
+          { key:'supply', name:'Закупівля', ui:'production', nav:['today','dash','board'], navAll:['today','dash','board'],
+            boards:['supply'], see:['chat'], can:['stage','export'] }],
+  products: { retail: { tee: 600, hoodie: 1200 }, retailReady: { tee: 450, hoodie: 950 },
+              retailCost: { tee: 300, hoodie: 600 }, retailCostReady: { tee: 250, hoodie: 520 } }
 };
+const ORDERS = [
+  { id:'1', orderId:'2000301', type:'client', dir:'b2c', name:'Асія', phone:'+380670001122', status:'prorahunok', site:'main',
+    payments:[{ sum:300, at:'2026-10-18T09:00:00.000Z', kind:'prepay' }], hist:[], createdAt:'2026-10-18T09:00:00.000Z', crmChatId:'c1', crmChatName:'Асія', totalPrice: 0, items:[] },
+  { id:'2', orderId:'2000302', type:'client', dir:'b2c', name:'Б', status:'prorahunok', site:'main', crmChatId:'c2',
+    payments:[{ sum:300, at:'2026-10-18T10:00:00.000Z', kind:'prepay' }], hist:[], createdAt:'2026-10-18T10:00:00.000Z', totalPrice: 0, items:[] }
+];
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={',
-  'window.__ORDERS=' + JSON.stringify([ORDER]) + ';\n  window.__SAVED={};\n  window.firebase={');
+  'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n' +
+  '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
 fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
   'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };');
-fbstub = fbstub.replace('Doc.prototype.set=function(){ return Promise.resolve(); };',
-  'Doc.prototype.set=function(d){ if(this.__col==="designJobs")\n' +
-  '    window.__SAVED[this.__id]=JSON.parse(JSON.stringify(d));\n' +
-  '  return Promise.resolve(); };');
 fbstub = fbstub.replace(
-  'var fs=function(){ return { collection:function(){ return new Col(); },',
+  "Doc.prototype.onSnapshot=function(cb){ try{ cb(new Snap('x', null)); }catch(e){} return function(){}; };",
+  'Doc.prototype.onSnapshot=function(cb){ var d=null;\n' +
+  "    if(this.__col==='loomiq' && this.__id==='photos') d=window.__CONTENT;\n" +
+  "    try{ cb(new Snap(this.__id||'x', d)); }catch(e){ console.error(e); } return function(){}; };");
+fbstub = fbstub.replace('var fs=function(){ return { collection:function(){ return new Col(); },',
   'function SeedCol(){}\n' +
   '  SeedCol.prototype=Object.create(Col.prototype);\n' +
   '  SeedCol.prototype.onSnapshot=function(cb){ try{ cb({\n' +
@@ -76,12 +74,14 @@ fbstub = fbstub.replace(
   '    forEach:function(f){ window.__ORDERS.forEach(function(o){ f(new Snap(o.id,o)); }); },\n' +
   '    empty:false }); }catch(e){ console.error(e); } return function(){}; };\n' +
   '  var fs=function(){ return { collection:function(n){\n' +
-  "      var c = n==='kanbanOrders' ? new SeedCol() : new Col(); c.__n=n; return c; },");
+  "      if(n==='kanbanOrders') return new SeedCol();\n" +
+  '      var c=new Col(); c.__n=n; return c; },');
 
-const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
-const p = await browser.newPage({ viewport:{ width:1500, height:1000 } });
+const browser = await chromium.launch({
+  executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const p = await browser.newPage({ viewport:{ width:1500, height:940 } });
 p.on('pageerror', e => errs.push(e.message.slice(0, 180)));
-p.on('dialog', d => d.accept());
+p.on('dialog', d => d.accept(''));
 await p.route('**://**', r => {
   const u = r.request().url();
   if(/gstatic\.com\/firebasejs/.test(u))
@@ -90,75 +90,71 @@ await p.route('**://**', r => {
   return r.abort();
 });
 await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
-await p.waitForTimeout(5200);
+await p.waitForTimeout(3500);
 await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none'; });
 
 
-const cols = role => p.evaluate(async (role) => {
-  contentData.team = [{ email: myEmail() || 'test@loomiq', name:'Тест', role }];
-  const U = window.LQDesign.ui;
-  U.setTab('acct');
-  openDesign();
-  U.render(document.getElementById('dzRoot'));
-  await new Promise(r => setTimeout(r, 200));
-  return { seat: U.tab(), cols: [...document.querySelectorAll('#dzRoot .dz-col-h')]
-    .map(e => (e.firstChild && e.firstChild.textContent || e.textContent || '').trim()).filter(Boolean) };
-}, role);
 
-console.log('═══ КОЛОНКИ ЗА РОЛЛЮ ═══');
-const оп = await cols('operator'), кя = await cols('qcprod'), заг = await cols('production');
-console.log('  оператори: ' + JSON.stringify(оп));
-console.log('  контроль якості: ' + JSON.stringify(кя));
-console.log('  виробництво: ' + JSON.stringify(заг));
-const має = (r, l) => r.cols.some(t => t.indexOf(l) === 0);
-ok(оп.seat === 'prod' && ['Передрук','Нове','Очікуємо одяг','Готово до роботи','На станках'].every(l => має(оп, l)) &&
-   !['Контроль якості','Чекає погодження','Можна відправляти','Реєстр'].some(l => має(оп, l)),
-  'оператори бачать передрук … на станках, і нічого далі', 'оператори: ' + JSON.stringify(оп));
-ok(кя.seat === 'prod' && ['На станках','Чекає погодження','Можна відправляти'].every(l => має(кя, l)) &&
-   !['Передрук','Нове','Очікуємо одяг','Реєстр','Контроль якості'].some(l => має(кя, l)),
-  'контроль якості бачить на станках … можна відправляти', 'контроль якості: ' + JSON.stringify(кя));
-ok(заг.seat === 'prod' && ['Передрук','Нове','На станках','Можна відправляти','Реєстр','Передано курʼєру'].every(l => має(заг, l)),
-  'виробництво (загальне) бачить усю дошку', 'виробництво: ' + JSON.stringify(заг));
+
+
+const ЖДИ = ms => p.waitForTimeout(ms);
+
+console.log('═══ 1. РАЗОВЕ ДОВЕДЕННЯ ЗБЕРЕЖЕНИХ РОЛЕЙ ═══');
+const m = await p.evaluate(async () => {
+  contentData.rolesSeed = 1;
+  await rolesSeedOnce();
+  const r = k => (contentData.roles || []).find(x => x.key === k) || {};
+  return { seed: contentData.rolesSeed, prod: r('production'), sup: r('supply'),
+           keys: (contentData.roles || []).map(x => x.key) };
+});
+console.log('   ' + JSON.stringify({ seed: m.seed, prod: { nav: m.prod.nav, see: m.prod.see, can: m.prod.can }, sup: { nav: m.sup.nav, see: m.sup.see } }));
+ok(m.seed === 2 && m.prod.nav.join() === 'design' && m.prod.see.join() === 'chat' && m.prod.can.join() === 'stage,files',
+  'Виробництво: розділ лише «Замовлення B2C», бачить лише листування; галочки «може», поставлені руками, не зачеплено', JSON.stringify(m.prod));
+ok(m.sup.nav.join() === 'design' && !m.sup.see.length, 'Закупівля: лише «Замовлення B2C», про клієнта нічого (листування теж)', JSON.stringify(m.sup));
+const всі = await p.evaluate(() => roleDefs().filter(r => ['operator','qcprod','print','dtf'].indexOf(r.key) >= 0).map(r => r.key + ':' + [].concat(r.nav).join('|')));
+ok(всі.length === 4 && всі.every(x => /:design$/.test(x)), 'відсутні вбудовані (оператори, контроль, друк, DTF) підставляються з пресету — уже лише з «Замовлення B2C»', JSON.stringify(всі));
+ok(m.keys.indexOf('operator') < 0, 'прибрані чи незаведені ролі в збережений список не дописуємо', JSON.stringify(m.keys));
+/* Без canAll система сама дописала б права з нових розділу й «бачить»:
+   погоджувати, пакувати, писати клієнту. Доведення їх фіксує як є. */
+const пр = await p.evaluate(() => { const r = (contentData.roles || []).find(x => x.key === 'production');
+  const f = roleFill(JSON.parse(JSON.stringify(r))); return f.can; });
+ok(пр.join() === 'stage,files', 'після доведення права Виробництва ті самі: жодних «погоджувати / пакувати / писати клієнту» з нового розділу', JSON.stringify(пр));
 
 console.log('');
-console.log('═══ БРАК — У «ПЕРЕДРУК» ═══');
-const стан = await p.evaluate(() => {
-  const D = window.LQDesign;
-  return { брак: D.prodAt({}, { tracks:{ prod:'done', qc:'bad' } }),
-           виправлено: D.prodAt({}, { tracks:{ prod:'done', qc:'check' } }),
-           зроблено: D.prodAt({}, { tracks:{ prod:'done' } }) };
-});
-ok(стан.брак === 'redo' && стан.виправлено === 'appr' && стан.зроблено === 'appr',
-  'брак → Передрук; фото здано → Чекає погодження (окремої колонки «Контроль якості» з 06.10 немає)', JSON.stringify(стан));
-
-console.log('');
-console.log('═══ РОЛІ Є В СПИСКУ, НАВІТЬ ЯКЩО СПИСОК УЖЕ ЗБЕРЕГЛИ ═══');
-const ролі = await p.evaluate(() => {
-  contentData.roles = [{ key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*', see:[], can:'*' }];
-  return roleDefs().map(r => r.key + ':' + (r.cols || []).join('/'));
-});
-console.log('  ' + ролі.join(' · '));
-ok(ролі.some(r => r.indexOf('operator:redo/') === 0) && ролі.some(r => r.indexOf('qcprod:run/') === 0),
-  'оператори й контроль якості додались до збережених ролей', 'ролі: ' + ролі.join(', '));
-
-console.log('');
-console.log('═══ СТАТУСИ НОВОЇ ПОШТИ — САМІ (07.10) ═══');
-const нп = await p.evaluate(async () => {
-  contentData.bgApi = Object.assign({}, contentData.bgApi, { npUrl:'https://np.test/x' });
-  const o = { id:'np1', orderId:'2009001', ttn:'20450000000999', reg:{ ref:'R1' }, tracks:{ qc:'ok' }, prodQc:{} };
-  const o2 = { id:'np2', orderId:'2009002', ttn:'20450000000998', reg:{ ref:'R1' }, npSt:{ code:'9' } };
-  orders.push(o, o2);
-  const питали = [];
-  npCall = async (op, extra) => { питали.push(op + ':' + (extra.ttns || []).map(t => t.ttn).join('|'));
-    return { ok:true, list:[{ ttn:'20450000000999', code:'7', status:'Прибув у відділення' }] }; };
-  await prodNpPoll(true);
-  return { питали, st: o.npSt, етап: window.LQDesign.prodAt({}, o) };
-});
-console.log('  ' + JSON.stringify(нп));
-ok(нп.питали.length === 1 && нп.питали[0] === 'trackMany:20450000000999' && нп.st && нп.st.code === '7' && нп.st.arrivedAt && нп.етап === 'arrived',
-  'опитування питає лише незакриті посилки з реєстрів і переставляє картку («Прибуло»)', JSON.stringify(нп));
+console.log('═══ 2. КОЖНА РОЛЬ: РОЗДІЛ ЗЛІВА, СВОЯ ДОШКА, ЩО БАЧИТЬ ═══');
+const ЧЕКАЮ = {
+  production: { seat:'prod',   chat:true  },
+  operator:   { seat:'prod',   chat:true,  cols:['Передрук','Нове','Очікуємо одяг','Готово до роботи','На станках'] },
+  qcprod:     { seat:'prod',   chat:true,  cols:['На станках','Чекає погодження','Можна відправляти'] },
+  supply:     { seat:'supply', chat:false },
+  print:      { seat:'print',  chat:false },
+  dtf:        { seat:'dtf',    chat:false }
+};
+for(const [role, w] of Object.entries(ЧЕКАЮ)){
+  const r = await p.evaluate(async role => {
+    contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role }) : x);
+    applyRoleUi();
+    await new Promise(r => setTimeout(r, 50));
+    const nav = [...document.querySelectorAll('.nav button[data-view]')].filter(b => !b.hidden && b.offsetParent !== null).map(b => b.dataset.view);
+    const b = document.querySelector('.nav button[data-view="design"]'); if(b) b.click();
+    const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot'));
+    const cols = [...document.querySelectorAll('#dzRoot .dz-col-h, #dzRoot .dz-colh, #dzRoot .dz-col > h3, #dzRoot .dz-col-t')]
+      .map(x => x.textContent.replace(/\d+$/, '').trim()).filter(Boolean);
+    return { nav, seat: U.tab(), chat: canSeeChat(), client: canSeeClient(), cost: canSeeCost(),
+             write: may('can', 'write'), pay: canPay(), as: !!document.querySelector('#dzRoot [data-seat]'), cols };
+  }, role);
+  const navOk = r.nav.length === 1 && r.nav[0] === 'design';
+  ok(navOk, role + ': зліва лише «Замовлення B2C»', role + ' розділи: ' + JSON.stringify(r.nav));
+  ok(r.seat === w.seat && !r.as, role + ': одразу на своїй дошці («' + w.seat + '»), перемикача чужих дошок немає', role + ': ' + JSON.stringify({ seat: r.seat, as: r.as }));
+  ok(r.chat === w.chat && !r.client && !r.cost && !r.write,
+    role + ': ' + (w.chat ? 'листування лише читати' : 'про клієнта нічого') + ', без контактів, собівартості й «писати клієнту»',
+    role + ': ' + JSON.stringify(r));
+  if(w.cols) ok(w.cols.every(c => r.cols.some(x => x.indexOf(c) === 0)) && r.cols.length <= w.cols.length + 1,
+    role + ': колонки — ' + w.cols.join(', '), role + ' колонки: ' + JSON.stringify(r.cols));
+}
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
+console.log(bad ? 'розходжень: ' + bad : 'виробничі ролі — лише B2C, кожна на своїй дошці');
 process.exit(bad ? 1 : 0);

@@ -6944,7 +6944,8 @@
   }
   function asRole(){
     var t = U.tab();
-    return t === 'graphic' ? 'graphic' : t === 'stitch' ? 'stitch' : 'acct';
+    /* DTF-дизайнер — той самий другий етап, що й вишивальний (21.10). */
+    return t === 'graphic' ? 'graphic' : (t === 'stitch' || t === 'dtf') ? 'stitch' : 'acct';
   }
   function save(job, o, msg){
     job.updatedAt = new Date().toISOString();
@@ -10123,8 +10124,8 @@
     /* ПЕРЕТЯГУВАННЯ НА ДОШЦІ ЦЕХУ (Володимир, 06.10): оператор переносить
        картку мишкою. Дозволено лише ручні переходи (D.prodCanMove); колонка,
        куди не можна, не підсвічується й нічого не приймає. */
-    if(U.tab() === 'prod' || U.tab() === 'acct'){
-      var цех = U.tab() === 'prod';
+    if(U.tab() === 'prod' || U.tab() === 'print' || U.tab() === 'acct'){
+      var цех = U.tab() === 'prod' || U.tab() === 'print';
       var можна = цех ? D.prodCanMove : D.acctCanMove;
       var тягну = null;
       root.querySelectorAll('.dz-board .dz-col [data-open]').forEach(function(c){
