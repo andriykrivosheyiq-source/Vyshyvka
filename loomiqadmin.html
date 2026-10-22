@@ -4842,6 +4842,16 @@
   .dz-create-b[disabled]{opacity:.5;cursor:not-allowed;}
   .dz-create.is-done{font-weight:700;color:#0E9F6E;font-size:13.5px;}
   .dz-pay-draft{font-style:normal;color:#B45309;font-size:11.5px;}
+  /* Заслона доступів (22.10): поки не приїхала команда, видно лише її. */
+  #acc-gate{position:fixed;inset:0;z-index:190;background:#171717;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .ag-box{max-width:360px;text-align:center;color:#E5E7EB;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  .ag-box b{display:block;font-size:17px;margin:12px 0 6px;}
+  .ag-box p{margin:0;font-size:13.5px;color:#9CA3AF;line-height:1.45;}
+  .ag-box button{margin-top:14px;font:inherit;font-size:13.5px;padding:9px 16px;border-radius:10px;border:0;background:#fff;color:#171717;cursor:pointer;}
+  .ag-spin{width:28px;height:28px;margin:0 auto;border:3px solid #374151;border-top-color:#A78BFA;border-radius:50%;animation:agspin .9s linear infinite;}
+  @keyframes agspin{to{transform:rotate(360deg);}}
+  .ag-box.is-bad b{color:#FCA5A5;}
+  body.acc-wait .nav, body.acc-wait main{visibility:hidden;}
   .dz-link-note{margin:4px 0 2px;font-size:12px;color:#3730A3;background:#EEF2FF;border-radius:8px;padding:5px 9px;}
   .dz-link-note b{display:inline-block;min-width:16px;text-align:center;border-radius:5px;background:#C7D2FE;font-size:11px;margin-right:2px;}
   .dz-kind.is-link{align-items:center;gap:8px;padding-left:10px;background:#EEF2FF;border-color:#C7D2FE;}
@@ -7961,33 +7971,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2eda81cd2b"></script>
-<script src="loomiq-fingerprint.js?v=2eda81cd2b"></script>
-<script src="loomiq-pricing.js?v=2eda81cd2b"></script>
+<script src="loomiq-select.js?v=89e13b68ab"></script>
+<script src="loomiq-fingerprint.js?v=89e13b68ab"></script>
+<script src="loomiq-pricing.js?v=89e13b68ab"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=2eda81cd2b"></script>
+<script src="loomiq-money-core.js?v=89e13b68ab"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2eda81cd2b"></script>
-<script src="loomiq-bg.js?v=2eda81cd2b"></script>
-<script src="loomiq-mock.js?v=2eda81cd2b"></script>
+<script src="loomiq-design.js?v=89e13b68ab"></script>
+<script src="loomiq-bg.js?v=89e13b68ab"></script>
+<script src="loomiq-mock.js?v=89e13b68ab"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=2eda81cd2b"></script>
+<script src="imagetracer.js?v=89e13b68ab"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=2eda81cd2b"></script>
-<script src="loomiq-threads.js?v=2eda81cd2b"></script>
+<script src="loomiq-chat.js?v=89e13b68ab"></script>
+<script src="loomiq-threads.js?v=89e13b68ab"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2eda81cd2b"></script>
+<script src="loomiq-cards.js?v=89e13b68ab"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8032,7 +8042,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2eda81cd2b';
+var LQ_VER = '89e13b68ab';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8637,6 +8647,7 @@ fbAuth.onAuthStateChanged(function(user){
   if(inviteBusy){ gate.style.display = 'none'; return; }
   if(user){
     gate.style.display = 'none';
+    if(!contentLoaded) accGate(true);
     if(!appStarted){ appStarted = true; init(); }
   }else{
     gate.style.display = 'flex';
@@ -8802,12 +8813,36 @@ function watchOrders(){
     try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
     try{ calcSoloReturn(); }catch(e){ console.warn('прорахунок з телефона', e); }
     webDupesFix();
-    const board = document.getElementById('view-board');
-    if(board && board.style.display !== 'none') renderBoard();
+    repaintAfterOrders();
   }, function(e){
     ordersWatching = false;
     console.error('orders listen failed', e);
   });
+}
+/* ЗНІМОК ЗАМОВЛЕНЬ ПЕРЕМАЛЬОВУЄ ТЕ, ЩО ВІДКРИТО (22.10).
+
+   Андрій: «статуси не паралельні: в одного оновилось, у другого лишилось
+   старе… щоб у всіх автоматично підтягувалось, а не в одному місці так, а
+   в другому ні». Доти знімок kanbanOrders перемальовував лише дошку B2B.
+   А колонка цеху на дошці B2C рахується з треків ЗАМОВЛЕННЯ
+   (o.tracks.prod/qc/supply → prodAt): оператор посунув картку — решті
+   приїжджав лише цей знімок, і дошка відділу стояла на старому, поки хтось
+   не клацне чи не прийде знімок designJobs. Те саме — списки розмов,
+   Проблемні, Задачі.
+
+   Розділ не міняємо, картку не закриваємо, прокрутку не чіпаємо (дошка
+   тримає своє місце сама, `BOARD_AT`) — лише вміст того, що й так на
+   екрані. Картку з незбереженими правками знімок і далі не підміняє
+   (`ordersHeld`), тож чуже в ній зʼявиться, коли її відкриють знову. */
+function repaintAfterOrders(){
+  const shown = id => { const el = document.getElementById(id); return !!el && el.style.display !== 'none'; };
+  const go = (id, f) => { if(!shown(id)) return; try{ f(); }catch(e){ console.warn('перемалювання після знімка', id, e); } };
+  go('view-board', renderBoard);
+  go('view-design', openDesign);
+  go('view-chats', () => renderChats('b2b'));
+  go('view-chatsc', () => renderChats('b2c'));
+  go('view-problems', renderProblems);
+  go('view-today', renderToday);
 }
 /* ДУБЛІ ЗАЯВОК, ЩО ВЖЕ ЗАВЕЛИСЬ (08.10). Дві картки з тим самим webId —
    одна заявка, забрана двома адмінками до появи сталого id. Лишаємо ту, з
@@ -29703,6 +29738,11 @@ function accIntersect(mine, other){
    нічого не можна. Саме це має отримати той, кого в команду не заводили. */
 const ACC_NONE = { ui:'manager', nav:[], boards:[], see:[], can:[] };
 function myAccReal(){
+  /* ДО ПРИХОДУ ДОСТУПІВ — НІЧОГО (22.10, Андрій: «перші секунди відкривається
+     все, а потім звужується; потрібно, щоб йому навіть не показувалось»).
+     Доти, поки документ команди не приїхав, усіх вважали власником. Тепер
+     — нікого, і екран стоїть за заслоною «Завантажую доступи…». */
+  if(!contentLoaded) return ACC_NONE;
   if(!teamOn()) return presetOf('owner');      // список порожній — доступ повний
   const m = teamMember(myEmail());
   /* Кого немає в списку, той раніше ставав МЕНЕДЖЕРОМ: бачив дошку, клієнтів
@@ -30059,6 +30099,7 @@ function isOwnerEmail(e){
   return !!own && own === t;
 }
 function myRole(){
+  if(!contentLoaded) return '';
   if(!teamOn()) return 'owner';
   if(!teamMember(myEmail()) && isOwnerEmail(myEmail())) return 'owner';
   const m = teamMember(myEmail());
@@ -30266,7 +30307,42 @@ function paintTaskBadge(){
   if(!dot){ dot = document.createElement('i'); dot.className = 'nav-n'; b.appendChild(dot); }
   dot.textContent = n > 99 ? '99+' : String(n);
 }
+/* ЗАСЛОНА ДОСТУПІВ (22.10): після входу й до приходу команди й ролей людина
+   бачить лише «Завантажую доступи…» — ні панелі, ні дошки. Приїхали —
+   заслона знімається вже на розділі її ролі. Не приїхали за ACC_WAIT_MS —
+   чесно кажемо й даємо спробувати ще раз (перезавантаження), а не
+   відкриваємо все. */
+const ACC_WAIT_MS = (typeof window !== 'undefined' && +window.LQ_ACC_WAIT_MS) || 20000;
+let accGateTimer = 0;
+function accGate(on){
+  let el = document.getElementById('acc-gate');
+  if(on){
+    document.body.classList.add('acc-wait');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'acc-gate';
+      el.innerHTML = '<div class="ag-box"><div class="ag-spin"></div><b>Завантажую доступи…</b>' +
+        '<p>Хвилинку — зʼясовуємо, які розділи вам відкриті.</p></div>';
+      document.body.appendChild(el);
+    }
+    clearTimeout(accGateTimer);
+    accGateTimer = setTimeout(() => {
+      const box = document.getElementById('acc-gate');
+      if(!box || contentLoaded) return;
+      box.innerHTML = '<div class="ag-box is-bad"><b>Не вдалось завантажити доступи</b>' +
+        '<p>Звʼязок із базою не відповів за ' + Math.round(ACC_WAIT_MS / 1000) + ' с. Перевірте інтернет і спробуйте ще раз.</p>' +
+        '<button type="button" data-ag-retry>Спробувати ще раз</button></div>';
+      box.querySelector('[data-ag-retry]').addEventListener('click', () => location.reload());
+    }, ACC_WAIT_MS);
+    return;
+  }
+  clearTimeout(accGateTimer);
+  if(el) el.remove();
+  document.body.classList.remove('acc-wait');
+}
 function applyRoleUi(){
+  if(!contentLoaded){ accGate(true); return; }
+  accGate(false);
   if(!applyNoAccess()) return;
   try{ paintTaskBadge(); }catch(e){}
   const nav = (myAcc() || {}).nav;
