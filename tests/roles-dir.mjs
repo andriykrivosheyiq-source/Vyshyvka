@@ -99,7 +99,7 @@ const r = await p.evaluate(async () => {
   return out;
 });
 console.log('  ' + JSON.stringify(r));
-ok(r.seed === 1 && r.manager === 'board,chats' && r.managerName === 'Менеджер B2B', '«Менеджер B2B» — лише Замовлення B2B і Чати B2B', JSON.stringify(r));
+ok(r.seed >= 1 && r.manager === 'board,chats' && r.managerName === 'Менеджер B2B', '«Менеджер B2B» — лише Замовлення B2B і Чати B2B', JSON.stringify(r));
 ok(r.managerb2c === 'chatsc,design' && r.b2cName === 'Менеджер B2C', 'новий «Менеджер B2C» — лише Замовлення B2C і Чати B2C', JSON.stringify(r));
 ok(r.designer === 'design' && r.embroidery === 'design', 'графічний і вишивальний — лише «Замовлення B2C»', JSON.stringify(r));
 ok(r.canDesigner === 'art,stage' && r.canEmbro === 'stitch', 'права дизайнерів не змінились', JSON.stringify(r));

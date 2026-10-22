@@ -85,6 +85,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ номер замовлення один"
 fi
+# РОЛІ ВИРОБНИЦТВА — ЛИШЕ B2C (22.10): розділ, своя дошка, що бачить,
+# і разове доведення без нових прав.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/prod-roles\.mjs)'; then
+  node tests/prod-roles.mjs >/tmp/lq-prod-roles.log 2>&1 || {
+    echo "✗ Ролі виробництва зламано — коміт зупинено. Подробиці: /tmp/lq-prod-roles.log"
+    grep '✗' /tmp/lq-prod-roles.log
+    exit 1
+  }
+  echo "✓ ролі виробництва цілі"
+fi
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —

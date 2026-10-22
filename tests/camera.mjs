@@ -46,7 +46,12 @@ const ok = (c, g, w) => { console.log('  ' + (c ? g + ' ✓' : w + ' ✗')); if(
 const errs = [];
 
 const TEAM = [{ email:'test@loomiq', name:'Ірина', role:'production' }];
-const CONTENT = { team:TEAM };
+/* 22.10: стартова роль «Виробництво» — лише B2C. Цех B2B лишається
+   можливістю: роль, якій у «Команді» дали «Замовлення B2B» (як тут). */
+const ROLE_B2B = { key:'production', name:'Виробництво', ui:'production', nav:['today','dash','board'],
+  navAll:['today','board','chats','chatsc','design','calc','settings','photos','reviews','suppliers','analytics','dash'],
+  boards:['prod'], see:['chat'], can:['stage'] };
+const CONTENT = { team:TEAM, roles:[ROLE_B2B], rolesSeed:2 };
 const O = {
   id:'1', orderId:'1000801', type:'client', name:'Оксана', phone:'+380670000801',
   status:'paid', site:'main', createdAt:new Date().toISOString(), hist:[], dueAt:'2026-12-01',

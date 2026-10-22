@@ -39,7 +39,12 @@ const TEAM = [
   { email:'owner@loomiq',  name:'Андрій', role:'owner' },
   { email:'test@loomiq',   name:'Ірина',  role:'production' }
 ];
-const CONTENT = { team:TEAM, sizecharts:{ tshirt:[{size:'Розмір'},{size:'S'},{size:'M'},{size:'L'}] } };
+/* 22.10: стартова роль «Виробництво» — лише B2C. Цех B2B лишається
+   можливістю: роль, якій у «Команді» дали «Замовлення B2B» (як тут). */
+const ROLE_B2B = { key:'production', name:'Виробництво', ui:'production', nav:['today','dash','board'],
+  navAll:['today','board','chats','chatsc','design','calc','settings','photos','reviews','suppliers','analytics','dash'],
+  boards:['prod'], see:['chat'], can:['stage'] };
+const CONTENT = { team:TEAM, roles:[ROLE_B2B], rolesSeed:2, sizecharts:{ tshirt:[{size:'Розмір'},{size:'S'},{size:'M'},{size:'L'}] } };
 
 const PAID = {
   id:'1', orderId:'1000701', type:'client', name:'Оксана', phone:'+380670000701',
