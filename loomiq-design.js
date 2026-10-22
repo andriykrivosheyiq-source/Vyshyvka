@@ -9177,6 +9177,8 @@
     if(_top){ var _p2 = root.querySelector('.dz-panel-b'); if(_p2) _p2.scrollTop = _top; }
     return !!html;
   }
+  /* Де стояла дошка без відкритої картки — по кріслу (22.10). */
+  var BOARD_AT = {};
   function render(root){
     if(!root) return;
     if(SOLO && root === SOLO.root){
@@ -9206,6 +9208,14 @@
     var _cols = {};
     root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
       _cols[b.parentNode.getAttribute('data-col')] = b.scrollTop; });
+    /* ЗАКРИВ КАРТКУ — ДОШКА ТАМ, ДЕ БУЛА (22.10, Андрій: «перекидає на самий
+       початок воронок… кожен раз шукати, де зупинився»). З відкритою
+       карткою дошка вужча й убік часто не гортається — браузер ставить
+       прокрутку на нуль, і закриття «згадувало» вже цей нуль. Тепер
+       памʼятаємо, де стояла дошка БЕЗ картки, і повертаємо туди. */
+    var _key = 'b:' + U.tab();
+    var _was = !!root.querySelector('.dz-panel:not(.hide)');
+    if(_bd && !_was){ BOARD_AT[_key] = { x: _bl, cols: _cols }; }
     var _main = root.closest ? root.closest('main') : null;
     var _mt = _main ? _main.scrollTop : 0;
     /* І прокрутка самого вікна (20.10, Андрій: «закриваю картку — пригоняє
@@ -9292,6 +9302,8 @@
       if(_p2) _p2.scrollTop = _top;
     }
     var _bd2 = root.querySelector('.dz-boards');
+    var _back = (_was && !root.querySelector('.dz-panel:not(.hide)')) ? BOARD_AT['b:' + U.tab()] : null;
+    if(_back){ _bl = _back.x; _cols = _back.cols || _cols; }
     if(_bd2 && _bl) _bd2.scrollLeft = _bl;
     root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
       var t = _cols[b.parentNode.getAttribute('data-col')];
