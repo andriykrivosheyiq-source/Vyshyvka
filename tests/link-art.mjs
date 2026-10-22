@@ -139,16 +139,22 @@ const add = await p.evaluate(async () => {
            subRow: !!(sub && sub.querySelector('.dz-u-f [data-do="u-pick-color"][data-u="' + l.id + '"]')),
            linkBlock: !!(sub && sub.querySelector('.dz-ready.is-link')), kind: !!(sub && sub.querySelector('[data-uf$="|artKind"]')),
            mainKind: !!us[0].querySelector('[data-uf$="|artKind"]'),
-           note: (sub && sub.querySelector('.dz-sub-t') || {}).textContent || '',
+           subText: ((sub || {}).textContent || ''),
            noAdd: !(sub && sub.querySelector('[data-do="u-link-add"]')),
-           wait: /Розмістимо, щойно буде ескіз позиції 1/.test((sub || {}).textContent || ''),
+           noOff: !(sub && sub.querySelector('[data-do="u-ready-off"]')) && !/Свій дизайн/.test(us[0].textContent),
+           /* «＋ Товар з цим ескізом» — під останнім рядком групи, не під позицією 1. */
+           addAfter: (function(){ const all = [...us[0].querySelectorAll('.dz-u-sub, [data-do="u-link-add"]')];
+             const subs = all.filter(x => x.classList.contains('dz-u-sub')), adds = all.filter(x => x.matches('[data-do="u-link-add"]'));
+             return adds.length === 1 && all.indexOf(adds[0]) > all.indexOf(subs[subs.length - 1]); })(),
            hand: D.handMissing(__j, __o) };
 });
 console.log('  ' + JSON.stringify(add));
 ok(add.n === 2 && add.link && add.gid === 'tee', 'кнопка під позицією: нова позиція звʼязана з ескізом позиції 1, одразу вибір виробу', JSON.stringify(add));
 ok(add.cards === 1 && add.inMain && add.subRow, 'товар з ескізом — рядок виробу одразу під позицією 1, а не окрема картка', JSON.stringify(add));
-ok(add.linkBlock && !add.kind && add.mainKind && add.noAdd, 'у підрядку — «Той самий ескіз», без типу малюнка й без своєї кнопки', JSON.stringify(add));
-ok(/Той самий ескіз, що й позиція 1/.test(add.note) && add.wait, 'у підрядку — «Той самий ескіз, що й позиція 1» і «розмістимо, щойно буде ескіз»', JSON.stringify(add));
+ok(add.linkBlock && !add.kind && add.mainKind && add.noAdd, 'у підрядку — без типу малюнка й без своєї кнопки', JSON.stringify(add));
+ok(!/Той самий ескіз|Розмістимо, щойно/.test(add.subText) && add.noOff,
+  '22.10: жодних підписів «Той самий ескіз, що й позиція 1» / «Розмістимо…» і без «Свій дизайн»', JSON.stringify(add));
+ok(add.addAfter, '«＋ Товар з цим ескізом» — під останнім рядком групи, а не під позицією 1', JSON.stringify(add));
 
 console.log('');
 console.log('═══ 2. ЦІНА: «ГОТОВИЙ / ПОВТОРНИЙ», ДИЗАЙНЕРАМ — НІЧОГО ═══');

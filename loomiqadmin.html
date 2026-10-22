@@ -4830,12 +4830,14 @@
   .fa-wait{font-size:12px;color:var(--muted);}
   /* Товар з цим ескізом (18.10). */
   .dz-link-add{border-color:#A5B4FC;color:#4338CA;font-weight:600;}
-  .dz-u-sub{margin:6px 0 2px;padding:8px 10px;border:1px dashed #C7D2FE;border-radius:10px;background:#F8F9FF;}
-  .dz-u-sub .dz-u-n{background:#C7D2FE;color:#3730A3;}
+  /* Товар з тим самим ескізом — рядок на тому ж рівні, що й позиція 1
+     (22.10, Андрій: «просто один товар, під ним другий»): без рамки,
+     відступу й підписів. */
+  .dz-u-sub{margin:6px 0 0;}
   .dz-u-sub .dz-u-svc{margin-top:4px;}
-  .dz-ready.is-link.is-sub{margin-top:6px;padding:6px 8px;}
-  .dz-sub-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#3730A3;}
-  .dz-sub-t .dz-kind-b{margin-left:auto;font-size:11.5px;}
+  .dz-ready.is-link.is-sub{margin-top:6px;padding:0;border:0;background:none;}
+  .dz-ready.is-link.is-sub:empty{display:none;}
+  .dz-link-row{margin-top:4px;}
   .dz-dept-fail .dz-fail{margin:14px;padding:14px 16px;border:1px solid #FECACA;background:#FEF2F2;border-radius:12px;color:#7F1D1D;font-size:13.5px;}
   .dz-dept-fail .dz-fail b{display:block;font-size:15px;margin-bottom:6px;}
   .dz-dept-fail .dz-fail p{margin:6px 0;white-space:pre-wrap;word-break:break-word;}
@@ -7977,33 +7979,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=30d11eeec0"></script>
-<script src="loomiq-fingerprint.js?v=30d11eeec0"></script>
-<script src="loomiq-pricing.js?v=30d11eeec0"></script>
+<script src="loomiq-select.js?v=11259d5e1c"></script>
+<script src="loomiq-fingerprint.js?v=11259d5e1c"></script>
+<script src="loomiq-pricing.js?v=11259d5e1c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=30d11eeec0"></script>
+<script src="loomiq-money-core.js?v=11259d5e1c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=30d11eeec0"></script>
-<script src="loomiq-bg.js?v=30d11eeec0"></script>
-<script src="loomiq-mock.js?v=30d11eeec0"></script>
+<script src="loomiq-design.js?v=11259d5e1c"></script>
+<script src="loomiq-bg.js?v=11259d5e1c"></script>
+<script src="loomiq-mock.js?v=11259d5e1c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=30d11eeec0"></script>
+<script src="imagetracer.js?v=11259d5e1c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=30d11eeec0"></script>
-<script src="loomiq-threads.js?v=30d11eeec0"></script>
+<script src="loomiq-chat.js?v=11259d5e1c"></script>
+<script src="loomiq-threads.js?v=11259d5e1c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=30d11eeec0"></script>
+<script src="loomiq-cards.js?v=11259d5e1c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8048,7 +8050,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '30d11eeec0';
+var LQ_VER = '11259d5e1c';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -30373,11 +30375,12 @@ function paintTaskBadge(){
   dot.textContent = n > 99 ? '99+' : String(n);
 }
 /* ЗАСЛОНА ДОСТУПІВ (22.10): після входу й до приходу команди й ролей людина
-   бачить лише «Завантажую доступи…» — ні панелі, ні дошки. Приїхали —
-   заслона знімається вже на розділі її ролі. Не приїхали за ACC_WAIT_MS —
-   чесно кажемо й даємо спробувати ще раз (перезавантаження), а не
-   відкриваємо все. */
-const ACC_WAIT_MS = (typeof window !== 'undefined' && +window.LQ_ACC_WAIT_MS) || 20000;
+   бачить лише «Оновлення…» з кружечком (Андрій: «просто оновлення, три
+   крапки, і все») — ні панелі, ні дошки. Приїхали — заслона знімається вже
+   на розділі її ролі. Не приїхали за ACC_WAIT_MS (40 с) — сторінка сама
+   перезавантажується; не вийшло й після цього — «Не вдалось завантажити»
+   з кнопкою, щоб не крутитись по колу без кінця. Усе навстіж — ніколи. */
+const ACC_WAIT_MS = (typeof window !== 'undefined' && +window.LQ_ACC_WAIT_MS) || 40000;
 let accGateTimer = 0;
 function accGate(on){
   let el = document.getElementById('acc-gate');
@@ -30386,22 +30389,32 @@ function accGate(on){
     if(!el){
       el = document.createElement('div');
       el.id = 'acc-gate';
-      el.innerHTML = '<div class="ag-box"><div class="ag-spin"></div><b>Завантажую доступи…</b>' +
-        '<p>Хвилинку — зʼясовуємо, які розділи вам відкриті.</p></div>';
+      el.innerHTML = '<div class="ag-box"><div class="ag-spin"></div><b>Оновлення…</b></div>';
       document.body.appendChild(el);
     }
     clearTimeout(accGateTimer);
     accGateTimer = setTimeout(() => {
       const box = document.getElementById('acc-gate');
       if(!box || contentLoaded) return;
-      box.innerHTML = '<div class="ag-box is-bad"><b>Не вдалось завантажити доступи</b>' +
-        '<p>Звʼязок із базою не відповів за ' + Math.round(ACC_WAIT_MS / 1000) + ' с. Перевірте інтернет і спробуйте ще раз.</p>' +
+      /* Перший раз — тихо перезавантажуємось самі. Другий поспіль — кажемо. */
+      let вже = 0;
+      try{ вже = +sessionStorage.getItem('lq_gate_reload') || 0; }catch(e){}
+      if(!вже || Date.now() - вже > 5 * 60000){
+        try{ sessionStorage.setItem('lq_gate_reload', String(Date.now())); }catch(e){}
+        location.reload();
+        return;
+      }
+      box.innerHTML = '<div class="ag-box is-bad"><b>Не вдалось завантажити</b>' +
+        '<p>Перевірте інтернет.</p>' +
         '<button type="button" data-ag-retry>Спробувати ще раз</button></div>';
-      box.querySelector('[data-ag-retry]').addEventListener('click', () => location.reload());
+      box.querySelector('[data-ag-retry]').addEventListener('click', () => {
+        try{ sessionStorage.removeItem('lq_gate_reload'); }catch(e){}
+        location.reload(); });
     }, ACC_WAIT_MS);
     return;
   }
   clearTimeout(accGateTimer);
+  try{ sessionStorage.removeItem('lq_gate_reload'); }catch(e){}
   if(el) el.remove();
   document.body.classList.remove('acc-wait');
 }
