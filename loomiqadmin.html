@@ -1331,6 +1331,12 @@
   .fact-add input[data-fact-label]{flex:1;}
   .fact-add input[data-fact-sum]{width:80px;flex:none;text-align:right;}
   /* ── Дивитись як / журнал доступу ───────────────────────────────────── */
+  /* Перемикач ролей (22.10): у людини з кількома ролями — над «Мій профіль». */
+  .role-sw{display:flex;align-items:center;gap:8px;padding:6px 12px 10px;color:var(--side-txt);font-size:12px;}
+  .role-sw span{opacity:.7;flex:none;}
+  .role-sw select{flex:1;min-width:0;background:#20262F;color:#E6E8EC;border:1px solid #2E3540;
+    border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px;cursor:pointer;}
+  .sidebar.is-folded .role-sw span{display:none;}
   #seeAsBar{position:fixed;left:0;right:0;bottom:0;z-index:2400;display:flex;
     align-items:center;justify-content:center;gap:14px;padding:10px 16px;
     background:var(--side,#171B23);color:#fff;font-size:13px;font-weight:600;
@@ -7971,33 +7977,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=89e13b68ab"></script>
-<script src="loomiq-fingerprint.js?v=89e13b68ab"></script>
-<script src="loomiq-pricing.js?v=89e13b68ab"></script>
+<script src="loomiq-select.js?v=30d11eeec0"></script>
+<script src="loomiq-fingerprint.js?v=30d11eeec0"></script>
+<script src="loomiq-pricing.js?v=30d11eeec0"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=89e13b68ab"></script>
+<script src="loomiq-money-core.js?v=30d11eeec0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=89e13b68ab"></script>
-<script src="loomiq-bg.js?v=89e13b68ab"></script>
-<script src="loomiq-mock.js?v=89e13b68ab"></script>
+<script src="loomiq-design.js?v=30d11eeec0"></script>
+<script src="loomiq-bg.js?v=30d11eeec0"></script>
+<script src="loomiq-mock.js?v=30d11eeec0"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=89e13b68ab"></script>
+<script src="imagetracer.js?v=30d11eeec0"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=89e13b68ab"></script>
-<script src="loomiq-threads.js?v=89e13b68ab"></script>
+<script src="loomiq-chat.js?v=30d11eeec0"></script>
+<script src="loomiq-threads.js?v=30d11eeec0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=89e13b68ab"></script>
+<script src="loomiq-cards.js?v=30d11eeec0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8042,7 +8048,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '89e13b68ab';
+var LQ_VER = '30d11eeec0';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -28813,7 +28819,7 @@ function openDesign(){
      вмикається повторно без шкоди. */
   watchPayments();
   designHostInit();
-  const mine = (accOf(teamMember(myEmail() || '') || {}).ui === 'designer');
+  const mine = (myUi() === 'designer');
   /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,
      і показувати її першою означає щодня просити перемкнути вкладку. */
   if(mine && window.LQDesign.ui.tab() === 'queue') window.LQDesign.ui.setTab('graphic');
@@ -28826,7 +28832,6 @@ function openDesign(){
 function designHostInit(){
   if(!window.LQDesign || !window.LQDesign.ui) return;
   const me = myEmail() || '';
-  const mine = (accOf(teamMember(me) || {}).ui === 'designer');
   /* Вікно мокапу питає рівно три речі: розмітку виробу на фото, ширину
      виробу для потрібного розміру й куди сказати людині, що щось пішло не
      так. Каталог і збереження воно не чіпає — це робота панелі. */
@@ -29067,7 +29072,7 @@ function designHostInit(){
     /* Дизайнер бачить лише свої дизайни й спільну чергу (22.10, Андрій:
        «дуже важливо, щоб бачили тільки свої»). У режимі «дивитись очима»
        — за доступами й поштою того, ким дивимось, а не власника. */
-    onlyMine: ()=> seeAsOn() ? ((myAcc() || {}).ui === 'designer') : mine,
+    onlyMine: ()=> myUi() === 'designer',      // з активної ролі (22.10: одна роль за раз)
     boardMe: ()=> seeAsPerson() || myEmail() || '',
     /* НАДІСЛАТИ КАРТИНКУ КЛІЄНТУ, НЕ ВІДКРИВАЮЧИ РОЗМОВИ.
 
@@ -29680,7 +29685,7 @@ let seeAs = '';
 function seeAsPerson(){ return seeAs.charAt(0) === '@' ? seeAs.slice(1) : ''; }
 function seeAsTarget(){
   const e = seeAsPerson();
-  if(e){ const m = teamMember(e); return m ? accOf(m) : null; }
+  if(e){ const m = teamMember(e); return m ? presetOf(seeAsRole()) : null; }
   return roleDef(seeAs) ? presetOf(seeAs) : null;
 }
 function seeAsLabel(){
@@ -29692,29 +29697,73 @@ function seeAsOn(){ return !!seeAs && !!seeAsTarget(); }
 /* Роль, очима якої зараз дивимось (22.10, Андрій: «я ніби заходжу з їхньої
    ролі й дивлюсь — зліва, справа, скрізь»). Людина — її перша роль. Поза
    режимом — своя. Відділ B2C бере дошку, колонки й перемикач саме з неї. */
+let seeAsRoleChoice = '';
 function seeAsRole(){
-  if(!seeAsOn()) return '';
   const e = seeAsPerson();
-  if(e){ const m = teamMember(e); return m ? (memberRoles(m)[0] || '') : ''; }
-  return seeAs;
+  if(e){ const m = teamMember(e); return m ? roleActiveOf(memberRoles(m), seeAsRoleChoice) : ''; }
+  return (seeAs && roleDef(seeAs)) ? seeAs : '';
 }
 function viewRole(){ return seeAsRole() || myRole(); }
-/* Усі ролі людини (22.10): дві ролі — дві дошки у відділі. */
-function viewRoles(){
-  if(seeAsOn()){
-    const e = seeAsPerson();
-    if(e){ const m = teamMember(e); return m ? memberRoles(m) : []; }
-    return [seeAs];
+/* Ролі, між якими зараз можна перемкнутись: свої або тієї людини, чиїми
+   очима дивимось. Одна — перемикача немає. */
+function switchRoles(){
+  const e = seeAsPerson();
+  if(e){ const m = teamMember(e); return m ? memberRoles(m) : []; }
+  if(seeAs) return [seeAs];
+  return myRoles();
+}
+/* Відділ B2C бере дошку з активної ролі — однієї (22.10: перемикати, не
+   обʼєднувати). Список лишається списком, бо так його читає loomiq-design. */
+function viewRoles(){ const r = viewRole(); return r ? [r] : []; }
+/* Перемкнути роль: свою — назавжди для цього браузера; чужу в режимі
+   «дивитись як» — до виходу з режиму. Робить лише сама людина, тож правило
+   «розділи не вибивають» тут не порушується: картка закривається, бо в
+   іншій ролі її може не бути, і людина йде в стартовий розділ нової ролі. */
+function roleSwitchTo(key){
+  const l = switchRoles();
+  if(l.indexOf(key) < 0) return;
+  if(seeAsPerson()){ seeAsRoleChoice = key; try{ sessionStorage.setItem('lq_see_as_role', key); }catch(e){} }
+  else {
+    roleChoose(myEmail(), key);
+    accLog('role', 'перемкнувся на роль «' + roleName(key) + '»');
   }
-  const m = teamMember(myEmail());
-  return m ? memberRoles(m) : [myRole()];
+  try{ closeOrderDrawer(); }catch(e){}
+  try{ if(typeof chatClose === 'function' && window.chatWin) chatClose(); }catch(e){}
+  applyRoleUi();
+  const first = [...document.querySelectorAll('.nav button[data-view]')].filter(b => !b.hidden)[0];
+  if(first) first.click();
+  try{ renderBoard(); }catch(e){}
+  try{ if(window.LQDesign && LQDesign.ui){ LQDesign.ui.setTab(LQDesign.ui.roleSeat(viewRole()) || 'acct');
+    const r = document.getElementById('dzRoot'); if(r) LQDesign.ui.render(r); } }catch(e){}
+}
+function renderRoleSwitch(){
+  let box = document.getElementById('roleSwitch');
+  const l = switchRoles();
+  if(l.length < 2){ if(box) box.remove(); return; }
+  if(!box){
+    box = document.createElement('label');
+    box.id = 'roleSwitch';
+    box.className = 'role-sw';
+    const foot = document.querySelector('.sidebar-foot');
+    const me = document.getElementById('me-btn');
+    if(foot) foot.insertBefore(box, me || foot.firstChild); else return;
+    box.addEventListener('change', e => { if(e.target && e.target.tagName === 'SELECT') roleSwitchTo(e.target.value); });
+  }
+  const cur = viewRole();
+  const want = l.map(k => k + ':' + roleName(k)).join('|') + '#' + cur;
+  if(box.dataset.want === want) return;
+  box.dataset.want = want;
+  box.innerHTML = '<span>Зараз</span><select data-role-switch>' +
+    l.map(k => '<option value="' + escA(k) + '"' + (k === cur ? ' selected' : '') + '>' + escA(roleName(k)) + '</option>').join('') +
+    '</select>';
 }
 function seeAsSet(who){
   const w = String(who || '');
   const ok = w && (w.charAt(0) === '@' ? !!teamMember(w.slice(1))
                                        : (!!roleDef(w) && w !== myRole()));
   seeAs = ok ? w : '';
-  try{ sessionStorage.setItem('lq_see_as', seeAs); }catch(e){}
+  seeAsRoleChoice = '';
+  try{ sessionStorage.setItem('lq_see_as', seeAs); sessionStorage.removeItem('lq_see_as_role'); }catch(e){}
   if(seeAs) accLog('seeas', 'увійшов у режим «дивитись як ' + seeAsLabel() + '»');
   applySeeAsBar();
   applyRoleUi();
@@ -29754,7 +29803,9 @@ function myAccReal(){
      списку. Без цього єдиною дорогою назад у власну адмінку лишалась би
      консоль бази. */
   if(!m) return isOwnerEmail(myEmail()) ? presetOf('owner') : ACC_NONE;
-  return accOf(m);
+  /* Не сума ролей, а лише активна: зліва, дошка, картка, кнопки — з неї.
+     Сума (accOf) лишається для правил бази й сторінки Команди. */
+  return presetOf(myRole());
 }
 function myAcc(){
   const mine = myAccReal();
@@ -30098,13 +30149,27 @@ function isOwnerEmail(e){
   const own = String((contentData || {}).ownerEmail || '').trim().toLowerCase();
   return !!own && own === t;
 }
+/* ОДНА РОЛЬ ЗА РАЗ (22.10, Андрій: «краще не обʼєднувати, а перемикати»).
+   Усі ролі людини — myRoles(); працює вона в одній, активній: myRole().
+   Яку обрала — памʼятає лише її браузер (localStorage, lq_role_<пошта>),
+   у базу не пишеться; першого разу — перша з відмічених у Команді. Зняли
+   активну роль — переводить у першу з тих, що лишились. */
+function myRoles(){
+  if(!contentLoaded) return [];
+  if(!teamOn()) return ['owner'];
+  const m = teamMember(myEmail());
+  if(!m) return isOwnerEmail(myEmail()) ? ['owner'] : [];
+  return memberRoles(m);
+}
+function roleChoiceKey(email){ return 'lq_role_' + String(email || '').trim().toLowerCase(); }
+function roleChosen(email){ try{ return localStorage.getItem(roleChoiceKey(email)) || ''; }catch(e){ return ''; } }
+function roleChoose(email, key){ try{ localStorage.setItem(roleChoiceKey(email), String(key || '')); }catch(e){} }
+function roleActiveOf(roles, chosen){ return roles.indexOf(chosen) >= 0 ? chosen : (roles[0] || ''); }
 function myRole(){
   if(!contentLoaded) return '';
-  if(!teamOn()) return 'owner';
-  if(!teamMember(myEmail()) && isOwnerEmail(myEmail())) return 'owner';
-  const m = teamMember(myEmail());
-  const r = m && m.role;
-  return roleDef(r) ? r : 'manager';
+  const l = myRoles();
+  if(!l.length) return 'manager';            // не в команді: доступів і так нуль (ACC_NONE)
+  return roleActiveOf(l, roleChosen(myEmail()));
 }
 function canSeeCost(){ return may('see', 'cost'); }
 function canSeeChat(){ return may('see', 'chat'); }
@@ -30381,6 +30446,7 @@ function applyRoleUi(){
   /* Список «дивитись як» будується з команди, а вона приходить із бази вже
      після завантаження сторінки. */
   try{ renderSeeAsPick(); }catch(e){}
+  try{ renderRoleSwitch(); }catch(e){ console.warn('перемикач ролей', e); }
   /* Людина стоїть у розділі, який їй закрили, — переводимо в перший
      дозволений. Порожній екран без пояснень гірший за будь-який інший. */
   /* Переводимо ЛИШЕ коли доступи справді змінились (або розділу ще немає).
@@ -30508,7 +30574,8 @@ function renderSeeAsPick(){
   /* Режим живе до закриття вкладки: лишити його назавжди означало б, що
      хтось одного дня працює чужими очима й не розуміє, чому нічого не
      зберігається. */
-  try{ const s = sessionStorage.getItem('lq_see_as'); if(s) seeAs = s; }catch(e){}
+  try{ const s = sessionStorage.getItem('lq_see_as'); if(s) seeAs = s;
+       const r = sessionStorage.getItem('lq_see_as_role'); if(r) seeAsRoleChoice = r; }catch(e){}
 })();
 /* ══════════ ДВІ ЗОНИ: РОЛІ Й КОРИСТУВАЧІ ══════════════════════════════
    Доти це був один список, де в кожного рядка розгорталось двадцять

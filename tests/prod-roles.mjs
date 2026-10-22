@@ -241,33 +241,35 @@ ok(дз.сам.mine && дз.сам.cards === '2000501,2000503',
   'сам дизайнер: лише свої й черга відділу', JSON.stringify(дз.сам));
 
 console.log('');
-console.log('═══ 5. ДВІ РОЛІ — ДВІ ДОШКИ ═══');
+console.log('═══ 5. ДВІ РОЛІ — ОДНА ЗА РАЗ, ПЕРЕМИКАЧ ЗЛІВА (22.10) ═══');
 const дві = await p.evaluate(async () => {
   seeAsSet('');
+  try{ localStorage.removeItem('lq_role_test@loomiq'); }catch(e){}
   contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'supply', roles:['supply','production'] }) : x);
   applyRoleUi(); await new Promise(r => setTimeout(r, 60));
   document.querySelector('.nav button[data-view="design"]').click();
   const U = window.LQDesign.ui; U.setTab('acct'); U.render(document.getElementById('dzRoot'));
-  const sel = document.querySelector('#dzRoot [data-seat]');
-  const a = { seat: U.tab(), opts: sel ? [...sel.options].map(o => o.value) : null, label: sel ? sel.closest('.dz-as').textContent.replace(/\s+/g, ' ').trim().slice(0, 12) : '' };
-  if(sel){ sel.value = 'prod'; sel.dispatchEvent(new Event('change')); }
-  await new Promise(r => setTimeout(r, 100));
-  const b = { seat: U.tab(), cols: document.querySelectorAll('#dzRoot .dz-col').length, still: !!document.querySelector('#dzRoot [data-seat]') };
+  const sw = () => { const s = document.querySelector('#roleSwitch select'); return s ? { opts:[...s.options].map(o => o.value), cur:s.value } : null; };
+  const a = { seat: U.tab(), board: !!document.querySelector('#dzRoot [data-seat]'), sw: sw(), can: myAcc().can.join() };
+  roleSwitchTo('production'); await new Promise(r => setTimeout(r, 100));
+  const b = { seat: U.tab(), cols: document.querySelectorAll('#dzRoot .dz-col').length, sw: sw(), can: myAcc().can.join(),
+              nav: [...document.querySelectorAll('.nav button[data-view]')].filter(x => !x.hidden).map(x => x.dataset.view).join() };
   /* Очима цієї ж людини з «Команди» — той самий перемикач між двома. */
   contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner', roles:['owner'] }) : x);
   contentData.team.push({ email:'two@loomiq', name:'Двоє', role:'supply', roles:['supply','production'] });
   applyRoleUi(); seeAsSet('@two@loomiq'); await new Promise(r => setTimeout(r, 80));
   document.querySelector('.nav button[data-view="design"]').click(); U.render(document.getElementById('dzRoot'));
-  const sel2 = document.querySelector('#dzRoot [data-seat]');
-  const c = { seat: U.tab(), opts: sel2 ? [...sel2.options].map(o => o.value) : null };
+  const c = { seat: U.tab(), sw: sw(), board: !!document.querySelector('#dzRoot [data-seat]') };
   seeAsSet('');
-  return { a, b, c };
+  return { a, b, c, sup: presetOf('supply').can.join(), prod: presetOf('production').can.join() };
 });
 console.log('   ' + JSON.stringify(дві));
-ok(дві.a.seat === 'supply' && дві.a.opts && дві.a.opts.join() === 'prod,supply' && !/Дивлюсь/.test(дві.a.label),
-  'закупівля + виробництво: одразу закупівля, перемикач «Дошка» лише між своїми двома', JSON.stringify(дві.a));
-ok(дві.b.seat === 'prod' && дві.b.cols > 0 && дві.b.still, 'перемкнувся на цех — дошка цеху, перемикач лишився', JSON.stringify(дві.b));
-ok(дві.c.opts && дві.c.opts.join() === 'prod,supply', 'очима такої людини з «Команди» — той самий перемикач між двома', JSON.stringify(дві.c));
+ok(дві.a.seat === 'supply' && !дві.a.board && дві.a.sw && дві.a.sw.opts.join() === 'supply,production' && дві.a.sw.cur === 'supply' && дві.a.can === дві.sup,
+  'закупівля + виробництво: одразу закупівля, права лише закупівлі; перемикач «Зараз» зліва, на дошці перемикача немає', JSON.stringify(дві.a));
+ok(дві.b.seat === 'prod' && дві.b.cols > 0 && дві.b.sw && дві.b.sw.cur === 'production' && дві.b.can === дві.prod && дві.b.nav === 'design',
+  'перемкнувся на цех — дошка цеху, права лише виробництва, зліва те саме «Замовлення B2C»', JSON.stringify(дві.b));
+ok(дві.c.sw && дві.c.sw.opts.join() === 'supply,production' && дві.c.sw.cur === 'supply' && дві.c.seat === 'supply' && !дві.c.board,
+  'очима такої людини з «Команди» — той самий перемикач, стартова роль перша', JSON.stringify(дві.c));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

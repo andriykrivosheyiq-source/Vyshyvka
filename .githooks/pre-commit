@@ -138,6 +138,17 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   echo "✓ дошка B2C підтягує чужі рухи"
 fi
 
+# ОДНА РОЛЬ ЗА РАЗ (22.10). Андрій: «не обʼєднувати, а перемикати».
+# Кілька ролей — перемикач зліва; все рахується з активної ролі.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/role-switch\.mjs)'; then
+  node tests/role-switch.mjs >/tmp/lq-role-switch.log 2>&1 || {
+    echo "✗ Ролі знову складаються або перемикач зламано — коміт зупинено. Подробиці: /tmp/lq-role-switch.log"
+    grep '✗' /tmp/lq-role-switch.log
+    exit 1
+  }
+  echo "✓ одна роль за раз"
+fi
+
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —
