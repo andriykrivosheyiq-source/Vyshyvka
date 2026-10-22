@@ -398,6 +398,40 @@ ok(r10.ok && r10.після.u === 0 && !r10.після.t, 'відповіли з
 ok(r10.обхід.u === 0 && !r10.обхід.t, 'обхід розмов, побачивши нашу відповідь останньою, «+1» не додає', JSON.stringify(r10));
 ok(r10.числоВСписку === '', 'у списку «Чати B2C» числа біля розмови немає', JSON.stringify(r10));
 
+console.log('═══ 11. ЗАМІНИЛИ РОЗМОВУ — ВІКНО, ІМʼЯ Й КНОПКА ЗА НОВОЮ (22.10) ═══');
+sitniks.mode = ''; sitniks.postMode = '';
+/* Даємо відправкам з §10 долетіти: під навантаженням вони дописують «це
+   наше» в картку вже після заміни розмови — і тест ловив не заміну, а хвіст. */
+for(let k = 0; k < 40; k++){ const n0 = sitniks.log.length; await p.waitForTimeout(400);
+  const тихо = await p.evaluate(() => Object.values(chatOutbox || {}).every(l => !l || !l.length));
+  if(sitniks.log.length === n0 && тихо) break; }
+sitniks.chats['abcdef0123456789'] = [
+  { id:'31', text:'Привіт, це Роман', createdAt: iso(now - 3600e3 * 2), sender:{ name:'Роман Дяків' }, client:{ name:'Роман Дяків', username:'roman_d' } },
+  { id:'32', text:'Хочу худі', createdAt: iso(now - 3600e3), sender:{ name:'Роман Дяків' }, client:{ name:'Роман Дяків', username:'roman_d' } } ];
+await openChat('2000501');
+const до = await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000501');
+  chatOutbox[o.id] = [{ text:'стара черга' }];
+  return { name: o.name, ig: o.ig || '', chat: o.crmChatId, head: (document.querySelector('#chatWin .cw-t, #chatWin .cw-h b, #chatWin .cw-name') || {}).textContent || '' }; });
+await p.evaluate(async () => { const o = orders.find(x => x.orderId === '2000501'); await crmBindUrl(o, 'https://app.sitniks.com/dialog/abcdef0123456789'); });
+await wait(() => { const st = crmChat[(orders.find(x => x.orderId === '2000501') || {}).id] || {}; return (!st.loading && st.chatId === 'abcdef0123456789' && Array.isArray(st.msgs)) ? true : null; });
+await p.waitForTimeout(300);
+const після = await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000501');
+  return { name: o.name, ig: o.ig || '', nick: o.crmNick || '', chat: o.crmChatId, chatName: o.crmChatName, outbox: (chatOutbox[o.id] || []).length,
+           win: (document.querySelector('#chatWin') || {}).textContent || '', pollChat: (crmChat[o.id] || {}).chatId }; });
+const f11 = await feed();
+console.log('  ' + JSON.stringify({ до, після: Object.assign({}, після, { win: після.win.slice(0, 80) }), rows: f11 && f11.rows.map(r => r.text) }));
+ok(після.chat === 'abcdef0123456789' && після.chatName === 'Роман Дяків', 'картка привʼязана до нової розмови', JSON.stringify(після));
+ok(після.name === 'Роман Дяків' && /Роман Дяків/.test(після.win) && !/Асія/.test(після.win), 'імʼя зі старої розмови замінено новим — і у вікні теж', JSON.stringify({ name: після.name }));
+ok(f11 && f11.rows.length === 2 && f11.rows[0].text === 'Привіт, це Роман', 'у вікні — повідомлення НОВОЇ розмови', JSON.stringify(f11 && f11.rows));
+ok(після.ig !== до.ig && !/asia/.test(після.ig) && після.outbox === 0 && після.pollChat === 'abcdef0123456789',
+  'нік Instagram (кнопка) — новий, стара черга забута, опитування слухає нову', JSON.stringify({ ig: після.ig, outbox: після.outbox, poll: після.pollChat }));
+/* Імʼя, правлене руками, заміна не чіпає. */
+sitniks.chats['fedcba9876543210'] = [{ id:'41', text:'Це Ольга', createdAt: iso(now - 1800e3), sender:{ name:'Ольга Петрів' }, client:{ name:'Ольга Петрів' } }];
+const ручне = await p.evaluate(async () => { const o = orders.find(x => x.orderId === '2000501'); o.name = 'Роман (сплатив)';
+  await crmBindUrl(o, 'https://app.sitniks.com/dialog/fedcba9876543210'); await new Promise(r => setTimeout(r, 400));
+  return { name: o.name, chatName: o.crmChatName, chat: o.crmChatId }; });
+ok(ручне.chat === 'fedcba9876543210' && ручне.name === 'Роман (сплатив)' && ручне.chatName === 'Ольга Петрів', 'імʼя, правлене руками, лишається', JSON.stringify(ручне));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad + ' — ДІАЛОГ ЗЛАМАНО' : 'діалог цілий: історія, помилки вголос, текст, повтор, нове, два чати, фото');
