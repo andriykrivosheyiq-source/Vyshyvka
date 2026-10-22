@@ -9235,11 +9235,20 @@
     /* Перемикач дошок — ТІЛЬКИ у власника (22.10, Андрій: «акаунт-менеджер
        повинен бачити тільки свою дошку»). Доти його мали й менеджери. */
     var boss = !role || role === 'owner';
+    /* ДВІ РОЛІ — ДВІ ДОШКИ (22.10, Андрій: «закупка і виробництво — щоб і
+       те, і те бачив»). Крісла людини — з усіх її ролей; їх більше одного —
+       перемикач лише між ними. */
+    var ролі = [];
+    try{ ролі = (U.host.roles && U.host.roles()) || []; }catch(e){}
+    if(!ролі.length && role) ролі = [role];
+    var крісла = [];
+    ролі.forEach(function(r){ var k = U.roleSeat(r); if(k && крісла.indexOf(k) < 0) крісла.push(k); });
     /* Співробітник заходить одразу у свою дошку: дай йому вибір — колись
        перемкнеться й пів дня працюватиме не на своєму екрані. */
-    var seat = boss ? U.tab() : (U.roleSeat(role) || U.tab());
+    var seat = boss ? U.tab() : (крісла.indexOf(U.tab()) >= 0 ? U.tab() : (крісла[0] || U.roleSeat(role) || U.tab()));
     if(!U.ROLES.some(function(r){ return r.key === seat; })) seat = boss ? 'acct' : 'graphic';
     if(seat !== U.tab()) U.setTab(seat);
+    var свої = boss ? U.ROLES : U.ROLES.filter(function(r){ return крісла.indexOf(r.key) >= 0; });
     var b = boardOf(seat);
     /* Фільтр накладаємо тут, на готові картки: колонки лишаються на місці
        разом із лічильниками, просто в них видно те, що шукали. Прибирати
@@ -9274,21 +9283,23 @@
     /* Доставка після «Передано курʼєру» — сховані колонки (07.10). */
     if(seat === 'prod') графік += '<button type="button" class="dz-b dz-deliv' + (PROD_DELIV ? ' on' : '') +
       '" data-do="prod-deliv" title="Показати / сховати колонки доставки">Доставка ' + (PROD_DELIV ? '▴' : '▾') + '</button>';
-    var headHtml = boss
-      ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
-        seekHtml(шук) + графік +
-        '<label class="dz-as"><span>Дивлюсь як</span>' +
-          '<select class="dz-as-sel" data-seat>' + U.ROLES.map(function(r){
+    var перемикач = (boss || свої.length > 1)
+      ? '<label class="dz-as"><span>' + (boss ? 'Дивлюсь як' : 'Дошка') + '</span>' +
+          '<select class="dz-as-sel" data-seat>' + свої.map(function(r){
             return '<option value="' + r.key + '"' + (r.key === seat ? ' selected' : '') + '>' +
                    esc(r.label) + '</option>';
           }).join('') + '</select></label>'
+      : '';
+    var headHtml = boss
+      ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
+        seekHtml(шук) + графік + перемикач
       /* Співробітнику не пишемо, хто він. Дошка в нього одна, зайти на чужу
          він не може — і підпис «Моя дошка · Графічний дизайнер» просто
          повторював те, що він і так про себе знає. Андрій: «чому він тут
          бачить, що це є — графічний дизайнер він».
 
          А пошук йому потрібен так само: своїх карток теж буває багато. */
-      : (seekHtml(шук) + графік);
+      : (seekHtml(шук) + графік + перемикач);
     root.innerHTML =
       '<div class="dz-top">' + headHtml + '</div>' +
       /* Закупівля — без канбана: список «треба замовити», оформлені

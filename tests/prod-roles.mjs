@@ -241,6 +241,35 @@ ok(дз.сам.mine && дз.сам.cards === '2000501,2000503',
   'сам дизайнер: лише свої й черга відділу', JSON.stringify(дз.сам));
 
 console.log('');
+console.log('═══ 5. ДВІ РОЛІ — ДВІ ДОШКИ ═══');
+const дві = await p.evaluate(async () => {
+  seeAsSet('');
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'supply', roles:['supply','production'] }) : x);
+  applyRoleUi(); await new Promise(r => setTimeout(r, 60));
+  document.querySelector('.nav button[data-view="design"]').click();
+  const U = window.LQDesign.ui; U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const sel = document.querySelector('#dzRoot [data-seat]');
+  const a = { seat: U.tab(), opts: sel ? [...sel.options].map(o => o.value) : null, label: sel ? sel.closest('.dz-as').textContent.replace(/\s+/g, ' ').trim().slice(0, 12) : '' };
+  if(sel){ sel.value = 'prod'; sel.dispatchEvent(new Event('change')); }
+  await new Promise(r => setTimeout(r, 100));
+  const b = { seat: U.tab(), cols: document.querySelectorAll('#dzRoot .dz-col').length, still: !!document.querySelector('#dzRoot [data-seat]') };
+  /* Очима цієї ж людини з «Команди» — той самий перемикач між двома. */
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner', roles:['owner'] }) : x);
+  contentData.team.push({ email:'two@loomiq', name:'Двоє', role:'supply', roles:['supply','production'] });
+  applyRoleUi(); seeAsSet('@two@loomiq'); await new Promise(r => setTimeout(r, 80));
+  document.querySelector('.nav button[data-view="design"]').click(); U.render(document.getElementById('dzRoot'));
+  const sel2 = document.querySelector('#dzRoot [data-seat]');
+  const c = { seat: U.tab(), opts: sel2 ? [...sel2.options].map(o => o.value) : null };
+  seeAsSet('');
+  return { a, b, c };
+});
+console.log('   ' + JSON.stringify(дві));
+ok(дві.a.seat === 'supply' && дві.a.opts && дві.a.opts.join() === 'prod,supply' && !/Дивлюсь/.test(дві.a.label),
+  'закупівля + виробництво: одразу закупівля, перемикач «Дошка» лише між своїми двома', JSON.stringify(дві.a));
+ok(дві.b.seat === 'prod' && дві.b.cols > 0 && дві.b.still, 'перемкнувся на цех — дошка цеху, перемикач лишився', JSON.stringify(дві.b));
+ok(дві.c.opts && дві.c.opts.join() === 'prod,supply', 'очима такої людини з «Команди» — той самий перемикач між двома', JSON.stringify(дві.c));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
 console.log(bad ? 'розходжень: ' + bad : 'виробничі ролі — лише B2C, кожна на своїй дошці');
