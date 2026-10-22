@@ -141,7 +141,7 @@ const r3 = await p.evaluate(async () => {
 });
 console.log('  ' + JSON.stringify(r3));
 ok(r3.navOn && r3.n === '1', 'власник бачить розділ «Проблемні замовлення» з числом 1', JSON.stringify(r3));
-ok(r3.rows.length === 1 && r3.rows.some(t => /2000701/.test(t) && /файл вишивки/.test(t) && /Оля/.test(t)),
+ok(r3.rows.length === 1 && r3.rows.some(t => /#2000001/.test(t) && !/2000701/.test(t) && /файл вишивки/.test(t) && /Оля/.test(t)),
   'у списку — номер, хто позначив і текст', JSON.stringify(r3.rows));
 ok(r3.після === 0 && r3.n2 === '' && r3.закрита && r3.закрита.how === 'Показали, де кнопка',
   '«Зняти» — проблема зникла зі списку, числа немає, у замовленні лишився слід «як вирішили»', JSON.stringify(r3));
