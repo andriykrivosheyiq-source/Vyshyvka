@@ -75,7 +75,7 @@ await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await p.waitForTimeout(3500);
 await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none'; });
 
-console.log('═══ 1. ДИЗАЙНЕР: «!» Є, РОЗДІЛУ НЕМАЄ ═══');
+console.log('═══ 1. ДИЗАЙНЕР: «!» НЕМАЄ (22.10); АКАУНТ ПОЗНАЧАЄ; РОЗДІЛУ НЕМАЄ ═══');
 const r1 = await p.evaluate(async () => {
   applyRoleUi();
   const nav = document.querySelector('.nav [data-view="problems"]');
@@ -88,22 +88,32 @@ const r1 = await p.evaluate(async () => {
   openDesign(); U.setTab('graphic'); U.render(document.getElementById('dzRoot'));
   const c = document.querySelector('#dzRoot [data-open="2000701"]'); if(c) c.click();
   await new Promise(r => setTimeout(r, 400));
+  /* 22.10, Андрій: «знаки оклику забрати у дизайнерів». */
+  const уДизайнера = !!document.querySelector('.dz-panel [data-do="problem-add"]');
+  /* Позначає акаунт B2C — та сама людина, інша роль. */
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'managerb2c', roles:['managerb2c'] }) : x);
+  applyRoleUi(); await new Promise(r => setTimeout(r, 60));
+  const navA = document.querySelector('.nav [data-view="problems"]');
+  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  const c2 = document.querySelector('#dzRoot [data-open="2000701"]'); if(c2) c2.click();
+  await new Promise(r => setTimeout(r, 400));
   const b = document.querySelector('.dz-panel [data-do="problem-add"]');
-  if(!b) return { err: 'немає «!»', nav: nav && !nav.hidden };
+  if(!b) return { err: 'немає «!» в акаунта', уДизайнера, nav: nav && !nav.hidden };
   b.click();
   await new Promise(r => setTimeout(r, 200));
   const ta = document.querySelector('.dz-fixw .dz-fix-t');
   ta.value = 'Не можу завантажити файл вишивки';
   document.querySelector('.dz-fixw [data-fix-go]').click();
   await new Promise(r => setTimeout(r, 600));
-  return { nav: !!(nav && !nav.hidden), problems: problemsOf('2000701').map(p => ({ by: p.by, text: p.text, open: p.open })),
+  return { уДизайнера, nav: !!(nav && !nav.hidden) || !!(navA && !navA.hidden), problems: problemsOf('2000701').map(p => ({ by: p.by, text: p.text, open: p.open })),
            знак: (document.querySelector('.dz-panel .dz-prob-n') || {}).textContent || '' };
 });
 console.log('  ' + JSON.stringify(r1));
-ok(r1.nav === false, 'у дизайнера розділу «Проблемні замовлення» немає', JSON.stringify(r1));
+ok(r1.уДизайнера === false, 'у дизайнера «! Проблема» немає (22.10)', JSON.stringify(r1));
+ok(r1.nav === false, 'ні в дизайнера, ні в акаунта розділу «Проблемні замовлення» немає', JSON.stringify(r1));
 ok(r1.problems && r1.problems.length === 1 && r1.problems[0].by === 'test@loomiq' && /файл вишивки/.test(r1.problems[0].text) && r1.problems[0].open,
-  'дизайнер натиснув «!» і написав — проблема записана в замовлення', JSON.stringify(r1));
-ok(r1.знак === 'позначено', 'дизайнеру видно лише «позначено», без списку й лічильника', JSON.stringify(r1));
+  'акаунт натиснув «!» і написав — проблема записана в замовлення', JSON.stringify(r1));
+ok(r1.знак === 'позначено', 'не власнику видно лише «позначено», без списку й лічильника', JSON.stringify(r1));
 
 console.log('═══ 2. B2B: «!» У КАРТЦІ ЗАМОВЛЕННЯ ═══');
 const r2 = await p.evaluate(async () => {
@@ -124,7 +134,7 @@ ok(r2.немає && r2.n === 0 && !r2.job, 'у картці B2B «!» немає
 
 console.log('═══ 3. ВЛАСНИК: РОЗДІЛ, ЧИСЛО, «ЗНЯТИ» ═══');
 const r3 = await p.evaluate(async () => {
-  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner', roles:['owner'] }) : x);
   applyRoleUi(); paintProblems();
   const nav = document.querySelector('.nav [data-view="problems"]');
   const n = (document.querySelector('[data-nav-n="problems"]') || {}).textContent || '';

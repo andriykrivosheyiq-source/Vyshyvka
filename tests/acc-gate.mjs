@@ -110,8 +110,8 @@ const p1 = await page(() => { window.__PHOTOS_DELAY = 2500; });
 await p1.waitForTimeout(1200);
 const s1 = await стан(p1);
 console.log('   ' + JSON.stringify(s1));
-ok(s1.gate && /Завантажую доступи/.test(s1.gateTxt) && s1.wait && !s1.navVis && !s1.mainVis && !s1.loaded,
-  'перші секунди: лише «Завантажую доступи…», панель і дошка невидимі', JSON.stringify(s1));
+ok(s1.gate && /^Оновлення…$/.test(s1.gateTxt) && s1.wait && !s1.navVis && !s1.mainVis && !s1.loaded,
+  'перші секунди: лише «Оновлення…», панель і дошка невидимі', JSON.stringify(s1));
 ok(s1.role !== 'owner' && Array.isArray(s1.nav) && !s1.nav.length, 'до приходу команди ніхто не власник — доступів нуль', JSON.stringify({ role: s1.role, nav: s1.nav }));
 await p1.waitForTimeout(3000);
 const s2 = await стан(p1);
@@ -134,13 +134,17 @@ ok(!s4.gate && s4.role === 'owner' && s4.navItems.length > 5, 'команди в
 await p2.close();
 
 console.log('');
-console.log('═══ 3. ДОКУМЕНТ НЕ ПРИЙШОВ — «НЕ ВДАЛОСЬ», А НЕ ВСЕ НАВСТІЖ ═══');
-const p3 = await page(() => { window.__PHOTOS_NEVER = true; window.LQ_ACC_WAIT_MS = 1500; });
-await p3.waitForTimeout(3000);
+console.log('═══ 3. ДОКУМЕНТ НЕ ПРИЙШОВ — САМА ПЕРЕЗАВАНТАЖУЄТЬСЯ, ПОТІМ «НЕ ВДАЛОСЬ» ═══');
+const p3 = await page(() => { window.__PHOTOS_NEVER = true; window.LQ_ACC_WAIT_MS = 1500;
+  if(window.top !== window) return;   // вбудовані кадри сторінки теж виконують цей скрипт
+  window.__loads = (+sessionStorage.getItem('__t_loads') || 0) + 1; sessionStorage.setItem('__t_loads', String(window.__loads)); });
+await p3.waitForTimeout(6000);
 const s5 = await стан(p3);
-console.log('   ' + JSON.stringify(s5));
-ok(s5.gate && /Не вдалось завантажити доступи/.test(s5.gateTxt) && s5.retry && !s5.navVis && !s5.mainVis && s5.role !== 'owner',
-  'минув час очікування — «Не вдалось завантажити доступи» зі «Спробувати ще раз»; панель і дошка так і не показались', JSON.stringify(s5));
+const loads = await p3.evaluate(() => window.__loads);
+console.log('   ' + JSON.stringify(Object.assign({ loads }, s5)));
+ok(loads === 2, 'минув час очікування — сторінка один раз перезавантажилась сама', 'завантажень: ' + loads);
+ok(s5.gate && /Не вдалось завантажити/.test(s5.gateTxt) && s5.retry && !s5.navVis && !s5.mainVis && s5.role !== 'owner',
+  'і після цього не прийшло — «Не вдалось завантажити» зі «Спробувати ще раз», без кола; панель і дошка так і не показались', JSON.stringify(s5));
 await p3.close();
 
 console.log('');

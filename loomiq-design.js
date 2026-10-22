@@ -4739,7 +4739,7 @@
     }
     /* ＋ ТОВАР З ЦИМ ЕСКІЗОМ (18.10) — лише в B2C і лише з «головної»
        позиції: у звʼязаної ескіз і так чужий. */
-    var лінк = !!(opt && opt.o && opt.o.dir === 'b2c') && !D.linkOf(u);
+    var лінк = !!(opt && opt.o && opt.o.dir === 'b2c') && !D.linkOf(u) && !(opt && opt.noLinkAdd);
     return '<div class="dz-u-svc">' + l.map(function(x, i){
         return '<span class="dz-svc">+ ' + esc(x.name) +
           '<button type="button" data-do="u-svc-del" data-u="' + esc(u.id) + '" data-i="' + i + '" title="Прибрати послугу">×</button></span>';
@@ -4804,15 +4804,10 @@
       '</select></label>';
   }
   function designKindHtml(u, job){
-    if(D.linkOf(u)){
-      var mn = D.linkMain(job, u);
-      var зПог = dzList(u, 'graphic').some(function(x){ return x.readyMade && x.ok; });
-      return '<div class="dz-kind is-link"><span class="dz-link-t">🔗 Той самий ескіз, що й позиція ' +
-        (mn ? (unitsOf(job).indexOf(mn) + 1) : '?') + '</span>' +
-        '<button type="button" class="dz-kind-b" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
-          (зПог ? ' disabled title="Дизайн уже погоджено"' : ' title="Відвʼязати від ескізу — позиція стане окремою зі своїм дизайном"') + '>Свій дизайн</button>' +
-      '</div>';
-    }
+    /* Товар з тим самим ескізом: ні підпису, ні «Свій дизайн» (22.10,
+       Андрій: «кнопку забираємо зовсім» — інший дизайн = видалити рядок і
+       додати одяг). */
+    if(D.linkOf(u)) return '';
     var пов = !!(u.ready && u.ready.repeat);
     var гот = !!u.ready && !пов;
     var баз = !u.ready && !!u.base;
@@ -4948,28 +4943,26 @@
     var зПог = !!(d && d.ok);
     return '<div class="dz-ready is-link' + (sub ? ' is-sub' : '') + '">' +
       (sub
-        ? '<div class="dz-sub-t">🔗 Той самий ескіз, що й позиція ' + no +
-            '<button type="button" class="dz-kind-b" data-do="u-ready-off" data-u="' + esc(u.id) + '"' +
-              (зПог ? ' disabled title="Дизайн уже погоджено"' : ' title="Відвʼязати від ескізу — позиція стане окремою зі своїм дизайном"') + '>Свій дизайн</button></div>'
+        ? ''
         : '<div class="dz-ready-h">' +
         (pic ? '<button type="button" class="dz-ready-i" data-do="pic-open" data-url="' + esc(pic) + '"><img src="' + esc(pic) + '" alt=""></button>' : '') +
         '<span class="dz-ready-t"><b>Ескіз позиції ' + no + '</b>' +
           '<i>без нового ескізу й без оплати дизайнерам · вишивальний файл — той самий</i></span>' +
       '</div>') +
-      (!mn ? '<div class="dz-miss">Головної позиції вже немає — натисніть «Свій дизайн».</div>'
-        : !arts.length ? '<div class="dz-miss is-calm">Розмістимо, щойно буде ескіз позиції ' + no + '.</div>'
+      (!mn ? '<div class="dz-miss">Головної позиції вже немає — видаліть цей рядок і додайте одяг заново.</div>'
+        : !arts.length ? (sub ? '' : '<div class="dz-miss is-calm">Розмістимо, щойно буде ескіз позиції ' + no + '.</div>')
         : (!d || !(d.vers || []).length)
-          ? (ro ? '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>'
+          ? (ro ? (sub ? '' : '<div class="dz-miss is-calm">Ще не розміщено на одязі.</div>')
               : !u.gid ? '<div class="dz-miss">Спершу оберіть одяг — ескіз кладемо на нього.</div>'
               : '<div class="dz-rep-a">' + кнопка('◱ Розмістити на одязі') + '</div>')
           : ((stale && !ro) ? '<div class="dz-miss dz-need">Ескіз позиції ' + no + ' оновився — розмістіть його й тут.' + кнопка('◱ Розмістити') + '</div>' : '') +
             dzCardHtml(u, 'graphic', d, gi, job, opt && opt.o, key, ro)) +
-      (st ? '<div class="dz-miss is-calm">Вишивка — файл позиції ' + no + ', позиція йде у виробництво.</div>'
+      (st ? (sub ? '' : '<div class="dz-miss is-calm">Вишивка — файл позиції ' + no + ', позиція йде у виробництво.</div>')
           : (d && d.ok && D.graphicOk(u) && !D.clothOk(u) && !ro)
           ? '<div class="dz-miss dz-need">Ескіз погоджено — підтвердіть одяг' +
             (D.unitMissing(u).length ? ' (не заповнено: <b>' + esc(D.unitMissing(u).join(', ')) + '</b>)' : '') +
             '.<button type="button" class="dz-b pri" data-do="u-cloth" data-u="' + esc(u.id) + '">Підтвердити одяг</button></div>'
-          : (d && d.ok && mn && dzList(mn, 'stitch').length) ? '<div class="dz-miss is-calm">Вишивальний файл прийде з позиції ' + no + '.</div>'
+          : (d && d.ok && mn && dzList(mn, 'stitch').length && !sub) ? '<div class="dz-miss is-calm">Вишивальний файл прийде з позиції ' + no + '.</div>'
           : '') +
     '</div>';
   }
@@ -5143,17 +5136,23 @@
      картка… два товари просто». Звʼязаний товар — не окрема картка внизу,
      а рядок виробу під позицією з ескізом: свої лише виріб, колір, розмір,
      послуги й розміщення. Ескіз, ТЗ і дизайнери — головної. */
+  /* 22.10 (Андрій): рядок на тому ж рівні, без «Той самий ескіз, що й
+     позиція 1» — це й так видно з того, де він стоїть. «＋ Товар з цим
+     ескізом» — під останнім рядком групи, а не під позицією 1. */
   function linkedRowsHtml(job, u, opt){
     var l = D.linksOf(job, u);
     if(!l.length) return '';
     var all = unitsOf(job);
+    var b2c = !!(opt && opt.o && opt.o.dir === 'b2c');
     return l.map(function(x){
       return '<div class="dz-u-sub" data-sub="' + esc(x.id) + '">' +
         unitRowHtml(x, all.indexOf(x) + 1, opt) +
         servicesHtml(x, false, opt) +
         linkHtml(job, x, false, Object.assign({}, opt || {}, { sub: true })) +
       '</div>';
-    }).join('');
+    }).join('') +
+    (b2c ? '<div class="dz-u-svc dz-link-row"><button type="button" class="dz-svc-add dz-link-add" data-do="u-link-add" data-u="' + esc(u.id) + '" ' +
+      'title="Ще один товар із цією самою картинкою — без нового ескізу й без оплати дизайнерам">＋ Товар з цим ескізом</button></div>' : '');
   }
   function unitHtml(job, u, n, opt){
     opt = opt || {};
@@ -5196,7 +5195,7 @@
            з назвою виробу і так каже, що це виріб, а порожня чесно просить
            обрати. */
         : unitRowHtml(u, n, opt)) +
-      servicesHtml(u, ro, opt) +
+      servicesHtml(u, ro, (!ro && D.linksOf(job, u).length) ? Object.assign({}, opt, { noLinkAdd: true }) : opt) +
       (ro ? linksNoteHtml(job, u) : linkedRowsHtml(job, u, opt)) +
       /* 16.10, Андрій: коментар ліворуч, картинки праворуч — одним рядком,
          щоб позиція була нижчою. Картинок багато — права частина росте вниз. */
@@ -10030,6 +10029,10 @@
   /* «!» — позначити проблему (20.10). Скільки ВІДКРИТИХ — бачить лише
      власник; іншим — лише сама кнопка й «позначено». */
   function probBarHtml(id){
+    /* 22.10, Андрій: «знаки оклику забрати в дизайнерів — лишити тільки в
+       акаунтів і виробництва». Дизайнерська роль (графічний, вишивальний,
+       DTF) — та, що бачить лише свої дизайни; береться з активної ролі. */
+    try{ if(host().onlyMine && host().onlyMine()) return ''; }catch(e){}
     var pr = U.pairOf(String(id).split('|')[0]);
     if(!pr) return '';
     var відкр = 0;
@@ -10845,6 +10848,7 @@
     fwdPickOpen(targets, go);
   }
   U.forwardToDesigner = forwardToDesigner;
+  U.probBarHtml = probBarHtml;    // 22.10: тест «! Проблема» по ролях
   /* ── ВЛАСНИК ПЕРЕМИКАЄ ВИД ДИЗАЙНУ ПОПРИ РОБОТУ (19.10) ── */
   function kindBusy(u){
     return D.dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; }) ||
