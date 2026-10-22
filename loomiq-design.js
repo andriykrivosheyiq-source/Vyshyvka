@@ -6478,7 +6478,7 @@
           ? '<div class="dz-ship"><div class="dz-ship-l"><b>Накладна ' + esc(ttn) + '</b>' +
               (o.ttnStatus ? '<span>' + esc(o.ttnStatus) + '</span>' : '') +
               (o.ttnCity ? '<span>' + esc(o.ttnCity + (o.ttnWh ? ' · ' + o.ttnWh : '')) + '</span>' : '') + '</div>' +
-              '<button class="dz-b" data-ship-track>Оновити статус</button></div>'
+              '<button class="dz-b" data-ship-track>Оновити статус</button></div>' + ttnInfoHtml(o)
           : host.shipForm(o)) +
         (ttn ? '' : '<label class="dz-own-f dz-ship-man"><span>Або номер ТТН руками</span>' +
           '<input data-of="ttn" value="" placeholder="якщо накладну створили в кабінеті НП"></label>');
@@ -6505,6 +6505,32 @@
         '<button class="dz-b" data-do="ship">' +
           (ttn ? 'Відкрити відправку' : 'Створити накладну') + '</button>' +
       '</div>';
+  }
+  /* ДЕТАЛІ НАКЛАДНОЇ (22.10, Андрій: «деталі платежу, які потім прийдуть
+     усередині накладної, тут не пишуться»): отримувач, відправник,
+     контроль оплати й чи гроші вже прийшли, хто платить доставку,
+     оголошена вартість, коли доставлять. */
+  function ttnInfoHtml(o){
+    var t = null;
+    try{ t = host.ttnInfo ? host.ttnInfo(o) : null; }catch(e){}
+    if(!t) return '';
+    var гр = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA') + ' ₴'; };
+    var р = [];
+    var рядок = function(k, v, cls){ if(v) р.push('<div class="dz-ttnd-r' + (cls ? ' ' + cls : '') + '"><span>' + esc(k) + '</span><b>' + v + '</b></div>'); };
+    рядок('Отримувач', esc([t.name, t.phone].filter(Boolean).join(' · ')));
+    рядок('Відправник', esc(t.sender));
+    if(t.cod > 0){
+      рядок('Контроль оплати', esc(гр(t.cod)) + (t.sender ? ' <i>на рахунок НП ' + esc(t.sender) + '</i>' : ''));
+      рядок('Гроші за накладною', t.got >= t.cod - 5
+        ? esc('прийшли' + (t.gotAt ? ' ' + t.gotAt : '') + ' · ' + гр(t.got))
+        : t.got > 0 ? esc('прийшло ' + гр(t.got) + ' з ' + гр(t.cod)) : 'ще не прийшли', t.got >= t.cod - 5 ? 'is-ok' : 'is-wait');
+    } else if(t.codKnown) рядок('Контроль оплати', 'без контролю оплати');
+    рядок('Доставку платить', t.payer ? (t.payer === 'sender' ? 'ми (відправник)' : 'отримувач') : '');
+    рядок('Оголошена вартість', t.decl > 0 ? esc(гр(t.decl)) : '');
+    рядок('Вартість доставки', t.cost > 0 ? esc(гр(t.cost)) : '');
+    рядок('Орієнтовно доставлять', esc(t.est));
+    if(t.manual && !(t.cod > 0)) р.push('<div class="dz-ttnd-r is-note">Накладну вписали руками — натисніть «Оновити статус», щоб підтягнути з Нової пошти суму контролю оплати й хто платить доставку.</div>');
+    return р.length ? '<div class="dz-ttnd">' + р.join('') + '</div>' : '';
   }
   /* Те саме без власного заголовка — коли блок стоїть у підписаній зоні. */
   function shipBody(p){

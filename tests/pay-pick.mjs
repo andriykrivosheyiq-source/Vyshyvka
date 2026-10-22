@@ -209,6 +209,20 @@ ok(бік.side && бік.r && Math.abs(бік.r[0] - бік.w[0]) <= 2 && Math.a
   'B2C: вікно привʼязки праворуч, рівно на місці картки; ліворуч нічого не затулено',
   'B2C вікно: ' + JSON.stringify(бік));
 ok((await search('іван')).join() === 'p6', 'і пошук той самий', 'B2C пошук');
+await search('');
+/* 22.10, Андрій: дві вкладки — «Не привʼязані» (за замовчуванням) і «Привʼязані». */
+const вкладки = await p.evaluate(async () => {
+  const tabs = [...document.querySelectorAll('.pp-tab')].map(b => b.textContent + (b.classList.contains('on') ? '*' : ''));
+  document.querySelector('[data-pp-tab="linked"]').click(); await new Promise(r => setTimeout(r, 150));
+  const rows = [...document.querySelectorAll('.pp-list .pp-row')].map(r => r.dataset.pp + ':' + ((r.querySelector('.pp-ord') || {}).textContent || ''));
+  const foot = document.querySelector('.pp-f').hidden;
+  document.querySelector('[data-pp-tab="free"]').click(); await new Promise(r => setTimeout(r, 150));
+  return { tabs, rows, foot, back: [...document.querySelectorAll('.pp-list .pp-row')].map(r => r.dataset.pp) };
+});
+console.log('   ' + JSON.stringify(вкладки));
+ok(вкладки.tabs.join('|') === 'Не привʼязані*|Привʼязані', 'дві вкладки, за замовчуванням «Не привʼязані»', JSON.stringify(вкладки.tabs));
+ok(вкладки.rows.length >= 1 && вкладки.rows.every(x => /:#\d+/.test(x)) && вкладки.foot, '«Привʼязані»: кожен рядок з номером картки, без кнопки «Привʼязати»', JSON.stringify(вкладки.rows));
+ok(вкладки.back.join() === 'p2,p1,p6', 'назад у «Не привʼязані» — ті самі рядки', JSON.stringify(вкладки.back));
 await p.click('.pp-row[data-pp="p6"]');
 await p.click('[data-pp-go]');
 await p.waitForTimeout(600);

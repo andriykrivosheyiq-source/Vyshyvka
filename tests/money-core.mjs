@@ -226,6 +226,20 @@ console.log('═══ 11. НОМЕР У ТЕКСТАХ — ЯК У КАРТЦІ
     '«уже привʼязаний до #…» — номер з noOf; без нього — ключ, як було', M.linkCheck(c, '1000501', { noOf }));
 }
 
+console.log('═══ 12. ДВА ЗАМОВЛЕННЯ З ОДНИМ НОМЕРОМ (22.10) ═══');
+{
+  const a = { id:'A', orderId:'1000147', name:'Денис', createdAt: D + '19T23:00:00Z', totalPrice: 100, payments: [] };
+  const b = { id:'B', orderId:'1000147', name:'—', createdAt: D + '21T19:44:00Z', totalPrice: 100, payments: [] };
+  const l = M.audit([a, b], [], { now: NOW, np: {}, accs: [] }).filter(x => x.kind === 'dup_no');
+  ok(l.length === 1 && l[0].sev === 'red' && l[0].orderId === '1000147' && l[0].n === 2 && /#1000147/.test(l[0].text) && /2 картках/.test(l[0].text),
+    'Звірка: червоний пункт «номер стоїть на 2 картках»', JSON.stringify(l));
+  ok(M.keyOf(l[0]) === 'dup_no:1000147', 'ключ пункту — за номером (щоб «Гаразд» не ховав чужі двійники)', M.keyOf(l[0]));
+  const один = M.audit([a, Object.assign({}, b, { orderId:'1000148' })], [], { now: NOW, np: {}, accs: [] }).filter(x => x.kind === 'dup_no');
+  ok(!один.length, 'різні номери — пункту немає', JSON.stringify(один));
+  const черн = M.audit([a, Object.assign({}, b, { draft: true })], [], { now: NOW, np: {}, accs: [] }).filter(x => x.kind === 'dup_no');
+  ok(!черн.length, 'чернетка без номера в базі — не двійник', JSON.stringify(черн));
+}
+
 console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);
