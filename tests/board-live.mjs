@@ -110,7 +110,7 @@ await p.evaluate(() => {
   window.__ORDERS_FIRE();                       // знімок замовлень приносить картку
   document.querySelector('.nav button[data-view="design"]').click();
 });
-await p.waitForTimeout(400);
+await p.waitForTimeout(900);
 const s1 = await де();
 console.log('   ' + JSON.stringify(s1));
 ok(s1.seat === 'prod' && s1.col === 'new', 'дошка цеху, картка 2000601 у «Нове»', JSON.stringify(s1));
@@ -123,7 +123,7 @@ await p.evaluate(() => {
   o.trackHist = [{ t:'prod', s:'work', at:new Date().toISOString(), by:'op@loomiq' }];
   window.__ORDERS_FIRE();                       // лише знімок kanbanOrders, designJobs мовчить
 });
-await p.waitForTimeout(400);
+await p.waitForTimeout(900);
 const s2 = await де();
 console.log('   ' + JSON.stringify(s2));
 ok(s2.col === 'run', 'картка сама перейшла в «На станках»', JSON.stringify(s2));
@@ -136,7 +136,7 @@ await p.evaluate(() => {
   o.tracks = { prod:'ready' };
   window.__ORDERS_FIRE();
 });
-await p.waitForTimeout(400);
+await p.waitForTimeout(900);
 const s3 = await де();
 ok(s3.col === 'ready', 'картка в «Готово до роботи»', JSON.stringify(s3));
 
