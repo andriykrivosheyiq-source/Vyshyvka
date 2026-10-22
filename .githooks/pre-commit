@@ -19,6 +19,12 @@ if git diff --cached --name-only | grep -qE '^(loomiq-money-core\.js|loomiqadmin
       exit 1
     }
   fi
+    # 22.10: номер замовлення — лише заброньований (orderNos).
+    node tests/order-nos.mjs >/tmp/lq-order-nos.log 2>&1 || {
+      echo "✗ Правила бронювання номерів зламано — коміт зупинено. Подробиці: /tmp/lq-order-nos.log"
+      grep '✗' /tmp/lq-order-nos.log
+      exit 1
+    }
   # Оплата на карту з «!» (21.10): справжня адмінка — менеджер вписує,
   # власник підтверджує, «не дійшло» не рахується.
   if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-money-core\.js|tests/card-pay\.mjs)'; then
@@ -158,6 +164,17 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
     exit 1
   }
   echo "✓ відмова B2C ціла"
+fi
+
+# БРОНЬ НОМЕРА (22.10). Андрій: «щоб більше ніколи це не трапилось».
+# Перед першим записом картки номер бронюється документом у базі.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/order-reserve\.mjs)'; then
+  node tests/order-reserve.mjs >/tmp/lq-order-reserve.log 2>&1 || {
+    echo "✗ Бронь номера в адмінці зламана — коміт зупинено. Подробиці: /tmp/lq-order-reserve.log"
+    grep '✗' /tmp/lq-order-reserve.log
+    exit 1
+  }
+  echo "✓ номер бронюється в базі"
 fi
 
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде

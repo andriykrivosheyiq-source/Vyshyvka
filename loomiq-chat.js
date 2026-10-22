@@ -405,6 +405,7 @@ function crmNormFound(data, isChats){
 
    Це працює завжди, незалежно від того, що вміє їхнє API, і не залежить від
    того, скільки в акаунті діалогів. */
+function stripAt(v){ return String(v || '').replace(/^@/, '').trim().toLowerCase(); }
 function crmChatIdFromUrl(text){
   const t = String(text || '').trim();
   if(!t) return '';
@@ -438,7 +439,10 @@ async function crmBindUrl(o, text){
                      '/chats/' + encodeURIComponent(id) + '/messages']){
     try{
       const data = await crmFetch(path);
-      const list = crmNormFound(Array.isArray(data) ? data : [data], true);
+      /* Відповідь зі списком ({items:[…]}) читаємо як список, а один обʼєкт
+         (сама розмова) — як запис. Доти {items} загортався в масив і
+         людина в ньому не знаходилась — картка лишалась без імені й ніка. */
+      const list = crmNormFound((Array.isArray(data) || crmListOf(data).length) ? data : [data], true);
       const one = list.find(r => r.name || r.nick);
       if(one){ who = one; break; }
       // Відповів, але назвати людину нічим — шукаємо в наступному місці.
@@ -460,8 +464,35 @@ async function crmBindUrl(o, text){
    виправити імʼя руками, і затирати правку відповіддю CRM не можна. */
 async function crmPickChat(o, r){
   if(!canBindChat()){ toast('Привʼязувати розмови — не ваша зона'); return; }
+  /* ЗАМІНА РОЗМОВИ (22.10, Андрій: «змінили привʼязку, а вікно й кнопка — за
+     старою»). Імʼя й нік, що колись прийшли зі СТАРОЇ розмови, міняємо на
+     нові; правлене руками (не збігається зі старим) — не чіпаємо. Чергу
+     ненадісланого й «пише в іншу розмову» старої — забуваємо. */
+  const стара = { id: String(o.crmChatId || ''), name: String(o.crmChatName || ''), nick: String(o.crmNick || ''), ig: String(o.ig || '') };
+  const заміна = !!стара.id && стара.id !== String(r.chatId);
   o.crmChatId = String(r.chatId);
   o.crmChatName = r.name || r.nick || '';
+  if(заміна){
+    const нове = o.crmChatName;
+    /* Імʼя зі старої розмови — міняємо на нове, навіть порожнє: краще
+       «Клієнт», ніж чуже імʼя над чужою перепискою. */
+    const зіСтарої = v => { v = String(v || '').trim(); return !v || v === стара.name || v === стара.nick ||
+      (стара.name && стара.name.toLowerCase().startsWith(v.toLowerCase())); };   // «Асія» ← «Асія Дерещук»
+    if(зіСтарої(o.name)) o.name = нове;
+    const ігЗіСтарої = !стара.ig || стара.ig === стара.nick || stripAt(стара.ig) === stripAt(стара.nick) || стара.ig === стара.name;
+    if(ігЗіСтарої){
+      if(r.nick && !/^(Telegram|Viber|WhatsApp|Facebook)$/.test(r.channel || '')) chanSet(o, 'ig', r.nick);
+      else if(стара.ig) chanSet(o, 'ig', '');
+    }
+    if(!r.nick) delete o.crmNick;
+    delete chatOutbox[o.id]; delete o.__elsewhere;
+    /* Памʼять про СТАРУ розмову — «це наше», прочитане, останнє, непрочитане —
+       інакше в новій стрічці наші аркуші зі старої й чужі репліки «наші». */
+    ['crmOut', 'crmPicsOut', 'crmTheirs', 'crmIn', 'crmInAt', 'crmUnread', 'crmSeen', 'crmSeenK', 'crmSeenKt', 'crmSeenTs',
+     'crmLast', 'crmGone', 'crmAt', 'crmOrder'].forEach(k => { delete o[k]; });
+    delete crmOutHere[o.id];
+    try{ crmStopPoll(); }catch(e){}
+  }
   /* НІК ЗБЕРІГАЄМО ОКРЕМО, А НЕ ЛИШЕ В ПОЛІ INSTAGRAM.
 
      У полі Instagram він опиняється тільки тоді, коли розмова справді
@@ -481,7 +512,10 @@ async function crmPickChat(o, r){
   chanFill(o);                       // ніка немає зовсім — лишиться імʼя з розмови
   delete crmSeek[o.id];
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
-  crmLoadChat(o);
+  await crmLoadChat(o);
+  /* Вікно розмови відкрите — показує вже нову й слухає її. */
+  if(заміна && chatWin && chatWin.id === o.id && chatWin.kind === 'crm'){ renderChatWin(true); try{ crmStartPoll(o); }catch(e){} }
+  try{ renderBoard(); }catch(e){}
 }
 async function crmUnlink(o){
   delete o.crmChatId; delete o.crmChatName; delete o.crmNick;
