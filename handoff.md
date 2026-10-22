@@ -32,7 +32,7 @@ GitHub Actions → «pages build and deployment»; допомагає насту
    діалог + усе фонове; людина лишається, де була).
 
 **Повний прогін:** `ls tests/*.mjs | grep -v money-rules | xargs -P3 -I{} sh -c 'node {} >/tmp/claude-0/t_$(basename {}).log 2>&1 || echo "FAIL {}"'`
-(182 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
+(183 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
 `card-weight`, `threads`; `crm-pics` часом падає з «Execution context was
 destroyed» — це Chromium «Promise was collected» на await усередині
 `page.evaluate` (сторінка жива, навігації немає; розібрано 21–22.10),
@@ -133,6 +133,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `kanbanOrders` перемальовує відкритий розділ (`repaintAfterOrders`:
   B2B, B2C, розмови, Проблемні, Задачі) — доти лише B2B, а колонка цеху
   рахується з `o.tracks`. `tests/board-live.mjs`.
+- **Одна роль за раз** (22.10, «не обʼєднувати, а перемикати»): `myRoles`
+  / `myRole` (активна, `lq_role_<пошта>` у localStorage), `myAccReal` →
+  `presetOf(myRole())`, перемикач `#roleSwitch` у `.sidebar-foot`
+  (`renderRoleSwitch`, `roleSwitchTo`), у «дивитись як» —
+  `seeAsRoleChoice` (sessionStorage `lq_see_as_role`). `accOf` (сума)
+  лише для acl і Команди. Правило в `CLAUDE.md`. `tests/role-switch.mjs`;
+  `prod-roles` §5 переписано.
 
 **Відкриті питання Андрія (чекають відповіді/рішення):**
 - **«Підсумки по таблетках»** — не уточнено, про які таблетки.
