@@ -127,6 +127,17 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   echo "✓ до приходу доступів — нічого"
 fi
 
+# ДОШКА B2C У ВСІХ ОДНАКОВА (22.10). Андрій: «статуси не паралельні».
+# Знімок замовлень перемальовує відкритий розділ (repaintAfterOrders).
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/board-live\.mjs)'; then
+  node tests/board-live.mjs >/tmp/lq-board-live.log 2>&1 || {
+    echo "✗ Чужий рух картки не підтягується на дошку B2C — коміт зупинено. Подробиці: /tmp/lq-board-live.log"
+    grep '✗' /tmp/lq-board-live.log
+    exit 1
+  }
+  echo "✓ дошка B2C підтягує чужі рухи"
+fi
+
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —
