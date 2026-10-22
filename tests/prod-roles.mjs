@@ -271,6 +271,32 @@ ok(дві.b.seat === 'prod' && дві.b.cols > 0 && дві.b.sw && дві.b.sw.c
 ok(дві.c.sw && дві.c.sw.opts.join() === 'supply,production' && дві.c.sw.cur === 'supply' && дві.c.seat === 'supply' && !дві.c.board,
   'очима такої людини з «Команди» — той самий перемикач, стартова роль перша', JSON.stringify(дві.c));
 
+console.log('═══ 6. «! ПРОБЛЕМА» — АКАУНТИ Й ВИРОБНИЦТВО, НЕ ДИЗАЙНЕРИ (22.10) ═══');
+const оклик = await p.evaluate(async () => {
+  seeAsSet('');
+  const D = window.LQDesign, U = D.ui;
+  const id = '2000301';
+  if(!designJobs[id]){ const j = designJobMake(id); j.no = id;
+    const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1, note:'x', artKind:'k' });
+    j.units = [u]; const g = D.dzNew(); g.who = 'test@loomiq'; g.sentAt = new Date().toISOString(); g.status = 'work'; D.dzList(u, 'graphic').push(g); }
+  const out = {};
+  for(const role of ['managerb2c', 'designer', 'embroidery', 'dtf', 'production', 'supply', 'owner']){
+    try{ localStorage.removeItem('lq_role_test@loomiq'); }catch(e){}
+    contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role, roles:[role] }) : x);
+    applyRoleUi(); await new Promise(r => setTimeout(r, 40));
+    document.querySelector('.nav button[data-view="design"]').click();
+    U.render(document.getElementById('dzRoot'));
+    U.openCard ? U.openCard(id) : null;
+    const box = document.createElement('div');
+    box.innerHTML = U.probBarHtml ? U.probBarHtml(id) : '';
+    out[role] = !!box.querySelector('[data-do="problem-add"]');
+  }
+  return out;
+});
+console.log('   ' + JSON.stringify(оклик));
+ok(оклик.managerb2c && оклик.production && оклик.supply && оклик.owner, 'у акаунта, виробництва, закупівлі й власника «! Проблема» є', JSON.stringify(оклик));
+ok(!оклик.designer && !оклик.embroidery && !оклик.dtf, 'у графічного, вишивального й DTF-дизайнера — немає', JSON.stringify(оклик));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();

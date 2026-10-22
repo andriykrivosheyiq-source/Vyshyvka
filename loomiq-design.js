@@ -10029,6 +10029,10 @@
   /* «!» — позначити проблему (20.10). Скільки ВІДКРИТИХ — бачить лише
      власник; іншим — лише сама кнопка й «позначено». */
   function probBarHtml(id){
+    /* 22.10, Андрій: «знаки оклику забрати в дизайнерів — лишити тільки в
+       акаунтів і виробництва». Дизайнерська роль (графічний, вишивальний,
+       DTF) — та, що бачить лише свої дизайни; береться з активної ролі. */
+    try{ if(host().onlyMine && host().onlyMine()) return ''; }catch(e){}
     var pr = U.pairOf(String(id).split('|')[0]);
     if(!pr) return '';
     var відкр = 0;
@@ -10844,6 +10848,7 @@
     fwdPickOpen(targets, go);
   }
   U.forwardToDesigner = forwardToDesigner;
+  U.probBarHtml = probBarHtml;    // 22.10: тест «! Проблема» по ролях
   /* ── ВЛАСНИК ПЕРЕМИКАЄ ВИД ДИЗАЙНУ ПОПРИ РОБОТУ (19.10) ── */
   function kindBusy(u){
     return D.dzList(u, 'graphic').some(function(x){ return !x.readyMade && D.dzReal(x) && x.sentAt; }) ||
