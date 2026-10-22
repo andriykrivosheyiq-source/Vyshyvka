@@ -182,9 +182,28 @@ service cloud.firestore {
     // Видалення — окреме право, а не побічний ефект права на склад. Замовлення
     // зникає назавжди, відновити його нема звідки, і саме тому дозвіл на це
     // видається окремо й свідомо.
+    // ─── НОМЕР ЗАМОВЛЕННЯ — ЛИШЕ ЗАБРОНЬОВАНИЙ (22.10) ────────────────────
+    // Два замовлення з одним номером (1000147 двічі) — бо номер видавала
+    // кожна вкладка сама. Тепер номер спершу бронюється документом
+    // orderNos/<номер>: документ з таким імʼям база створює лише раз, тож
+    // другій вкладці відмовить, і вона візьме наступний. Картка без
+    // заброньованого номера не створюється взагалі. Бронь не змінюється й
+    // не знімається (хіба власником — для ремонту).
+    match /orderNos/{no} {
+      allow read: if known();
+      allow create: if request.auth != null && may('edit')
+                    && no.matches('^[0-9]{7}$')
+                    && request.resource.data.id is string
+                    && request.resource.data.keys().hasOnly(['id', 'by', 'at', 'dir']);
+      allow update: if false;
+      allow delete: if request.auth != null && may('setup');
+    }
     match /kanbanOrders/{id} {
       allow read: if known();
-      allow create: if request.auth != null && may('edit');
+      allow create: if request.auth != null && may('edit')
+        && request.resource.data.orderId is string
+        && exists(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId))
+        && get(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId)).data.id == id;
       allow delete: if request.auth != null && may('del');
       allow update: if request.auth != null
         && (may('edit') || !touched(['items', 'totalPrice', 'totalCost', 'margin',

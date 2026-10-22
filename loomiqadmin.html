@@ -8015,33 +8015,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=930c09ba0a"></script>
-<script src="loomiq-fingerprint.js?v=930c09ba0a"></script>
-<script src="loomiq-pricing.js?v=930c09ba0a"></script>
+<script src="loomiq-select.js?v=d554cb21d3"></script>
+<script src="loomiq-fingerprint.js?v=d554cb21d3"></script>
+<script src="loomiq-pricing.js?v=d554cb21d3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=930c09ba0a"></script>
+<script src="loomiq-money-core.js?v=d554cb21d3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=930c09ba0a"></script>
-<script src="loomiq-bg.js?v=930c09ba0a"></script>
-<script src="loomiq-mock.js?v=930c09ba0a"></script>
+<script src="loomiq-design.js?v=d554cb21d3"></script>
+<script src="loomiq-bg.js?v=d554cb21d3"></script>
+<script src="loomiq-mock.js?v=d554cb21d3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=930c09ba0a"></script>
+<script src="imagetracer.js?v=d554cb21d3"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=930c09ba0a"></script>
-<script src="loomiq-threads.js?v=930c09ba0a"></script>
+<script src="loomiq-chat.js?v=d554cb21d3"></script>
+<script src="loomiq-threads.js?v=d554cb21d3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=930c09ba0a"></script>
+<script src="loomiq-cards.js?v=d554cb21d3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8086,7 +8086,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '930c09ba0a';
+var LQ_VER = 'd554cb21d3';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8858,6 +8858,7 @@ function watchOrders(){
     try{ calcSoloReturn(); }catch(e){ console.warn('прорахунок з телефона', e); }
     webDupesFix();
     repaintAfterOrders();
+    try{ orderNosSeedOnce(); }catch(e){}
   }, function(e){
     ordersWatching = false;
     console.error('orders listen failed', e);
@@ -8961,8 +8962,15 @@ async function saveOrders(opts){
     let body = json, size = new Blob([body]).size;
     if(!ordersSaved.has(id)){
       const live = (orders || []).find(x => x && x.id === id);
-      try{ if(live && await orderNoClash(live)){ body = JSON.stringify(live); size = new Blob([body]).size; cur.set(id, body); } }
-      catch(e){ console.warn('перевірка номера', e); }
+      /* Спершу — чи номер уже є в базі на іншій картці; потім — бронь
+         документом orderNos: вона і є гарантія, бо база створює документ з
+         таким імʼям лише раз. Без броні картку не запише правило бази. */
+      try{
+        let зм = false;
+        if(live && await orderNoClash(live)) зм = true;
+        if(live && await reserveOrderNo(live)) зм = true;
+        if(зм){ body = JSON.stringify(live); size = new Blob([body]).size; cur.set(id, body); }
+      }catch(e){ console.warn('бронь номера', e); }
     }
     /* ВАЖКУ КАРТКУ РОЗВАНТАЖУЄМО ДО ЗАПИСУ, А НЕ ПІСЛЯ ВІДМОВИ.
 
@@ -9045,6 +9053,78 @@ async function orderNoClash(o){
   toast('Номер ' + було + ' уже зайнятий іншою карткою — цій дано ' + next);
   return true;
 }
+/* БРОНЬ НОМЕРА В БАЗІ (22.10, Андрій: «щоб більше ніколи це не трапилось»).
+   Перед першим записом картки створюємо orderNos/<номер> у транзакції:
+   документ є й належить іншій картці — номер зайнятий, беремо наступний і
+   пробуємо знову. true — номер картки змінився. Без справжньої бази
+   (тести зі стубом) транзакція нічого не повертає — вважаємо вільним. */
+async function reserveOrderNo(o){
+  if(!o || !o.orderId || o.draft) return false;
+  if(!fbDb || typeof fbDb.runTransaction !== 'function') return false;
+  const було = String(o.orderId);
+  const dir = orderDir(o);
+  for(let k = 0; k < 40; k++){
+    const no = String(o.orderId);
+    const ref = ORDER_NOS.doc(no);
+    let стан = 'ok';
+    try{
+      await fbDb.runTransaction(async t => {
+        const snap = await t.get(ref);
+        if(snap && snap.exists){
+          const d = snap.data() || {};
+          if(d.id === o.id) return;                 // наша ж бронь (повторний запис)
+          стан = 'taken'; return;
+        }
+        t.set(ref, { id: o.id, by: myEmail() || '', at: new Date().toISOString(), dir });
+      });
+    }catch(e){
+      /* Відмова правил (хтось створив між get і set) — теж «зайнято». */
+      if(e && /permission|PERMISSION|already|ALREADY/i.test(String(e.code || e.message || e))) стан = 'taken';
+      else throw e;
+    }
+    if(стан === 'ok'){
+      if(no !== було){
+        try{ accLog('renum', 'номер ' + було + ' був зайнятий — картці дано ' + no); }catch(e){}
+        toast('Номер ' + було + ' уже зайнятий — цій картці дано ' + no);
+        if(designJobs && designJobs[було] && !designJobs[no] && orderDir(o) === 'b2c'){
+          designJobs[no] = designJobs[було]; designJobs[no].orderId = no; delete designJobs[було];
+          try{ await DESIGN_COL.doc(no).set(JSON.parse(JSON.stringify(designJobs[no]))); await DESIGN_COL.doc(було).delete(); }catch(e){ console.warn('картка відділу при перенумеруванні', e); }
+        }
+      }
+      return no !== було;
+    }
+    o.orderId = String(makeOrderId(dir));
+  }
+  throw new Error('не вдалось забронювати номер');
+}
+/* РАЗОВЕ БРОНЮВАННЯ ВСІХ НАЯВНИХ НОМЕРІВ (22.10). Доки старі номери не
+   заброньовані, бронь нового могла б збігтись зі старим. Робить власник
+   (автоматично при вході), один раз; лише коли замовлення вже приїхали. */
+let orderNosSeeding = false;
+async function orderNosSeedOnce(){
+  if(orderNosSeeding || !canSetup() || !contentLoaded || !payLoadedOrOrders()) return;
+  if(+(contentData.orderNosSeed || 0) >= 1) return;
+  orderNosSeeding = true;
+  try{
+    const є = {};
+    const snap = await ORDER_NOS.get();
+    snap.forEach(d => { є[d.id] = 1; });
+    const list = (orders || []).filter(o => o && o.id && /^\d{7}$/.test(String(o.orderId || '')) && !o.draft && !є[String(o.orderId)]);
+    const seen = {};
+    let n = 0;
+    for(let i = 0; i < list.length; i += 400){
+      const b = fbDb.batch();
+      list.slice(i, i + 400).forEach(o => { const no = String(o.orderId); if(seen[no]) return; seen[no] = 1;
+        b.set(ORDER_NOS.doc(no), { id: o.id, by: myEmail() || '', at: new Date().toISOString(), dir: orderDir(o) }); n++; });
+      await b.commit();
+    }
+    await PHOTOS_DOC.set({ orderNosSeed: 1 }, { merge:true });
+    contentData.orderNosSeed = 1;
+    try{ accLog('renum', 'заброньовано наявні номери: ' + n); }catch(e){}
+    if(n) toast('Номери замовлень заброньовано в базі: ' + n);
+  }catch(e){ console.warn('бронювання номерів', e); orderNosSeeding = false; }
+}
+function payLoadedOrOrders(){ return !!((orders || []).length); }
 /* Перенумерувати новішу з карток-двійників (Звірка, власник). Беремо ту, на
    якій немає платежів і накладної; є на обох — не чіпаємо, кажемо. */
 async function orderRenumberDup(no){
@@ -9061,7 +9141,7 @@ async function orderRenumberDup(no){
   let next = makeOrderId(dir);
   for(let k = 0; k < 20; k++){ const s2 = await ORDERS_COL.where('orderId', '==', String(next)).limit(1).get(); if(s2.empty) break; next = makeOrderId(dir); }
   кандидат.orderId = String(next);
-  if(designJobs && designJobs[було] && !designJobs[next] && l[0] !== кандидат && orderDir(кандидат) === 'b2c'){ /* B2C: картка відділу під старим ключем належить старішій */ }
+  try{ await reserveOrderNo(кандидат); }catch(e){ console.warn('бронь при перенумеруванні', e); }
   touchOrder(кандидат);
   await storeSet('orders', orders);
   try{ accLog('renum', 'двійник #' + було + ' (' + (кандидат.name || '—') + ') перенумеровано на ' + next); }catch(e){}
@@ -28413,6 +28493,8 @@ function renderQcList(){
    написано різне, і саме цього ми й уникаємо.
    ══════════════════════════════════════════════════════════════════════ */
 const DESIGN_COL = fbDb.collection('designJobs');
+/* Броні номерів (22.10): orderNos/<номер> → { id, by, at, dir }. */
+const ORDER_NOS = fbDb.collection('orderNos');
 let designJobs = {};              // orderId → задача
 let designWatching = false;
 let designDirty = {};             // що чекає запису

@@ -32,7 +32,7 @@ GitHub Actions → «pages build and deployment»; допомагає насту
    діалог + усе фонове; людина лишається, де була).
 
 **Повний прогін:** `ls tests/*.mjs | grep -v money-rules | xargs -P3 -I{} sh -c 'node {} >/tmp/claude-0/t_$(basename {}).log 2>&1 || echo "FAIL {}"'`
-(186 тестів, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
+(188 тестів, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
 `card-weight`, `threads`; `crm-pics` часом падає з «Execution context was
 destroyed» — це Chromium «Promise was collected» на await усередині
 `page.evaluate` (сторінка жива, навігації немає; розібрано 21–22.10),
@@ -188,7 +188,17 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   картки (запит у базу за orderId, зайнятий — `makeOrderId` далі);
   Звірка `dup_no` (red) + `orderRenumberDup` (власник, новіша без
   платежів/ТТН). Гарантії ще немає — потрібне бронювання номера
-  документом у базі (план, чекає «так»).
+  документом у базі — ЗРОБЛЕНО (нижче).
+- **Бронь номера в базі** (22.10): `orderNos/<номер>` (`ORDER_NOS`),
+  `reserveOrderNo` у `saveOrders` перед першим записом (транзакція; чужа
+  бронь → `makeOrderId` далі), `orderNosSeedOnce` (власник, раз, після
+  приходу замовлень; `contentData.orderNosSeed`), правила в
+  `firestore.rules` (orderNos + kanbanOrders create вимагає бронь на цей
+  документ). **Порядок викладки:** 1) адмінка вже в main — власник
+  заходить, броні наявних номерів ставляться самі (тост «заброньовано N»);
+  2) лише ПІСЛЯ цього задеплоїти `firestore.rules`. Інакше нові картки не
+  запишуться до бронювання старих. `tests/order-nos.mjs` (емулятор),
+  `tests/order-reserve.mjs`. Правило в `CLAUDE.md`.
 
 **Відкриті питання Андрія (чекають відповіді/рішення):**
 - **«Підсумки по таблетках»** — не уточнено, про які таблетки.
