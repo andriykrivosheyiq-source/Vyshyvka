@@ -9178,7 +9178,7 @@
     return !!html;
   }
   /* Де стояла дошка без відкритої картки — по кріслу (22.10). */
-  var BOARD_AT = {};
+  var BOARD_AT = {}, BOARD_OPEN_X = {}, BOARD_MOVED = {};
   function render(root){
     if(!root) return;
     if(SOLO && root === SOLO.root){
@@ -9215,7 +9215,11 @@
        памʼятаємо, де стояла дошка БЕЗ картки, і повертаємо туди. */
     var _key = 'b:' + U.tab();
     var _was = !!root.querySelector('.dz-panel:not(.hide)');
-    if(_bd && !_was){ BOARD_AT[_key] = { x: _bl, cols: _cols }; }
+    /* Відкриття підкручує дошку до картки — це не рух людини. Якщо ж людина
+       сама посунула дошку з відкритою карткою, після закриття лишаємо там,
+       куди посунула. */
+    if(_bd && !_was){ BOARD_AT[_key] = { x: _bl, cols: _cols }; BOARD_MOVED[_key] = false; }
+    else if(_bd && _was && BOARD_OPEN_X[_key] != null && Math.abs(_bl - BOARD_OPEN_X[_key]) > 2) BOARD_MOVED[_key] = true;
     var _main = root.closest ? root.closest('main') : null;
     var _mt = _main ? _main.scrollTop : 0;
     /* І прокрутка самого вікна (20.10, Андрій: «закриваю картку — пригоняє
@@ -9302,7 +9306,7 @@
       if(_p2) _p2.scrollTop = _top;
     }
     var _bd2 = root.querySelector('.dz-boards');
-    var _back = (_was && !root.querySelector('.dz-panel:not(.hide)')) ? BOARD_AT['b:' + U.tab()] : null;
+    var _back = (_was && !root.querySelector('.dz-panel:not(.hide)') && !BOARD_MOVED[_key]) ? BOARD_AT[_key] : null;
     if(_back){ _bl = _back.x; _cols = _back.cols || _cols; }
     if(_bd2 && _bl) _bd2.scrollLeft = _bl;
     root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){
@@ -9324,6 +9328,9 @@
       try{ on.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){}
     }
     LAST_ON = onId;
+    var _bd3 = root.querySelector('.dz-boards');
+    if(openId && _bd3) BOARD_OPEN_X[_key] = _bd3.scrollLeft;
+    else { delete BOARD_OPEN_X[_key]; BOARD_MOVED[_key] = false; }
   }
   var LAST_ON = '';
   /* Панель доручення. Усе потрібне для роботи лежить ТУТ: що зробити, від
