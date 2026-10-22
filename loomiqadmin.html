@@ -4582,6 +4582,14 @@
   .dz-card .dz-c-chain.one b.now{border:1.5px solid var(--ink);border-radius:6px;padding:0 6px;line-height:1.5;}
   .dz-c-chain b.next{color:#98A2B3;font-weight:500;}
   .dz-c-chain b.bad{color:#B42318;font-weight:700;}
+  /* Відмова в рядку етапів картки (22.10): сіра кнопка, поставлена — червона. */
+  .dz-chain-act{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;white-space:nowrap;line-height:1.35;
+    border:1px solid #D0D5DD;border-radius:6px;padding:0 6px;color:#98A2B3;}
+  .dz-chain-act:hover{border-color:#B42318;color:#B42318;}
+  .dz-chain-act.bad{color:#B42318;border-color:#FDA29B;background:#FEF3F2;font-weight:700;}
+  .dz-ref-l{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px;}
+  .dz-ref-o{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;}
+  .dz-ref-t{width:100%;box-sizing:border-box;margin:0 0 10px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;}
   .dz-card .dz-c-chain.one b.bad{border:1.5px solid #B42318;border-radius:6px;padding:0 6px;line-height:1.5;}
   .dz-c-chain.in-panel,.dz-panel-h .dz-c-chain.in-panel{flex-basis:100%;margin:6px 0 0;}
   .dz-c-chain.in-panel b{font-size:12px;}
@@ -5613,6 +5621,14 @@
   .rd-t i{font-style:normal;font-size:12px;color:var(--ink-soft);}
   .rd-on{font-size:12px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;}
   .rd-ed{margin-top:10px;padding:12px;border:1px solid var(--accent);border-radius:12px;display:flex;flex-direction:column;gap:10px;}
+  #rd-pop{position:fixed;inset:0;z-index:270;background:rgba(15,32,52,.42);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;}
+  .rd-pop-w{background:var(--paper,#fff);border-radius:14px;max-width:760px;width:100%;padding:14px 16px;box-shadow:0 18px 50px rgba(15,32,52,.3);}
+  .rd-pop-h{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .rd-pop-w .rd-ed{border:0;padding:0;}
+  .dz-base-mk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 6px;}
+  .dz-base-b{font-size:12.5px;}
+  .dz-base-b.is-done{color:#067647;border-color:#A6F4C5;background:#ECFDF3;}
+  .dz-base-why{font-size:11.5px;color:#98A2B3;font-style:normal;}
   .rd-ed-r{display:flex;gap:12px;flex-wrap:wrap;}
   .rd-ed-r label{flex:1;min-width:200px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-soft);}
   .rd-ed-r input{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;}
@@ -7979,33 +7995,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=bc147ee862"></script>
-<script src="loomiq-fingerprint.js?v=bc147ee862"></script>
-<script src="loomiq-pricing.js?v=bc147ee862"></script>
+<script src="loomiq-select.js?v=5ead7af18e"></script>
+<script src="loomiq-fingerprint.js?v=5ead7af18e"></script>
+<script src="loomiq-pricing.js?v=5ead7af18e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=bc147ee862"></script>
+<script src="loomiq-money-core.js?v=5ead7af18e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=bc147ee862"></script>
-<script src="loomiq-bg.js?v=bc147ee862"></script>
-<script src="loomiq-mock.js?v=bc147ee862"></script>
+<script src="loomiq-design.js?v=5ead7af18e"></script>
+<script src="loomiq-bg.js?v=5ead7af18e"></script>
+<script src="loomiq-mock.js?v=5ead7af18e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=bc147ee862"></script>
+<script src="imagetracer.js?v=5ead7af18e"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=bc147ee862"></script>
-<script src="loomiq-threads.js?v=bc147ee862"></script>
+<script src="loomiq-chat.js?v=5ead7af18e"></script>
+<script src="loomiq-threads.js?v=5ead7af18e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=bc147ee862"></script>
+<script src="loomiq-cards.js?v=5ead7af18e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8050,7 +8066,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'bc147ee862';
+var LQ_VER = '5ead7af18e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -13146,6 +13162,23 @@ function readyDesigns(){
   return Array.isArray(l) ? l.filter(x => x && x.id) : [];
 }
 let rdEditing = null;
+/* Вікно поверх картки (22.10, «★ Зробити базовим»): те саме редагування,
+   що в Налаштуваннях B2C, лише в окремому вікні — картка лишається. */
+let rdPop = false;
+function rdFromOf(orderId, unitId){
+  return readyDesigns().find(d => d.from && String(d.from.orderId) === String(orderId) && String(d.from.unit) === String(unitId)) || null;
+}
+function rdOpenPop(d){
+  rdEditing = JSON.parse(JSON.stringify(d));
+  rdEditing.arts = rdArts(rdEditing); rdEditing.art = rdEditing.arts[0] || null;
+  rdEditing.files = rdEditing.files || []; rdEditing.extras = rdEditing.extras || [];
+  rdPop = true;
+  paintReadyDesigns();
+}
+function rdMakeFrom(pre){
+  if(!canSetup()) return toast('Робити базовим може лише власник');
+  rdOpenPop(Object.assign({ id: 'rd' + Date.now().toString(36), name:'', tags:'', pic:'', art:null, arts:[], files:[], extras:[] }, pre || {}));
+}
 async function rdSave(list, msg){
   try{
     await PHOTOS_DOC.set({ readyDesigns: list }, { merge:true });
@@ -13153,6 +13186,8 @@ async function rdSave(list, msg){
     if(msg) toast(msg);
   }catch(e){ console.error(e); toast('Не збереглось'); }
   paintReadyDesigns();
+  /* Кнопка в картці: «★ Зробити базовим» → «✓ У базових». */
+  try{ const r = document.getElementById('dzRoot'); if(r && window.LQDesign) LQDesign.ui.render(r); }catch(e){}
   /* Оновили готовий дизайн — нові файли й у замовленнях, де він стоїть,
      окрім уже відправлених (20.10). */
   try{
@@ -13187,9 +13222,8 @@ async function rdUpload(f){
 }
 function paintReadyDesigns(){
   const box = document.getElementById('rd-list');
-  if(!box) return;
   const l = readyDesigns();
-  box.innerHTML = l.length ? l.map(d => `<div class="rd-c${d.off ? ' is-off' : ''}">
+  if(box) box.innerHTML = l.length ? l.map(d => `<div class="rd-c${d.off ? ' is-off' : ''}">
       <span class="rd-th">${d.pic ? `<img src="${escapeHtml(d.pic)}" alt="">` : '—'}</span>
       <span class="rd-t"><b>${escapeHtml(d.name || 'Без назви')}</b>
         <i>${escapeHtml([d.tags, (d.files || []).length + ' вишив. файл(и)', rdArts(d).length ? 'принтів: ' + rdArts(d).length : 'принта немає',
@@ -13197,9 +13231,24 @@ function paintReadyDesigns(){
       <button type="button" class="pc-btn" data-rd-ed="${escapeHtml(d.id)}">Змінити</button>
       <label class="rd-on"><input type="checkbox" data-rd-on="${escapeHtml(d.id)}"${d.off ? '' : ' checked'}> показувати</label>
     </div>`).join('') : '<div class="sub">Готових дизайнів ще немає.</div>';
-  const ed = document.getElementById('rd-edit');
-  if(!ed) return;
-  if(!rdEditing){ ed.innerHTML = ''; return; }
+  /* Куди малюємо редагування: у Налаштуваннях — під списком; із картки —
+     у вікні поверх неї. Одночасно — лише в одному місці (ті самі id полів). */
+  const inSet = document.getElementById('rd-edit');
+  let pop = document.getElementById('rd-pop');
+  if(!rdEditing || !rdPop){
+    if(pop) pop.remove();
+    if(!rdEditing) rdPop = false;
+  }
+  if(rdEditing && rdPop && !pop){
+    pop = document.createElement('div');
+    pop.id = 'rd-pop';
+    pop.innerHTML = '<div class="rd-pop-w"><div class="rd-pop-h"><b>Готовий дизайн — з картки замовлення</b>' +
+      '<button type="button" class="dz-x" data-rd-cancel="1" title="Закрити">×</button></div><div id="rd-edit-pop"></div></div>';
+    document.body.appendChild(pop);
+  }
+  if(inSet && (rdPop || !rdEditing)) inSet.innerHTML = '';
+  const ed = rdPop ? document.getElementById('rd-edit-pop') : inSet;
+  if(!ed || !rdEditing) return;
   const d = rdEditing;
   ed.innerHTML = `<div class="rd-ed">
     <div class="rd-ed-r"><label>Назва<input id="rd-name" value="${escapeHtml(d.name || '')}" placeholder="Гаррі Поттер · Букля"></label>
@@ -13259,7 +13308,7 @@ document.addEventListener('click', async e => {
     rdEditing.art = (rdEditing.arts || [])[0] || null;
     return paintReadyDesigns();
   }
-  if(t.closest('[data-rd-cancel]')){ rdEditing = null; return paintReadyDesigns(); }
+  if(t.closest('[data-rd-cancel]')){ rdEditing = null; rdPop = false; return paintReadyDesigns(); }
   if(t.closest('[data-rd-del]')){
     if(!confirm('Видалити готовий дизайн «' + (rdEditing.name || '') + '»? У вже заведених замовленнях він лишиться.')) return;
     const id = rdEditing.id; rdEditing = null;
@@ -28206,7 +28255,9 @@ function designOrders(){
   /* Свої замовлення напряму — усі. Плюс ті замовлення Канбану, у яких
      картка дизайну вже заведена: дороги туди більше немає, але те, що вже
      заведено, ховати не можна — робота там справжня. */
-  return (orders || []).filter(o => o && o.orderId && o.status !== 'cancel' &&
+  /* B2C у відмові (22.10) лишається тут — у колонці «Відмова» акаунта;
+     дошки дизайнерів, цеху й закупівлі її відсіюють самі (pairsLive). */
+  return (orders || []).filter(o => o && o.orderId && (o.status !== 'cancel' || orderDir(o) === 'b2c') &&
     (orderDir(o) === 'b2c' ||
      (designJobs[o.orderId] && o.status !== 'done' && (o.items || []).length)));
 }
@@ -28796,6 +28847,42 @@ async function designSave(job, o){
   if(o && orderDir(o) === 'b2b' && step && typeof setTrack === 'function')
     await setTrack(o, 'design', step);
 }
+/* ВІДМОВА B2C (22.10). Статус 'cancel' — той самий, що в B2B: Фінанси вже
+   рахують відмову після оплати мінусом на день відмови, а Звірка не чекає
+   від такого замовлення доплати. Гроші не рухаємо: передоплата лишається
+   привʼязаною. Причина — окремими полями для аналітики (o.refusal), кожна
+   відмова й повернення — у o.refuseHist (історія картки). */
+async function b2cRefuse(o, job, r){
+  if(!o || o.status === 'cancel') return;
+  const L = window.LQDesign;
+  const label = r.reason === 'other' ? String(r.text || '').slice(0, 120) : L.refuseLabel(r.reason);
+  const at = new Date().toISOString(), by = myEmail() || '';
+  o.refusal = { reason: r.reason, text: r.reason === 'other' ? label : '', stage: r.stage || '', at, by, prev: o.status || '' };
+  o.lostReason = label;
+  o.refuseHist = (o.refuseHist || []).concat([{ at, by, reason: r.reason, label, stage: r.stage || '' }]).slice(-20);
+  o.status = 'cancel';
+  o.hist = (o.hist || []).concat([{ s:'cancel', at }]).slice(-40);
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error('відмова', e); toast('Відмову не збережено'); throw e; }
+  accLog('refuse', 'відмова ' + showNo(o) + ': ' + label);
+  try{ repaintAfterOrders(); }catch(e){}
+}
+async function b2cRefuseBack(o, job){
+  if(!o || o.status !== 'cancel') return;
+  const at = new Date().toISOString(), by = myEmail() || '';
+  const prev = (o.refusal && o.refusal.prev) ||
+    (((o.hist || []).filter(h => h && h.s && h.s !== 'cancel').pop() || {}).s) || 'new';
+  o.refuseHist = (o.refuseHist || []).concat([{ at, by, back: true }]).slice(-20);
+  delete o.refusal; delete o.lostReason;
+  o.status = prev;
+  o.hist = (o.hist || []).concat([{ s: prev, at }]).slice(-40);
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error('повернення з відмови', e); toast('Не збереглось'); throw e; }
+  accLog('refuse', 'повернуто в роботу ' + showNo(o));
+  try{ repaintAfterOrders(); }catch(e){}
+}
 function openDesign(){
   try{ prodNpPoll(false); }catch(e){}
   const root = document.getElementById('dzRoot');
@@ -29007,6 +29094,10 @@ function designHostInit(){
        один — той, що в Налаштуваннях B2C. */
     /* Готові дизайни (налаштування B2C) — для вибору в картці. */
     readyDesigns: () => readyDesigns().filter(d => !d.off),
+    /* З позиції — у базові (22.10): лише власник. */
+    readyFrom: (orderId, unitId) => rdFromOf(orderId, unitId),
+    readyMake: pre => rdMakeFrom(pre),
+    readyOpen: id => { const d = readyDesigns().find(x => x.id === id); if(d) rdOpenPop(d); },
     readyDesign: id => readyDesigns().filter(d => d.id === id)[0] || null,
     retail: (gid, kind) => retailPrice(gid, kind),
     cost: (gid, kind) => retailCost(gid, kind),
@@ -29075,6 +29166,12 @@ function designHostInit(){
        «дуже важливо, щоб бачили тільки свої»). У режимі «дивитись очима»
        — за доступами й поштою того, ким дивимось, а не власника. */
     onlyMine: ()=> myUi() === 'designer',      // з активної ролі (22.10: одна роль за раз)
+    /* ВІДМОВА B2C (22.10, Андрій: «відмову може ставити лише акаунт і
+       власник; повернути — усі, хто може переносити у відмову»). Акаунт і
+       власник — це роль з менеджерським виглядом (ui 'manager'). */
+    refuseOk: ()=> myUi() === 'manager',
+    refuse: (o, job, r)=> b2cRefuse(o, job, r),
+    refuseBack: (o, job)=> b2cRefuseBack(o, job),
     boardMe: ()=> seeAsPerson() || myEmail() || '',
     /* НАДІСЛАТИ КАРТИНКУ КЛІЄНТУ, НЕ ВІДКРИВАЮЧИ РОЗМОВИ.
 

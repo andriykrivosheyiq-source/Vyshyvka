@@ -149,6 +149,17 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   echo "✓ одна роль за раз"
 fi
 
+# ВІДМОВА B2C (22.10): ставить лише акаунт і власник, з причиною; колонка
+# «Відмова» в кінці акаунта; на інших дошках її немає; повернення в роботу.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/refuse\.mjs)'; then
+  node tests/refuse.mjs >/tmp/lq-refuse.log 2>&1 || {
+    echo "✗ Відмова B2C зламана — коміт зупинено. Подробиці: /tmp/lq-refuse.log"
+    grep '✗' /tmp/lq-refuse.log
+    exit 1
+  }
+  echo "✓ відмова B2C ціла"
+fi
+
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —
