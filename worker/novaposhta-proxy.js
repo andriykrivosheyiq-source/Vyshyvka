@@ -354,10 +354,22 @@ export default {
         const d = await np(env, 'TrackingDocument', 'getStatusDocuments',
           { Documents: [{ DocumentNumber: ttn, Phone: String(body.phone || '') }] }, anyKey());
         const x = d[0] || {};
+        /* 22.10: і деталі накладної — для тих, що вписали руками (зроблені в
+           кабінеті НП): контроль оплати, хто платить доставку, оголошена
+           вартість, вартість доставки, отримувач. НП віддає їх, коли телефон
+           збігається з отримувачем чи відправником. */
+        const num = v => (v === undefined || v === null || v === '') ? null : (+v || 0);
         return json({ ok: true, status: String(x.Status || ''),
                       code: String(x.StatusCode || ''),
                       est: String(x.ScheduledDeliveryDate || ''),
-                      city: String(x.CityRecipient || '') }, 200, cors);
+                      city: String(x.CityRecipient || ''),
+                      wh: String(x.WarehouseRecipient || ''),
+                      cod: num(x.AfterpaymentOnGoodsCost) || num(x.RedeliverySum) || 0,
+                      payer: String(x.PayerType || ''),
+                      decl: num(x.AnnouncedPrice),
+                      cost: num(x.DocumentCost),
+                      name: String(x.RecipientFullName || x.RecipientFullNameEW || ''),
+                      phone: String(x.PhoneRecipient || '') }, 200, cors);
       }
       return json({ ok: false, error: 'Невідома операція: ' + op }, 400, cors);
     } catch (e) {

@@ -1338,6 +1338,16 @@
     border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px;cursor:pointer;}
   .sidebar.is-folded .role-sw span{display:none;}
   .tu-half{display:block;font-style:normal;font-size:11px;color:#B54708;margin-top:2px;}
+  /* Деталі накладної в картці B2C (22.10). */
+  .dz-ttnd{display:flex;flex-direction:column;gap:3px;margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#FCFCFD;font-size:12.5px;}
+  .dz-ttnd-r{display:flex;gap:10px;align-items:baseline;}
+  .dz-ttnd-r > span{flex:none;width:160px;color:#667085;}
+  .dz-ttnd-r > b{font-weight:600;color:var(--ink);}
+  .dz-ttnd-r > b i{font-style:normal;font-weight:400;color:#667085;}
+  .dz-ttnd-r.is-ok > b{color:#067647;}
+  .dz-ttnd-r.is-wait > b{color:#B54708;}
+  .dz-ttnd-r.is-note{color:#667085;font-size:12px;}
+  @media (max-width:560px){ .dz-ttnd-r{flex-direction:column;gap:0;} .dz-ttnd-r > span{width:auto;} }
   #seeAsBar{position:fixed;left:0;right:0;bottom:0;z-index:2400;display:flex;
     align-items:center;justify-content:center;gap:14px;padding:10px 16px;
     background:var(--side,#171B23);color:#fff;font-size:13px;font-weight:600;
@@ -7996,33 +8006,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2034dc640f"></script>
-<script src="loomiq-fingerprint.js?v=2034dc640f"></script>
-<script src="loomiq-pricing.js?v=2034dc640f"></script>
+<script src="loomiq-select.js?v=1c8619573c"></script>
+<script src="loomiq-fingerprint.js?v=1c8619573c"></script>
+<script src="loomiq-pricing.js?v=1c8619573c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=2034dc640f"></script>
+<script src="loomiq-money-core.js?v=1c8619573c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2034dc640f"></script>
-<script src="loomiq-bg.js?v=2034dc640f"></script>
-<script src="loomiq-mock.js?v=2034dc640f"></script>
+<script src="loomiq-design.js?v=1c8619573c"></script>
+<script src="loomiq-bg.js?v=1c8619573c"></script>
+<script src="loomiq-mock.js?v=1c8619573c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=2034dc640f"></script>
+<script src="imagetracer.js?v=1c8619573c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=2034dc640f"></script>
-<script src="loomiq-threads.js?v=2034dc640f"></script>
+<script src="loomiq-chat.js?v=1c8619573c"></script>
+<script src="loomiq-threads.js?v=1c8619573c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2034dc640f"></script>
+<script src="loomiq-cards.js?v=1c8619573c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8067,7 +8077,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2034dc640f';
+var LQ_VER = '1c8619573c';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -23590,6 +23600,7 @@ async function shipSetTtn(o, ttn, extra){
     o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0,
       at: o.ttnAt || '', by: myEmail() || '', till: new Date().toISOString() }]).slice(-10);
     o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
+    ['ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender'].forEach(k => { delete o[k]; });
   }
   o.ttn = n;
   Object.assign(o, extra || {});
@@ -23602,15 +23613,54 @@ async function shipSetTtn(o, ttn, extra){
   await offerSync(o);
   renderBoard(); renderOrderDrawer();
 }
+/* ДЕТАЛІ НАКЛАДНОЇ ДЛЯ КАРТКИ (22.10, Андрій: «деталі платежу, які потім
+   прийдуть усередині накладної, тут не пишуться»). Гроші за накладною —
+   рядки грошового ядра (paidRows) з цією ТТН, свого підрахунку немає. */
+function ttnInfo(o){
+  if(!o || !o.ttn) return null;
+  const ttnOf = v => String(v || '').replace(/\D/g, '');
+  const t = ttnOf(o.ttn);
+  const snd = (shipCfg().senders || []).find(x => x && x.id === o.ttnSender) || null;
+  let got = [];
+  try{ got = paidRows(o).filter(r => r && r.counted && ttnOf(r.ttn) === t && (+r.sum || 0) > 0); }catch(e){}
+  const sum = got.reduce((a, r) => a + (+r.sum || 0), 0);
+  const last = got.map(r => String(r.at || '')).sort().pop() || '';
+  return {
+    name: o.ttnName || (o.ship && o.ship.name) || '', phone: o.ttnPhone || (o.ship && o.ship.phone) || '',
+    sender: snd ? (snd.name || snd.id) : (o.ttnSender || ''),
+    cod: +o.ttnCod || 0, codKnown: (o.ttnCod != null && o.ttnCod !== '') || !!o.ttnNpAt || !!o.ttnRef,
+    got: sum, gotAt: (function(v){ const d = new Date(v); return v && !isNaN(d) ? d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' }) : ''; })(last),
+    payer: o.ttnPayer || '', decl: +o.ttnDecl || 0, cost: +o.ttnCost || 0,
+    est: (function(v){ v = String(v || '').trim(); let m;
+      if((m = v.match(/^(\d{4})-(\d\d)-(\d\d)/))) return m[3] + '.' + m[2];
+      if((m = v.match(/^(\d\d)\.(\d\d)\.\d{4}/))) return m[1] + '.' + m[2];
+      return v.slice(0, 10); })(o.ttnEst),
+    manual: !o.ttnRef && !o.ttnNpAt
+  };
+}
 async function shipTrack(o){
   if(!o.ttn) return toast('Номера накладної ще немає');
   if(!npUrl()) return toast('Відстеження працює через воркер Нової пошти — адресу не задано');
   toast('Питаю Нову пошту…');
   try{
-    const d = await npCall('track', { ttn:o.ttn, phone:String(o.phone || '').replace(/\D/g, '') });
+    const tel = String((o.ship && o.ship.phone) || o.ttnPhone || o.phone || '').replace(/\D/g, '');
+    const d = await npCall('track', { ttn:o.ttn, phone: tel });
     o.ttnStatus = d.status || '';
     o.ttnStatusAt = new Date().toISOString();
     if(d.est) o.ttnEst = d.est;
+    /* ДЕТАЛІ З НОВОЇ ПОШТИ (22.10) — для накладної, вписаної руками: у неї
+       з адмінки нічого не пішло. Наше (створене тут) не перезаписуємо. */
+    if(d.city && !o.ttnCity) o.ttnCity = d.city;
+    if(d.wh && !o.ttnWh) o.ttnWh = d.wh;
+    if(d.payer && !o.ttnPayer) o.ttnPayer = /sender/i.test(d.payer) ? 'sender' : 'recipient';
+    if(d.decl != null && !(+o.ttnDecl > 0)) o.ttnDecl = +d.decl || 0;
+    if(d.cost != null) o.ttnCost = +d.cost || 0;
+    if(d.name && !o.ttnName) o.ttnName = d.name;
+    if(d.phone && !o.ttnPhone) o.ttnPhone = d.phone;
+    /* Контроль оплати — лише коли його ще не знали (ТТН руками): саме за
+       ним Звірка перевіряє, чи гроші за посилку прийшли. */
+    if(+d.cod > 0 && !(+o.ttnCod > 0)) o.ttnCod = Math.round(+d.cod);
+    if(d.cod != null || d.payer) o.ttnNpAt = new Date().toISOString();
     touchOrder(o);
     await storeSet('orders', orders);
     await offerSync(o);
@@ -23911,7 +23961,10 @@ function wireShipForm(box, o, persist){
         description: 'Одяг з нанесенням, замовлення ' + (o.orderId || ''),
         payer: v.payer } });
       await shipSetTtn(o, d.ttn, { ttnRef: d.ref, ttnEst: d.est || '', ttnCity: v.cityName, ttnWh: v.whName,
-                                    ttnSender: v.sender ? v.sender.id : '', ttnCod: v.codOn ? v.cod : 0 });
+                                    ttnSender: v.sender ? v.sender.id : '', ttnCod: v.codOn ? v.cod : 0,
+                                    /* 22.10: що ще пішло в накладну — щоб картка це показувала. */
+                                    ttnPayer: v.payer, ttnDecl: Math.max(v.left, +o.totalPrice || 0),
+                                    ttnName: v.name || '', ttnPhone: v.phone || '' });
       try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' створена');
     }catch(e){ console.error(e); toast(String(e.message || e)); make.disabled = false; }
@@ -29007,6 +29060,7 @@ function designHostInit(){
     shipAbroad: o => shipAbroad(o),
     shipWire: (el, o, persist) => wireShipForm(el, o, persist),
     shipTrack: o => shipTrack(o),
+    ttnInfo: o => ttnInfo(o),
     hasChat: o => !!(o && (chanHasChat(o, 'ig') || chanHasChat(o, 'tg'))),
     /* Для цеху (05.10): кнопки переписки з клієнтом окремо по каналах. */
     hasIg: o => !!(o && chanHasChat(o, 'ig')),
