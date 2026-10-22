@@ -4620,6 +4620,15 @@
   .pp-list{display:flex;flex-direction:column;max-height:min(56vh,600px);overflow:auto;
     border:1px solid var(--line-soft);border-radius:10px;}
   .pp-row{cursor:pointer;border-bottom:1px solid var(--line-soft);font-size:13px;}
+  .pp-tabs{display:flex;gap:6px;margin:0 0 10px;}
+  .pp-tab{all:unset;cursor:pointer;padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+  .pp-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .pp-row.is-why{opacity:.72;}
+  .pp-why{display:block;font-style:normal;font-size:11px;color:#B54708;}
+  .pp-row.is-linked{cursor:default;}
+  .pp-ord{all:unset;cursor:pointer;font-weight:600;color:#1D4ED8;}
+  .pp-ord:hover{text-decoration:underline;}
+  .pp-row.is-linked .pp-acc i{display:block;font-style:normal;font-size:11px;color:var(--ink-soft);}
   .pp-row:last-child{border-bottom:0;}
   .pp-row:hover{background:#F7FAFF;}
   .pp-row.on{background:#EEF6FF;}
@@ -8006,33 +8015,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1c8619573c"></script>
-<script src="loomiq-fingerprint.js?v=1c8619573c"></script>
-<script src="loomiq-pricing.js?v=1c8619573c"></script>
+<script src="loomiq-select.js?v=f09fc54164"></script>
+<script src="loomiq-fingerprint.js?v=f09fc54164"></script>
+<script src="loomiq-pricing.js?v=f09fc54164"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=1c8619573c"></script>
+<script src="loomiq-money-core.js?v=f09fc54164"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1c8619573c"></script>
-<script src="loomiq-bg.js?v=1c8619573c"></script>
-<script src="loomiq-mock.js?v=1c8619573c"></script>
+<script src="loomiq-design.js?v=f09fc54164"></script>
+<script src="loomiq-bg.js?v=f09fc54164"></script>
+<script src="loomiq-mock.js?v=f09fc54164"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1c8619573c"></script>
+<script src="imagetracer.js?v=f09fc54164"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=1c8619573c"></script>
-<script src="loomiq-threads.js?v=1c8619573c"></script>
+<script src="loomiq-chat.js?v=f09fc54164"></script>
+<script src="loomiq-threads.js?v=f09fc54164"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1c8619573c"></script>
+<script src="loomiq-cards.js?v=f09fc54164"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8077,7 +8086,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1c8619573c';
+var LQ_VER = 'f09fc54164';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8932,7 +8941,18 @@ async function saveOrders(opts){
   const failed = [];
   for(const [id, json] of cur){
     if(ordersSaved.get(id) === json) continue;
+    /* ДВА ЗАМОВЛЕННЯ З ОДНИМ НОМЕРОМ (22.10, Андрій: 1000147 двічі). Номер
+       видає кожна вкладка сама, з того, що в неї в памʼяті; дві вкладки з
+       різною картиною дають один номер. Тому перед першим записом нової
+       картки питаємо базу: номер уже зайнятий іншим документом — беремо
+       наступний вільний. Платежі й накладні тримаються на номері, і два
+       замовлення на одному — це гроші не там. */
     let body = json, size = new Blob([body]).size;
+    if(!ordersSaved.has(id)){
+      const live = (orders || []).find(x => x && x.id === id);
+      try{ if(live && await orderNoClash(live)){ body = JSON.stringify(live); size = new Blob([body]).size; cur.set(id, body); } }
+      catch(e){ console.warn('перевірка номера', e); }
+    }
     /* ВАЖКУ КАРТКУ РОЗВАНТАЖУЄМО ДО ЗАПИСУ, А НЕ ПІСЛЯ ВІДМОВИ.
 
        Картинка, що лишилась текстом замість посилання, важить сотні
@@ -8989,6 +9009,53 @@ async function saveOrders(opts){
   return failed;
 }
 
+/* Номер нової картки вже є в базі під іншим документом? Тоді перенумерувати
+   її на наступний вільний (і картку відділу разом, якщо вона є). true —
+   номер змінено. Лише для карток, яких у базі ще немає. */
+async function orderNoClash(o){
+  if(!o || !o.orderId || o.draft) return false;
+  const snap = await ORDERS_COL.where('orderId', '==', String(o.orderId)).limit(2).get();
+  let чужий = false;
+  snap.forEach(d => { if(d.id !== o.id) чужий = true; });
+  if(!чужий) return false;
+  const було = String(o.orderId);
+  const dir = orderDir(o);
+  /* Зайняті — і в базі (відповідь вище лише про один номер), і в памʼяті. */
+  let next = makeOrderId(dir);
+  for(let k = 0; k < 20; k++){
+    const s2 = await ORDERS_COL.where('orderId', '==', String(next)).limit(1).get();
+    if(s2.empty) break;
+    next = makeOrderId(dir);
+  }
+  o.orderId = String(next);
+  if(designJobs && designJobs[було] && !designJobs[next]){ designJobs[next] = designJobs[було]; designJobs[next].orderId = String(next); delete designJobs[було];
+    try{ await DESIGN_COL.doc(String(next)).set(JSON.parse(JSON.stringify(designJobs[next]))); await DESIGN_COL.doc(було).delete(); }catch(e){ console.warn('картка відділу при перенумеруванні', e); } }
+  try{ accLog('renum', 'номер ' + було + ' уже був у базі — картці дано ' + next); }catch(e){}
+  toast('Номер ' + було + ' уже зайнятий іншою карткою — цій дано ' + next);
+  return true;
+}
+/* Перенумерувати новішу з карток-двійників (Звірка, власник). Беремо ту, на
+   якій немає платежів і накладної; є на обох — не чіпаємо, кажемо. */
+async function orderRenumberDup(no){
+  const l = (orders || []).filter(o => o && String(o.orderId) === String(no) && !o.draft)
+    .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+  if(l.length < 2) return '';
+  const вільні = l.slice(1).filter(o => !o.ttn && !(o.payments || []).length && !(payments || []).some(p => String(p.orderId) === String(no) && p.id && false));
+  const зайняті = (payments || []).filter(p => String(p.orderId) === String(no)).length;
+  const кандидат = вільні[вільні.length - 1];
+  if(!кандидат) throw new Error('на обох картках є платежі чи накладна — розведіть їх руками');
+  if(зайняті && !confirm('До номера #' + noOf(no) + ' привʼязано платежів: ' + зайняті + '. Вони лишаться на старішій картці. Дати новішій (' + (кандидат.name || '—') + ') інший номер?')) return '';
+  const було = String(кандидат.orderId);
+  const dir = orderDir(кандидат);
+  let next = makeOrderId(dir);
+  for(let k = 0; k < 20; k++){ const s2 = await ORDERS_COL.where('orderId', '==', String(next)).limit(1).get(); if(s2.empty) break; next = makeOrderId(dir); }
+  кандидат.orderId = String(next);
+  if(designJobs && designJobs[було] && !designJobs[next] && l[0] !== кандидат && orderDir(кандидат) === 'b2c'){ /* B2C: картка відділу під старим ключем належить старішій */ }
+  touchOrder(кандидат);
+  await storeSet('orders', orders);
+  try{ accLog('renum', 'двійник #' + було + ' (' + (кандидат.name || '—') + ') перенумеровано на ' + next); }catch(e){}
+  return String(next);
+}
 const DEFAULT_SETTINGS = {
   print: {
     pricePerPx: 0.35, costPerPx: 0.08, minPrice: 150, baseCost: 25,
@@ -9468,6 +9535,11 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
   btn.addEventListener('click', async ()=>{
     const view = btn.dataset.view;
     if(view === 'photos' && !(await askCtorPass())) return;
+    /* Чернетка нового B2C живе лише у відкритій картці (22.10): пішли в
+       інший розділ — її немає, обраний платіж знову вільний. Доти вона
+       зникала лише при перемальовуванні дошки B2C, і платіж, позначений у
+       недописаній чернетці, «пропадав» з вікна привʼязки в усіх картках. */
+    if(view !== 'design'){ try{ if(draftDrop('')){ if(window.LQDesign && LQDesign.ui.setTab) LQDesign.ui.setTab('acct'); } }catch(e){} }
     document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     try{ navGrpSync(); }catch(e){}
@@ -11504,7 +11576,8 @@ function renderFinAudit(){
           ${x.fix === 'check' ? (x.payId && (payments || []).some(q => q.id === x.payId && q.shot) ? `<a class="fa-shot" href="${E(((payments || []).filter(q => q.id === x.payId)[0] || {}).shot)}" target="_blank" rel="noopener">скрін</a>` : '') +
             (payCanCheck() ? '<button class="pri" data-fa-fix="ok">Підтверджено</button><button data-fa-fix="no">Не дійшло</button>' : '<span class="fa-wait">підтверджує власник</span>') : ''}
           ${x.kind === 'cod_orphan' ? `<button data-fa-more>${finAudit.more[key] ? 'сховати' : 'показати'}</button>` : ''}
-          ${x.kind !== 'cod_orphan' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+          ${x.kind === 'dup_no' ? (canSetup() ? '<button class="pri" data-fa-renum title="Новішій картці без платежів і накладної дати наступний вільний номер">Перенумерувати новішу</button>' : '<span class="fa-wait">перенумеровує власник</span>') : ''}
+          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
         </div></div>`; }).join('')}</div>` : ''}`;
   box.onclick = async e => {
     if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
@@ -11515,6 +11588,11 @@ function renderFinAudit(){
     const o = x.orderId ? (orders || []).filter(q => String(q.orderId) === x.orderId)[0] : null;
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
+    if(e.target.closest('[data-fa-renum]')){
+      try{ const r = await orderRenumberDup(x.orderId); if(r) toast('Картці дано номер ' + r); }
+      catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
+      return renderFin();
+    }
     try{
       const fix = e.target.closest('[data-fa-fix]');
       if(fix && p){
@@ -21414,6 +21492,8 @@ function chatSplitFit(){
 }
 window.addEventListener('resize', ()=>{ try{ chatSplitFit(); }catch(e){} });
 async function openOrderDrawer(o){
+  /* Відкрили іншу картку (з чату, з пошуку) — чернетка нового B2C зникає (22.10). */
+  try{ if(o && !o.draft) draftDrop(''); }catch(e){}
   drawerOrderId = o.id;
   /* Відкрив картку — інші про це знають. Мітка оновлюється й далі, поки
      картка відкрита: без цього «Оксана тут» гасло б за півтори хвилини,
@@ -21594,14 +21674,35 @@ function odMoneyHtml(o){
    налаштуваннях рахунку; не ставили — ФОП і бізнес-рахунки так, картки ні. */
 function finIsCard(a){ return !!a && (a.bank === 'novapaycard' || a.bank === 'privat24' || /карт/i.test(String(a.name || ''))); }
 function finPickable(a){ return !!a && (a.pick != null ? !!a.pick : !finIsCard(a)); }
-function payFreeList(){
-  const свої = (typeof finOwnSet === 'function') ? finOwnSet() : {};
+/* ПЛАТІЖ НЕ ЗНИКАЄ МОВЧКИ (22.10, Андрій: «є платіж 800 в одному місці, а в
+   тому місці його немає»). Обраний у чернетці чи схожий на переказ між
+   своїми — у списку лишається, з позначкою чому; галочкою його можна
+   забрати. Ховаються лише рахунки без галочки «показувати при привʼязці». */
+function payWhyHidden(p){
+  if(!p) return '';
+  for(const o of (orders || [])) if(o && o.draft && (o.draftPays || []).indexOf(p.id) >= 0) return 'обраний у чернетці нового замовлення';
+  /* Пара, яку система підібрала сама, — лише здогад, тож показуємо з
+     позначкою. Що власник підписав руками «між своїми» чи що NovaPay назвав
+     пулом наложок — не платіж клієнта, цього тут немає. */
+  try{ if(finOwnSet()[p.id]) return 'схоже на переказ між своїми рахунками'; }catch(e){}
+  return '';
+}
+function payFreeList(opt){
   const можна = {};
   finAccounts().forEach(a => { if(finPickable(a)) можна[a.id] = 1; });
-  const вЧернетці = {};
-  (orders || []).forEach(o => { if(o && o.draft) (o.draftPays || []).forEach(id => { вЧернетці[id] = 1; }); });
-  return (payments || []).filter(p => p && !p.orderId && (+p.amount || 0) > 0 && !свої[p.id] && можна[p.acc] && !вЧернетці[p.id])
+  const l = (payments || []).filter(p => p && !p.orderId && (+p.amount || 0) > 0 && можна[p.acc] && p.tag !== 'own' && !p.flow);
+  if(!(opt && opt.all)) return l.filter(p => !payWhyHidden(p)).sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  return l.map(p => Object.assign({}, p, { __why: payWhyHidden(p) }))
     .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+/* Привʼязані надходження — для вкладки «Привʼязані» (22.10, Андрій: «щоб
+   побачив те саме, де вибрані платежі, де, може, він переплутав»). Лише
+   показ: перекидати платіж між замовленнями тут не можна. */
+function payLinkedList(){
+  const можна = {};
+  finAccounts().forEach(a => { if(finPickable(a) || finIsCard(a)) можна[a.id] = 1; });
+  return (payments || []).filter(p => p && p.orderId && (+p.amount || 0) > 0 && (можна[p.acc] || p.src === 'card' || p.src === 'manual'))
+    .sort((a, b) => String(b.linkedAt || b.at || '').localeCompare(String(a.linkedAt || a.at || '')));
 }
 /* Усе, за чим платіж можна знайти, одним рядком. Сума — кількома
    записами: «1500», «1 500», «1500,55» — як її набирають. */
@@ -21636,6 +21737,8 @@ function payPickOpen(o, onPick, opt){
       <button class="dz-x" data-pp-x>×</button></div>
     <div class="fin-b">
       ${opt.note ? '<div class="pp-note">' + E(opt.note) + '</div>' : ''}
+      <div class="pp-tabs"><button type="button" class="pp-tab on" data-pp-tab="free">Не привʼязані</button>
+        <button type="button" class="pp-tab" data-pp-tab="linked">Привʼязані</button></div>
       <input type="search" class="pp-q" placeholder="Пошук: сума, дата, час, хто, призначення, рахунок" autocomplete="off">
       <div class="pp-n"></div>
       <div class="pp-head"><span></span><span>Дата</span><span>Сума</span><span>Від кого</span><span>Призначення</span><span>Рахунок</span></div>
@@ -21739,18 +21842,39 @@ function payPickOpen(o, onPick, opt){
     sel.textContent = l.length ? 'Обрано: ' + l.map(p => (p.counter || '—') + ' ' + payMoneyK(p.amount).replace('+', '')).join(', ')
                                : 'Позначте платіж галочкою';
   };
+  let вкладка = 'free';
   const draw = () => {
-    const всі = payFreeList();
+    d.querySelectorAll('[data-pp-tab]').forEach(b => b.classList.toggle('on', b.dataset.ppTab === вкладка));
+    d.querySelector('.pp-f').hidden = вкладка !== 'free';
+    if(вкладка === 'linked'){
+      const всі = payLinkedList();
+      const rows = всі.filter(p => payMatch(p, q.value) || String(noOf(p.orderId)).indexOf(q.value.trim()) >= 0);
+      n.textContent = всі.length ? (q.value.trim() ? 'Знайдено ' + rows.length + ' з ' + всі.length : 'Привʼязаних надходжень: ' + всі.length) + ' · останні зверху' : '';
+      list.innerHTML = rows.length ? rows.slice(0, 300).map(p => `
+        <div class="pp-row is-linked" data-pp="${E(p.id)}">
+          <span></span>
+          <span class="pp-at">${E(payDate(p.at))}</span>
+          <b class="pp-sum">${E(payMoneyK(p.amount))}</b>
+          <span class="pp-who">${E(p.counter || '—')}</span>
+          <span class="pp-desc">${E(p.desc || '')}</span>
+          <span class="pp-acc"><button type="button" class="pp-ord" data-pp-ord="${E(p.orderId)}" title="Відкрити картку">#${E(noOf(p.orderId))}${PAY_TAGS[p.tag] ? ' · ' + E(PAY_TAGS[p.tag].toLowerCase()) : ''}</button>
+            <i>${E([p.linkedBy ? personName(p.linkedBy) || p.linkedBy : '', p.linkedAt ? payDate(p.linkedAt) : ''].filter(Boolean).join(' · '))}</i></span>
+        </div>`).join('')
+        : '<div class="fin-none">Привʼязаних надходжень немає.</div>';
+      return;
+    }
+    const всі = payFreeList({ all: true });
     const rows = всі.filter(p => payMatch(p, q.value));
+    const вільних = всі.filter(p => !p.__why).length;
     n.textContent = всі.length
-      ? (q.value.trim() ? 'Знайдено ' + rows.length + ' з ' + всі.length : 'Непідписаних надходжень: ' + всі.length) + ' · нові зверху'
+      ? (q.value.trim() ? 'Знайдено ' + rows.length + ' з ' + всі.length : 'Непідписаних надходжень: ' + вільних + (всі.length > вільних ? ' (+' + (всі.length - вільних) + ' з позначкою)' : '')) + ' · нові зверху'
       : '';
     list.innerHTML = rows.length ? rows.slice(0, 300).map(p => `
-      <label class="pp-row${обрані[p.id] ? ' on' : ''}" data-pp="${E(p.id)}">
+      <label class="pp-row${обрані[p.id] ? ' on' : ''}${p.__why ? ' is-why' : ''}" data-pp="${E(p.id)}"${p.__why ? ' title="' + E(p.__why) + '"' : ''}>
         <input type="checkbox" class="pp-ck" data-ppck="${E(p.id)}"${обрані[p.id] ? ' checked' : ''}>
         <span class="pp-at">${E(payDate(p.at))}</span>
         <b class="pp-sum">${E(payMoneyK(p.amount))}</b>
-        <span class="pp-who">${E(p.counter || '—')}</span>
+        <span class="pp-who">${E(p.counter || '—')}${p.__why ? '<i class="pp-why">' + E(p.__why) + '</i>' : ''}</span>
         <span class="pp-desc">${E(p.desc || '')}</span>
         <span class="pp-acc">${E(finAccName(p.acc))}</span>
       </label>`).join('')
@@ -21759,6 +21883,11 @@ function payPickOpen(o, onPick, opt){
     підсумок();
   };
   q.addEventListener('input', draw);
+  d.querySelectorAll('[data-pp-tab]').forEach(b => b.addEventListener('click', () => { вкладка = b.dataset.ppTab; draw(); }));
+  list.addEventListener('click', e => {
+    const b = e.target.closest('[data-pp-ord]'); if(!b) return;
+    e.preventDefault(); close(); try{ openByNo(b.dataset.ppOrd); }catch(err){ console.warn(err); }
+  });
   list.addEventListener('change', e => {
     const c = e.target.closest('[data-ppck]'); if(!c) return;
     if(c.checked) обрані[c.dataset.ppck] = 1; else delete обрані[c.dataset.ppck];
@@ -21768,6 +21897,8 @@ function payPickOpen(o, onPick, opt){
   go.addEventListener('click', async () => {
     const l = (payments || []).filter(p => обрані[p.id]);
     if(!l.length) return;
+    /* Платіж, обраний у чернетці, забираємо з неї: він іде в це замовлення. */
+    (orders || []).forEach(x => { if(x && x.draft && Array.isArray(x.draftPays)) x.draftPays = x.draftPays.filter(id => !обрані[id]); });
     go.disabled = true;
     let ok = 0;
     for(const p of l){

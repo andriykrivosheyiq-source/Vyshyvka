@@ -188,6 +188,16 @@
     var дата = function(t){ var d = new Date(t); return isNaN(d) ? '' :
       ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2); };
 
+    /* ДВА ЗАМОВЛЕННЯ З ОДНИМ НОМЕРОМ (22.10). Платежі й накладні шукають
+       замовлення за номером — на двох картках вони лягають не туди. */
+    var заНомером = {};
+    (orders || []).forEach(function(o){ if(o && o.orderId && !o.draft) (заНомером[id(o.orderId)] = заНомером[id(o.orderId)] || []).push(o); });
+    Object.keys(заНомером).forEach(function(k){
+      var l = заНомером[k]; if(l.length < 2) return;
+      out.push({ kind:'dup_no', sev:'red', orderId:k, n:l.length, ids: l.map(function(o){ return o.id || ''; }),
+        text: 'Номер #' + no(k) + ' стоїть на ' + l.length + ' картках (' + l.map(function(o){ return (o.name || o.company || '—') + ', ' + дата(o.createdAt); }).join('; ') +
+              '). Платежі й накладні за цим номером можуть лягти не в ту картку — дайте новішій інший номер.' });
+    });
     (orders || []).forEach(function(o){
       if(!o || !o.orderId || o.status === 'cancel') return;
       var oid = id(o.orderId);
@@ -344,7 +354,7 @@
     return out;
   }
 
-  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || '') ; }
+  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || (x.kind === 'dup_no' ? x.orderId : '') || '') ; }
 
   var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
               COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,

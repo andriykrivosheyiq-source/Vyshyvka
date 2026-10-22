@@ -212,6 +212,25 @@ const s6 = await p.evaluate(() => { const x = payments.find(q => q.id === 'p2');
 ok(!s6.drafts && !s6.p2 && s6.free && !s6.ordW.length && !s6.dzW.length, 'закрили — чернетки немає, у базі нічого, платіж 2 400 ₴ знову вільний', JSON.stringify(s6));
 
 console.log('');
+console.log('═══ 5. ПІШОВ В ІНШИЙ РОЗДІЛ — ЧЕРНЕТКИ НЕМАЄ; ОБРАНИЙ У ЧЕРНЕТЦІ ПЛАТІЖ НЕ ЗНИКАЄ МОВЧКИ (22.10) ═══');
+await p.evaluate(() => { document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await ЖДИ(300);
+await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new3'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
+await ЖДИ(300);
+await p.click('.pp-row[data-pp="p2"] .pp-ck'); await p.click('[data-pp-go]'); await ЖДИ(400);
+/* Поки чернетка жива, у вікні привʼязки ІНШОЇ картки платіж видно з позначкою. */
+const зПозначкою = await p.evaluate(async () => {
+  const всі = payFreeList({ all: true }); const x = всі.find(q => q.id === 'p2');
+  return { є: !!x, why: x ? x.__why : '', вільний: payFreeList().some(q => q.id === 'p2') };
+});
+ok(зПозначкою.є && /чернетці/.test(зПозначкою.why) && !зПозначкою.вільний, 'платіж 2 400 ₴ у чернетці: у вікні з позначкою «обраний у чернетці», а не зник', JSON.stringify(зПозначкою));
+await p.evaluate(() => { document.querySelector('.nav button[data-view="chatsc"]').click(); });
+await ЖДИ(300);
+const s7 = await p.evaluate(() => ({ drafts: orders.filter(o => o.draft).length, free: payFreeList().some(q => q.id === 'p2') }));
+ok(!s7.drafts && s7.free, 'перейшов у «Чати B2C» — чернетки немає, платіж 2 400 ₴ знову вільний без позначки', JSON.stringify(s7));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
 console.log(bad ? 'розходжень: ' + bad : 'нове B2C — чернеткою, створюється кнопкою, гроші — лише в мить створення');
