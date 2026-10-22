@@ -1131,25 +1131,25 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=bc147ee862',
+    ['loomiq-select.js?v=e3353a1f4d',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=bc147ee862'].forEach(function(src){
+     'loomiq-cards.js?v=e3353a1f4d'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=bc147ee862';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=bc147ee862';
-  var CTOR_JS   = 'loomiq-constructor.js?v=bc147ee862';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=e3353a1f4d';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=e3353a1f4d';
+  var CTOR_JS   = 'loomiq-constructor.js?v=e3353a1f4d';
   /* Внутрішнє прибирання фону (нейромережа в браузері, 07.10): без нього
      конструктор КП різав би лише швидким алгоритмом. Не завантажився —
      не біда, конструктор працює й без нього. */
-  var CTOR_BG   = 'loomiq-bg.js?v=bc147ee862';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=bc147ee862';
+  var CTOR_BG   = 'loomiq-bg.js?v=e3353a1f4d';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=e3353a1f4d';
 
   function send(msg){
     if(window.parent === window) return;

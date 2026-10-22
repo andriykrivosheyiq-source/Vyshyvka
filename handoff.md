@@ -32,7 +32,7 @@ GitHub Actions → «pages build and deployment»; допомагає насту
    діалог + усе фонове; людина лишається, де була).
 
 **Повний прогін:** `ls tests/*.mjs | grep -v money-rules | xargs -P3 -I{} sh -c 'node {} >/tmp/claude-0/t_$(basename {}).log 2>&1 || echo "FAIL {}"'`
-(183 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
+(184 тести, ~15 хв; `-P4` дає хибні падіння від навантаження: `crm-pics`,
 `card-weight`, `threads`; `crm-pics` часом падає з «Execution context was
 destroyed» — це Chromium «Promise was collected» на await усередині
 `page.evaluate` (сторінка жива, навігації немає; розібрано 21–22.10),
@@ -156,6 +156,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
 - **«! Проблема» — лише акаунтам і виробництву** (22.10): у дизайнерських
   ролей (графічний, вишивальний, DTF — `host.onlyMine()`, з активної ролі)
   кнопки немає (`probBarHtml`). `prod-roles` §6.
+- **Відмова в B2C** (22.10): сіра «Відмова» в кінці рядка етапів картки →
+  причина (7: оплата, графічний, вишивальний, виробництво, після фото, не
+  забрав з пошти, інше) → підтвердження → колонка «Відмова» в кінці дошки
+  акаунта. `D.REFUSE_REASONS / refusalOf / refuseGuess`, `pairsLive`,
+  `b2cRefuse / b2cRefuseBack`, `o.refusal`, `o.refuseHist`. Аналітики
+  відмов ще немає — дані для неї вже пишуться. `tests/refuse.mjs`.
 
 **Відкриті питання Андрія (чекають відповіді/рішення):**
 - **«Підсумки по таблетках»** — не уточнено, про які таблетки.

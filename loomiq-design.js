@@ -412,8 +412,46 @@
        замовлення ховалось у «Виробництві», і фото ніхто не дивився. */
     { key:'appr',    label:'Чекає погодження',          color:'amber'  },
     { key:'ready',   label:'До відправки',              color:'amber'  },
-    { key:'shipped', label:'Відправлено',               color:'green', done:true }
+    { key:'shipped', label:'Відправлено',               color:'green', done:true },
+    /* ВІДМОВА (22.10, Андрій: «окремий статус в кінці акаунтів, колонка з
+       відмовами всіма»). Сюди — і поставлені руками, і посилки, яких не
+       забрали з пошти. Перетягнути сюди чи звідси не можна: лише кнопкою
+       «Відмова» в рядку етапів картки, з причиною. */
+    { key:'refused', label:'Відмова',                   color:'rose'   }
   ];
+  /* ПРИЧИНИ ВІДМОВИ (22.10). Ключ — для аналітики; підпис — людині. */
+  var REFUSE_REASONS = [
+    { key:'pay',     label:'На етапі оплати' },
+    { key:'graphic', label:'На етапі графічного дизайну' },
+    { key:'stitch',  label:'На етапі вишивального дизайну' },
+    { key:'prod',    label:'На етапі виробництва' },
+    { key:'photo',   label:'Після фото з цеху' },
+    { key:'post',    label:'Не забрав з пошти' },
+    { key:'other',   label:'Інше' }
+  ];
+  function refuseLabel(k){ var r = REFUSE_REASONS.filter(function(x){ return x.key === k; })[0]; return r ? r.label : ''; }
+  /* Відмова замовлення: поставлена руками (o.status 'cancel' з o.refusal)
+     або посилку не забрали (Нова пошта повернула). null — замовлення живе. */
+  function refusalOf(job, o){
+    if(!o) return null;
+    if(o.status === 'cancel'){
+      var r = o.refusal || {};
+      var k = r.reason || 'other';
+      return { manual: true, reason: k, label: (k === 'other' && r.text) ? r.text : (refuseLabel(k) || o.lostReason || 'Відмова'),
+               stage: r.stage || '', at: r.at || '', by: r.by || '' };
+    }
+    if(prodAt(job, o) === 'refused') return { auto: true, reason: 'post', label: refuseLabel('post'), stage: 'shipped', at: '', by: '' };
+    return null;
+  }
+  /* Яку причину підставити першою — за тим, де замовлення стоїть зараз. */
+  function refuseGuess(job, o){
+    var c = chainAt(job, o);
+    return (c === 'queue' || c === 'new') ? 'pay'
+         : (c === 'stitchq' || c === 'stitch') ? 'stitch'
+         : c === 'prod' ? 'prod'
+         : (c === 'appr' || c === 'ready') ? 'photo'
+         : c === 'shipped' ? 'post' : 'graphic';
+  }
   function trk(o, key){ return String(((o || {}).tracks || {})[key] || ''); }
   /* ДРУК (DTF) У B2C (21.10, Андрій: «принт іде з графічного DTF-дизайнеру,
      закупки окремим блоком, виробництво окреме»). Нанесення позиції —
@@ -606,7 +644,7 @@
   var CHAIN_WHO = {
     queue:'акаунт-менеджер', new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт', sketchok:'акаунт-менеджер',
     fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
-    prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—'
+    prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—', refused:'акаунт-менеджер'
   };
 
   /* ══════════ ДОРУЧЕННЯ ══════════
@@ -2836,7 +2874,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
@@ -2996,6 +3034,11 @@
     });
     return out;
   }
+  /* Без відмов (22.10): дошки дизайнерів, цеху, закупівлі, реєстр, ліміт
+     «у роботі». Відмова живе лише в колонці «Відмова» в акаунта. */
+  function pairsLive(){
+    return pairs().filter(function(p){ return !D.refusalOf(p.job, p.o); });
+  }
   /* ── ПОШУК ПО ДОШЦІ ──────────────────────────────────────────────────
 
      Двадцять карток у пʼяти колонках, і потрібну шукають очима по всіх
@@ -3034,7 +3077,7 @@
   function taskCards(all){
     var mine = String(me() || '').trim().toLowerCase();
     var out = [];
-    pairs().forEach(function(pr){
+    pairsLive().forEach(function(pr){
       D.taskList(pr.job).forEach(function(t){
         if(!all && String(t.to || '').trim().toLowerCase() !== mine) return;
         var k = D.TASK_KINDS.filter(function(x){ return x.key === t.kind; })[0];
@@ -3089,7 +3132,16 @@
      Олі», ще не дійшли — сірим. */
   function chainHtml(list, cls){
     if(!list || !list.length) return '';
+    /* «Відмова» (22.10) — кнопка лише в картці й лише тому, хто може її
+       ставити (акаунт, власник). На плитці — тільки червона, коли вона є. */
+    var уКартці = /in-panel/.test(cls || '');
+    var можна = false;
+    try{ можна = уКартці && !!(host.refuseOk && host.refuseOk()); }catch(e){}
     return '<span class="dz-c-chain' + (cls ? ' ' + cls : '') + '">' + list.map(function(x){
+      if(x.act && можна)
+        return '<button type="button" class="dz-chain-act ' + esc(x.st) + '" data-do="' + esc(x.act) + '" data-id="' + esc(x.id || '') + '"' +
+          (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' + esc(x.t) + '</button>';
+      if(x.act === 'refuse') return '';
       return '<b class="' + esc(x.st) + '"' + (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' +
         (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</b>'; }).join('') + '</span>';
   }
@@ -3606,6 +3658,43 @@
      Вікно лягає поверх картки, приймає текст і, якщо треба, файл — клієнти
      часто присилають «ось так має бути» картинкою, і переказувати її
      словами означає переказати не так. */
+  /* ВІКНО ВІДМОВИ (22.10): причина зі списку (перша — за етапом, де
+     замовлення зараз), «Інше» — своїми словами, далі підтвердження. */
+  function refuseOpen(guess, onGo){
+    pickClose();
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-fixw dz-refw';
+    el.innerHTML = '<div class="dz-fix-w">' +
+      '<div class="dz-fix-h"><b>Причина відмови</b><button class="dz-x" data-fix-x>×</button></div>' +
+      '<div class="dz-ref-l">' + D.REFUSE_REASONS.map(function(r){
+        return '<label class="dz-ref-o"><input type="radio" name="dz-ref" value="' + esc(r.key) + '"' +
+          (r.key === guess ? ' checked' : '') + '> ' + esc(r.label) + '</label>'; }).join('') + '</div>' +
+      '<input class="dz-ref-t" type="text" maxlength="120" placeholder="Своїми словами" hidden>' +
+      '<div class="dz-fix-b"><button class="dz-b pri" data-ref-go>Перенести у відмову</button></div>' +
+    '</div>';
+    var закрити = function(){
+      document.removeEventListener('keydown', esk, true);
+      if(el.parentNode) el.parentNode.removeChild(el);
+      PICK = null;
+    };
+    var esk = function(ev){ if(ev.key === 'Escape') закрити(); };
+    var ta = el.querySelector('.dz-ref-t');
+    var обрано = function(){ var c = el.querySelector('input[name="dz-ref"]:checked'); return c ? c.value : ''; };
+    el.addEventListener('change', function(){ ta.hidden = обрано() !== 'other'; if(!ta.hidden) ta.focus(); });
+    el.addEventListener('click', async function(ev){
+      if(ev.target === el || (ev.target.closest && ev.target.closest('[data-fix-x]'))) return закрити();
+      if(!(ev.target.closest && ev.target.closest('[data-ref-go]'))) return;
+      var k = обрано(), txt = String(ta.value || '').trim();
+      if(!k) return say('Оберіть причину');
+      if(k === 'other' && !txt){ ta.hidden = false; ta.focus(); return say('Напишіть, чому'); }
+      закрити();
+      await onGo(k, txt);
+    });
+    document.addEventListener('keydown', esk, true);
+    document.body.appendChild(el);
+    PICK = el;
+    return el;
+  }
   function fixOpen(onSend, opt){
     opt = opt || {};
     pickClose();
@@ -3715,6 +3804,13 @@
       out.push({ at: r.at, by: r.by, kind: 'no', що: 'передрук', де: '', текст: String(r.note || r.reason || '').slice(0, 90) });
     });
     if(o && o.reg && o.reg.at) out.push({ at: o.reg.at, by: o.reg.by, kind: 'trk', що: 'реєстр Нової пошти', де: '', текст: o.reg.no ? '№ ' + o.reg.no : '' });
+    /* Відмова й повернення в роботу (22.10) — хто, коли, чому. */
+    ((o && o.refuseHist) || []).forEach(function(h){
+      if(!h || !h.at) return;
+      out.push(h.back
+        ? { at: h.at, by: h.by, kind: 'move', що: 'повернуто в роботу з відмови', де: '', текст: '' }
+        : { at: h.at, by: h.by, kind: 'no', що: 'відмова', де: '', текст: String(h.label || '').slice(0, 90) });
+    });
     /* Хто натиснув 👁 у розмові (17.10) — перевірити «прочитав і не відповів». */
     ((o && o.seenHist) || []).forEach(function(h){
       out.push({ at: h.at, by: h.by, kind: 'seen',
@@ -6576,7 +6672,7 @@
       var rs = Array.isArray(m.roles) && m.roles.length ? m.roles : [m.role];
       return !role || rs.indexOf(role) >= 0 || rs.indexOf('owner') >= 0;
     });
-    var jobs = pairs().map(function(p){ return p.job; });
+    var jobs = pairsLive().map(function(p){ return p.job; });
     var me = (host.me && host.me()) || '';
     var опт = function(m, мітка){
       var n = D.loadOf(jobs, m.email);
@@ -6605,7 +6701,7 @@
     open: function(k){ openKey = k; },
     tabOpen: function(){ return openKey; },
     esc: esc, dt: dt, nameOf: nameOf, say: say, verPic: verPic, dlExt: dlExt, dlFile: dlFile, baseHtml: baseHtml,
-    pairs: pairs, pairOf: pairOf,
+    pairs: pairs, pairsLive: pairsLive, pairOf: pairOf,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
     teamPick: teamPick, teamOpts: teamOpts, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
@@ -6631,7 +6727,7 @@
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
     waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
-    pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
+    pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen, prodView: prodView,
     DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName, SIDE_AT: SIDE_AT,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
@@ -7024,7 +7120,7 @@
     var всіЗ = buys();
     /* Чернетка нового замовлення (22.10) на дошці не стоїть — до «Створити». */
     return U.pairs().filter(function(p){ return !(p.o && p.o.draft); }).map(function(p){
-      var col = D.chainAt(p.job, p.o);
+      var col = D.refusalOf(p.job, p.o) ? 'refused' : D.chainAt(p.job, p.o);
       var open = D.taskOpen(p.job).length;
       var mk = cardMarks(p.job, m);
       var сума = (U.netSum && U.netSum(p.o, p.job)) || jobSum(p.o), оплачено = U.paidOf ? U.paidOf(p.o) : 0;
@@ -7221,9 +7317,17 @@
     out.push(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'));
     out.push(КРОК(після('stuck'), пк === 'way' || пк === 'arrived' || пк === 'stuck', 'В дорозі',
       пк === 'arrived' ? 'У відділенні' : пк === 'stuck' ? 'У відділенні понад 3 дні' : 'В дорозі'));
-    if(пк === 'refused') out.push({ st:'bad', t:'Відмова', title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
+    if(пк === 'refused') out.push({ st:'bad', t:'Відмова · ' + D.refuseLabel('post'), title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
     else out.push(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' });
     if(пк === 'stuck') out[out.length - 2].st = 'bad';
+    /* ВІДМОВА (22.10): сіра кнопка в кінці; поставлена — червона з
+       причиною, натиск — «Повернути в роботу». Посилку не забрали —
+       червона вище, без кнопки: це факт Нової пошти, не рішення. */
+    var відм = D.refusalOf(job, o);
+    if(відм && відм.manual)
+      out.push({ st:'bad', t:'Відмова · ' + відм.label, act:'refuse-back', id: o.orderId,
+                 title: 'Натисніть, щоб повернути замовлення в роботу' });
+    else if(!відм && !o.draft) out.push({ st:'next', t:'Відмова', act:'refuse', id: o.orderId, title: 'Перенести замовлення у відмову' });
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
@@ -7358,7 +7462,7 @@
   function busyOrders(m, kind, onlyFix){
     if(!m) return 0;
     var k = kind === 'stitch' ? 'stitch' : 'graphic';
-    return U.pairs().filter(function(p){
+    return U.pairsLive().filter(function(p){
       return U.unitsOf(p.job).some(function(u){
         return D.dzList(u, k).some(function(d){
           if(d.who !== m || !d.sentAt) return false;
@@ -7435,7 +7539,7 @@
     var only = host().onlyMine && host().onlyMine();
     /* Чиї це дизайни: у режимі «дивитись очима людини» — її, не власника. */
     var m = (host().boardMe && host().boardMe()) || (host().me && host().me()) || '';
-    return U.pairs().map(function(p){
+    return U.pairsLive().map(function(p){
       if(tech && D.jobTech(p.job) !== tech) return null;
       var mine = myDz(p.job, kind, only ? m : '');
       if(!mine.length) return null;
@@ -7502,7 +7606,7 @@
   }
   function stitchCards(filterStatus){
     var out = [];
-    U.pairs().forEach(function(p){
+    U.pairsLive().forEach(function(p){
       (p.job.stitch || []).forEach(function(s){
         if(s.gone) return;
         if(filterStatus && s.status !== filterStatus) return;
@@ -7625,7 +7729,7 @@
        Тепер підпис береться звідти ж, звідки колонка, і стоїть ПІД
        номером: це не мітка збоку, а відповідь на питання «де воно зараз»,
        і читається вона разом із номером, а не між ним і строком. */
-    var кол = D.chainAt(job, o);
+    var кол = D.refusalOf(job, o) ? 'refused' : D.chainAt(job, o);    // 22.10: у відмові — «Відмова»
     var крок = (D.CHAIN || []).filter(function(x){ return x.key === кол; })[0] || {};
     /* У ЦЕХУ — СТАТУС ЦЕХУ. Андрій: клієнт питає «що з моїм замовленням» —
        менеджер відкриває картку й бачить «На станках», а не просто
@@ -7712,7 +7816,7 @@
     if(g2.assignee) return '';
     var m2 = (U.host.me && U.host.me()) || '';
     if(!m2) return '';
-    var jobs = U.pairs().map(function(x){ return x.job; });
+    var jobs = U.pairsLive().map(function(x){ return x.job; });
     var n = D.loadOf(jobs, m2);
     if(n >= D.TAKE_LIMIT)
       return '<div class="dz-miss">У роботі вже ' + n + ' замовлень. Нове береться ' +
@@ -8613,7 +8717,7 @@
      картки самі йдуть у «Передано курʼєру». Реєстр при замовленні (o.reg);
      окремого довідника немає — список збираємо із замовлень. */
   async function regMake(root){
-    var там = U.pairs().filter(function(p){ return D.prodAt(p.job, p.o) === 'reg'; });
+    var там = U.pairsLive().filter(function(p){ return D.prodAt(p.job, p.o) === 'reg'; });
     if(!там.length) return say('У колонці «Реєстр» порожньо — перетягніть сюди посилки з ТТН');
     if(!host().npRegistry) return say('Реєстр Нової пошти недоступний');
     var групи = {};
@@ -8643,7 +8747,7 @@
   }
   function regList(){
     var regs = {};
-    U.pairs().forEach(function(p){
+    U.pairsLive().forEach(function(p){
       var r = p.o && p.o.reg;
       if(!r || !r.ref) return;
       var x = regs[r.ref] = regs[r.ref] || { ref: r.ref, no: r.no, at: r.at, sender: r.sender || '', n: 0, moved: 0 };
@@ -8809,7 +8913,7 @@
      замовлення не здане. */
   function stitchOrderCards(){
     var out = [];
-    U.pairs().forEach(function(p){
+    U.pairsLive().forEach(function(p){
       var list = (p.job.stitch || []).filter(function(s){ return !s.gone; });
       if(!list.length) return;
       var order = D.STITCH.map(function(x){ return x.key; });
@@ -8844,7 +8948,7 @@
   }
   function prodCards(tech){
     var всі = buys();
-    return U.pairs().filter(atProd).filter(function(p){ return !tech || D.jobTech(p.job) === tech; }).map(function(p){
+    return U.pairsLive().filter(atProd).filter(function(p){ return !tech || D.jobTech(p.job) === tech; }).map(function(p){
       var r = D.packReady(p.job, p.o);
       /* Позиції відділу: під карткою — де одяг і чи готова вишивка, а не
          стара перевірка пакета, яка тут завжди казала б «не погоджено». */
@@ -8889,7 +8993,7 @@
   }
   function supplyCards(){
     var всі = buys();
-    return U.pairs().filter(function(p){ return atSupply(p, всі); }).map(function(p){
+    return U.pairsLive().filter(function(p){ return atSupply(p, всі); }).map(function(p){
       var q = 0;
       (p.o.items || []).forEach(function(it){
         if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
@@ -11151,6 +11255,31 @@
         if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
       }, { title: 'Яка проблема? Побачить керівник', go: 'Позначити' });
     }
+    /* ── ВІДМОВА (22.10): акаунт і власник; повернути — ті самі ── */
+    if(what === 'refuse' || what === 'refuse-back'){
+      var рп = U.pairOf(String((data && data.id) || ''));
+      if(!рп) return;
+      if(!(host().refuseOk && host().refuseOk())) return say('Відмову ставить акаунт або власник');
+      var перемалювати = function(){
+        render(document.getElementById('dzRoot'));
+        if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+      };
+      if(what === 'refuse-back'){
+        if(!window.confirm('Повернути замовлення ' + U.jobNo(рп.job) + ' в роботу?')) return;
+        if(!host().refuseBack) return say('Повернути не вдалось');
+        await host().refuseBack(рп.o, рп.job);
+        say('Замовлення повернуто в роботу');
+        return перемалювати();
+      }
+      return U.refuseOpen(D.refuseGuess(рп.job, рп.o), async function(k, txt){
+        var назва = k === 'other' ? txt : D.refuseLabel(k);
+        if(!window.confirm('Перенести замовлення ' + U.jobNo(рп.job) + ' у відмову?\nПричина: ' + назва)) return;
+        if(!host().refuse) return say('Відмову не записано');
+        await host().refuse(рп.o, рп.job, { reason: k, text: txt, stage: D.chainAt(рп.job, рп.o) });
+        say('Замовлення у відмові: ' + назва);
+        перемалювати();
+      });
+    }
     if(what === 'order-new'){
       if(host().newOrder) return host().newOrder();
       return say('Створення замовлення доступне з робочого місця');
@@ -12875,7 +13004,7 @@
     if(data && data.t && !c.t) c.t = D.taskAt(job, data.t);
 
     if(what === 'take'){
-      var jl = U.pairs().map(function(x){ return x.job; });
+      var jl = U.pairsLive().map(function(x){ return x.job; });
       var r = D.takeSelf(job, o, m, jl);
       if(!r) return say('Замовлення вже комусь належить');
       if(r.full) return say('У роботі вже ' + D.TAKE_LIMIT + ' — спершу здайте котресь');

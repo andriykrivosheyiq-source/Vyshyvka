@@ -4582,6 +4582,14 @@
   .dz-card .dz-c-chain.one b.now{border:1.5px solid var(--ink);border-radius:6px;padding:0 6px;line-height:1.5;}
   .dz-c-chain b.next{color:#98A2B3;font-weight:500;}
   .dz-c-chain b.bad{color:#B42318;font-weight:700;}
+  /* Відмова в рядку етапів картки (22.10): сіра кнопка, поставлена — червона. */
+  .dz-chain-act{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;white-space:nowrap;line-height:1.35;
+    border:1px solid #D0D5DD;border-radius:6px;padding:0 6px;color:#98A2B3;}
+  .dz-chain-act:hover{border-color:#B42318;color:#B42318;}
+  .dz-chain-act.bad{color:#B42318;border-color:#FDA29B;background:#FEF3F2;font-weight:700;}
+  .dz-ref-l{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px;}
+  .dz-ref-o{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;}
+  .dz-ref-t{width:100%;box-sizing:border-box;margin:0 0 10px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;}
   .dz-card .dz-c-chain.one b.bad{border:1.5px solid #B42318;border-radius:6px;padding:0 6px;line-height:1.5;}
   .dz-c-chain.in-panel,.dz-panel-h .dz-c-chain.in-panel{flex-basis:100%;margin:6px 0 0;}
   .dz-c-chain.in-panel b{font-size:12px;}
@@ -7979,33 +7987,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=bc147ee862"></script>
-<script src="loomiq-fingerprint.js?v=bc147ee862"></script>
-<script src="loomiq-pricing.js?v=bc147ee862"></script>
+<script src="loomiq-select.js?v=e3353a1f4d"></script>
+<script src="loomiq-fingerprint.js?v=e3353a1f4d"></script>
+<script src="loomiq-pricing.js?v=e3353a1f4d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=bc147ee862"></script>
+<script src="loomiq-money-core.js?v=e3353a1f4d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=bc147ee862"></script>
-<script src="loomiq-bg.js?v=bc147ee862"></script>
-<script src="loomiq-mock.js?v=bc147ee862"></script>
+<script src="loomiq-design.js?v=e3353a1f4d"></script>
+<script src="loomiq-bg.js?v=e3353a1f4d"></script>
+<script src="loomiq-mock.js?v=e3353a1f4d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=bc147ee862"></script>
+<script src="imagetracer.js?v=e3353a1f4d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=bc147ee862"></script>
-<script src="loomiq-threads.js?v=bc147ee862"></script>
+<script src="loomiq-chat.js?v=e3353a1f4d"></script>
+<script src="loomiq-threads.js?v=e3353a1f4d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=bc147ee862"></script>
+<script src="loomiq-cards.js?v=e3353a1f4d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8050,7 +8058,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'bc147ee862';
+var LQ_VER = 'e3353a1f4d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -28206,7 +28214,9 @@ function designOrders(){
   /* Свої замовлення напряму — усі. Плюс ті замовлення Канбану, у яких
      картка дизайну вже заведена: дороги туди більше немає, але те, що вже
      заведено, ховати не можна — робота там справжня. */
-  return (orders || []).filter(o => o && o.orderId && o.status !== 'cancel' &&
+  /* B2C у відмові (22.10) лишається тут — у колонці «Відмова» акаунта;
+     дошки дизайнерів, цеху й закупівлі її відсіюють самі (pairsLive). */
+  return (orders || []).filter(o => o && o.orderId && (o.status !== 'cancel' || orderDir(o) === 'b2c') &&
     (orderDir(o) === 'b2c' ||
      (designJobs[o.orderId] && o.status !== 'done' && (o.items || []).length)));
 }
@@ -28796,6 +28806,42 @@ async function designSave(job, o){
   if(o && orderDir(o) === 'b2b' && step && typeof setTrack === 'function')
     await setTrack(o, 'design', step);
 }
+/* ВІДМОВА B2C (22.10). Статус 'cancel' — той самий, що в B2B: Фінанси вже
+   рахують відмову після оплати мінусом на день відмови, а Звірка не чекає
+   від такого замовлення доплати. Гроші не рухаємо: передоплата лишається
+   привʼязаною. Причина — окремими полями для аналітики (o.refusal), кожна
+   відмова й повернення — у o.refuseHist (історія картки). */
+async function b2cRefuse(o, job, r){
+  if(!o || o.status === 'cancel') return;
+  const L = window.LQDesign;
+  const label = r.reason === 'other' ? String(r.text || '').slice(0, 120) : L.refuseLabel(r.reason);
+  const at = new Date().toISOString(), by = myEmail() || '';
+  o.refusal = { reason: r.reason, text: r.reason === 'other' ? label : '', stage: r.stage || '', at, by, prev: o.status || '' };
+  o.lostReason = label;
+  o.refuseHist = (o.refuseHist || []).concat([{ at, by, reason: r.reason, label, stage: r.stage || '' }]).slice(-20);
+  o.status = 'cancel';
+  o.hist = (o.hist || []).concat([{ s:'cancel', at }]).slice(-40);
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error('відмова', e); toast('Відмову не збережено'); throw e; }
+  accLog('refuse', 'відмова ' + showNo(o) + ': ' + label);
+  try{ repaintAfterOrders(); }catch(e){}
+}
+async function b2cRefuseBack(o, job){
+  if(!o || o.status !== 'cancel') return;
+  const at = new Date().toISOString(), by = myEmail() || '';
+  const prev = (o.refusal && o.refusal.prev) ||
+    (((o.hist || []).filter(h => h && h.s && h.s !== 'cancel').pop() || {}).s) || 'new';
+  o.refuseHist = (o.refuseHist || []).concat([{ at, by, back: true }]).slice(-20);
+  delete o.refusal; delete o.lostReason;
+  o.status = prev;
+  o.hist = (o.hist || []).concat([{ s: prev, at }]).slice(-40);
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error('повернення з відмови', e); toast('Не збереглось'); throw e; }
+  accLog('refuse', 'повернуто в роботу ' + showNo(o));
+  try{ repaintAfterOrders(); }catch(e){}
+}
 function openDesign(){
   try{ prodNpPoll(false); }catch(e){}
   const root = document.getElementById('dzRoot');
@@ -29075,6 +29121,12 @@ function designHostInit(){
        «дуже важливо, щоб бачили тільки свої»). У режимі «дивитись очима»
        — за доступами й поштою того, ким дивимось, а не власника. */
     onlyMine: ()=> myUi() === 'designer',      // з активної ролі (22.10: одна роль за раз)
+    /* ВІДМОВА B2C (22.10, Андрій: «відмову може ставити лише акаунт і
+       власник; повернути — усі, хто може переносити у відмову»). Акаунт і
+       власник — це роль з менеджерським виглядом (ui 'manager'). */
+    refuseOk: ()=> myUi() === 'manager',
+    refuse: (o, job, r)=> b2cRefuse(o, job, r),
+    refuseBack: (o, job)=> b2cRefuseBack(o, job),
     boardMe: ()=> seeAsPerson() || myEmail() || '',
     /* НАДІСЛАТИ КАРТИНКУ КЛІЄНТУ, НЕ ВІДКРИВАЮЧИ РОЗМОВИ.
 
