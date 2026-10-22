@@ -2972,6 +2972,9 @@
   /* Чия це роль з точки зору прав. Власник і керівник бачать усе й
      перемикаються вручну; решта прив'язана до своєї. */
   function roleSeat(r){
+    /* Менеджери обох напрямів працюють на дошці акаунта (22.10): без свого
+       крісла їх кидало на дошку графіка. */
+    if(r === 'managerb2c' || r === 'manager' || r === 'owner') return 'acct';
     for(var i = 0; i < ROLES.length; i++) if(ROLES[i].role === r) return ROLES[i].key;
     /* Ролі, заведені поруч із вбудованими (оператори, контроль якості), —
        робоче місце знає, чиє це крісло. */
@@ -7397,7 +7400,8 @@
     kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var всіГ = buys();
     var only = host().onlyMine && host().onlyMine();
-    var m = (host().me && host().me()) || '';
+    /* Чиї це дизайни: у режимі «дивитись очима людини» — її, не власника. */
+    var m = (host().boardMe && host().boardMe()) || (host().me && host().me()) || '';
     return U.pairs().map(function(p){
       if(tech && D.jobTech(p.job) !== tech) return null;
       var mine = myDz(p.job, kind, only ? m : '');
@@ -9228,10 +9232,11 @@
     var _wy = window.pageYOffset || 0;
     healOld();
     var role = (U.host.role && U.host.role()) || '';
-    var boss = U.isBoss(role);
-    /* Перемикач ролей — тільки у власника. Співробітник заходить одразу у
-       свою дошку: дай йому вибір — колись перемкнеться й пів дня
-       працюватиме не на своєму екрані. */
+    /* Перемикач дошок — ТІЛЬКИ у власника (22.10, Андрій: «акаунт-менеджер
+       повинен бачити тільки свою дошку»). Доти його мали й менеджери. */
+    var boss = !role || role === 'owner';
+    /* Співробітник заходить одразу у свою дошку: дай йому вибір — колись
+       перемкнеться й пів дня працюватиме не на своєму екрані. */
     var seat = boss ? U.tab() : (U.roleSeat(role) || U.tab());
     if(!U.ROLES.some(function(r){ return r.key === seat; })) seat = boss ? 'acct' : 'graphic';
     if(seat !== U.tab()) U.setTab(seat);

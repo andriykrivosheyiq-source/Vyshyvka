@@ -220,12 +220,17 @@ async function прогін(role, назва){
   await p.evaluate(() => { const d = window.LQDesign.dzList(J().units[0], 'graphic')[0];
     d.draft = { works:[{ name:'лого-нитки.png', url: __IMG.logo, hash:'h1', threads:[{ code:'1133', hex:'#E4572E' }] }],
                 places:[{ side:'front', work:0, x:0.5, y:0.3, w:0.26 }, { side:'back', work:0, x:0.5, y:0.2, w:0.4 }] }; });
+  /* Здає ДИЗАЙНЕР (22.10: акаунт-менеджер на чужу дошку не перемикається —
+     перемикач лише у власника), править — менеджер. Дві різні людини. */
+  const як = r => p.evaluate(r => { contentData.team[0].role = r; applyRoleUi(); }, r);
+  if(role !== 'owner') await як('designer');
   await панель('graphic');
   await p.evaluate(() => document.querySelector('[data-do="dz-work"]').click());
   for(let k = 0; k < 30 && !(await відкрито()); k++) await p.waitForTimeout(100);
   await p.waitForTimeout(500);
   await обидві('вікно дизайнера');
   await зберегти('дизайнер здав');
+  if(role !== 'owner') await як(role);
   await панель('acct');
   ok(await p.evaluate(() => !!document.querySelector('[data-do="dz-place"]')), 'у менеджера є «✎ Розміщення»', 'кнопки «✎ Розміщення» немає');
   await розміщення();

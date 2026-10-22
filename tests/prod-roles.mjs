@@ -41,6 +41,10 @@ const CONTENT = {
   b2c: {},
   rolesSeed: 1,
   roles: [{ key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*', see:['client','chat','cost'], can:'*' },
+          { key:'designer', name:'Дизайнер', ui:'designer', nav:['design'], boards:['design'], see:[], can:['art','stage'] },
+          { key:'embroidery', name:'Вишивальний дизайнер', ui:'designer', nav:['design'], boards:['embro'], see:[], can:['stitch'] },
+          { key:'designmgr', name:'Акаунт-менеджер', ui:'manager', nav:['design','chatsc','board','chats'], boards:'*', see:['client','chat'], can:['new','edit','stage','assign','pay','write','files','quick','bind','art','approve','pack'] },
+          { key:'managerb2c', name:'Менеджер B2C', ui:'manager', nav:['design','chatsc'], boards:['acct'], see:['client','chat'], can:['new','edit','stage','assign','pay','write','files','quick','bind','art','approve','pack'] },
           { key:'production', name:'Виробництво', ui:'production', nav:['today','dash','board'], navAll:['today','dash','board'],
             boards:['prod'], see:['chat','client'], can:['stage','files'] },
           { key:'supply', name:'Закупівля', ui:'production', nav:['today','dash','board'], navAll:['today','dash','board'],
@@ -178,6 +182,63 @@ const вДр = await наРоль('print');
 ok(вДр.seat === 'print' && !вДр.as && вДр.cols.some(x => /Друкується/.test(x)), 'очима Друку: дошка «Друк»', JSON.stringify(вДр));
 const назад = await наРоль('');
 ok(!назад.bar && назад.as && назад.nav.length > 1, 'вийшов з перегляду — свої розділи й перемикач «Дивлюсь як» на місці', JSON.stringify({ bar: назад.bar, as: назад.as, nav: назад.nav.length }));
+
+console.log('');
+console.log('═══ 4. МЕНЕДЖЕРИ БЕЗ ПЕРЕМИКАЧА; ДИЗАЙНЕР — ЛИШЕ СВОЄ Й ЧЕРГА ═══');
+const мен = await p.evaluate(async () => {
+  seeAsSet('');
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'designmgr' }) : x);
+  applyRoleUi(); await new Promise(r => setTimeout(r, 60));
+  document.querySelector('.nav button[data-view="design"]').click();
+  const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot'));
+  const a = { seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]') };
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'managerb2c' }) : x);
+  applyRoleUi(); await new Promise(r => setTimeout(r, 60));
+  U.render(document.getElementById('dzRoot'));
+  const b = { seat: U.tab(), as: !!document.querySelector('#dzRoot [data-seat]') };
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
+  applyRoleUi(); await new Promise(r => setTimeout(r, 60));
+  U.render(document.getElementById('dzRoot'));
+  const c = { as: !!document.querySelector('#dzRoot [data-seat]') };
+  return { a, b, c };
+});
+ok(мен.a.seat === 'acct' && !мен.a.as && мен.b.seat === 'acct' && !мен.b.as && мен.c.as,
+  'акаунт-менеджер і менеджер B2C — дошка акаунта без перемикача; перемикач лише у власника', JSON.stringify(мен));
+/* Три замовлення: графіка в p@ (Петро), у d@ (інший дизайнер), і в черзі відділу. */
+const дз = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const заведи = (id, who, queue) => {
+    if(!orders.find(o => o.orderId === id)) orders.push({ id:'g' + id, orderId:id, type:'client', dir:'b2c', name:'Г' + id, status:'prorahunok', site:'main',
+      payments:[{ sum:300, at:'2026-10-18T09:00:00.000Z', kind:'prepay' }], hist:[], createdAt:'2026-10-18T09:00:00.000Z', crmChatId:'c' + id, items:[] });
+    const j = designJobMake(id); j.no = id;
+    const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1, note:'x', artKind:'k' });
+    j.units = [u];
+    const g = D.dzNew(); D.dzList(u, 'graphic').push(g);
+    if(queue) D.dzQueue(g, 'test@loomiq'); else { g.who = who; g.sentAt = new Date().toISOString(); g.status = 'work'; }
+  };
+  заведи('2000501', 'p@loomiq', false); заведи('2000502', 'd@loomiq', false); заведи('2000503', '', true);
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'owner' }) : x);
+  const бачить = () => [...document.querySelectorAll('#dzRoot .dz-card')].map(c => c.dataset.open).filter(x => /^20005/.test(x)).sort().join();
+  /* Власник очима Петра (людина, не роль). */
+  seeAsSet('@p@loomiq'); await new Promise(r => setTimeout(r, 80));
+  document.querySelector('.nav button[data-view="design"]').click();
+  U.render(document.getElementById('dzRoot'));
+  const очимаПетра = { seat: U.tab(), cards: бачить() };
+  seeAsSet(''); await new Promise(r => setTimeout(r, 60));
+  /* Сам Петро (справжній вхід під його роллю). */
+  contentData.team = contentData.team.map(x => x.email === 'test@loomiq' ? Object.assign({}, x, { role:'designer' }) : x);
+  contentData.team.find(x => x.email === 'p@loomiq').email = 'p2@loomiq';
+  applyRoleUi(); await new Promise(r => setTimeout(r, 60));
+  D.dzList(designJobs['2000501'].units[0], 'graphic')[0].who = 'test@loomiq';
+  openDesign(); U.setTab('graphic'); U.render(document.getElementById('dzRoot'));
+  const сам = { seat: U.tab(), cards: бачить(), mine: U.host.onlyMine() };
+  return { очимаПетра, сам };
+});
+console.log('   ' + JSON.stringify(дз));
+ok(дз.очимаПетра.seat === 'graphic' && дз.очимаПетра.cards === '2000501,2000503',
+  'очима Петра: лише його дизайн і спільна черга, чужий (Данила) не видно', JSON.stringify(дз.очимаПетра));
+ok(дз.сам.mine && дз.сам.cards === '2000501,2000503',
+  'сам дизайнер: лише свої й черга відділу', JSON.stringify(дз.сам));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
