@@ -105,6 +105,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ B2C — лише картка відділу"
 fi
+# НОВЕ B2C — ЧЕРНЕТКОЮ (22.10): не в базі й не на дошці до «Створити
+# замовлення»; платіж привʼязується лише в мить створення.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-chat\.js|tests/new-draft\.mjs)'; then
+  node tests/new-draft.mjs >/tmp/lq-new-draft.log 2>&1 || {
+    echo "✗ Нове B2C-замовлення зламано — коміт зупинено. Подробиці: /tmp/lq-new-draft.log"
+    grep '✗' /tmp/lq-new-draft.log
+    exit 1
+  }
+  echo "✓ нове B2C — чернеткою"
+fi
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —

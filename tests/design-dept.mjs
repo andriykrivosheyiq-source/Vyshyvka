@@ -831,8 +831,9 @@ console.log('═══ ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ ══�
     'у напряму свої поля розмови — дві дороги до однієї переписки розійдуться');
   const host = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
   const nw = host.slice(host.indexOf('newOrder: async ()'), host.indexOf('newOrder: async ()') + 420);
-  ok(!/data-view="board"/.test(nw) && /designJobNew/.test(nw),
-    'кнопка відділу нікуди не перекидає — заводить замовлення на місці',
+  /* 22.10: на місці відкривається чернетка; замовлення — кнопкою «Створити». */
+  ok(!/data-view="board"/.test(nw) && /draftNew/.test(nw),
+    'кнопка відділу нікуди не перекидає — відкриває нове замовлення на місці',
     'кнопка досі відкриває форму Канбану');
 }
 
