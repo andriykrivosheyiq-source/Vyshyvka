@@ -4830,6 +4830,10 @@
   .dz-ready.is-link.is-sub{margin-top:6px;padding:6px 8px;}
   .dz-sub-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#3730A3;}
   .dz-sub-t .dz-kind-b{margin-left:auto;font-size:11.5px;}
+  .dz-dept-fail .dz-fail{margin:14px;padding:14px 16px;border:1px solid #FECACA;background:#FEF2F2;border-radius:12px;color:#7F1D1D;font-size:13.5px;}
+  .dz-dept-fail .dz-fail b{display:block;font-size:15px;margin-bottom:6px;}
+  .dz-dept-fail .dz-fail p{margin:6px 0;white-space:pre-wrap;word-break:break-word;}
+  .dz-dept-fail .dz-fail .dz-b{margin-top:8px;}
   .dz-link-note{margin:4px 0 2px;font-size:12px;color:#3730A3;background:#EEF2FF;border-radius:8px;padding:5px 9px;}
   .dz-link-note b{display:inline-block;min-width:16px;text-align:center;border-radius:5px;background:#C7D2FE;font-size:11px;margin-right:2px;}
   .dz-kind.is-link{align-items:center;gap:8px;padding-left:10px;background:#EEF2FF;border-color:#C7D2FE;}
@@ -7949,33 +7953,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=17da4426c5"></script>
-<script src="loomiq-fingerprint.js?v=17da4426c5"></script>
-<script src="loomiq-pricing.js?v=17da4426c5"></script>
+<script src="loomiq-select.js?v=660b33e520"></script>
+<script src="loomiq-fingerprint.js?v=660b33e520"></script>
+<script src="loomiq-pricing.js?v=660b33e520"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=17da4426c5"></script>
+<script src="loomiq-money-core.js?v=660b33e520"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=17da4426c5"></script>
-<script src="loomiq-bg.js?v=17da4426c5"></script>
-<script src="loomiq-mock.js?v=17da4426c5"></script>
+<script src="loomiq-design.js?v=660b33e520"></script>
+<script src="loomiq-bg.js?v=660b33e520"></script>
+<script src="loomiq-mock.js?v=660b33e520"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=17da4426c5"></script>
+<script src="imagetracer.js?v=660b33e520"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=17da4426c5"></script>
-<script src="loomiq-threads.js?v=17da4426c5"></script>
+<script src="loomiq-chat.js?v=660b33e520"></script>
+<script src="loomiq-threads.js?v=660b33e520"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=17da4426c5"></script>
+<script src="loomiq-cards.js?v=660b33e520"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8020,7 +8024,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '17da4426c5';
+var LQ_VER = '660b33e520';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -14844,7 +14848,14 @@ function orderIdNum(v){
 /* Напрям замовлення. Поле `dir` головніше за номер: воно й є правдою, а
    номер лише показує її людині. Старі картки поля не мають зовсім — і не
    повинні: усе, що заведено до цього дня, це B2B. */
-function orderDir(o){ return ((o && o.dir) === 'b2c') ? 'b2c' : 'b2b'; }
+function orderDir(o){
+  if(!o) return 'b2b';
+  if(o.dir === 'b2c') return 'b2c';
+  /* Другий замок (22.10, Андрій: «B2C і B2B повністю розділені»): номер
+     від 2 000 001 — це відділ або B2C-ряд; B2B рахується з 1 000 001 і туди
+     не доходить. Загубилось поле напряму — номер однаково каже правду. */
+  return orderIdNum(o.orderId) >= 2000001 ? 'b2c' : 'b2b';
+}
 /* ── ОДИН НОМЕР НА ОЧАХ ──────────────────────────────────────────────────
 
    Роздрібне замовлення має два номери, і це вийшло історично. Відділ
@@ -24830,16 +24841,38 @@ function odDueB2cHtml(o){
 }
 function deptInDrawer(o, panel){
   const U = window.LQDesign && window.LQDesign.ui;
-  if(!U || !U.renderPanel || !o || !o.orderId) return false;
+  let why = '';
   try{
+    if(!U || !U.renderPanel) throw new Error('відділ дизайну ще не завантажився');
+    if(!o || !o.orderId) throw new Error('у замовлення немає номера');
     if(!designJobOf(o.orderId)) designJobOf(o.orderId, true);   // задача відділу — одна на замовлення
+    if(!designJobOf(o.orderId)) throw new Error('задача відділу не створилась (замовлення не знайдено в списку)');
     panel.classList.add('is-dept');
-    return !!U.renderPanel(panel, o.orderId, { onClose: closeOrderDrawer });
+    if(U.renderPanel(panel, o.orderId, { onClose: closeOrderDrawer })) return true;
+    why = 'картка зібралась порожньою (замовлення не потрапило в список відділу)';
   }catch(e){
+    why = String((e && e.message) || e);
     console.warn('картка відділу в панелі', e);
-    panel.classList.remove('is-dept');
-    return false;
   }
+  /* B2C НІКОЛИ НЕ ПОКАЗУЄ B2B-КАРТКУ (22.10, Андрій). Доти, коли картку
+     відділу не вдавалось зібрати, тут мовчки малювалась B2B-картка —
+     «Звернення», «Наступна дія», «Макет у відділі», — і людина не могла ні
+     зафіксувати, ні передати правки. Тепер — чесна панель з причиною й
+     повтором, а причина йде в журнал, щоб її побачив розробник. */
+  panel.classList.add('is-dept');
+  panel.innerHTML = `<aside class="dz-panel dz-solo dz-dept-fail">
+    <div class="dz-panel-h"><span class="dz-panel-id"><b>${escapeHtml(showNo(o))}</b></span>
+      <button class="dz-x" data-close>×</button></div>
+    <div class="dz-panel-b"><div class="dz-fail">
+      <b>Картка відділу не відкрилась</b>
+      <p>${escapeHtml(why || 'невідома причина')}</p>
+      <p>Це замовлення B2C — картка продажів тут не показується. Натисніть «Спробувати ще раз»; якщо не допомагає — перешліть цей текст розробнику.</p>
+      <button type="button" class="dz-b pri" data-dept-retry>Спробувати ще раз</button>
+    </div></div></aside>`;
+  panel.querySelector('[data-close]').addEventListener('click', closeOrderDrawer);
+  panel.querySelector('[data-dept-retry]').addEventListener('click', () => { try{ openDesign(); }catch(e){} renderOrderDrawer(); });
+  try{ accLog('dept-fail', 'картка відділу #' + showNo(o) + ' не відкрилась: ' + (why || '?').slice(0, 300)); }catch(e){}
+  return true;
 }
 function renderOrderDrawer(){
   const d = document.getElementById('orderDrawer');
