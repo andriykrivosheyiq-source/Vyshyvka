@@ -7875,6 +7875,10 @@
           (((U.host.role && U.host.role()) === 'owner' && host().deleteOrder)
             ? '<div class="dz-del-row"><button type="button" class="dz-b dz-del" data-do="order-del" ' +
               'title="Видалити замовлення назавжди — лише власник">🗑 Видалити замовлення</button></div>' : ''); }) +
+        /* ВЕРСІЇ (23.10) — лише власнику: попередні копії картки відділу
+           перед кожним записом; «Повернути цю версію». */
+        (((U.host.role && U.host.role()) === 'owner' && host().versionsHtml)
+          ? U.foldHtml('gray', '🗂', 'Версії', '', function(){ return host().versionsHtml(job, o); }) : '') +
       '</div>' +
       /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
          У картці десяток блоків, і кнопка в кінці означає «догортайте до
@@ -11763,6 +11767,16 @@
     if(what === 'order-del'){
       if(host().deleteOrder) await host().deleteOrder(o);
       return;
+    }
+    if(what === 'vers-load'){
+      if(host().versionsLoad) await host().versionsLoad(job);
+      U.FOLD['Версії'] = 1;
+      return render(root);
+    }
+    if(what === 'vers-back'){
+      if(host().versionRestore) await host().versionRestore(job, String((data && data.ts) || ''));
+      U.FOLD['Версії'] = 1;
+      return render(root);
     }
     if(what === 'unbind'){
       try{ if(!window.confirm('Відвʼязати розмову від цієї картки? Потім можна вставити адресу іншої.')) return; }catch(e){}

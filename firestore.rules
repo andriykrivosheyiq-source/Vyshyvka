@@ -198,6 +198,21 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if request.auth != null && may('setup');
     }
+    // ВЕРСІЇ КАРТОК (23.10): перед кожним записом картки її попередня копія
+    // лягає в hist/<час>. Версію не правлять і не стирають (лише власник —
+    // для прибирання старих); це і є «повернути версію від …».
+    match /kanbanOrders/{id}/hist/{v} {
+      allow read: if known();
+      allow create: if known();
+      allow update: if false;
+      allow delete: if request.auth != null && may('setup');
+    }
+    match /designJobs/{orderId}/hist/{v} {
+      allow read: if known();
+      allow create: if known();
+      allow update: if false;
+      allow delete: if request.auth != null && may('setup');
+    }
     match /kanbanOrders/{id} {
       allow read: if known();
       allow create: if request.auth != null && may('edit')

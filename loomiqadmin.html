@@ -5562,6 +5562,13 @@
   .fin-rb .rb-c .h{font-size:12px;opacity:.7;margin-bottom:4px;}
   .fin-rb .rb-tr a{display:inline-block;margin:2px 6px 2px 0;}
   .fin-rb .rb-note{font-size:13px;opacity:.75;margin-top:6px;}
+  .fin-rb .rb-vh{font-size:12px;font-weight:700;margin-top:6px;}
+  .fin-rb .rb-vr{font-size:13px;padding:4px 0;border-top:1px dashed var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .fin-rb .rb-vr button{margin-left:auto;}
+  .dz-vers{display:flex;flex-direction:column;gap:8px;}
+  .dz-vers-n{font-size:13px;opacity:.7;}
+  .dz-vers-r{border-top:1px dashed var(--line);padding-top:8px;font-size:13px;}
+  .dz-vers-s{opacity:.75;margin:2px 0 6px;}
   .fa-h b{font-weight:800;}
   .fa-ok{color:#1d7a3e;font-weight:700;}
   .fa-n{font-size:12px;font-weight:800;border-radius:20px;padding:2px 9px;}
@@ -8040,33 +8047,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=22a0a0a637"></script>
-<script src="loomiq-fingerprint.js?v=22a0a0a637"></script>
-<script src="loomiq-pricing.js?v=22a0a0a637"></script>
+<script src="loomiq-select.js?v=914570fd36"></script>
+<script src="loomiq-fingerprint.js?v=914570fd36"></script>
+<script src="loomiq-pricing.js?v=914570fd36"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=22a0a0a637"></script>
+<script src="loomiq-money-core.js?v=914570fd36"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=22a0a0a637"></script>
-<script src="loomiq-bg.js?v=22a0a0a637"></script>
-<script src="loomiq-mock.js?v=22a0a0a637"></script>
+<script src="loomiq-design.js?v=914570fd36"></script>
+<script src="loomiq-bg.js?v=914570fd36"></script>
+<script src="loomiq-mock.js?v=914570fd36"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=22a0a0a637"></script>
+<script src="imagetracer.js?v=914570fd36"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=22a0a0a637"></script>
-<script src="loomiq-threads.js?v=22a0a0a637"></script>
+<script src="loomiq-chat.js?v=914570fd36"></script>
+<script src="loomiq-threads.js?v=914570fd36"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=22a0a0a637"></script>
+<script src="loomiq-cards.js?v=914570fd36"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8111,7 +8118,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '22a0a0a637';
+var LQ_VER = '914570fd36';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9100,6 +9107,7 @@ async function saveOrders(opts){
       }
     }catch(e){ console.warn('звірка версії картки', id, e); }
     try{
+      if(ordersSaved.has(id)) await histPut(ORDERS_COL, id, ordersSaved.get(id), 'save');
       await ORDERS_COL.doc(id).set(JSON.parse(body));
       ordersSaved.set(id, body);
     }catch(e){
@@ -12248,6 +12256,17 @@ async function rbRestore(i, what){
   }
   renderRollback();
 }
+function rbVersHtml(r){
+  const E = escapeHtml, i = rb.rows.indexOf(r);
+  const row = (v, what, txt) => { const m = v._v || {};
+    return `<div class="rb-vr"><b>${E(rbFmt(m.at || v.__id))}</b> · ${E(String(m.by || '').replace(/@.*/, '') || '—')}${m.why === 'restore' ? ' · перед поверненням' : ''} — ${E(txt)}
+      <button type="button" class="rb-back" data-rb-vback="${i}" data-rb-vwhat="${what}" data-rb-vts="${E(v.__id)}">Повернути</button></div>`; };
+  const j = (r.vers.job || []).map(v => row(v, 'job', rbJobText(rbJobSum(v)))).join('');
+  const o = (r.vers.order || []).map(v => row(v, 'order', rbOrderText(rbOrderSum(v)))).join('');
+  return '<div class="h" style="font-size:12px;opacity:.7;margin-top:6px">Версії в CRM (попередні копії перед кожним записом)</div>' +
+    (j ? '<div class="rb-vh">Картка відділу</div>' + j : '<div class="rb-note">Версій картки відділу немає' + (histOff ? ' — правила для версій у базі ще не опубліковано' : '') + '.</div>') +
+    (o ? '<div class="rb-vh">Картка замовлення</div>' + o : '');
+}
 function renderRollback(){
   const box = document.getElementById('fin-rollback');
   if(!box) return;
@@ -12277,6 +12296,7 @@ function renderRollback(){
       ${!rb.err && r.thenDoc && r.now && r.then.at === r.now.at ? '<div class="rb-note">На цю мить картка відділу була така сама, як зараз — відкочувати нема на що; спробуйте ранішу дату.</div>' : ''}
       ${r.traces && r.traces.pics.length ? `<div class="rb-tr"><div class="h" style="font-size:12px;opacity:.7;margin-top:6px">Надіслані клієнту ескізи (поза базою, з них можна відновити руками):</div>${r.traces.pics.slice(-12).map(p => `<a href="${E(p.url)}" target="_blank" rel="noopener">${E(p.at || 'картинка')}${p.by ? ' · ' + E(p.by) : ''}</a>`).join('')}</div>` : (r.k.o ? '<div class="rb-note">Надісланих клієнту ескізів у картці не збережено.</div>' : '')}
       ${r.traces && r.traces.log.length ? `<div class="rb-note">Журнал: ${r.traces.log.map(l => E(rbFmt(l.at)) + ' ' + E(String(l.by || '').replace(/@.*/, '')) + ': ' + E(String(l.text || '').slice(0, 90))).join(' · ')}</div>` : ''}
+      ${r.k.key ? `<div class="rb-vers" data-rb-vers="${i}">${r.vers ? rbVersHtml(r) : '<button type="button" class="rb-back" data-rb-vlist="' + i + '">Версії в CRM</button>'}</div>` : ''}
       ${r.k.o ? `<div class="rb-note"><button type="button" class="rb-back" data-rb-open="${E(r.k.o.orderId)}">Відкрити картку</button></div>` : ''}
     </div>`).join('')}`;
   box.onclick = async e => {
@@ -12287,6 +12307,22 @@ function renderRollback(){
     if(b){ try{ await rbRestore(+b.dataset.rbBack, b.dataset.rbWhat); }catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); } return; }
     const op = e.target.closest('[data-rb-open]');
     if(op) openByNo(op.dataset.rbOpen);
+    const vl = e.target.closest('[data-rb-vlist]');
+    if(vl){ const r = rb.rows[+vl.dataset.rbVlist]; if(!r) return; vl.disabled = true; vl.textContent = 'Читаю…';
+      r.vers = { job: [], order: [] };
+      try{ if(r.k.key) r.vers.job = await histList(DESIGN_COL, r.k.key); if(r.k.docId) r.vers.order = await histList(ORDERS_COL, r.k.docId); }
+      catch(err){ console.warn(err); toast('Не вдалось прочитати версії: ' + ((err && err.message) || err)); }
+      return renderRollback(); }
+    const vb = e.target.closest('[data-rb-vback]');
+    if(vb){ const r = rb.rows[+vb.dataset.rbVback]; if(!r || !r.vers) return;
+      try{
+        if(vb.dataset.rbVwhat === 'job'){ const v = r.vers.job.find(x => x.__id === vb.dataset.rbVts); if(!v) return;
+          designVers[r.k.key] = r.vers.job; await versionRestore(designJobs[r.k.key] || { orderId: r.k.key }, v.__id); r.now = rbJobSum(designJobs[r.k.key]); }
+        else { const v = r.vers.order.find(x => x.__id === vb.dataset.rbVts); if(!v) return; await orderVersionRestore(r.k.docId, v);
+          r.k.o = orders.find(x => x && x.id === r.k.docId) || r.k.o; r.nowO = rbOrderSum(r.k.o); }
+        r.vers = null;
+      }catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
+      return renderRollback(); }
   };
   box.oninput = e => { if(e.target.matches('[data-rb-nos]')) rb.nos = e.target.value; if(e.target.matches('[data-rb-at]')) rb.at = e.target.value; };
 }
@@ -29176,6 +29212,107 @@ let designJobs = {};              // orderId → задача
 let designWatching = false;
 let designDirty = {};             // що чекає запису
 let designSeen = {};              // orderId → updatedAt, який ця вкладка бачила останнім
+let designLast = {};              // orderId → JSON картки відділу, яку ця вкладка бачила останньою (для версій)
+/* ══════════ ВЕРСІЇ КАРТОК У САМІЙ CRM (23.10) ══════════
+
+   Андрій: «воно ж десь має зберігатись… як роблять топові CRM». Перед
+   кожним записом картки відділу чи замовлення її ПОПЕРЕДНЯ копія лягає в
+   hist/<час> поруч із карткою. Повернути версію — одна кнопка (картка B2C,
+   «Відкат карток»). З однієї вкладки — не частіше ніж раз на 10 хв на
+   картку (інакше кожен клік — версія), повернення пише завжди. Правила не
+   пускають (ще не опубліковано) — вимикаємось тихо, власнику одна плашка. */
+let histOff = false;
+const histAt = {};
+const HIST_GAP_MS = 10 * 60000, HIST_KEEP = 30;
+function histRef(col, id){ return col.doc(String(id)).collection('hist'); }
+async function histPut(col, id, prevJson, why){
+  if(histOff || !prevJson || !id) return false;
+  const k = (col === DESIGN_COL ? 'j:' : 'o:') + id;
+  const now = Date.now();
+  if(why !== 'restore' && histAt[k] && now - histAt[k] < HIST_GAP_MS) return false;
+  let prev; try{ prev = JSON.parse(prevJson); }catch(e){ return false; }
+  if(!prev || typeof prev !== 'object') return false;
+  const ts = new Date(now).toISOString();
+  try{
+    prev._v = { at: ts, by: myEmail() || '', why: why || 'save' };
+    await histRef(col, id).doc(ts.replace(/[:.]/g, '-')).set(prev);
+    histAt[k] = now;
+    return true;
+  }catch(e){
+    const code = String((e && (e.code || e.message)) || e);
+    if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)){
+      histOff = true;
+      console.warn('версії карток недоступні (правила бази ще не опубліковано)');
+      try{ if(canSetup()) toast('Версії карток ще не ввімкнені в базі — опублікуйте firestore.rules'); }catch(e2){}
+    } else console.warn('версія картки не записалась', id, e);
+    return false;
+  }
+}
+async function histList(col, id){
+  const snap = await histRef(col, id).get();
+  const l = [];
+  snap.forEach(d => { const v = d.data() || {}; v.__id = d.id; l.push(v); });
+  l.sort((a, b) => String((b._v || {}).at || b.__id).localeCompare(String((a._v || {}).at || a.__id)));
+  /* Старі версії прибирає власник, коли дивиться список: база видаляти
+     дозволяє лише йому. */
+  if(l.length > HIST_KEEP && canSetup()){
+    for(const v of l.slice(HIST_KEEP)){ try{ await histRef(col, id).doc(v.__id).delete(); }catch(e){} }
+  }
+  return l.slice(0, HIST_KEEP);
+}
+const designVers = {};            // orderId → [версії] (лише в памʼяті, для картки)
+async function versionsLoad(job){
+  const id = String(job && job.orderId || ''); if(!id) return [];
+  try{ designVers[id] = await histList(DESIGN_COL, id); }
+  catch(e){ console.warn('версії картки відділу', e); designVers[id] = []; toast('Не вдалось прочитати версії: ' + ((e && e.message) || e)); }
+  return designVers[id];
+}
+function versionsHtml(job, o){
+  const id = String(job && job.orderId || '');
+  const l = designVers[id];
+  const E = escapeHtml;
+  if(!l) return '<div class="dz-vers"><button type="button" class="dz-b" data-do="vers-load">Показати версії картки</button>' +
+    '<div class="dz-vers-n">Перед кожним записом картки її попередня копія лишається в базі. Повернути можна будь-яку.</div></div>';
+  if(!l.length) return '<div class="dz-vers"><div class="dz-vers-n">Збережених версій ще немає' + (histOff ? ' — у базі не опубліковано правила для версій' : '') + '.</div></div>';
+  return '<div class="dz-vers">' + l.map(v => { const s = rbJobSum(v); const m = v._v || {};
+    return '<div class="dz-vers-r"><b>' + E(rbFmt(m.at || v.__id)) + '</b> · ' + E(String(m.by || '').replace(/@.*/, '') || '—') +
+      (m.why === 'restore' ? ' · перед поверненням' : '') + '<div class="dz-vers-s">' + E(rbJobText(s)) + '</div>' +
+      '<button type="button" class="dz-b dz-vers-b" data-do="vers-back" data-ts="' + E(v.__id) + '">Повернути цю версію</button></div>'; }).join('') + '</div>';
+}
+async function versionRestore(job, ts){
+  const id = String(job && job.orderId || '');
+  const v = (designVers[id] || []).find(x => x.__id === ts);
+  if(!v) return toast('Версію не знайдено — відкрийте список ще раз');
+  const тепер = rbJobSum(job), буде = rbJobSum(v);
+  if(!confirm('Повернути картку відділу #' + noOf(id) + ' на версію від ' + rbFmt((v._v || {}).at || ts) + '?\n\nЗараз: ' + rbJobText(тепер) + '\nБуде: ' + rbJobText(буде) +
+    '\n\nТеперішній стан теж збережеться як версія.')) return;
+  const копія = JSON.parse(JSON.stringify(v)); delete копія._v; delete копія.__id;
+  копія.orderId = id; копія.updatedAt = new Date().toISOString();
+  копія.restoredFrom = { at: (v._v || {}).at || ts, by: myEmail() || '', when: копія.updatedAt, had: тепер };
+  designJobs[id] = копія;
+  const ok = await designPut(копія, { why: 'restore' });
+  if(!ok) return;
+  try{ accLog('renum', 'повернуто версію картки відділу #' + noOf(id) + ' від ' + rbFmt((v._v || {}).at || ts)); }catch(e){}
+  delete designVers[id];
+  try{ repaintAfterOrders(); }catch(e){}
+  toast('Картку #' + noOf(id) + ' повернуто на версію від ' + rbFmt((v._v || {}).at || ts));
+}
+async function orderVersionRestore(docId, v){
+  const i = (orders || []).findIndex(x => x && x.id === docId);
+  if(i < 0) return toast('Картки вже немає');
+  const тепер = rbOrderSum(orders[i]), буде = rbOrderSum(v);
+  if(!confirm('Повернути картку #' + noOf(orders[i].orderId) + ' на версію від ' + rbFmt((v._v || {}).at) + '?\n\nЗараз: ' + rbOrderText(тепер) + '\nБуде: ' + rbOrderText(буде) +
+    '\n\nПлатежі в Фінансах лишаються на місці. Теперішній стан теж збережеться як версія.')) return;
+  const копія = JSON.parse(JSON.stringify(v)); delete копія._v; delete копія.__id;
+  копія.id = docId; копія.restoredFrom = { at: (v._v || {}).at || '', by: myEmail() || '', when: new Date().toISOString() };
+  touchOrder(копія);
+  orders[i] = копія;
+  histAt['o:' + docId] = 0;
+  await storeSet('orders', orders);
+  try{ accLog('renum', 'повернуто версію картки #' + noOf(копія.orderId) + ' від ' + rbFmt((v._v || {}).at)); }catch(e){}
+  try{ repaintAfterOrders(); }catch(e){}
+  toast('Картку #' + noOf(копія.orderId) + ' повернуто на версію від ' + rbFmt((v._v || {}).at));
+}
 /* ЄДИНИЙ ЗАПИС КАРТКИ ВІДДІЛУ (23.10): без звʼязку не пишемо; у базі
    новіша версія (або та, якої ми не читали) — не затираємо: беремо свіжу,
    кажемо повторити, повертаємо false. */
@@ -29194,8 +29331,11 @@ async function designPut(job, opt){
     }
     return false;
   }
-  await DESIGN_COL.doc(id).set(JSON.parse(JSON.stringify(job)));
+  const body = JSON.stringify(job);
+  if(designLast[id] && designLast[id] !== body) await histPut(DESIGN_COL, id, designLast[id], opt && opt.why);
+  await DESIGN_COL.doc(id).set(JSON.parse(body));
   designSeen[id] = String(job.updatedAt || '');
+  designLast[id] = body;
   return true;
 }
 /* Оформлені замовлення закупівлі. Лежать у тій самій колекції, що й
@@ -29649,6 +29789,7 @@ function watchDesign(){
       if(designDirty[v.orderId]) return;
       designJobs[v.orderId] = v;
       designSeen[v.orderId] = String(v.updatedAt || '');
+      designLast[v.orderId] = JSON.stringify(v);
     });
     dbLinkOk('design');
     /* Доручення міг видати хтось інший із іншої вкладки — число на кнопці
@@ -30220,6 +30361,10 @@ function designHostInit(){
     bind: (o, url) => designBindChat(o, url),
     unbind: o => designUnbindChat(o),
     deleteOrder: o => designDeleteOrder(o),
+    /* Версії картки відділу (23.10): список і повернення — лише власник. */
+    versionsHtml: (job, o) => versionsHtml(job, o),
+    versionsLoad: job => versionsLoad(job),
+    versionRestore: (job, ts) => versionRestore(job, ts),
     /* З відділу B2C — заготовки B2C (14.10); не з дошки акаунта — без
        картки акаунта праворуч, там уже своя панель дошки. */
     chat: (o, opt) => { try{ chatOpen(o, 'crm', { dir:'b2c', noDrawer: !!(opt && opt.seat && opt.seat !== 'acct') }); }

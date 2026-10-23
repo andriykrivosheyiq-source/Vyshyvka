@@ -86,6 +86,16 @@ ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderSeqC: 5000123 }, { merge: 
   'лічильники B2B і B2C пише менеджер без права «налаштування»', 'лічильник не записався');
 ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderNosSeed: 1 }, { merge: true }))), 'а позначку «номери заброньовано» — лише власник', 'менеджер поставив позначку бронювання');
 
+console.log('');
+console.log('═══ ВЕРСІЇ КАРТОК (23.10): СТВОРЮЄ КОЖЕН, НЕ ПРАВИТЬ НІХТО, ПРИБИРАЄ ВЛАСНИК ═══');
+const версія = { orderId: '1000147', name: 'Денис', state: 'design', _v: { at: '2026-10-23T10:00:00Z', by: 'art@loomiq', why: 'save' } };
+ok(await can(setDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'), версія)), 'версію картки відділу пише менеджер', 'версія відділу не записалась');
+ok(await can(setDoc(doc(noRight, 'kanbanOrders/A/hist/2026-10-23T10-00-00Z'), { ...картка, _v: { at: '2026-10-23T10:00:00Z', by: 'test@loomiq', why: 'save' } })),
+  'версію картки замовлення пише будь-хто з команди (і з правом лише «оплата»)', 'версія замовлення не записалась');
+ok(!(await can(setDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'), { ...версія, name: 'Інший' }))), 'версію не перепишеш', 'версію переписано!');
+ok(!(await can(deleteDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z')))), 'менеджер версію не стирає', 'менеджер стер версію');
+ok(await can(deleteDoc(doc(own, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'))), 'власник (прибирання старих) — може', 'власник не зміг');
+
 await env.cleanup();
 emu.kill();
 console.log('');
