@@ -480,7 +480,34 @@
      фото-погодження) — як і були, відправлені. */
   var CHAIN_OF_PROD = { appr:'appr', ship:'ready', reg:'ready', courier:'shipped', way:'shipped',
     arrived:'shipped', stuck:'shipped', done:'shipped', refused:'shipped' };
+  /* ШПИЛЬКА ВЛАСНИКА (23.10). Андрій: «дати роль власнику, що я можу
+     передвігати будь-які колонки вручну». Колонка картки рахується з
+     роботи, і перетягнути її «куди хочу» не можна нікому. Власник може:
+     картка стоїть там, куди він її поставив, з позначкою «вручну», доки
+     шпильку не знімуть. Слід — у pinHist (історія картки) і в ds. */
+  var PIN_OK = {};
+  CHAIN.forEach(function(x){ if(x.key !== 'refused') PIN_OK[x.key] = 1; });
+  function pinSet(job, to, by){
+    if(!job || !PIN_OK[to]) return false;
+    job.pin = { to: String(to), by: String(by || ''), at: nowIso() };
+    (job.pinHist = job.pinHist || []).push({ to: job.pin.to, by: job.pin.by, at: job.pin.at });
+    if(job.pinHist.length > 40) job.pinHist = job.pinHist.slice(-40);
+    try{ ds(job, 'pin', { to: job.pin.to }); }catch(e){}
+    return true;
+  }
+  function pinClear(job, by){
+    if(!job || !job.pin) return false;
+    (job.pinHist = job.pinHist || []).push({ off: true, was: job.pin.to, by: String(by || ''), at: nowIso() });
+    delete job.pin;
+    try{ ds(job, 'unpin', {}); }catch(e){}
+    return true;
+  }
+  function pinLabel(key){
+    var x = CHAIN.filter(function(c){ return c.key === key; })[0];
+    return x ? x.label : String(key || '');
+  }
   function chainAt(job, o){
+    if(job && job.pin && job.pin.to && PIN_OK[job.pin.to]) return job.pin.to;
     var ш = trk(o, 'ship');
     if((ш === 'sent' || (o && o.ttn && ш === 'ttn')) && !(o && o.prodQc) && !trk(o, 'qc') &&
        !trk(o, 'prod') && String((o && o.ttnAt) || '') < '2026-10-07') return 'shipped';
@@ -2908,7 +2935,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
@@ -3252,7 +3279,8 @@
           '<span class="dz-c-main">' +
             '<b>' + esc(c.title) + (c.created ? ' <i class="dz-c-date" title="Створено ' + esc(dt(c.created)) + '">' +
               esc(dayOnly(c.created)) + '</i>' : '') +
-              (c.tech === 'dtf' ? ' <em class="dz-c-tech" title="Друк (DTF)">DTF</em>' : '') + '</b>' +
+              (c.tech === 'dtf' ? ' <em class="dz-c-tech" title="Друк (DTF)">DTF</em>' : '') +
+              (c.pin ? ' <i class="dz-c-pin" title="Поставлено вручну (власник)">📌</i>' : '') + '</b>' +
             (c.nick && !c.chain ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
             (стікер ? '<span class="dz-c-row">' + стікер + '</span>' : '') +
             гроші +
@@ -3838,6 +3866,13 @@
       out.push({ at: r.at, by: r.by, kind: 'no', що: 'передрук', де: '', текст: String(r.note || r.reason || '').slice(0, 90) });
     });
     if(o && o.reg && o.reg.at) out.push({ at: o.reg.at, by: o.reg.by, kind: 'trk', що: 'реєстр Нової пошти', де: '', текст: o.reg.no ? '№ ' + o.reg.no : '' });
+    /* Шпилька власника (23.10) — поставив / зняв. */
+    ((job && job.pinHist) || []).forEach(function(h){
+      if(!h || !h.at) return;
+      out.push(h.off
+        ? { at: h.at, by: h.by, kind: 'move', що: 'шпильку знято — картка стоїть за роботою', де: '', текст: h.was ? 'була: ' + D.pinLabel(h.was) : '' }
+        : { at: h.at, by: h.by, kind: 'move', що: 'поставлено вручну: «' + D.pinLabel(h.to) + '» 📌', де: '', текст: '' });
+    });
     /* Відмова й повернення в роботу (22.10) — хто, коли, чому. */
     ((o && o.refuseHist) || []).forEach(function(h){
       if(!h || !h.at) return;
@@ -7209,6 +7244,7 @@
          губилось найчастіше. */
       var правки = col === 'fixes';
       return { id: p.o.orderId, step: col, v2: true, tech: D.jobTech(p.job),
+        pin: !!(p.job && p.job.pin),
         pic: cardPic(p.job),
         /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
         what: whatOf(p.job, p.o),
@@ -7825,7 +7861,10 @@
         '<span class="dz-panel-id' + (b2c ? ' is-b2c' : '') + '">' +
           '<span class="dz-panel-l1"><b>' + U.jobNo(p.job) + '</b>' +
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
-          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' + (уЦеху ? '' : clothChip(job, o)) +
+          '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' +
+          (job && job.pin ? '<span class="dz-pin" title="Поставлено вручну ' + esc(dt(job.pin.at)) + '">📌 вручну · ' + esc(String(job.pin.by || '').replace(/@.*/, '') || '—') +
+            (((U.host.role && U.host.role()) === 'owner') ? ' <button type="button" class="dz-pin-off" data-do="pin-off">зняти</button>' : '') + '</span>' : '') +
+          (уЦеху ? '' : clothChip(job, o)) +
           (b2c ? U.waitSelHtml(job, o) : '') + '</span>' +
           (b2c ? '<span class="dz-panel-who">' + U.clientHtml(o, job) + '</span>' : '') +
           U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</span>' +
@@ -10390,14 +10429,17 @@
        куди не можна, не підсвічується й нічого не приймає. */
     if(U.tab() === 'prod' || U.tab() === 'print' || U.tab() === 'acct'){
       var цех = U.tab() === 'prod' || U.tab() === 'print';
-      var можна = цех ? D.prodCanMove : D.acctCanMove;
+      var власник = !цех && (U.host.role && U.host.role()) === 'owner';
+      /* Власник на дошці акаунта тягне будь-яку картку в будь-яку колонку —
+         шпилька (23.10). Решта — лише дозволені ручні переходи. */
+      var можна = цех ? D.prodCanMove : власник ? function(f, t){ return !!D.PIN_OK[t]; } : D.acctCanMove;
       var тягну = null;
       root.querySelectorAll('.dz-board .dz-col [data-open]').forEach(function(c){
         var w = c.closest('.dz-card-w') || c;
         var звідки = (c.closest('.dz-col') || {}).dataset;
         /* На дошці акаунта тягнуться лише ескізи: «Готовий граф. ескіз» ↔
            «У клієнта на погодженні». Решта колонок рухається сама. */
-        if(!цех && !(звідки && (звідки.col === 'sketch' || звідки.col === 'client' || звідки.col === 'sketchok'))) return;
+        if(!цех && !власник && !(звідки && (звідки.col === 'sketch' || звідки.col === 'client' || звідки.col === 'sketchok'))) return;
         w.setAttribute('draggable', 'true');
         w.ondragstart = function(e){
           var col = w.closest('.dz-col');
@@ -10430,10 +10472,18 @@
             return save(p.job, p.o, '');
           }
           if(!цех){
-            if(to === 'stitchq') return fixAll(root, p, me0);
-            if(!D.acctMove(p.job, p.o, to, me0)) return say('Так перенести не можна — ескіз уже надіслано клієнту з CRM');
+            if(D.acctCanMove(from, to) && !(p.job && p.job.pin)){
+              if(to === 'stitchq') return fixAll(root, p, me0);
+              if(D.acctMove(p.job, p.o, to, me0)){
+                if(ord != null) p.job.boardOrd = ord;
+                return save(p.job, p.o, to === 'client' ? 'У клієнта на погодженні' : to === 'sketchok' ? 'Ескіз узгоджено' : 'Готовий графічний ескіз');
+              }
+              if(!власник) return say('Так перенести не можна — ескіз уже надіслано клієнту з CRM');
+            } else if(!власник) return say('Так перенести не можна');
+            /* Власник: шпилька — картка стоїть там, куди поставили. */
+            if(!D.pinSet(p.job, to, me0)) return say('У цю колонку поставити не можна');
             if(ord != null) p.job.boardOrd = ord;
-            return save(p.job, p.o, to === 'client' ? 'У клієнта на погодженні' : to === 'sketchok' ? 'Ескіз узгоджено' : 'Готовий граф. ескіз');
+            return save(p.job, p.o, 'Поставлено вручну: «' + D.pinLabel(to) + '» · 📌');
           }
           if(!D.prodMove(p.job, p.o, to, me0)) return say('Так перенести не можна');
           if(ord != null) p.job.boardOrd = ord;
@@ -11767,6 +11817,11 @@
     if(what === 'order-del'){
       if(host().deleteOrder) await host().deleteOrder(o);
       return;
+    }
+    if(what === 'pin-off'){
+      if((U.host.role && U.host.role()) !== 'owner') return say('Шпильку знімає лише власник');
+      if(!D.pinClear(job, (host().me && host().me()) || '')) return;
+      return save(job, o, 'Шпильку знято — картка стоїть за роботою');
     }
     if(what === 'vers-load'){
       if(host().versionsLoad) await host().versionsLoad(job);

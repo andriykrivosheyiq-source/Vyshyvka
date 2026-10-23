@@ -224,6 +224,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Шпилька власника** (23.10): `PIN_OK` (CHAIN без refused), `pinSet` /
+  `pinClear` / `pinLabel`, `job.pin`, `job.pinHist`; `chainAt` — шпилька
+  першою; дошка акаунта: власник тягне будь-що куди завгодно (`можна` →
+  `PIN_OK`, dragstart без обмеження колонок), drop → дозволений перехід як
+  доти, інакше шпилька; плитка `.dz-c-pin`, шапка `.dz-pin` + `pin-off`;
+  історія з `pinHist`. `tests/owner-pin.mjs`.
 - **Версії карток** (23.10): `histPut(col, id, prevJson, why)` →
   `<col>/<id>/hist/<час>` з `_v {at, by, why}` (`designLast` /
   `ordersSaved` — попередня копія; `HIST_GAP_MS` 10 хв; `histOff` при
