@@ -10999,6 +10999,13 @@
        від вихідного файлу: це той самий дизайн, лише без тла. */
     for(var wi = 0; wi < (res.works || []).length; wi++){
       var ww = res.works[wi];
+      /* Чистий файл до кольору й повороту (23.10) — теж у сховище: з нього
+         наступне розміщення перефарбовує й крутить без втрати якості. */
+      if(/^data:/i.test(String(ww.clrOrig || ''))){
+        var cu = await uploadDataUrl(ww.clrOrig, (ww.name || 'робота').replace(/\.\w+$/, '') + '-чистий.png');
+        if(!cu || !cu.url){ say('Робота не зберіглась у сховищі'); return null; }
+        ww.clrOrig = cu.url;
+      }
       if(!/^data:/i.test(String(ww.url || ''))) continue;
       var wu = await uploadDataUrl(ww.url, (ww.name || 'робота').replace(/\.\w+$/, '') +
         (ww.color ? '-' + String(ww.color.name || 'колір').toLowerCase() : '-без-фону') + '.png');
@@ -11020,7 +11027,9 @@
                  orig: w.orig || null, svg: w.svg || null,
                  /* Колір принта (20.10): яким звели й з чого — щоб наступне
                     «Поправити розміщення» відкрилось у тому ж кольорі. */
-                 color: w.color ? { hex: w.color.hex, name: w.color.name, from: w.clrOrig || '' } : null }; }),
+                 color: w.color ? { hex: w.color.hex, name: w.color.name, from: w.clrOrig || '' } : null,
+                 /* Поворот (23.10): кут і чистий файл — щоб наступне розміщення крутило від оригіналу. */
+                 rot: +w.rot || 0, xfFrom: +w.rot ? (w.clrOrig || '') : '' }; }),
       threads: threadsUnion((res.works || []).map(function(w){ return { threads: clrThreads(w) }; })),
       spots: місця, нанесень: res.нанесень, робіт: res.робіт,
       size: res.size || du.size || '',

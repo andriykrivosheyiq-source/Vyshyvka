@@ -8064,33 +8064,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=82d25895a0"></script>
-<script src="loomiq-fingerprint.js?v=82d25895a0"></script>
-<script src="loomiq-pricing.js?v=82d25895a0"></script>
+<script src="loomiq-select.js?v=eda55a0cdb"></script>
+<script src="loomiq-fingerprint.js?v=eda55a0cdb"></script>
+<script src="loomiq-pricing.js?v=eda55a0cdb"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=82d25895a0"></script>
+<script src="loomiq-money-core.js?v=eda55a0cdb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=82d25895a0"></script>
-<script src="loomiq-bg.js?v=82d25895a0"></script>
-<script src="loomiq-mock.js?v=82d25895a0"></script>
+<script src="loomiq-design.js?v=eda55a0cdb"></script>
+<script src="loomiq-bg.js?v=eda55a0cdb"></script>
+<script src="loomiq-mock.js?v=eda55a0cdb"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=82d25895a0"></script>
+<script src="imagetracer.js?v=eda55a0cdb"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=82d25895a0"></script>
-<script src="loomiq-threads.js?v=82d25895a0"></script>
+<script src="loomiq-chat.js?v=eda55a0cdb"></script>
+<script src="loomiq-threads.js?v=eda55a0cdb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=82d25895a0"></script>
+<script src="loomiq-cards.js?v=eda55a0cdb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8135,7 +8135,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '82d25895a0';
+var LQ_VER = 'eda55a0cdb';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -25016,17 +25016,66 @@ function shipLeft(o){
      те, що клієнт іще винен. */
   return LQMoney.due(o, payPays(), total);
 }
-/* Поточні значення форми: збережене в o.ship, інакше — із замовлення. */
+/* ОТРИМУВАЧ — З ПЕРЕПИСКИ, А НЕ НІК (23.10, Андрій: «не потрібно тягнути
+   нік клієнта… якщо бачимо в переписці дані — імʼя, прізвище, номер»).
+   Шукаємо з кінця розмови останнє повідомлення КЛІЄНТА з українським
+   номером; імʼя й прізвище — рядок із 2–3 слів без цифр у тому ж
+   повідомленні або в одному з трьох попередніх повідомлень клієнта. Нічого
+   не знайшли — поле порожнє: нік у накладну не йде ніколи. */
+const SHIP_NOT_NAME = /(нов[аоі]\s*пошт|відділен|поштомат|відд\b|№|\bобл\b|област|район|місто|\bм\.|\bвул|вулиц|просп|будин|\bкв\b|індекс|укрпошт|meest|телеф|номер|оплат|наклад|доставк|посилк|пакунок|дякую|добр(ий|ого|е)|привіт|вітаю|здрав|худі|футбол|світшот|розмір|колір|прізвищ|імʼя|ім'я|ваш|мені|можна|будь|ласка)/i;
+function shipPhoneOf(t){
+  const m = String(t || '').match(/(?:\+?\s*3\s*8)?[\s(.\-]*0\s*\d{2}[\s).\-]*\d{3}[\s.\-]*\d{2}[\s.\-]*\d{2}(?!\d)/);
+  if(!m) return '';
+  const d = m[0].replace(/\D/g, '');
+  const n = d.slice(-10);
+  return /^0\d{9}$/.test(n) ? '+38' + n : '';
+}
+function shipNameOf(t){
+  const lines = String(t || '').split(/[\n\r,;]+/);
+  for(const l0 of lines){
+    const l = l0.replace(/(?:\+?\s*3\s*8)?[\s(.\-]*0\s*\d{2}[\s).\-]*\d{3}[\s.\-]*\d{2}[\s.\-]*\d{2}/g, ' ').replace(/[.:!?()«»"]/g, ' ').trim();
+    if(!l || /\d/.test(l) || SHIP_NOT_NAME.test(l)) continue;
+    const w = l.split(/\s+/).filter(Boolean);
+    if(w.length < 2 || w.length > 3) continue;
+    if(!w.every(x => /^[A-Za-zА-Яа-яІіЇїЄєҐґ'ʼ’\-]{2,}$/.test(x))) continue;
+    return w.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(' ');
+  }
+  return '';
+}
+function shipFromChat(o){
+  const st = (typeof crmChat === 'object' && crmChat && o) ? crmChat[o.id] : null;
+  const msgs = (st && Array.isArray(st.msgs)) ? st.msgs : [];
+  for(let i = msgs.length - 1; i >= 0; i--){
+    const m = msgs[i];
+    if(!m || m.mine) continue;
+    const phone = shipPhoneOf(m.text);
+    if(!phone) continue;
+    let name = shipNameOf(m.text);
+    for(let k = i - 1, seen = 0; !name && k >= 0 && seen < 3; k--){
+      const q = msgs[k];
+      if(!q || q.mine) continue;
+      seen++;
+      name = shipNameOf(q.text);
+    }
+    return { name, phone, at: String(m.at || '') };
+  }
+  return null;
+}
+/* Поточні значення форми: збережене в o.ship, інакше — з переписки
+   клієнта, інакше (B2B) — з картки. Нік розмови — ніколи. */
 function shipVals(o){
   const sh = (o.ship && typeof o.ship === 'object') ? o.ship : {};
+  const зЧату = (!sh.name || !sh.phone) ? shipFromChat(o) : null;
+  const b2c = orderDir(o) === 'b2c';
   const snd = shipSenderOf(sh.sender);
   const w = shipWeight(o);
   const kg = (+sh.weightKg > 0) ? +sh.weightKg : w.kg;
   const fmt = shipFormats(snd).filter(f => f.name === sh.format)[0] || shipPickFormat(snd, kg);
   const left = shipLeft(o);
   return {
-    sender: snd, name: sh.name || o.name || o.crmChatName || '',
-    phone: sh.phone || o.phone || '',
+    sender: snd, name: sh.name || (зЧату && зЧату.name) || (b2c ? '' : (o.name || '')),
+    phone: sh.phone || (зЧату && зЧату.phone) || o.phone || '',
+    fromChat: !!(зЧату && ((!sh.name && зЧату.name) || (!sh.phone && зЧату.phone))),
     cityRef: sh.cityRef || '', cityName: sh.cityName || sh.city || '',
     whRef: sh.whRef || '', whName: sh.whName || sh.office || '', whNumber: sh.whNumber || '',
     kg, kgAuto: !(+sh.weightKg > 0), weight: w, format: fmt,
@@ -25071,7 +25120,7 @@ function shipFormHtml(o){
       <select data-shf="sender">${c.senders.map(x => `<option value="${E(x.id)}"${v.sender && v.sender.id === x.id ? ' selected' : ''}>${E(x.name || x.id)}</option>`).join('')}</select></label>`
       : `<div class="shf-from">Відправник: <b>${E(v.sender ? (v.sender.name || v.sender.id) : 'як задано у воркері')}</b>${
           v.sender && v.sender.cityName ? ` · з ${E(v.sender.cityName)}${v.sender.whName ? ', ' + E(v.sender.whName) : ''}` : ''}</div>`}
-    <label class="shf-f"><span>Отримувач</span><input data-shf="name" value="${E(v.name)}" placeholder="Прізвище Імʼя"></label>
+    <label class="shf-f"><span>Отримувач${v.fromChat ? ' · з переписки' : ''}</span><input data-shf="name" value="${E(v.name)}" placeholder="Прізвище Імʼя — з переписки або вручну"></label>
     <label class="shf-f"><span>Телефон</span><input data-shf="phone" type="tel" value="${E(v.phone)}" placeholder="+380…"></label>
     <label class="shf-f"><span>Місто</span><input data-shf-city value="${E(v.cityName)}" placeholder="почніть вводити" autocomplete="off"></label>
     <label class="shf-f"><span>Відділення або поштомат</span><input data-shf-wh value="${E(v.whName)}" placeholder="№ або вулиця" autocomplete="off"${v.cityRef ? '' : ' disabled'}></label>

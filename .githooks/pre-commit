@@ -164,6 +164,22 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ картка B2C не блимає"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-recipient\.mjs)'; then
+  node tests/ship-recipient.mjs >/tmp/lq-ship-recipient.log 2>&1 || {
+    echo "✗ Отримувач накладної знову бере нік або не бачить даних з переписки — коміт зупинено. Подробиці: /tmp/lq-ship-recipient.log"
+    grep '✗' /tmp/lq-ship-recipient.log
+    exit 1
+  }
+  echo "✓ отримувач — з переписки, ніколи не нік"
+fi
+if git diff --cached --name-only | grep -qE '^(loomiq-mock\.js|loomiq-design\.js|tests/place-tools\.mjs)'; then
+  node tests/place-tools.mjs >/tmp/lq-place-tools.log 2>&1 || {
+    echo "✗ У вікні розміщення зламано поворот, колір, перед/спину чи PhotoRoom — коміт зупинено. Подробиці: /tmp/lq-place-tools.log"
+    grep '✗' /tmp/lq-place-tools.log
+    exit 1
+  }
+  echo "✓ розміщення: поворот, колір, перед і спина, PhotoRoom"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/product-tools\.mjs)'; then
   node tests/product-tools.mjs >/tmp/lq-product-tools.log 2>&1 || {
     echo "✗ Конструктор і картка B2C розійшлись, або зламано перейменування кольору чи дубль товару — коміт зупинено. Подробиці: /tmp/lq-product-tools.log"

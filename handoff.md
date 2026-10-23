@@ -228,6 +228,17 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
   у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
   відділу — лише тихо. `tests/no-flicker.mjs`.
+- **Отримувач накладної з переписки** (23.10): `shipFromChat(o)` →
+  `shipNameOf`/`shipPhoneOf` по `crmChat[o.id].msgs` (лише повідомлення
+  клієнта); `shipVals` — `o.ship` > переписка > (лише B2B) `o.name`; нік
+  розмови не береться ніколи. Тест `ship-recipient`.
+- **Розміщення: поворот, колір, перед/спина, PhotoRoom** (23.10,
+  loomiq-mock.js `openWork`): `перебудуй(w,i)` накладає колір і кут
+  (`w.rot`) на `w.clrOrig`; `поверни(delta)`, `[data-mko-rot]`; колір і
+  поворот у кожному вікні. Дві роботи без розміщення — перед/спина
+  (`спинаКлюч`); завантаження при зайнятому переді — на спину. `ФОН`:
+  PhotoRoom першим, падіння → простий (`w.bgFell`). У версії (`workVer`):
+  `rot`, `xfFrom`, data-оригінал вантажиться в сховище. Тест `place-tools`.
 - **Конструктор: колір і дубль товару** (23.10): `colorRename(gid, i)` (✎
   `data-pcolren` на чипі, пише `productColors[gid]` лише з новою назвою),
   `productDuplicate(src)` / `productDupPatch(src, id, name)` / `dupMergeLocal`
