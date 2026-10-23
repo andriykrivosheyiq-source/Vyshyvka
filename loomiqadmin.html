@@ -8062,33 +8062,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=439633e588"></script>
-<script src="loomiq-fingerprint.js?v=439633e588"></script>
-<script src="loomiq-pricing.js?v=439633e588"></script>
+<script src="loomiq-select.js?v=ea9d1fb73a"></script>
+<script src="loomiq-fingerprint.js?v=ea9d1fb73a"></script>
+<script src="loomiq-pricing.js?v=ea9d1fb73a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=439633e588"></script>
+<script src="loomiq-money-core.js?v=ea9d1fb73a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=439633e588"></script>
-<script src="loomiq-bg.js?v=439633e588"></script>
-<script src="loomiq-mock.js?v=439633e588"></script>
+<script src="loomiq-design.js?v=ea9d1fb73a"></script>
+<script src="loomiq-bg.js?v=ea9d1fb73a"></script>
+<script src="loomiq-mock.js?v=ea9d1fb73a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=439633e588"></script>
+<script src="imagetracer.js?v=ea9d1fb73a"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=439633e588"></script>
-<script src="loomiq-threads.js?v=439633e588"></script>
+<script src="loomiq-chat.js?v=ea9d1fb73a"></script>
+<script src="loomiq-threads.js?v=ea9d1fb73a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=439633e588"></script>
+<script src="loomiq-cards.js?v=ea9d1fb73a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8133,7 +8133,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '439633e588';
+var LQ_VER = 'ea9d1fb73a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8911,8 +8911,14 @@ const ARCH_DAYS = (typeof window !== 'undefined' && +window.LQ_ARCH_DAYS) || 30;
 let archLoaded = false;
 let archIds = {};
 function archReady(){ return !!(contentLoaded && +((contentData || {}).archSeed || 0) >= 1); }
-function liveOrdersQ(){ return archReady() ? ORDERS_COL.where('arch', '==', false) : ORDERS_COL; }
-function liveJobsQ(){ return archReady() ? DESIGN_COL.where('arch', '==', false) : DESIGN_COL; }
+/* 23.10, вечір: ФІЛЬТР НА ЗАВАНТАЖЕННІ ВИМКНЕНО. Старі вкладки пишуть
+   картку цілим документом без позначки arch — і вона зникала для нових
+   («пропали всі замовлення останніх днів»). Поки картка пишеться цілком,
+   жоден запит за полем на старті неможливий: тягнемо все, як доти.
+   Повернути фільтр — лише після запису полями й за домовленістю. */
+const ARCH_QUERY = (typeof window !== 'undefined' && window.LQ_ARCH_QUERY === 1);
+function liveOrdersQ(){ return (ARCH_QUERY && archReady()) ? ORDERS_COL.where('arch', '==', false) : ORDERS_COL; }
+function liveJobsQ(){ return (ARCH_QUERY && archReady()) ? DESIGN_COL.where('arch', '==', false) : DESIGN_COL; }
 function archFinished(o){
   if(!o) return false;
   if(o.status === 'cancel') return true;
@@ -8925,6 +8931,10 @@ function archFinished(o){
 }
 function archPick(o, now){
   if(!o || o.draft || o.arch === true || !o.orderId) return false;
+  /* 23.10, вечір: картка з привʼязаним діалогом в архів НЕ йде. Клієнт
+     пише в стару розмову — її мають бачити в Чатах; перший прохід сховав
+     такі картки разом із діалогами («все пропало»). */
+  if(o.crmChatId || o.tgChatId) return false;
   if(!archFinished(o)) return false;
   const t = Math.max(Date.parse(o.touchedAt || '') || 0, Date.parse(orderActivityAt(o)) || 0, Date.parse(o.createdAt || '') || 0);
   if(!t || (now || Date.now()) - t < ARCH_DAYS * 864e5) return false;
@@ -8958,11 +8968,50 @@ async function archSeedOnce(){
   }catch(e){ console.warn('розмітка архіву', e); }
   finally{ archSeeding = false; }
 }
+/* РАЗОВЕ ПОВЕРНЕННЯ З АРХІВУ (23.10, вечір). Перший прохід заархівував
+   картки з діалогами — повертаємо все в живі один раз (власник), далі
+   прохід іде вже за новим правилом. */
+let archUndoing = false;
+async function archUndoOnce(){
+  if(archUndoing || !canSetup() || !archReady() || dbLinkDead()) return;
+  if(+(contentData.archUndo1 || 0) >= 1) return;
+  archUndoing = true;
+  try{
+    let n = 0;
+    const at = new Date().toISOString();
+    for(const col of [ORDERS_COL, DESIGN_COL]){
+      const snap = await col.where('arch', '==', true).get();
+      const ids = [];
+      snap.forEach(d => { const v = d.data() || {}; if(col === DESIGN_COL && (v.gone || !v.orderId)) return; ids.push(d.id); });
+      for(let i = 0; i < ids.length; i += 400){
+        const b = fbDb.batch();
+        ids.slice(i, i + 400).forEach(id => { b.set(col.doc(id), { arch: false, unarchAt: at }, { merge:true }); n++; });
+        await b.commit();
+      }
+    }
+    await fbDb.collection('loomiq').doc('arch').set({ ids: {} });
+    archIds = {};
+    await PHOTOS_DOC.set({ archUndo1: 1, archAt: '' }, { merge:true });
+    contentData.archUndo1 = 1; contentData.archAt = '';
+    (orders || []).forEach(o => { if(o && o.arch === true){ o.arch = false; o.unarchAt = at; } });
+    Object.keys(designJobs || {}).forEach(k => { const j = designJobs[k]; if(j && j.arch === true && !j.gone) j.arch = false; });
+    try{ accLog('arch', 'повернуто з архіву все: ' + n + ' (нове правило — картки з діалогом в архів не йдуть)'); }catch(e){}
+    if(n) toast('З архіву повернуто ' + n + ' карток. Картки з діалогом більше в архів не йдуть.');
+    archLoaded = false;
+    try{ await archLoad(); }catch(e){}
+    try{ repaintAfterOrders(); }catch(e){}
+  }catch(e){ console.warn('повернення з архіву', e); }
+  finally{ archUndoing = false; }
+}
 /* Щоденний прохід (власник): що дозріло — в архів. Працює з памʼяті (живі
    картки вже тут), плюс раз на день ловить картки без позначки (зі старих
    вкладок), щоб вони не випали з живого запиту. */
 let archSweeping = false;
 async function archSweep(force){
+  /* 23.10, вечір: автоматичний архів ВИМКНЕНО (Андрій: «мені не потрібен
+     цей архів, якщо він так ламає»). Прохід можливий лише з явним
+     увімкненням у документі команди (archAuto: 1) — за окремою домовленістю. */
+  if(!force && +((contentData || {}).archAuto || 0) !== 1) return 0;
   if(archSweeping || !canSetup() || !archReady() || !payLoaded || dbLinkDead()) return 0;
   const today = new Date().toISOString().slice(0, 10);
   if(!force && String(contentData.archAt || '') >= today) return 0;
@@ -9157,7 +9206,8 @@ function watchOrders(){
     repaintAfterOrders();
     try{ orderNosSeedOnce(); }catch(e){}
     try{ archSeedOnce(); }catch(e){}
-    setTimeout(() => { try{ archSweep(); }catch(e){} }, 4000);
+    setTimeout(() => { try{ archUndoOnce(); }catch(e){} }, 1500);
+    setTimeout(() => { try{ archSweep(); }catch(e){} }, 6000);
   }, function(e){
     ordersWatching = false;
     dbLinkLost('orders', e);
@@ -30047,7 +30097,7 @@ function watchDesign(){
   designWatching = true;
   /* Закупівлі й склад лежать у тій самій колекції без arch — окремим
      слухачем (один раз), коли живі картки відбираються за полем. */
-  if(archReady()) watchDesignAux();
+  if(ARCH_QUERY && archReady()) watchDesignAux();
   liveJobsQ().onSnapshot(snap=>{
     /* Лише змінені документи (23.10): картки відділу важкі (одяг, версії,
        журнал), розбирати їх усі на кожен чужий дотик — це і є «висне». */
