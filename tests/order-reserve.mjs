@@ -4,6 +4,8 @@
    2. Нова картка: номер зайнятий у базі (чужа бронь) — картка бере
       наступний вільний, і саме він бронюється; картка записується з ним.
    3. Повторний запис тієї самої картки номер не міняє.
+   4–5. Звірка: розʼєднана картка — «Зʼєднати», незаписана — «Відновити».
+   6. Відновили порожню, а справжня з діалогом під іншим номером — «Обʼєднати».
 
    Запуск:  node tests/order-reserve.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -59,7 +61,11 @@ fbstub = fbstub.replace("runTransaction:function(f){ return Promise.resolve(); }
   .replace("batch:function(){ return { set:function(){}, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },",
   "batch:function(){ return { set:function(ref,d){ window.__TAKEN=window.__TAKEN||{}; window.__TAKEN[ref.__id]=d; (window.__SEED=window.__SEED||[]).push(ref.__id); }, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },");
 fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
-  'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };');
+  'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };')
+  .replace('Doc.prototype.delete=function(){ return Promise.resolve(); };',
+  "Doc.prototype.delete=function(){ if(this.__col==='orderNos'){ window.__TAKEN=window.__TAKEN||{}; delete window.__TAKEN[this.__id]; (window.__FREED=window.__FREED||[]).push(this.__id); } return Promise.resolve(); };")
+  .replace('Doc.prototype.set=function(){ return Promise.resolve(); };',
+  "Doc.prototype.set=function(d){ if(this.__col==='orderNos'){ window.__TAKEN=window.__TAKEN||{}; if(window.__TAKEN[this.__id]) return Promise.reject(Object.assign(new Error('already exists'),{code:'already-exists'})); window.__TAKEN[this.__id]=d; (window.__RES=window.__RES||[]).push(this.__id); } return Promise.resolve(); };");
 fbstub = fbstub.replace(
   "Doc.prototype.onSnapshot=function(cb){ try{ cb(new Snap('x', null)); }catch(e){} return function(){}; };",
   'Doc.prototype.onSnapshot=function(cb){ var d=null;\n' +
@@ -175,6 +181,9 @@ console.log('═══ 5. КАРТКА ВІДДІЛУ Є, ЗАМОВЛЕННЯ �
 const відн = await p.evaluate(async () => {
   const D = window.LQDesign;
   const at = new Date().toISOString();
+  /* У картки Марти (§4) своя картка відділу з роботою — як у кожної живої
+     B2C-картки (одяг додають до «Створити замовлення»). */
+  designJobs['5000301'].brief.text = 'худі з вишивкою';
   const j = D.emptyJob('5000302'); j.no = '2000302'; j.createdAt = at; designJobs['5000302'] = j;
   payments.push({ id: 'p-lost2', amount: 6120, at, acc: 'mono1', src: 'mono', orderId: '5000302', tag: 'prepay' });
   const rows = orphanB2cRows();
@@ -186,6 +195,39 @@ const відн = await p.evaluate(async () => {
 console.log('   ' + JSON.stringify(відн));
 ok(відн.n === 1 && відн.kind === 'orphan_job' && /#2000302 не дописалась/.test(відн.text), 'Звірка: «Картка #2000302 не дописалась…»', JSON.stringify(відн));
 ok(відн.є && відн.dir === 'b2c' && відн.paid === 6120 && відн.left === 0 && відн.lost === 0, '«Відновити» — картка на дошці з тим самим номером, платіж 6 120 ₴ при ній, «такого замовлення немає» зникло', JSON.stringify(відн));
+
+console.log('');
+console.log('═══ 6. ВІДНОВИЛИ ПОРОЖНЮ, А СПРАВЖНЯ З ДІАЛОГОМ — ПІД ІНШИМ НОМЕРОМ: «ОБʼЄДНАТИ» (23.10) ═══');
+const двійня = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const A = orders.find(x => x.orderId === '5000302');          // відновлена порожня (§5)
+  const at = A.createdAt;
+  /* Справжня картка тієї ж людини: після стрибка номера стала 5000303, має діалог
+     і клієнта; під її ключем — порожня картка відділу, що завелась сама. */
+  const B = { id: 'real-303', orderId: '5000303', type: 'client', dir: 'b2c', name: 'Олена', phone: '+380501112233', status: 'prorahunok', site: 'main',
+    items: [], hist: [], createdAt: at, crmChatId: 'c303', crmChatName: 'olena' };
+  orders.push(B); ordersSaved.set(B.id, JSON.stringify(B));
+  const j3 = D.emptyJob('5000303'); j3.no = '2000303'; j3.createdAt = at; designJobs['5000303'] = j3;
+  window.__TAKEN['5000302'] = { id: A.id }; window.__TAKEN['5000303'] = { id: B.id };
+  window.__RES = []; window.__FREED = [];
+  const rows = orphanB2cRows();
+  const row = rows.find(x => x.kind === 'twin_b2c');
+  const r = { n: rows.length, kinds: rows.map(x => x.kind).join(), text: row && row.text };
+  if(row) await orphanB2cRestore(row);
+  const зал = orders.filter(x => x.orderId === '5000302' || x.orderId === '5000303');
+  const o = зал[0];
+  return Object.assign(r, { карток: зал.length, id: o && o.id, no: o && o.orderId, chat: o && o.crmChatId, name: o && o.name,
+    paid: o ? paidSum(o) : 0, job303: !!designJobs['5000303'], job302: !!designJobs['5000302'],
+    taken: window.__TAKEN['5000302'] && window.__TAKEN['5000302'].id, freed: window.__FREED.slice().sort().join(), aGone: !ordersSaved.has(A.id) && !orders.some(x => x.id === A.id),
+    left: orphanB2cRows().length, lost: moneyAudit().filter(x => x.kind === 'lost_order').length });
+});
+console.log('   ' + JSON.stringify(двійня));
+ok(двійня.n === 1 && двійня.kinds === 'twin_b2c' && /#2000302 відновлена порожньою.*Олена.*#2000303/.test(двійня.text) && !/5000/.test(двійня.text),
+  'Звірка: один пункт «Картка #2000302 відновлена порожньою, а діалог і клієнт (Олена) лишились на #2000303» — без ключів 5000…', JSON.stringify(двійня));
+ok(двійня.карток === 1 && двійня.id === 'real-303' && двійня.no === '5000302' && двійня.chat === 'c303' && двійня.name === 'Олена' && двійня.paid === 6120,
+  '«Обʼєднати» — одна картка: справжня (діалог, Олена) під #2000302, платіж 6 120 ₴ при ній', JSON.stringify(двійня));
+ok(двійня.taken === 'real-303' && двійня.freed === '5000302,5000303' && двійня.aGone && !двійня.job303 && двійня.job302 && двійня.left === 0 && двійня.lost === 0,
+  'бронь #2000302 тепер за справжньою карткою, бронь #2000303 звільнено, порожня картка відділу забута, Звірка чиста', JSON.stringify(двійня));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
