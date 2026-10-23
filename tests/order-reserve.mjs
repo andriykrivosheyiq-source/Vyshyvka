@@ -128,6 +128,49 @@ const знову = await p.evaluate(async () => { const o = orders.find(x => x.i
 ok(знову.no === нова.дали && знову.res === 0, 'повторний запис тієї ж картки — номер той самий, нових броней немає', JSON.stringify(знову));
 
 console.log('');
+console.log('═══ 3. ПРАВИЛА ЩЕ НЕ ПУСКАЮТЬ ДО orderNos — НОМЕР НЕ ЧІПАЄМО, БРОНЬ ВИМКНЕНА (23.10) ═══');
+const відмова = await p.evaluate(async () => {
+  orderNosOff = false;
+  const real = fbDb.runTransaction;
+  fbDb.runTransaction = () => Promise.reject(Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' }));
+  const no = makeOrderId('b2c');
+  const o = { id: 'new-2', orderId: String(no), type: 'client', dir: 'b2c', name: 'Без правил', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: new Date().toISOString() };
+  orders.push(o); window.__RES = [];
+  const failed = await saveOrders({ quiet: true });
+  const r = { хотів: String(no), дали: o.orderId, off: orderNosOff, res: window.__RES.length, failed: failed.length };
+  fbDb.runTransaction = real; orderNosOff = false;
+  return r;
+});
+console.log('   ' + JSON.stringify(відмова));
+ok(відмова.дали === відмова.хотів && відмова.off && відмова.res === 0 && !відмова.failed,
+  'відмова правил: номер картки той самий, бронь вимкнено, картка записана', JSON.stringify(відмова));
+
+console.log('');
+console.log('═══ 4. КАРТКА, ЩО ВТРАТИЛА НОМЕР, — ЗВІРКА ПОВЕРТАЄ (23.10) ═══');
+const сирота = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, D = window.LQDesign;
+  const at = new Date().toISOString();
+  /* Штучні картки з §2–3 (B2C без картки відділу) прибираємо — у житті кожна
+     B2C-картка має картку відділу. */
+  orders = orders.filter(x => x.id !== 'new-1' && x.id !== 'new-2');
+  /* Як після збою: картка відділу й платіж під 5000301, сама картка — під 5000341. */
+  const o = { id: 'lost-1', orderId: '5000341', type: 'client', dir: 'b2c', name: 'Марта', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at,
+    payments: [] };
+  orders.push(o); ordersSaved.set(o.id, JSON.stringify(o));
+  const j = D.emptyJob('5000301'); j.no = '2000301'; j.createdAt = at; designJobs['5000301'] = j;
+  payments.push({ id: 'p-lost', amount: 500, at, acc: 'mono1', src: 'mono', orderId: '5000301', tag: 'prepay' });
+  payLoaded = true;
+  const rows = orphanB2cRows();
+  const r = { n: rows.length, row: rows[0] && { from: rows[0].orderId, to: rows[0].toNo, text: rows[0].text.slice(0, 80) } };
+  if(rows[0]){ await orphanB2cRestore(rows[0]); }
+  return Object.assign(r, { after: o.orderId, paid: paidSum(o), left: orphanB2cRows().length });
+});
+console.log('   ' + JSON.stringify(сирота));
+ok(сирота.n === 1 && сирота.row.from === '5000341' && сирота.row.to === '5000301' && /втратила номер/.test(сирота.row.text),
+  'Звірка бачить: картка під 5000341, а її картка відділу й платіж — під 5000301', JSON.stringify(сирота.row));
+ok(сирота.after === '5000301' && сирота.paid === 500 && сирота.left === 0, '«Повернути номер» — картка знову під 5000301, платіж 500 ₴ на місці', JSON.stringify(сирота));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
 console.log(bad ? 'розходжень: ' + bad : 'номер бронюється в базі перед записом картки');

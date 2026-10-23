@@ -177,6 +177,17 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/order-res
   echo "✓ номер бронюється в базі"
 fi
 
+# ДОГОВІР ДІАЛОГУ (23.10). Андрій: «діалог — в окрему зону». Нова залежність
+# між loomiq-chat.js і адмінкою в будь-який бік — лише свідомо, через договір.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|tests/chat-contract\.mjs)'; then
+  node tests/chat-contract.mjs >/tmp/lq-chat-contract.log 2>&1 || {
+    echo "✗ Договір діалогу порушено — коміт зупинено. Подробиці: /tmp/lq-chat-contract.log"
+    grep '✗' /tmp/lq-chat-contract.log
+    exit 1
+  }
+  echo "✓ договір діалогу дотримано"
+fi
+
 # СТОРОЖ РОЗДІЛІВ (21.10). Андрій: «вибиває із замовлення… щоб нас ніде
 # ні звідки не вибивало». Зміна адмінки — прогін: кожен розділ, картка,
 # конструктор, діалог + усе фонове (знімки, лічильники, доведення) —

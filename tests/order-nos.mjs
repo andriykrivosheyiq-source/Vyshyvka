@@ -79,6 +79,12 @@ ok(!(await can(setDoc(doc(noRight, 'orderNos/1000150'), { id: 'D', by: '', at: '
 ok(!(await can(deleteDoc(doc(mgr, 'orderNos/1000148')))), 'менеджер бронь не знімає', 'менеджер зняв бронь');
 ok(await can(deleteDoc(doc(own, 'orderNos/1000148'))), 'власник (ремонт) — може', 'власник не зміг зняти');
 ok(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { status: 'kp' }, { merge: true })), 'правка існуючої картки броні не вимагає', 'правку заблоковано');
+/* Лічильники-підказки (orderSeq / orderSeqC) пише будь-хто з команди — інакше
+   менеджер B2C бачив «лічильник не зберігся» на кожному замовленні (23.10). */
+ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderSeqC: 5000123 }, { merge: true })) &&
+   await can(setDoc(doc(mgr, 'loomiq/photos'), { orderSeq: 1000200 }, { merge: true })),
+  'лічильники B2B і B2C пише менеджер без права «налаштування»', 'лічильник не записався');
+ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderNosSeed: 1 }, { merge: true }))), 'а позначку «номери заброньовано» — лише власник', 'менеджер поставив позначку бронювання');
 
 await env.cleanup();
 emu.kill();

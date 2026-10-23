@@ -452,6 +452,36 @@ ok(f12 && f12.rows.length === 4 && !f12.rows[0].mine && f12.rows[1].mine && !f12
 const нові = await p.evaluate(() => (document.querySelector('#chatWin .cw-new, #chatWin .cw-unread') || {}).textContent || '');
 ok(!/[2-9]|\d\d/.test(нові.replace(/[^\d]/g, '').slice(1)), 'наші без підпису не рахуються як «нові від клієнта»', нові);
 
+console.log('═══ 13. ПОШУК У СПИСКУ РОЗМОВ ПО ІМЕНІ (23.10) ═══');
+await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000502'); o.crmChatId = 'c-b'; o.crmChatName = 'Богдан Коваль'; o.crmNick = 'bodya'; o.name = 'Богдан';
+  const a = orders.find(x => x.orderId === '2000501'); a.crmChatId = 'c-a'; a.crmChatName = 'Асія Дерещук'; a.crmNick = 'asia_dera'; a.name = 'Асія';
+  delete crmChat[o.id]; delete crmChat[a.id]; renderChats('b2c'); });
+await p.waitForTimeout(300);
+const пошук = await p.evaluate(async () => {
+  const q = document.querySelector('#chatscRoot .chl-q');
+  const rows = () => [...document.querySelectorAll('#chatscRoot .chl-row .chl-who')].map(x => x.textContent.trim());
+  const all = rows();
+  q.value = 'богдан'; q.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 100));
+  const r1 = rows();
+  q.value = 'asia'; q.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 100));
+  const r2 = rows();
+  q.value = '2000502'; q.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 100));
+  const r3 = rows();
+  q.value = 'нікого такого'; q.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 100));
+  const порожньо = (document.querySelector('#chatscRoot .chl-empty') || {}).textContent || '';
+  /* Обхід перемальовує список — набране в полі лишається. */
+  renderChats('b2c'); await new Promise(r => setTimeout(r, 100));
+  const q2 = document.querySelector('#chatscRoot .chl-q');
+  const після = { value: q2 && q2.value, rows: rows().length };
+  q2.value = ''; q2.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 100));
+  return { all, r1, r2, r3, порожньо, після, назад: rows().length };
+});
+console.log('  ' + JSON.stringify(пошук));
+ok(пошук.all.length >= 2 && пошук.r1.length === 1 && /Богдан/.test(пошук.r1[0]), 'по імені — лише Богдан', JSON.stringify(пошук.r1));
+ok(пошук.r2.length === 1 && /Асія/.test(пошук.r2[0]) && пошук.r3.length === 1 && /Богдан/.test(пошук.r3[0]), 'по ніку й по номеру картки — теж', JSON.stringify({ r2: пошук.r2, r3: пошук.r3 }));
+ok(/нічого немає/.test(пошук.порожньо) && пошук.після.value === 'нікого такого' && пошук.після.rows === 0 && пошук.назад === пошук.all.length,
+  'нема збігу — «нічого немає»; перемальовування списку не стирає набране; очистив — усі', JSON.stringify(пошук));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad + ' — ДІАЛОГ ЗЛАМАНО' : 'діалог цілий: історія, помилки вголос, текст, повтор, нове, два чати, фото');
