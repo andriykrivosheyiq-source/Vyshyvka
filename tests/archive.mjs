@@ -61,7 +61,7 @@ const JOBS = [ { orderId:'5000301', no:'2000301', state:'new', updatedAt:СТА�
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={',
   'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n  window.__JOBS=' + JSON.stringify(JOBS) + ';\n  window.LQ_DB_RETRY_MS=300;\n  window.__DB={kanbanOrders:{},designJobs:{}};\n' +
-  '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
+  '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.LQ_ARCH_QUERY=1;\n  window.firebase={');
 fbstub = fbstub.replace("runTransaction:function(f){ return Promise.resolve(); },",
   "runTransaction:function(f){ window.__TAKEN=window.__TAKEN||{}; window.__RES=window.__RES||[]; var t={ get:function(ref){ var no=ref.__id; var d=window.__TAKEN[no]; return Promise.resolve({ exists:!!d, data:function(){ return d; } }); }, set:function(ref,d){ window.__TAKEN[ref.__id]=d; window.__RES.push(ref.__id); } }; return Promise.resolve(f(t)); },")
   .replace("batch:function(){ return { set:function(){}, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },",
@@ -142,8 +142,9 @@ const прох = await p.evaluate(async () => {
   payLoaded = true; payments = [];
   const now = Date.parse('2026-10-23T12:00:00.000Z');
   const pick = {}; orders.forEach(o => { pick[o.orderId] = archPick(o, now); });
-  const n = await archSweep(true);
-  return { pick, n, db: window.__ORDERS.map(o => o.orderId + ':' + o.arch).join(), job: window.__JOBS[0].arch,
+  const n = await archSweep(true);                 // лише з force: автоматичний прохід вимкнено
+  const auto = await archSweep();
+  return { pick, n, auto, db: window.__ORDERS.map(o => o.orderId + ':' + o.arch).join(), job: window.__JOBS[0].arch,
     ids: Object.keys((window.__DOCS['arch'] || {}).ids || {}).sort().join(), archAt: contentData.archAt,
     board: boardPass(orders.find(o => o.orderId === '1000001')), b2c: designOrders().some(o => o.orderId === '5000301'),
     chats: chatsOrders('b2b').some(o => o.orderId === '1000001'), log: accLogList().slice(-1)[0].text };
@@ -155,6 +156,7 @@ ok(прох.n === 2 && /1000001:true/.test(прох.db) && /5000301:true/.test(�
    прох.ids === '1000001,5000301' && /^\d{4}-\d{2}-\d{2}$/.test(прох.archAt) && /в архів: 2/.test(прох.log),
   'в архів 2 картки (і картка відділу B2C), номери в loomiq/arch, позначка дня, слід у журналі', JSON.stringify(прох));
 ok(!прох.board && !прох.b2c && !прох.chats, 'архівних немає ні на дошці B2B, ні у відділі B2C, ні в чатах', JSON.stringify(прох));
+ok(прох.auto === 0, 'без явного archAuto автоматичний прохід нічого не робить', 'auto: ' + прох.auto);
 
 console.log('');
 console.log('═══ 3. СТАРТ ТЯГНЕ ЛИШЕ ЖИВІ ═══');
