@@ -224,6 +224,10 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Знімок несе лише зміну** (23.10): `watchOrders` і `watchDesign`
+  обробляють `snap.docChanges()` (немає — повний прохід, як у стубі);
+  `designLast` немає — `designPut` бере попередню копію для `histPut` з
+  `dbNewer(ref, base, field, out)` (`out.doc`).
 - **Старт: команда першою** (23.10): в `init` `subscribePhotos()` стоїть
   до `loadOrders()`; `perfNote('gate'|'orders')` → `loomiq/perf` {пошта:
   {at, gate, orders, n, dev, ver}}; один банер версії (`#lq-newver`,
@@ -236,8 +240,8 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   доти, інакше шпилька; плитка `.dz-c-pin`, шапка `.dz-pin` + `pin-off`;
   історія з `pinHist`. `tests/owner-pin.mjs`.
 - **Версії карток** (23.10): `histPut(col, id, prevJson, why)` →
-  `<col>/<id>/hist/<час>` з `_v {at, by, why}` (`designLast` /
-  `ordersSaved` — попередня копія; `HIST_GAP_MS` 10 хв; `histOff` при
+  `<col>/<id>/hist/<час>` з `_v {at, by, why}` (копія з бази перед
+  записом / `ordersSaved`; `HIST_GAP_MS` 10 хв; `histOff` при
   відмові правил), `histList` (до `HIST_KEEP` 30, старі прибирає власник),
   картка B2C: «Версії картки» в низу Історії (host `versionsHtml`/`versionsLoad`/
   `versionRestore`, acts `vers-load`/`vers-back`, `designVers`); «Відкат
