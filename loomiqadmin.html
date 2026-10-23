@@ -4882,6 +4882,10 @@
   .dz-create.is-done{font-weight:700;color:#0E9F6E;font-size:13.5px;}
   .dz-pay-draft{font-style:normal;color:#B45309;font-size:11.5px;}
   /* Заслона доступів (22.10): поки не приїхала команда, видно лише її. */
+  #db-lost{position:fixed;left:16px;right:16px;bottom:16px;z-index:9500;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    padding:12px 16px;background:#b91c1c;color:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:14px;line-height:1.35;}
+  #db-lost b{font-weight:700;}
+  #db-lost button{margin-left:auto;background:#fff;color:#b91c1c;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;}
   #acc-gate{position:fixed;inset:0;z-index:190;background:#171717;display:flex;align-items:center;justify-content:center;padding:24px;}
   .ag-box{max-width:360px;text-align:center;color:#E5E7EB;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
   .ag-box b{display:block;font-size:17px;margin:12px 0 6px;}
@@ -8036,33 +8040,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5f0ec68527"></script>
-<script src="loomiq-fingerprint.js?v=5f0ec68527"></script>
-<script src="loomiq-pricing.js?v=5f0ec68527"></script>
+<script src="loomiq-select.js?v=22a0a0a637"></script>
+<script src="loomiq-fingerprint.js?v=22a0a0a637"></script>
+<script src="loomiq-pricing.js?v=22a0a0a637"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=5f0ec68527"></script>
+<script src="loomiq-money-core.js?v=22a0a0a637"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5f0ec68527"></script>
-<script src="loomiq-bg.js?v=5f0ec68527"></script>
-<script src="loomiq-mock.js?v=5f0ec68527"></script>
+<script src="loomiq-design.js?v=22a0a0a637"></script>
+<script src="loomiq-bg.js?v=22a0a0a637"></script>
+<script src="loomiq-mock.js?v=22a0a0a637"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=5f0ec68527"></script>
+<script src="imagetracer.js?v=22a0a0a637"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=5f0ec68527"></script>
-<script src="loomiq-threads.js?v=5f0ec68527"></script>
+<script src="loomiq-chat.js?v=22a0a0a637"></script>
+<script src="loomiq-threads.js?v=22a0a0a637"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5f0ec68527"></script>
+<script src="loomiq-cards.js?v=22a0a0a637"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8107,7 +8111,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5f0ec68527';
+var LQ_VER = '22a0a0a637';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8819,12 +8823,73 @@ function ordersClash(ids){
   toast('Картку ' + нові.join(', ') + ' щойно змінив хтось іще. Ваші правки на екрані ' +
         'збережено не було — збережіть їх, і вони переважать чужі.');
 }
+/* ══════════ НЕ ЧИТАЛИ — НЕ ПИШЕМО (23.10) ══════════
+
+   Андрій: «одобрені картки втратили картинки й статуси… пропали дані».
+   Як це сталось: база відмовила (квота, несплачений рахунок) — Firestore
+   обриває підписку НАЗАВЖДИ, а код лише писав попередження. Вкладка далі
+   жила зі старою копією, не знаючи про це, і будь-який запис картки (він
+   іде ЦІЛИМ документом) клав ту стару копію поверх усього, що за ці дні
+   зробили з інших пристроїв. Картка відділу зі старої копії порожня —
+   звідси «впали в нове».
+
+   Тепер: 1) обірвана підписка перепідписується сама (пауза росте до
+   хвилини); 2) поки підписка мертва — запис карток вимкнено, внизу
+   червона плашка «оновіть сторінку»; 3) перед кожним записом картки
+   (замовлення чи відділу) база питається, чи не лежить там новіша версія
+   (`touchedAt` / `updatedAt`): лежить — запис відхиляється, у памʼять
+   береться свіжа, людині кажуть повторити правку. Перевіряє
+   `tests/db-link.mjs` (у pre-commit). */
+const dbLink = { orders: { lost:false, n:0, t:0 }, design: { lost:false, n:0, t:0 } };
+const DB_RETRY_MS = (typeof window !== 'undefined' && +window.LQ_DB_RETRY_MS) || 5000;
+function dbLinkLost(which, e){
+  const L = dbLink[which]; if(!L) return;
+  L.lost = true; L.n++;
+  console.error('підписка обірвалась: ' + which, e);
+  dbLostBar(true);
+  clearTimeout(L.t);
+  L.t = setTimeout(() => { try{ which === 'orders' ? watchOrders() : watchDesign(); }catch(e2){ console.warn(e2); } },
+    Math.min(60000, DB_RETRY_MS * Math.pow(2, Math.min(L.n, 4) - 1)));
+}
+function dbLinkOk(which){
+  const L = dbLink[which]; if(!L) return;
+  const було = L.lost;
+  L.lost = false; L.n = 0; clearTimeout(L.t);
+  if(було && !dbLink.orders.lost && !dbLink.design.lost) dbLostBar(false);
+}
+function dbLinkDead(){ return dbLink.orders.lost || dbLink.design.lost; }
+function dbLostBar(on){
+  let el = document.getElementById('db-lost');
+  if(!on){ if(el) el.remove(); return; }
+  if(el) return;
+  el = document.createElement('div');
+  el.id = 'db-lost';
+  el.innerHTML = '<span><b>Звʼязок з базою втрачено.</b> Запис карток вимкнено, щоб стара копія не затерла чужу роботу. ' +
+    'Відновлюю звʼязок сам; не вийде — оновіть сторінку.</span><button type="button">Оновити сторінку</button>';
+  el.querySelector('button').onclick = () => location.reload();
+  document.body.appendChild(el);
+}
+/* Версія картки в базі новіша за ту, з якої почали, — не затираємо.
+   Повертає свіжий документ, коли конфлікт, інакше null. `base` — версія,
+   яку ця вкладка бачила останньою (undefined = не бачила жодної). */
+async function dbNewer(ref, base, field){
+  let snap = null;
+  try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); return null; }
+  if(!snap || !snap.exists) return null;
+  const d = snap.data() || {};
+  const v = String(d[field] || '');
+  if(base === undefined) return d;                 // у базі є те, чого ми не читали
+  if(v && v > String(base || '')) return d;
+  return null;
+}
+function touchedOfJson(json){ try{ return String((JSON.parse(json) || {}).touchedAt || ''); }catch(e){ return ''; } }
 // Жива синхронізація Канбану між вкладками й пристроями.
 let ordersWatching = false;
 function watchOrders(){
   if(ordersWatching) return;
   ordersWatching = true;
   ORDERS_COL.onSnapshot(function(snap){
+    dbLinkOk('orders');
     const list = [];
     const seen = new Map();
     /* ══════════ ЧУЖИЙ ЗНІМОК НЕ ЗНИЩУЄ НЕДОПИСАНОГО ══════════
@@ -8882,7 +8947,7 @@ function watchOrders(){
     try{ orderNosSeedOnce(); }catch(e){}
   }, function(e){
     ordersWatching = false;
-    console.error('orders listen failed', e);
+    dbLinkLost('orders', e);
   });
 }
 /* ЗНІМОК ЗАМОВЛЕНЬ ПЕРЕМАЛЬОВУЄ ТЕ, ЩО ВІДКРИТО (22.10).
@@ -8967,7 +9032,12 @@ async function loadOrders(){
 // Повертає список карток, які не вдалося зберегти (порожній — усе гаразд).
 async function saveOrders(opts){
   const quiet = !!(opts && opts.quiet);
+  if(dbLinkDead()){
+    if(!quiet) toast('Звʼязок з базою втрачено — картку не записано. Оновіть сторінку.');
+    return [{ id:'*', e: new Error('звʼязок з базою втрачено'), link:true }];
+  }
   const cur = new Map();
+  const застарілі = [];
   /* Чернетка нового B2C-замовлення (22.10) у базу не йде, поки її не
      створили кнопкою «Створити замовлення». */
   (orders || []).forEach(o=>{ if(o && o.id && !o.draft) cur.set(o.id, JSON.stringify(o)); });
@@ -9013,6 +9083,22 @@ async function saveOrders(opts){
         }catch(e){ console.warn('order slim failed', id, e); }
       }
     }
+    /* У базі новіша версія, ніж та, з якої ця вкладка почала, — не
+       затираємо: беремо свіжу в памʼять, правку просять повторити. */
+    try{
+      const base = ordersSaved.has(id) ? touchedOfJson(ordersSaved.get(id)) : undefined;
+      const свіжа = await dbNewer(ORDERS_COL.doc(id), base, 'touchedAt');
+      if(свіжа){
+        свіжа.id = свіжа.id || id;
+        const json2 = JSON.stringify(свіжа);
+        const i = (orders || []).findIndex(x => x && x.id === id);
+        if(i >= 0) orders[i] = свіжа; else orders.push(свіжа);
+        ordersSaved.set(id, json2);
+        застарілі.push(свіжа.orderId ? noOf(свіжа.orderId) : id);
+        console.warn('картка в базі новіша — запис відхилено', id);
+        continue;
+      }
+    }catch(e){ console.warn('звірка версії картки', id, e); }
     try{
       await ORDERS_COL.doc(id).set(JSON.parse(body));
       ordersSaved.set(id, body);
@@ -9027,6 +9113,10 @@ async function saveOrders(opts){
     if(cur.has(id)) continue;
     try{ await ORDERS_COL.doc(id).delete(); ordersSaved.delete(id); }
     catch(e){ console.error('order delete failed', id, e); failed.push({ id, e }); }
+  }
+  if(застарілі.length){
+    try{ repaintAfterOrders(); }catch(e){}
+    if(!quiet) toast('Картку #' + застарілі.join(', #') + ' уже змінили з іншого пристрою після того, як ви її відкрили. Показано свіжу версію — повторіть правку.');
   }
   if(failed.length && !quiet){
     const f = failed[0];
@@ -29085,6 +29175,29 @@ const ORDER_NOS = fbDb.collection('orderNos');
 let designJobs = {};              // orderId → задача
 let designWatching = false;
 let designDirty = {};             // що чекає запису
+let designSeen = {};              // orderId → updatedAt, який ця вкладка бачила останнім
+/* ЄДИНИЙ ЗАПИС КАРТКИ ВІДДІЛУ (23.10): без звʼязку не пишемо; у базі
+   новіша версія (або та, якої ми не читали) — не затираємо: беремо свіжу,
+   кажемо повторити, повертаємо false. */
+async function designPut(job, opt){
+  const id = String(job && job.orderId || '');
+  if(!id) return false;
+  if(dbLinkDead()) throw new Error('звʼязок з базою втрачено — оновіть сторінку');
+  const свіжа = await dbNewer(DESIGN_COL.doc(id), designSeen[id], 'updatedAt');
+  if(свіжа){
+    designJobs[id] = свіжа; designSeen[id] = String(свіжа.updatedAt || '');
+    delete designDirty[id];
+    console.warn('картка відділу в базі новіша — запис відхилено', id);
+    if(!(opt && opt.quiet)){
+      toast('Картку #' + noOf(id) + ' уже змінили з іншого пристрою. Показано свіжу версію — повторіть правку.');
+      try{ const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); }catch(e){}
+    }
+    return false;
+  }
+  await DESIGN_COL.doc(id).set(JSON.parse(JSON.stringify(job)));
+  designSeen[id] = String(job.updatedAt || '');
+  return true;
+}
 /* Оформлені замовлення закупівлі. Лежать у тій самій колекції, що й
    задачі відділу (окремі документи з `kind:'buy'`): нова колекція потребувала
    б нових правил доступу, а ці вже пускають усіх із команди. */
@@ -29273,7 +29386,9 @@ function designJobOf(orderId, make){
   if(!job.no && !job.draft && !(o && o.draft)){
     job.no = makeDesignNo();
     designJobs[id] = job;
-    try{ designSave(job); }catch(e){ designDirty[id] = 1; }
+    /* Запис може бути відхилений (у базі є картка, якої ця вкладка не
+       читала, — designPut бере її замість порожньої); це не помилка. */
+    try{ designSave(job).catch(e => console.warn('картка відділу при заведенні', id, e && e.message)); }catch(e){ designDirty[id] = 1; }
   }
   return job;
 }
@@ -29533,7 +29648,9 @@ function watchDesign(){
       // Локальні незбережені правки чужим знімком не затираємо
       if(designDirty[v.orderId]) return;
       designJobs[v.orderId] = v;
+      designSeen[v.orderId] = String(v.updatedAt || '');
     });
+    dbLinkOk('design');
     /* Доручення міг видати хтось інший із іншої вкладки — число на кнопці
        має зʼявитись без перезаходу. Це і є все наше сповіщення: усі сидять
        в адмінці цілий день, лист туди нічого не додасть. */
@@ -29542,7 +29659,7 @@ function watchDesign(){
     priceLockAll();         // 15.10: старі картки фіксують свої ціни
     if(document.getElementById('view-design') &&
        document.getElementById('view-design').style.display !== 'none') openDesign();
-  }, e=> console.warn('designJobs watch', e));
+  }, e => { designWatching = false; dbLinkLost('design', e); });
 }
 /* ЦІНИ В ІСНУЮЧИХ КАРТКАХ — ФІКСУЄМО ОДИН РАЗ (15.10). Андрій міняє ціни в
    налаштуваннях, а картки, створені раніше, мають лишитись за старими. Тож
@@ -29563,7 +29680,7 @@ async function priceLockAll(){
       const o = (orders || []).find(x => x && x.orderId === job.orderId);
       if(!o || orderDir(o) !== 'b2c' || o.status === 'cancel') continue;
       if(U.priceLockJob(job)){
-        try{ await DESIGN_COL.doc(job.orderId).set(JSON.parse(JSON.stringify(job))); }
+        try{ await designPut(job, { quiet:true }); }
         catch(e){ console.warn('фіксація ціни', job.orderId, e); }
       }
       /* Сума замовлення (totalPrice) — та сама, що в «Гроші»: інакше картка
@@ -29689,11 +29806,12 @@ async function designSave(job, o){
   try{ b2cSumWrite(job, o); }catch(e){ console.warn('сума B2C', e); }
   designDirty[job.orderId] = 1;
   designJobs[job.orderId] = job;
+  let записано = false;
   try{
-    await DESIGN_COL.doc(job.orderId).set(JSON.parse(JSON.stringify(job)));
+    записано = await designPut(job);
   }catch(e){
     console.error('design save', e);
-    toast('Задача дизайну не збереглась');
+    toast('Задача дизайну не збереглась: ' + ((e && e.message) || e));
     throw e;
   }finally{
     delete designDirty[job.orderId];
@@ -29701,6 +29819,7 @@ async function designSave(job, o){
        це показати одразу, а не після перезаходу. */
     try{ paintTaskBadge(); }catch(e){}
   }
+  if(!записано) throw new Error('картка відділу в базі новіша — повторіть правку');
   /* Версії макета лежать у замовленні, і дія у відділі щойно могла їх
      змінити — нову версію, файл, позначку погодження. Тож записуємо й
      картку. saveOrders пише тільки те, що справді змінилось, тож зайвого
