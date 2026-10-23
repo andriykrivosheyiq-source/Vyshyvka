@@ -224,6 +224,14 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Конструктор: колір і дубль товару** (23.10): `colorRename(gid, i)` (✎
+  `data-pcolren` на чипі, пише `productColors[gid]` лише з новою назвою),
+  `productDuplicate(src)` / `productDupPatch(src, id, name)` / `dupMergeLocal`
+  (`#prod-dup`; `DUP_TOP` — верхні карти за товаром; `products.*` і
+  `pricing.*` — усі карти з ключем джерела; `map` — фото тими самими
+  посиланнями; `mockcal` — gid і gid-сторона; `products.order` — одразу за
+  джерелом). `tests/product-tools.mjs` (і звірка кольорів/розмірів картки B2C
+  з конструктором для кожного товару).
 - **Розміри картки B2C = конструктор** (23.10): `garmentChartRows(gid)`
   (власна сітка, не «загальна» → `DEFAULT_GARMENT_CHARTS[gid]` →
   `DEFAULT_SIZE_CHART_ROWS`), `garmentSizes` до 16. `tests/sizes-match.mjs`.

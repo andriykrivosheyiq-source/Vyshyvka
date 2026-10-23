@@ -7220,7 +7220,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
         <!-- Детальна панель одного товару -->
         <div id="prod-detail" style="display:none;">
-          <button class="pc-btn reset" id="prod-back" style="flex:none;padding:8px 16px;margin-bottom:14px;">← Усі товари</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="pc-btn reset" id="prod-back" style="flex:none;padding:8px 16px;">← Усі товари</button>
+            <button class="pc-btn" id="prod-dup" style="flex:none;padding:8px 16px;" title="Окремий товар з усім наповненням: опис, кольори з фото, розмірна сітка, ціни, область нанесення">⧉ Дублювати товар</button>
+          </div>
           <h2 id="prod-detail-title" style="font-size:18px;margin:0 0 4px;"></h2>
           <div class="sub" id="prod-detail-sub" style="margin-bottom:18px;"></div>
 
@@ -8061,33 +8064,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=12128f409b"></script>
-<script src="loomiq-fingerprint.js?v=12128f409b"></script>
-<script src="loomiq-pricing.js?v=12128f409b"></script>
+<script src="loomiq-select.js?v=901a40e52a"></script>
+<script src="loomiq-fingerprint.js?v=901a40e52a"></script>
+<script src="loomiq-pricing.js?v=901a40e52a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=12128f409b"></script>
+<script src="loomiq-money-core.js?v=901a40e52a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=12128f409b"></script>
-<script src="loomiq-bg.js?v=12128f409b"></script>
-<script src="loomiq-mock.js?v=12128f409b"></script>
+<script src="loomiq-design.js?v=901a40e52a"></script>
+<script src="loomiq-bg.js?v=901a40e52a"></script>
+<script src="loomiq-mock.js?v=901a40e52a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=12128f409b"></script>
+<script src="imagetracer.js?v=901a40e52a"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=12128f409b"></script>
-<script src="loomiq-threads.js?v=12128f409b"></script>
+<script src="loomiq-chat.js?v=901a40e52a"></script>
+<script src="loomiq-threads.js?v=901a40e52a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=12128f409b"></script>
+<script src="loomiq-cards.js?v=901a40e52a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8132,7 +8135,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '12128f409b';
+var LQ_VER = '901a40e52a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -33536,6 +33539,8 @@ function renderColorEditor(){
   cur.innerHTML = colorWork.length
     ? colorWork.map((c,i)=>`<span style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 9px 4px 5px;font-size:12.5px;">
         <span style="width:20px;height:20px;border-radius:50%;background:${escA(c.hex||'#ccc')};border:1px solid rgba(0,0,0,.15);flex:none;"></span>${escA(c.name)}
+        <button data-pcolren="${i}" title="Перейменувати колір (фото й замовлення лишаються при ньому)"
+          style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:12px;padding:0 2px;">✎</button>
         <button data-pcolmove="${escA(c.id)}" title="Перенести колір і його фото в інший товар"
           style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:13px;padding:0 2px;">→</button>
         <button data-pcoldel="${i}" title="Прибрати колір" style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:14px;padding:0 2px;">✕</button>
@@ -33544,6 +33549,8 @@ function renderColorEditor(){
   cur.querySelectorAll('[data-pcoldel]').forEach(b=>b.addEventListener('click', ()=>{
     colorWork.splice(Number(b.dataset.pcoldel),1); renderColorEditor();
   }));
+  cur.querySelectorAll('[data-pcolren]').forEach(b=>b.addEventListener('click', ()=>
+    colorRename(photoGarmentId, Number(b.dataset.pcolren))));
   cur.querySelectorAll('[data-pcolmove]').forEach(b=>b.addEventListener('click', ()=>
     openColorMove(photoGarmentId, b.dataset.pcolmove)));
   /* Панель переносу — одразу під кольорами, у тому ж блоці: дія стосується
@@ -33694,6 +33701,133 @@ async function moveColorTo(fromId, toId, col, shots){
   renderPhotoManager();
 }
 function colorIdFromHex(hex){ return 'h' + String(hex||'').replace('#','').toLowerCase(); }
+/* ПЕРЕЙМЕНУВАТИ КОЛІР (23.10, Андрій: «щоб можна було перейменовувати
+   колір, як я захочу»). Міняється лише підпис: id кольору лишається, тож
+   фото (ключ gid-колір-ракурс) і заведені замовлення не ламаються. Пишемо
+   одразу й лише назву: інші незбережені правки списку (додали/прибрали)
+   цим не зберігаються. Нова назва — на сайті, у картці B2C, у документах. */
+async function colorRename(gid, i){
+  if(!canWriteProducts()) return;
+  const c = (colorWork || [])[i]; if(!c) return;
+  const was = String(c.name || '');
+  const raw = prompt('Нова назва кольору', was);
+  if(raw == null) return;
+  const name = String(raw).trim().slice(0, 40);
+  if(!name || name === was) return;
+  c.name = name;
+  const saved = effectiveColors(gid).map(x => Object.assign({}, x));
+  const s = saved.find(x => x.id === c.id);
+  if(s){
+    s.name = name;
+    try{
+      await PHOTOS_DOC.set({ productColors: { [gid]: saved } }, { merge:true });
+      contentData.productColors = contentData.productColors || {};
+      contentData.productColors[gid] = saved;
+      toast('Колір перейменовано: «' + was + '» → «' + name + '»');
+      try{ accLog('catalog', 'колір «' + was + '» → «' + name + '» у товарі ' + ((contentData.names || {})[gid] || gid)); }catch(e){}
+    }catch(e){ console.error(e); c.name = was; toast('Не збереглось: ' + ((e && e.message) || e)); }
+  } else toast('Назву змінено — натисніть «Зберегти кольори», бо колір ще новий');
+  renderColorEditor(); renderPhotoManager();
+}
+/* ДУБЛЮВАТИ ТОВАР (23.10, Андрій: «взяв світшоти, продублював з
+   наповненням — і там окремий товар, перейменував, змінив розміри»).
+   Копія — власний товар (products.custom) з новим id і ВСІМ наповненням
+   джерела: назва, опис, характеристики, кольори з тими самими id (тож фото
+   беруться ті самі файли — нічого не вантажимо), розмірна сітка (стандартна
+   записується явно), фото моделей, ціни й собівартість (сайт, B2C), шкала
+   знижок, базова ціна, область нанесення, розмітка мокапу, підрядник,
+   розділи. Джерело не чіпається. */
+const DUP_TOP = ['names', 'descriptions', 'specs', 'sizecharts', 'sizechartPhotos', 'sizechartCols', 'models',
+                 'printAreas', 'sides', 'viewOrder', 'productColors'];
+function dupCopy(v){ return v == null ? v : JSON.parse(JSON.stringify(v)); }
+function productDupPatch(src, id, name){
+  const g = photoCfg(src);
+  const base = goodsAllProducts().find(p => p.id === src) || {};
+  const srcCustom = ((contentData.products || {}).custom || []).find(x => x.id === src) || null;
+  const colors = effectiveColors(src).map(c => ({ id: c.id, name: c.name, hex: c.hex }));
+  const prod = contentData.products || {};
+  const entry = { id, name, price: base.price || '', surcharge: +(srcCustom && srcCustom.surcharge) || 0, colors, from: src };
+  const patch = { products: { custom: (prod.custom || []).concat([entry]) } };
+  /* Усі карти products.* за товаром (ціни, собівартість, B2C, способи, підрядник, розділи). */
+  Object.keys(prod).forEach(k => {
+    const v = prod[k];
+    if(!v || typeof v !== 'object' || Array.isArray(v) || k === 'custom') return;
+    if(Object.prototype.hasOwnProperty.call(v, src)) patch.products[k] = { [id]: dupCopy(v[src]) };
+  });
+  if(Array.isArray(prod.order) && prod.order.length){
+    const o = prod.order.slice(); const at = o.indexOf(src);
+    if(at >= 0) o.splice(at + 1, 0, id); else o.push(id);
+    patch.products.order = o;
+  }
+  DUP_TOP.forEach(k => {
+    const v = contentData[k];
+    if(v && typeof v === 'object' && Object.prototype.hasOwnProperty.call(v, src)) patch[k] = { [id]: dupCopy(v[src]) };
+  });
+  patch.names = { [id]: name };
+  patch.productColors = { [id]: colors };
+  /* Розмірна сітка — явно: у копії немає «стандартної за id». */
+  patch.sizecharts = { [id]: dupCopy(garmentChartRows(src)) };
+  /* Ціни: усі карти pricing.* за товаром + стандартна базова ціна й висота. */
+  const pr = contentData.pricing || {};
+  const pp = {};
+  Object.keys(pr).forEach(k => { const v = pr[k]; if(v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.hasOwnProperty.call(v, src)) pp[k] = { [id]: dupCopy(v[src]) }; });
+  const DSP = (typeof DEFAULT_SITE_PRICING === 'object' && DEFAULT_SITE_PRICING) || {};
+  if(!(pp.basePrices) && DSP.basePrices && DSP.basePrices[src] != null) pp.basePrices = { [id]: DSP.basePrices[src] };
+  if(!(pp.heights) && DSP.heights && DSP.heights[src] != null) pp.heights = { [id]: DSP.heights[src] };
+  if(Object.keys(pp).length) patch.pricing = pp;
+  /* Фото: ті самі файли. Завантажене — те саме посилання; стандартне —
+     шлях до файлу джерела. */
+  const map = {};
+  Object.keys(photosMap || {}).forEach(k => { if(k.indexOf(src + '-') === 0) map[id + k.slice(src.length)] = photosMap[k]; });
+  const views = (g && g.views && g.views.length) ? g.views : ['front', 'back'];
+  if(!srcCustom) colors.forEach(c => views.forEach(v => { const k = id + '-' + c.id + '-' + v; if(!map[k]) map[k] = 'images/' + src + '-' + c.id + '-' + v + '.webp'; }));
+  if(Object.keys(map).length) patch.map = map;
+  /* Розмітка мокапу: ключ gid або gid-сторона. */
+  const mc = {};
+  Object.keys(contentData.mockcal || {}).forEach(k => { if(k === src || k.indexOf(src + '-') === 0) mc[id + k.slice(src.length)] = dupCopy(contentData.mockcal[k]); });
+  if(Object.keys(mc).length) patch.mockcal = mc;
+  return patch;
+}
+function dupMergeLocal(patch){
+  Object.keys(patch).forEach(k => {
+    const v = patch[k];
+    if(k === 'products' || k === 'pricing'){
+      contentData[k] = contentData[k] || {};
+      Object.keys(v).forEach(s => {
+        const vv = v[s];
+        if(Array.isArray(vv) || !vv || typeof vv !== 'object') contentData[k][s] = vv;
+        else contentData[k][s] = Object.assign({}, contentData[k][s] || {}, vv);
+      });
+    } else contentData[k] = Object.assign({}, contentData[k] || {}, v);
+  });
+  if(patch.map) photosMap = Object.assign({}, photosMap || {}, patch.map);
+}
+async function productDuplicate(src){
+  if(!canWriteProducts()) return null;
+  src = String(src || photoGarmentId || '');
+  if(!src) return null;
+  const g = photoCfg(src);
+  const was = (contentData.names && contentData.names[src]) || String(g.name || src).replace(' · свій', '');
+  const raw = prompt('Назва нового товару', was + ' (копія)');
+  if(raw == null) return null;
+  const name = String(raw).trim().slice(0, 80);
+  if(!name){ toast('Вкажіть назву'); return null; }
+  const id = 'cp' + Date.now().toString(36);
+  const patch = productDupPatch(src, id, name);
+  try{
+    await PHOTOS_DOC.set(patch, { merge:true });
+  }catch(e){ console.error(e); toast('Не вдалось продублювати: ' + ((e && e.message) || e)); return null; }
+  dupMergeLocal(patch);
+  goodsWork = null;
+  try{ accLog('catalog', 'дубль товару «' + was + '» → «' + name + '» (' + id + ')'); }catch(e){}
+  toast('Створено «' + name + '» — копія з усім наповненням. Перейменуйте, змініть розміри чи кольори.');
+  openProduct(id);
+  return id;
+}
+(function wireProdDup(){
+  const b = document.getElementById('prod-dup');
+  if(b) b.addEventListener('click', () => productDuplicate(photoGarmentId));
+})();
 function addColorToWork(name, hex){
   if(colorWork.some(s=>(s.hex||'').toLowerCase()===hex.toLowerCase())){ toast('Такий колір уже додано'); return; }
   colorWork.push({ id: colorIdFromHex(hex), name: name, hex: hex });
