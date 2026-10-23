@@ -207,7 +207,7 @@ const двійня = await p.evaluate(async () => {
   const B = { id: 'real-303', orderId: '5000303', type: 'client', dir: 'b2c', name: 'Олена', phone: '+380501112233', status: 'prorahunok', site: 'main',
     items: [], hist: [], createdAt: at, crmChatId: 'c303', crmChatName: 'olena' };
   orders.push(B); ordersSaved.set(B.id, JSON.stringify(B));
-  const j3 = D.emptyJob('5000303'); j3.no = '2000303'; j3.createdAt = at; designJobs['5000303'] = j3;
+  const j3 = D.emptyJob('5000303'); j3.no = '2000303'; j3.createdAt = at; j3.units = [D.ui.unitNew()]; designJobs['5000303'] = j3;   // під її номером уже додали одяг
   window.__TAKEN['5000302'] = { id: A.id }; window.__TAKEN['5000303'] = { id: B.id };
   window.__RES = []; window.__FREED = [];
   const rows = orphanB2cRows();
@@ -217,17 +217,20 @@ const двійня = await p.evaluate(async () => {
   const зал = orders.filter(x => x.orderId === '5000302' || x.orderId === '5000303');
   const o = зал[0];
   return Object.assign(r, { карток: зал.length, id: o && o.id, no: o && o.orderId, chat: o && o.crmChatId, name: o && o.name,
-    paid: o ? paidSum(o) : 0, job303: !!designJobs['5000303'], job302: !!designJobs['5000302'],
+    paid: o ? paidSum(o) : 0, job303gone: !!(designJobs['5000303'] && designJobs['5000303'].gone), job302: designJobs['5000302'] && { no: designJobs['5000302'].no, units: D.ui.unitsOf(designJobs['5000302']).length, gone: !!designJobs['5000302'].gone },
+    retired: window.__TAKEN['5000303'] && window.__TAKEN['5000303'].id,
     taken: window.__TAKEN['5000302'] && window.__TAKEN['5000302'].id, freed: window.__FREED.slice().sort().join(), aGone: !ordersSaved.has(A.id) && !orders.some(x => x.id === A.id),
     left: orphanB2cRows().length, lost: moneyAudit().filter(x => x.kind === 'lost_order').length });
 });
 console.log('   ' + JSON.stringify(двійня));
-ok(двійня.n === 1 && двійня.kinds === 'twin_b2c' && /#2000302 відновлена порожньою.*Олена.*#2000303/.test(двійня.text) && !/5000/.test(двійня.text),
+ok(двійня.n === 1 && двійня.kinds === 'twin_b2c' && /#2000302 .*відновлена порожньою.*Олена.*#2000303.*у відділі є одяг/.test(двійня.text) && !/5000/.test(двійня.text),
   'Звірка: один пункт «Картка #2000302 відновлена порожньою, а діалог і клієнт (Олена) лишились на #2000303» — без ключів 5000…', JSON.stringify(двійня));
 ok(двійня.карток === 1 && двійня.id === 'real-303' && двійня.no === '5000302' && двійня.chat === 'c303' && двійня.name === 'Олена' && двійня.paid === 6120,
   '«Обʼєднати» — одна картка: справжня (діалог, Олена) під #2000302, платіж 6 120 ₴ при ній', JSON.stringify(двійня));
-ok(двійня.taken === 'real-303' && двійня.freed === '5000302,5000303' && двійня.aGone && !двійня.job303 && двійня.job302 && двійня.left === 0 && двійня.lost === 0,
-  'бронь #2000302 тепер за справжньою карткою, бронь #2000303 звільнено, порожня картка відділу забута, Звірка чиста', JSON.stringify(двійня));
+ok(двійня.taken === 'real-303' && двійня.retired === 'gone:real-303' && двійня.aGone && двійня.left === 0 && двійня.lost === 0,
+  'бронь #2000302 тепер за справжньою карткою, #2000303 помічено «вибув» (не видається знову), порожня картка зникла, Звірка чиста', JSON.stringify(двійня));
+ok(двійня.job303gone && двійня.job302 && !двійня.job302.gone && двійня.job302.no === '2000302' && двійня.job302.units === 1,
+  'одяг з-під #2000303 переїхав у картку відділу #2000302, під #2000303 — надгробок', JSON.stringify(двійня.job302));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
