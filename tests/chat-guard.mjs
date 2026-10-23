@@ -432,6 +432,26 @@ const ручне = await p.evaluate(async () => { const o = orders.find(x => x.o
   return { name: o.name, chatName: o.crmChatName, chat: o.crmChatId }; });
 ok(ручне.chat === 'fedcba9876543210' && ручне.name === 'Роман (сплатив)' && ручне.chatName === 'Ольга Петрів', 'імʼя, правлене руками, лишається', JSON.stringify(ручне));
 
+console.log('═══ 12. ХТО В ЗАПИСІ SITNIKS — ТОЙ І ПИСАВ; НАШЕ З КАРТКИ — НАШЕ В УСІХ ВКЛАДКАХ (23.10) ═══');
+sitniks.mode = ''; sitniks.postMode = '';
+sitniks.chats['0123456789abcdef'] = [
+  { id:'51', text:'Цікавить худі', createdAt: iso(now - 3600e3 * 3), sender:{ name:'Марина MV' } },
+  { id:'52', text:'Підкажіть, як вам зручніше оплатити залишок', createdAt: iso(now - 3600e3 * 2) },
+  { id:'53', text:'Так, реквізити', createdAt: iso(now - 3600e3), client:{ name:'Марина MV' } },
+  { id:'54', text:'Надсилаю', createdAt: iso(now - 1800e3), manager:{ name:'Катерина' } } ];
+await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000502'); o.crmChatId = '0123456789abcdef'; o.crmChatName = 'Марина MV'; o.crmNick = 'marina_mv';
+  /* Текст без підпису надіслано з картки — памʼять про це лежить у САМІЙ
+     картці (crmOut), тож і чужа вкладка його впізнає. */
+  o.crmOut = []; crmOutNote(o, 'Підкажіть, як вам зручніше оплатити залишок');
+  delete crmChat[o.id]; crmSent.clear(); delete crmOutHere[o.id]; });
+await openChat('2000502');
+const f12 = await feed();
+console.log('  ' + JSON.stringify(f12 && f12.rows.map(r => (r.mine ? '→' : '←') + r.text)));
+ok(f12 && f12.rows.length === 4 && !f12.rows[0].mine && f12.rows[1].mine && !f12.rows[2].mine && f12.rows[3].mine,
+  'підписане клієнтом — ліворуч; наше з картки (памʼять у картці, не у вкладці) — праворуч; з обʼєктом менеджера — праворуч; з обʼєктом клієнта — ліворуч', JSON.stringify(f12 && f12.rows.map(r => [r.text, r.mine])));
+const нові = await p.evaluate(() => (document.querySelector('#chatWin .cw-new, #chatWin .cw-unread') || {}).textContent || '');
+ok(!/[2-9]|\d\d/.test(нові.replace(/[^\d]/g, '').slice(1)), 'наші без підпису не рахуються як «нові від клієнта»', нові);
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad + ' — ДІАЛОГ ЗЛАМАНО' : 'діалог цілий: історія, помилки вголос, текст, повтор, нове, два чати, фото');
