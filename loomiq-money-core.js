@@ -195,8 +195,8 @@
     Object.keys(заНомером).forEach(function(k){
       var l = заНомером[k]; if(l.length < 2) return;
       out.push({ kind:'dup_no', sev:'red', orderId:k, n:l.length, ids: l.map(function(o){ return o.id || ''; }),
-        text: 'Номер #' + no(k) + ' стоїть на ' + l.length + ' картках (' + l.map(function(o){ return (o.name || o.company || '—') + ', ' + дата(o.createdAt); }).join('; ') +
-              '). Платежі й накладні за цим номером можуть лягти не в ту картку — дайте новішій інший номер.' });
+        text: 'Два замовлення з одним номером #' + no(k) + ': ' + l.map(function(o){ return (o.name || o.company || 'без імені') + ' від ' + дата(o.createdAt); }).join(' і ') +
+              ' (' + l.length + ' картках). Платіж чи накладна з цим номером можуть потрапити в іншу з них. «Перенумерувати новішу» дасть новішій картці свій номер.' });
     });
     (orders || []).forEach(function(o){
       if(!o || !o.orderId || o.status === 'cancel') return;

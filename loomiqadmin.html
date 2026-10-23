@@ -8018,33 +8018,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2af8d4e8e8"></script>
-<script src="loomiq-fingerprint.js?v=2af8d4e8e8"></script>
-<script src="loomiq-pricing.js?v=2af8d4e8e8"></script>
+<script src="loomiq-select.js?v=37f713292e"></script>
+<script src="loomiq-fingerprint.js?v=37f713292e"></script>
+<script src="loomiq-pricing.js?v=37f713292e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=2af8d4e8e8"></script>
+<script src="loomiq-money-core.js?v=37f713292e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2af8d4e8e8"></script>
-<script src="loomiq-bg.js?v=2af8d4e8e8"></script>
-<script src="loomiq-mock.js?v=2af8d4e8e8"></script>
+<script src="loomiq-design.js?v=37f713292e"></script>
+<script src="loomiq-bg.js?v=37f713292e"></script>
+<script src="loomiq-mock.js?v=37f713292e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=2af8d4e8e8"></script>
+<script src="imagetracer.js?v=37f713292e"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=2af8d4e8e8"></script>
-<script src="loomiq-threads.js?v=2af8d4e8e8"></script>
+<script src="loomiq-chat.js?v=37f713292e"></script>
+<script src="loomiq-threads.js?v=37f713292e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2af8d4e8e8"></script>
+<script src="loomiq-cards.js?v=37f713292e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8089,7 +8089,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2af8d4e8e8';
+var LQ_VER = '37f713292e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11675,20 +11675,53 @@ function orphanB2cRows(){
   (orders || []).forEach(o => { if(o && o.orderId) мають[String(o.orderId)] = 1; });
   const сироти = Object.keys(jobs).filter(k => jobs[k] && jobs[k].orderId && !мають[k] && !jobs[k].draft);
   if(!сироти.length) return out;
+  const плат = k => (payments || []).filter(p => p && String(p.orderId) === String(k) && (+p.amount || 0) > 0);
+  const гр = n => fmt(n) + ' ₴';
+  const зайняті = {};
+  /* 1) Картка є, а її картка відділу лежить під іншим ключем — зʼєднати. */
   (orders || []).forEach(o => {
     if(!o || o.draft || orderDir(o) !== 'b2c' || jobs[String(o.orderId)]) return;
     const t0 = Date.parse(o.createdAt || '') || 0;
-    const j = сироти.map(k => jobs[k]).filter(j => Math.abs((Date.parse(j.createdAt || '') || 0) - t0) <= 15 * 60000)
+    const j = сироти.map(k => jobs[k]).filter(j => !зайняті[j.orderId] && Math.abs((Date.parse(j.createdAt || '') || 0) - t0) <= 60 * 60000)
       .sort((a, b) => Math.abs((Date.parse(a.createdAt || '') || 0) - t0) - Math.abs((Date.parse(b.createdAt || '') || 0) - t0))[0];
     if(!j) return;
-    const плат = (payments || []).filter(p => p && String(p.orderId) === String(j.orderId)).length;
-    out.push({ kind:'orphan_b2c', sev:'red', orderId: String(o.orderId), toNo: String(j.orderId), docId: o.id,
-      text: 'Картка ' + (o.name || o.crmChatName || '—') + ' (' + fmtDate(new Date(o.createdAt || Date.now())) + ') втратила номер: її картка відділу #' +
-            (j.no || j.orderId) + (плат ? ' і ' + плат + ' платіж(і)' : '') + ' лежать під ' + j.orderId + ', а сама вона — під ' + o.orderId + '.' });
+    зайняті[j.orderId] = 1;
+    const p = плат(j.orderId);
+    out.push({ kind:'orphan_b2c', sev:'red', orderId: String(o.orderId), toNo: String(j.orderId), no: String(j.no || ''), docId: o.id,
+      text: 'Картка #' + (j.no || '') + (o.name || o.crmChatName ? ' (' + (o.name || o.crmChatName) + ')' : '') +
+            ' розʼєдналась: одяг і дизайн' + (p.length ? ' та ' + p.length + ' платіж(і) на ' + гр(p.reduce((a, x) => a + Math.round(+x.amount), 0)) : '') +
+            ' лежать окремо від самої картки. Натисніть «Зʼєднати» — усе стане на місце.' });
+  });
+  /* 2) Картка відділу є, а замовлення так і не записалось — відновити. */
+  сироти.forEach(k => {
+    if(зайняті[k]) return;
+    const j = jobs[k];
+    const p = плат(k);
+    const коли = Date.parse(j.createdAt || '');
+    if(!p.length && (!коли || Date.now() - коли > 7 * 864e5)) return;   // стара порожня — не наша історія
+    out.push({ kind:'orphan_job', sev:'red', orderId: String(k), toNo: String(k), no: String(j.no || ''),
+      text: 'Картка #' + (j.no || '') + ' не дописалась: є одяг і дизайн' +
+            (p.length ? ' та ' + p.length + ' платіж(і) на ' + гр(p.reduce((a, x) => a + Math.round(+x.amount), 0)) : '') +
+            ', а самої картки замовлення немає. Натисніть «Відновити» — картка зʼявиться на дошці з тим самим номером.' });
   });
   return out;
 }
 async function orphanB2cRestore(x){
+  if(x.kind === 'orphan_job'){
+    const j = (designJobs || {})[x.toNo];
+    if(!j) throw new Error('картки відділу вже немає');
+    const now = new Date().toISOString();
+    const o = { id: cryptoId(), dir:'b2c', type:'client', status: B2C_STATUS, orderId: String(x.toNo), source:'B2C', site:'main',
+      name:'', phone:'', company:'', instagram:'', items:[], totalPrice:0, totalCost:0, margin:0, marginPct:0,
+      createdAt: j.createdAt || now, touchedAt: now, hist:[{ s: B2C_STATUS, at: j.createdAt || now }],
+      mgrEmail: (myEmail() || '').trim().toLowerCase(), restoredAt: now, restoredBy: myEmail() || '' };
+    orders.unshift(o);
+    try{ await reserveOrderNo(o); }catch(e){ console.warn('бронь при відновленні', e); }
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'відновлено картку #' + (j.no || x.toNo) + ' (замовлення не було записано)'); }catch(e){}
+    try{ repaintAfterOrders(); }catch(e){}
+    return;
+  }
   const o = (orders || []).find(q => q && q.id === x.docId);
   if(!o) throw new Error('картки вже немає');
   const було = String(o.orderId);
@@ -11696,7 +11729,7 @@ async function orphanB2cRestore(x){
   try{ await reserveOrderNo(o); }catch(e){ console.warn('бронь при поверненні номера', e); }
   touchOrder(o);
   await storeSet('orders', orders);
-  try{ accLog('renum', 'повернуто номер ' + x.toNo + ' картці, що стояла під ' + було); }catch(e){}
+  try{ accLog('renum', 'зʼєднано картку #' + x.no + ' зі своєю карткою відділу (ключ ' + було + ' → ' + x.toNo + ')'); }catch(e){}
   try{ repaintAfterOrders(); }catch(e){}
 }
 function renderFinAudit(){
@@ -11704,7 +11737,13 @@ function renderFinAudit(){
   if(!box) return;
   if(!payLoaded){ box.innerHTML = '<div class="fa-h"><b>Звірка грошей</b><span>завантажую рухи…</span></div>'; return; }
   let list = moneyAudit();
-  try{ list = orphanB2cRows().concat(list); }catch(e){ console.warn('картки без номера', e); }
+  try{
+    const сир = orphanB2cRows();
+    /* «Платіж привʼязаний до #…, а такого замовлення немає» — те саме, що
+       й розʼєднана картка: показуємо одне, з кнопкою, яка лагодить обоє. */
+    const закр = {}; сир.forEach(x => { закр[x.toNo] = 1; });
+    list = сир.concat(list.filter(x => !(x.kind === 'lost_order' && закр[String(x.orderId)])));
+  }catch(e){ console.warn('картки без номера', e); }
   const E = escapeHtml;
   const red = list.filter(x => x.sev === 'red').length, amber = list.length - red;
   if(!list.length){
@@ -11732,8 +11771,9 @@ function renderFinAudit(){
             (payCanCheck() ? '<button class="pri" data-fa-fix="ok">Підтверджено</button><button data-fa-fix="no">Не дійшло</button>' : '<span class="fa-wait">підтверджує власник</span>') : ''}
           ${x.kind === 'cod_orphan' ? `<button data-fa-more>${finAudit.more[key] ? 'сховати' : 'показати'}</button>` : ''}
           ${x.kind === 'dup_no' ? (canSetup() ? '<button class="pri" data-fa-renum title="Новішій картці без платежів і накладної дати наступний вільний номер">Перенумерувати новішу</button>' : '<span class="fa-wait">перенумеровує власник</span>') : ''}
-          ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Повернути номер ' + E(x.toNo) + '</button>' : '<span class="fa-wait">повертає власник</span>') : ''}
-          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && x.kind !== 'orphan_b2c' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+          ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Зʼєднати</button>' : '<span class="fa-wait">зʼєднує власник</span>') : ''}
+          ${x.kind === 'orphan_job' ? (canSetup() ? '<button class="pri" data-fa-restore>Відновити</button>' : '<span class="fa-wait">відновлює власник</span>') : ''}
+          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && x.kind !== 'orphan_b2c' && x.kind !== 'orphan_job' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
         </div></div>`; }).join('')}</div>` : ''}`;
   box.onclick = async e => {
     if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
@@ -11745,7 +11785,7 @@ function renderFinAudit(){
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
     if(e.target.closest('[data-fa-restore]')){
-      try{ await orphanB2cRestore(x); toast('Номер ' + x.toNo + ' повернуто — картка відділу й платежі знову на місці'); }
+      try{ await orphanB2cRestore(x); toast('Картка #' + x.no + ' на місці — одяг, дизайн і платежі разом'); }
       catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
       return renderFin();
     }

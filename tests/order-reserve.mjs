@@ -166,9 +166,26 @@ const сирота = await p.evaluate(async () => {
   return Object.assign(r, { after: o.orderId, paid: paidSum(o), left: orphanB2cRows().length });
 });
 console.log('   ' + JSON.stringify(сирота));
-ok(сирота.n === 1 && сирота.row.from === '5000341' && сирота.row.to === '5000301' && /втратила номер/.test(сирота.row.text),
-  'Звірка бачить: картка під 5000341, а її картка відділу й платіж — під 5000301', JSON.stringify(сирота.row));
-ok(сирота.after === '5000301' && сирота.paid === 500 && сирота.left === 0, '«Повернути номер» — картка знову під 5000301, платіж 500 ₴ на місці', JSON.stringify(сирота));
+ok(сирота.n === 1 && сирота.row.from === '5000341' && сирота.row.to === '5000301' && /#2000301 .*розʼєдналась/.test(сирота.row.text) && !/5000/.test(сирота.row.text),
+  'Звірка: «Картка #2000301 розʼєдналась…» — без ключів 5000…', JSON.stringify(сирота.row));
+ok(сирота.after === '5000301' && сирота.paid === 500 && сирота.left === 0, '«Зʼєднати» — картка знову під своїм ключем, платіж 500 ₴ на місці', JSON.stringify(сирота));
+
+console.log('');
+console.log('═══ 5. КАРТКА ВІДДІЛУ Є, ЗАМОВЛЕННЯ НЕ ЗАПИСАЛОСЬ — «ВІДНОВИТИ» (23.10) ═══');
+const відн = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const at = new Date().toISOString();
+  const j = D.emptyJob('5000302'); j.no = '2000302'; j.createdAt = at; designJobs['5000302'] = j;
+  payments.push({ id: 'p-lost2', amount: 6120, at, acc: 'mono1', src: 'mono', orderId: '5000302', tag: 'prepay' });
+  const rows = orphanB2cRows();
+  const r = { n: rows.length, kind: rows[0] && rows[0].kind, text: rows[0] && rows[0].text.slice(0, 70) };
+  if(rows[0]) await orphanB2cRestore(rows[0]);
+  const o = orders.find(x => x.orderId === '5000302');
+  return Object.assign(r, { є: !!o, dir: o && o.dir, paid: o ? paidSum(o) : 0, left: orphanB2cRows().length, lost: moneyAudit().filter(x => x.kind === 'lost_order' && x.orderId === '5000302').length });
+});
+console.log('   ' + JSON.stringify(відн));
+ok(відн.n === 1 && відн.kind === 'orphan_job' && /#2000302 не дописалась/.test(відн.text), 'Звірка: «Картка #2000302 не дописалась…»', JSON.stringify(відн));
+ok(відн.є && відн.dir === 'b2c' && відн.paid === 6120 && відн.left === 0 && відн.lost === 0, '«Відновити» — картка на дошці з тим самим номером, платіж 6 120 ₴ при ній, «такого замовлення немає» зникло', JSON.stringify(відн));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
