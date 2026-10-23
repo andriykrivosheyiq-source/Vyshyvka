@@ -224,6 +224,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Старт: команда першою** (23.10): в `init` `subscribePhotos()` стоїть
+  до `loadOrders()`; `perfNote('gate'|'orders')` → `loomiq/perf` {пошта:
+  {at, gate, orders, n, dev, ver}}; один банер версії (`#lq-newver`,
+  build.json + самохеш), смужки за Last-Modified немає. `acc-gate`,
+  `fresh-build`.
 - **Шпилька власника** (23.10): `PIN_OK` (CHAIN без refused), `pinSet` /
   `pinClear` / `pinLabel`, `job.pin`, `job.pinHist`; `chainAt` — шпилька
   першою; дошка акаунта: власник тягне будь-що куди завгодно (`можна` →

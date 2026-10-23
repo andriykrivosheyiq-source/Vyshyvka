@@ -8052,33 +8052,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=c729267df2"></script>
-<script src="loomiq-fingerprint.js?v=c729267df2"></script>
-<script src="loomiq-pricing.js?v=c729267df2"></script>
+<script src="loomiq-select.js?v=cd5c22aaa6"></script>
+<script src="loomiq-fingerprint.js?v=cd5c22aaa6"></script>
+<script src="loomiq-pricing.js?v=cd5c22aaa6"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=c729267df2"></script>
+<script src="loomiq-money-core.js?v=cd5c22aaa6"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=c729267df2"></script>
-<script src="loomiq-bg.js?v=c729267df2"></script>
-<script src="loomiq-mock.js?v=c729267df2"></script>
+<script src="loomiq-design.js?v=cd5c22aaa6"></script>
+<script src="loomiq-bg.js?v=cd5c22aaa6"></script>
+<script src="loomiq-mock.js?v=cd5c22aaa6"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=c729267df2"></script>
+<script src="imagetracer.js?v=cd5c22aaa6"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=c729267df2"></script>
-<script src="loomiq-threads.js?v=c729267df2"></script>
+<script src="loomiq-chat.js?v=cd5c22aaa6"></script>
+<script src="loomiq-threads.js?v=cd5c22aaa6"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=c729267df2"></script>
+<script src="loomiq-cards.js?v=cd5c22aaa6"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8123,7 +8123,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'c729267df2';
+var LQ_VER = 'cd5c22aaa6';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8150,8 +8150,7 @@ var LQ_VER = 'c729267df2';
     }catch(e){}
     var d = document.createElement('div');
     d.id = 'lq-newver';
-    d.innerHTML = '<span>Вийшла нова версія адмінки (' + нова + '). ' +
-      'Поточна сторінка стара — частина змін у ній не працюватиме.</span>' +
+    d.innerHTML = '<span>Є нова версія адмінки — оновіть, коли зручно.</span>' +
       '<button type="button">Оновити</button>';
     d.querySelector('button').onclick = function(){
       /* Повз кеш: звичайне перезавантаження браузер часто віддає з нього ж,
@@ -8267,7 +8266,7 @@ window.addEventListener('error', function(e){
       'font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
       'box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;';
     var t = document.createElement('span');
-    t.textContent = 'Вийшла нова версія адмінки — розрахунки оновились.';
+    t.textContent = 'Є нова версія адмінки — оновіть, коли зручно.';
     var go = document.createElement('button');
     go.textContent = 'Оновити';
     go.style.cssText = 'all:unset;cursor:pointer;background:#fff;color:#0f3d2e;font-weight:700;' +
@@ -8700,26 +8699,9 @@ function reloadFresh(){ location.href = location.pathname + '?v=' + Date.now(); 
    питаємо сервер, чи не свіжіший там файл, і пропонуємо оновитись.
    Запит із випадковим хвостом — інакше відповідь прийде з того самого кешу,
    який ми й перевіряємо. */
-(function watchForUpdate(){
-  if(!window.fetch) return;
-  const mine = Date.parse(document.lastModified);
-  if(isNaN(mine)) return;
-  setTimeout(function(){
-    fetch(location.pathname + '?freshcheck=' + Date.now(), { method:'HEAD', cache:'no-store' })
-      .then(function(r){
-        const there = Date.parse(r.headers.get('last-modified') || '');
-        // Хвилина запасу: у різних вузлах CDN час трохи розходиться
-        if(isNaN(there) || there <= mine + 60000) return;
-        const bar = document.createElement('div');
-        bar.className = 'upd-bar';
-        bar.innerHTML = '<span>Вийшла новіша версія адмінки</span>' +
-          '<button type="button">Оновити</button>';
-        bar.querySelector('button').addEventListener('click', reloadFresh);
-        document.body.appendChild(bar);
-      })
-      .catch(function(){ /* немає звʼязку — не заважаємо працювати */ });
-  }, 4000);
-})();
+/* 23.10: друга смужка (за Last-Modified) прибрана — вона дублювала
+   перевірку за build.json і стояла поверх неї двома банерами. Один банер,
+   спокійний текст, оновлення — лише кнопкою. */
 fbAuth.onAuthStateChanged(function(user){
   const gate = document.getElementById('auth-gate');
   /* Перший вхід за запрошенням: вхід уже стався, але пароля ще немає й
@@ -35289,11 +35271,38 @@ function uploadCloudinary(blob){
 /* ============================================================
    INIT
    ============================================================ */
+/* ЧАС ВХОДУ (23.10). Андрій: «довго вантажить, пише оновлення». Щоб
+   говорити цифрами, а не відчуттями: скільки минуло від відкриття сторінки
+   до зняття заслони (команда приїхала) і до приходу карток. Пишеться в
+   loomiq/perf під ключем пошти, раз на вхід; дивитись — у консолі Firebase. */
+const perfT0 = (typeof performance !== 'undefined' && performance.timeOrigin) ? performance.timeOrigin : Date.now();
+const perfMark = { gate: 0, orders: 0, sent: false };
+function perfNote(k){
+  if(perfMark[k]) return;
+  perfMark[k] = Math.round(Date.now() - perfT0);
+  if(!perfMark.gate || !perfMark.orders || perfMark.sent) return;
+  perfMark.sent = true;
+  try{
+    const mail = (myEmail() || '').trim().toLowerCase(); if(!mail) return;
+    const key = aclKeyOf(mail);
+    const ua = String(navigator.userAgent || '');
+    const dev = /iPhone|iPad/.test(ua) ? 'iphone' : /Android/.test(ua) ? 'android' : /Macintosh/.test(ua) ? 'mac' : /Windows/.test(ua) ? 'win' : 'other';
+    fbDb.collection('loomiq').doc('perf').set({ [key]: { at: new Date().toISOString(), gate: perfMark.gate, orders: perfMark.orders,
+      n: (orders || []).length, dev, ver: LQ_VER } }, { merge:true }).catch(() => {});
+  }catch(e){}
+}
 async function init(){
+  let photosUnsub = null;
   await loadCloud();
   settings = await storeGet('settings', structuredClone(DEFAULT_SETTINGS));
   garments = await storeGet('garments', structuredClone(DEFAULT_GARMENTS));
+  /* КОМАНДА ПРИЇЖДЖАЄ ПЕРШОЮ (23.10). Доти сторінка спершу тягнула ВСІ
+     замовлення (секунди на телефоні) і лише потім підписувалась на документ
+     команди, який знімає заслону «Оновлення…». Тепер заслона знімається,
+     щойно є доступи; дошка заповнюється, коли приїхали картки. */
+  subscribePhotos();
   orders   = await loadOrders();
+  perfNote('orders');
   // Перший запуск після оновлення: забираємо картки зі старого сховища
   if(!orders.length) await migrateOrdersToCollection();
   await backfillOrderIds();   // номер має бути в кожної картки, зокрема старої
@@ -35313,12 +35322,12 @@ async function init(){
   crmSweepStart();      // і фоновий обхід розмов Sitniks — щоб не губились
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
-  let photosUnsub = null;
   function subscribePhotos(){
     if(photosUnsub){ try{ photosUnsub(); }catch(e){} }
     photosUnsub = PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
     contentLoaded = true;
+    perfNote('gate');
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки
     contentReadOk();
@@ -35362,7 +35371,6 @@ async function init(){
     else if(ctorTab==='site' && !typing) renderSiteTab();
     }, contentReadFailed);
   }
-  subscribePhotos();
 
   /* Перемикач сайту: міняємо цільовий документ і перечитуємо контент.
      Канбан і ціни-налаштування у STATE_DOC спільні, тому їх не чіпаємо. */
