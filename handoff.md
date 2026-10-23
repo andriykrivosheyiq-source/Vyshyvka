@@ -224,6 +224,9 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Розміри картки B2C = конструктор** (23.10): `garmentChartRows(gid)`
+  (власна сітка, не «загальна» → `DEFAULT_GARMENT_CHARTS[gid]` →
+  `DEFAULT_SIZE_CHART_ROWS`), `garmentSizes` до 16. `tests/sizes-match.mjs`.
 - **Архів карток** (23.10): `ARCH_DAYS` 30, `archReady` (contentData.archSeed),
   `liveOrdersQ`/`liveJobsQ`, `watchDesignAux` (buy/stock), `archFinished`/
   `archPick`, `archSeedOnce` (власник, раз, batch arch:false), `archSweep`
