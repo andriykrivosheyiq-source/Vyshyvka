@@ -223,7 +223,16 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `saveOrders` звіряє `touchedAt` проти `ordersSaved`; `designPut(job, opt)`
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
-  `tests/db-link.mjs` (у pre-commit). **Порядок викладки:** 1) адмінка вже в main — власник
+  `tests/db-link.mjs` (у pre-commit).
+- **Версії карток** (23.10): `histPut(col, id, prevJson, why)` →
+  `<col>/<id>/hist/<час>` з `_v {at, by, why}` (`designLast` /
+  `ordersSaved` — попередня копія; `HIST_GAP_MS` 10 хв; `histOff` при
+  відмові правил), `histList` (до `HIST_KEEP` 30, старі прибирає власник),
+  картка B2C: «Версії картки» в низу Історії (host `versionsHtml`/`versionsLoad`/
+  `versionRestore`, acts `vers-load`/`vers-back`, `designVers`); «Відкат
+  карток»: «Версії в CRM» (`rbVersHtml`, `orderVersionRestore`). Правила —
+  `hist` під `designJobs` і `kanbanOrders`. `tests/versions.mjs`,
+  `tests/order-nos.mjs`. **Порядок викладки:** 1) адмінка вже в main — власник
   заходить, броні наявних номерів ставляться самі (тост «заброньовано N»);
   2) лише ПІСЛЯ цього задеплоїти `firestore.rules`. Інакше нові картки не
   запишуться до бронювання старих. `tests/order-nos.mjs` (емулятор),

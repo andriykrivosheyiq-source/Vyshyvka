@@ -132,6 +132,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ не читали — не пишемо"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/versions\.mjs)'; then
+  node tests/versions.mjs >/tmp/lq-versions.log 2>&1 || {
+    echo "✗ Версії карток зламано (копія перед записом чи «Повернути версію») — коміт зупинено. Подробиці: /tmp/lq-versions.log"
+    grep '✗' /tmp/lq-versions.log
+    exit 1
+  }
+  echo "✓ версії карток цілі"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/rollback\.mjs)'; then
   node tests/rollback.mjs >/tmp/lq-rollback.log 2>&1 || {
     echo "✗ Відкат картки на стан у минулому зламано — коміт зупинено. Подробиці: /tmp/lq-rollback.log"

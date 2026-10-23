@@ -7870,6 +7870,10 @@
         /* Історія — в самому низу. Її читають не щодня, але коли читають —
            читають усю, і місце їй саме там, де вона нікому не заважає. */
         U.foldHtml('gray', '🕘', 'Історія', function(){ return U.histSub(job, o); }, function(){ return U.histHtml(job, o) +
+          /* ВЕРСІЇ (23.10) — лише власнику, в самому низу історії: попередні
+             копії картки відділу перед кожним записом, «Повернути цю версію». */
+          (((U.host.role && U.host.role()) === 'owner' && host().versionsHtml)
+            ? '<div class="dz-hv-w"><div class="dz-hv-h">🗂 Версії картки</div>' + host().versionsHtml(job, o) + '</div>' : '') +
           /* ВИДАЛИТИ — лише власнику (Андрій, 15.10), унизу історії: дія
              рідкісна й остаточна, і місце їй там, де випадково не натиснеш. */
           (((U.host.role && U.host.role()) === 'owner' && host().deleteOrder)
@@ -11763,6 +11767,16 @@
     if(what === 'order-del'){
       if(host().deleteOrder) await host().deleteOrder(o);
       return;
+    }
+    if(what === 'vers-load'){
+      if(host().versionsLoad) await host().versionsLoad(job);
+      U.FOLD['Історія'] = 1;
+      return render(root);
+    }
+    if(what === 'vers-back'){
+      if(host().versionRestore) await host().versionRestore(job, String((data && data.ts) || ''));
+      U.FOLD['Історія'] = 1;
+      return render(root);
     }
     if(what === 'unbind'){
       try{ if(!window.confirm('Відвʼязати розмову від цієї картки? Потім можна вставити адресу іншої.')) return; }catch(e){}
