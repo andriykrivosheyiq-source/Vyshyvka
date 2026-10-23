@@ -160,7 +160,10 @@ const feed = () => p.evaluate(() => [...document.querySelectorAll('.cw-feed .od-
   txt: ((el.querySelector('.od-crm-txt') || {}).textContent || '').trim(),
   at: ((el.querySelector('.od-crm-at') || {}).textContent || '').trim() })));
 const pics = rows => rows.filter(r => r.mine && r.imgs.length);
-const poll = () => p.evaluate(() => crmPollOnce(orders[0]));
+/* Результат crmPollOnce у тест не повертаємо: 23.10 Playwright на його
+   поверненні падав з «Execution context was destroyed» без жодного
+   переходу сторінки; з порожнім поверненням — стабільно. */
+const poll = () => p.evaluate(async () => { await crmPollOnce(orders[0]); });
 
 console.log('═══ А. ОДРАЗУ ПІСЛЯ НАТИСКУ ═══');
 await send(1);
