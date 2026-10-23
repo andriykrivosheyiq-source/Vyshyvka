@@ -201,11 +201,12 @@ const ui = await p.evaluate(async () => {
   const rows1 = [...box.querySelectorAll('[data-arch-open]')].map(b => b.dataset.archOpen).join();
   box.querySelector('[data-arch-open]').click();
   await new Promise(r => setTimeout(r, 300));
-  return { rows0, rows1, closed: !document.getElementById('arch-pop'), b2bBtn: !!document.getElementById('board-arch'), txt: box.textContent.slice(0, 60) };
+  const U = window.LQDesign.ui; U.setTab('acct'); U.render(document.getElementById('dzRoot'));
+  return { rows0, rows1, closed: !document.getElementById('arch-pop'), b2bBtn: !!document.getElementById('board-arch'), b2cBtn: !!document.querySelector('#dzRoot [data-do="arch-open"]'), txt: box.textContent.slice(0, 60) };
 });
 console.log('   ' + JSON.stringify(ui));
 ok(ui.rows0 === 1 && ui.rows1 === '5000301', 'список архіву B2C показує архівну картку, пошук «давно» її знаходить', JSON.stringify(ui));
-ok(ui.closed && ui.b2bBtn, 'клік по картці закриває архів і відкриває картку; кнопка «Архів» на дошці B2B є', JSON.stringify(ui));
+ok(ui.closed && !ui.b2bBtn && !ui.b2cBtn, 'клік по картці закриває архів і відкриває картку; кнопок «Архів» на дошках немає (23.10: архіву не буде)', JSON.stringify(ui));
 
 console.log('');
 console.log('═══ 6. РАЗОВЕ ПОВЕРНЕННЯ З АРХІВУ (ПЕРШИЙ ПРОХІД СХОВАВ ДІАЛОГИ) ═══');
