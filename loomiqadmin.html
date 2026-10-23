@@ -8018,33 +8018,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=97f35d5d17"></script>
-<script src="loomiq-fingerprint.js?v=97f35d5d17"></script>
-<script src="loomiq-pricing.js?v=97f35d5d17"></script>
+<script src="loomiq-select.js?v=2af8d4e8e8"></script>
+<script src="loomiq-fingerprint.js?v=2af8d4e8e8"></script>
+<script src="loomiq-pricing.js?v=2af8d4e8e8"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=97f35d5d17"></script>
+<script src="loomiq-money-core.js?v=2af8d4e8e8"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=97f35d5d17"></script>
-<script src="loomiq-bg.js?v=97f35d5d17"></script>
-<script src="loomiq-mock.js?v=97f35d5d17"></script>
+<script src="loomiq-design.js?v=2af8d4e8e8"></script>
+<script src="loomiq-bg.js?v=2af8d4e8e8"></script>
+<script src="loomiq-mock.js?v=2af8d4e8e8"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=97f35d5d17"></script>
+<script src="imagetracer.js?v=2af8d4e8e8"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=97f35d5d17"></script>
-<script src="loomiq-threads.js?v=97f35d5d17"></script>
+<script src="loomiq-chat.js?v=2af8d4e8e8"></script>
+<script src="loomiq-threads.js?v=2af8d4e8e8"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=97f35d5d17"></script>
+<script src="loomiq-cards.js?v=2af8d4e8e8"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8089,7 +8089,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '97f35d5d17';
+var LQ_VER = '2af8d4e8e8';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9061,13 +9061,20 @@ async function orderNoClash(o){
    документ є й належить іншій картці — номер зайнятий, беремо наступний і
    пробуємо знову. true — номер картки змінився. Без справжньої бази
    (тести зі стубом) транзакція нічого не повертає — вважаємо вільним. */
+let orderNosOff = false;   // база не пускає до orderNos (правила ще не опубліковано) — бронь вимкнена
 async function reserveOrderNo(o){
   if(!o || !o.orderId || o.draft) return false;
   if(!fbDb || typeof fbDb.runTransaction !== 'function') return false;
+  if(orderNosOff) return false;
   const було = String(o.orderId);
   const dir = orderDir(o);
+  /* Номер у картці міняємо ЛИШЕ коли бронь нового справді вдалась. 23.10:
+     доти відмова правил (orderNos ще не опубліковано) читалась як
+     «зайнято», номер стрибав сорок разів, картка втрачала картку відділу
+     й платежі, а менеджерки бачили «лічильник» і зникле замовлення. */
+  let спроба = було;
   for(let k = 0; k < 40; k++){
-    const no = String(o.orderId);
+    const no = String(спроба);
     const ref = ORDER_NOS.doc(no);
     let стан = 'ok';
     try{
@@ -9081,12 +9088,22 @@ async function reserveOrderNo(o){
         t.set(ref, { id: o.id, by: myEmail() || '', at: new Date().toISOString(), dir });
       });
     }catch(e){
-      /* Відмова правил (хтось створив між get і set) — теж «зайнято». */
-      if(e && /permission|PERMISSION|already|ALREADY/i.test(String(e.code || e.message || e))) стан = 'taken';
+      const code = String((e && (e.code || e.message)) || e);
+      /* Правила не пускають до orderNos — бронь ще не ввімкнена в базі.
+         Нічого не чіпаємо, кажемо власнику один раз. */
+      if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)){
+        orderNosOff = true;
+        console.warn('бронь номерів недоступна (правила бази ще не опубліковано)', e);
+        try{ if(canSetup()) toast('Бронь номерів ще не ввімкнена в базі — опублікуйте firestore.rules'); }catch(e2){}
+        return false;
+      }
+      /* Хтось створив цю бронь між get і set — зайнято. */
+      if(/already|ALREADY|aborted|ABORTED/i.test(code)) стан = 'taken';
       else throw e;
     }
     if(стан === 'ok'){
       if(no !== було){
+        o.orderId = no;                             // лише тепер, коли бронь є
         try{ accLog('renum', 'номер ' + було + ' був зайнятий — картці дано ' + no); }catch(e){}
         toast('Номер ' + було + ' уже зайнятий — цій картці дано ' + no);
         if(designJobs && designJobs[було] && !designJobs[no] && orderDir(o) === 'b2c'){
@@ -9096,16 +9113,17 @@ async function reserveOrderNo(o){
       }
       return no !== було;
     }
-    o.orderId = String(makeOrderId(dir));
+    спроба = String(makeOrderId(dir));
   }
-  throw new Error('не вдалось забронювати номер');
+  console.warn('не вдалось забронювати номер — картка лишається з ' + було);
+  return false;
 }
 /* РАЗОВЕ БРОНЮВАННЯ ВСІХ НАЯВНИХ НОМЕРІВ (22.10). Доки старі номери не
    заброньовані, бронь нового могла б збігтись зі старим. Робить власник
    (автоматично при вході), один раз; лише коли замовлення вже приїхали. */
 let orderNosSeeding = false;
 async function orderNosSeedOnce(){
-  if(orderNosSeeding || !canSetup() || !contentLoaded || !payLoadedOrOrders()) return;
+  if(orderNosSeeding || orderNosOff || !canSetup() || !contentLoaded || !payLoadedOrOrders()) return;
   if(+(contentData.orderNosSeed || 0) >= 1) return;
   orderNosSeeding = true;
   try{
@@ -9125,7 +9143,13 @@ async function orderNosSeedOnce(){
     contentData.orderNosSeed = 1;
     try{ accLog('renum', 'заброньовано наявні номери: ' + n); }catch(e){}
     if(n) toast('Номери замовлень заброньовано в базі: ' + n);
-  }catch(e){ console.warn('бронювання номерів', e); orderNosSeeding = false; }
+  }catch(e){
+    console.warn('бронювання номерів', e);
+    const code = String((e && (e.code || e.message)) || e);
+    /* Правила ще не пускають — не довбати базу на кожен знімок. */
+    if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)) orderNosOff = true;
+    else orderNosSeeding = false;
+  }
 }
 function payLoadedOrOrders(){ return !!((orders || []).length); }
 /* Перенумерувати новішу з карток-двійників (Звірка, власник). Беремо ту, на
@@ -11639,11 +11663,48 @@ function moneyAudit(){
   return LQMoney.audit((orders || []).filter(o => !(o && o.draft)), payments || [], { np: npState, totalOf: orderTotalOf, noOf: noOf,
     accs: finAccounts(), ordersLoaded: (orders || []).length > 0, bal: bankBal, sync: bankSync });
 }
+/* КАРТКА, ЩО ВТРАТИЛА НОМЕР (23.10). Збій броні 23.10 міняв номер картки в
+   памʼяті, а картка відділу й платежі лишались під старим: замовлення
+   «зникало» з дошки B2C, платежі «пропадали». Шукаємо B2C-картку без
+   картки відділу і картку відділу без замовлення, заведені в один час, —
+   і повертаємо старий номер. */
+function orphanB2cRows(){
+  const out = [];
+  const jobs = designJobs || {};
+  const мають = {};
+  (orders || []).forEach(o => { if(o && o.orderId) мають[String(o.orderId)] = 1; });
+  const сироти = Object.keys(jobs).filter(k => jobs[k] && jobs[k].orderId && !мають[k] && !jobs[k].draft);
+  if(!сироти.length) return out;
+  (orders || []).forEach(o => {
+    if(!o || o.draft || orderDir(o) !== 'b2c' || jobs[String(o.orderId)]) return;
+    const t0 = Date.parse(o.createdAt || '') || 0;
+    const j = сироти.map(k => jobs[k]).filter(j => Math.abs((Date.parse(j.createdAt || '') || 0) - t0) <= 15 * 60000)
+      .sort((a, b) => Math.abs((Date.parse(a.createdAt || '') || 0) - t0) - Math.abs((Date.parse(b.createdAt || '') || 0) - t0))[0];
+    if(!j) return;
+    const плат = (payments || []).filter(p => p && String(p.orderId) === String(j.orderId)).length;
+    out.push({ kind:'orphan_b2c', sev:'red', orderId: String(o.orderId), toNo: String(j.orderId), docId: o.id,
+      text: 'Картка ' + (o.name || o.crmChatName || '—') + ' (' + fmtDate(new Date(o.createdAt || Date.now())) + ') втратила номер: її картка відділу #' +
+            (j.no || j.orderId) + (плат ? ' і ' + плат + ' платіж(і)' : '') + ' лежать під ' + j.orderId + ', а сама вона — під ' + o.orderId + '.' });
+  });
+  return out;
+}
+async function orphanB2cRestore(x){
+  const o = (orders || []).find(q => q && q.id === x.docId);
+  if(!o) throw new Error('картки вже немає');
+  const було = String(o.orderId);
+  o.orderId = String(x.toNo);
+  try{ await reserveOrderNo(o); }catch(e){ console.warn('бронь при поверненні номера', e); }
+  touchOrder(o);
+  await storeSet('orders', orders);
+  try{ accLog('renum', 'повернуто номер ' + x.toNo + ' картці, що стояла під ' + було); }catch(e){}
+  try{ repaintAfterOrders(); }catch(e){}
+}
 function renderFinAudit(){
   const box = document.getElementById('fin-audit');
   if(!box) return;
   if(!payLoaded){ box.innerHTML = '<div class="fa-h"><b>Звірка грошей</b><span>завантажую рухи…</span></div>'; return; }
-  const list = moneyAudit();
+  let list = moneyAudit();
+  try{ list = orphanB2cRows().concat(list); }catch(e){ console.warn('картки без номера', e); }
   const E = escapeHtml;
   const red = list.filter(x => x.sev === 'red').length, amber = list.length - red;
   if(!list.length){
@@ -11671,7 +11732,8 @@ function renderFinAudit(){
             (payCanCheck() ? '<button class="pri" data-fa-fix="ok">Підтверджено</button><button data-fa-fix="no">Не дійшло</button>' : '<span class="fa-wait">підтверджує власник</span>') : ''}
           ${x.kind === 'cod_orphan' ? `<button data-fa-more>${finAudit.more[key] ? 'сховати' : 'показати'}</button>` : ''}
           ${x.kind === 'dup_no' ? (canSetup() ? '<button class="pri" data-fa-renum title="Новішій картці без платежів і накладної дати наступний вільний номер">Перенумерувати новішу</button>' : '<span class="fa-wait">перенумеровує власник</span>') : ''}
-          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+          ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Повернути номер ' + E(x.toNo) + '</button>' : '<span class="fa-wait">повертає власник</span>') : ''}
+          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && x.kind !== 'orphan_b2c' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
         </div></div>`; }).join('')}</div>` : ''}`;
   box.onclick = async e => {
     if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
@@ -11682,6 +11744,11 @@ function renderFinAudit(){
     const o = x.orderId ? (orders || []).filter(q => String(q.orderId) === x.orderId)[0] : null;
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
+    if(e.target.closest('[data-fa-restore]')){
+      try{ await orphanB2cRestore(x); toast('Номер ' + x.toNo + ' повернуто — картка відділу й платежі знову на місці'); }
+      catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
+      return renderFin();
+    }
     if(e.target.closest('[data-fa-renum]')){
       try{ const r = await orderRenumberDup(x.orderId); if(r) toast('Картці дано номер ' + r); }
       catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
@@ -15268,7 +15335,10 @@ function makeOrderId(dir){
     /* Мовчати тут не можна. Саме мовчання й перетворило дрібну відмову в
        записі на два замовлення з одним номером — а номер живе в КП, у
        переписці, у платіжці. */
-    if(!orderSeqWarned){
+    /* Кажемо тому, хто може це полагодити (власник): менеджеру ця плашка
+       лише лякає (23.10, Юлія). Гарантію від повторів тримає бронь
+       orderNos; лічильник — підказка наступного номера. */
+    if(!orderSeqWarned && canSetup()){
       orderSeqWarned = true;
       try{ toast('Лічильник номерів не зберігся в базі — опублікуйте firestore.rules, ' +
                  'інакше номери можуть повторитись'); }catch(e2){}
