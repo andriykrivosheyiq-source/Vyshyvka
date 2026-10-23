@@ -1,7 +1,7 @@
 /* ВЕРСІЇ КАРТОК У CRM (23.10) — зі стубом бази.
 
-   1. Запис картки відділу лишає попередню копію в hist (раз на 10 хв з
-      вкладки); запис картки замовлення — так само.
+   1. Запис картки відділу лишає попередню копію в hist (те, що лежало в
+      базі перед записом; раз на 10 хв з вкладки); картки замовлення — так само.
    2. Список версій і «Повернути цю версію»: картка стає як у версії,
       теперішній стан теж лягає версією («перед поверненням»).
    3. Правила ще не пускають hist — картка все одно пишеться, версії
@@ -67,7 +67,7 @@ fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
   .replace("Doc.prototype.get=function(){ return Promise.resolve(new Snap('x', null)); };",
   "Doc.prototype.get=function(){ var c=this.__col, id=this.__id; var d=(window.__DB[c]||{})[id]||null; return Promise.resolve(new Snap(id, d ? JSON.parse(JSON.stringify(d)) : null)); };")
   .replace('Doc.prototype.set=function(){ return Promise.resolve(); };',
-  "Doc.prototype.set=function(d){ if(/\\/hist$/.test(this.__col||'')){ if(window.__HIST_DENY) return Promise.reject(Object.assign(new Error('Missing or insufficient permissions.'),{code:'permission-denied'})); (window.__HIST=window.__HIST||{}); (window.__HIST[this.__col]=window.__HIST[this.__col]||[]).push({ id:this.__id, d:JSON.parse(JSON.stringify(d)) }); return Promise.resolve(); } if(this.__col==='kanbanOrders'||this.__col==='designJobs') (window.__SETS=window.__SETS||[]).push({ col:this.__col, id:this.__id }); return Promise.resolve(); };")
+  "Doc.prototype.set=function(d){ if(/\\/hist$/.test(this.__col||'')){ if(window.__HIST_DENY) return Promise.reject(Object.assign(new Error('Missing or insufficient permissions.'),{code:'permission-denied'})); (window.__HIST=window.__HIST||{}); (window.__HIST[this.__col]=window.__HIST[this.__col]||[]).push({ id:this.__id, d:JSON.parse(JSON.stringify(d)) }); return Promise.resolve(); } if(this.__col==='kanbanOrders'||this.__col==='designJobs'){ (window.__SETS=window.__SETS||[]).push({ col:this.__col, id:this.__id }); window.__DB[this.__col][this.__id]=JSON.parse(JSON.stringify(d)); } return Promise.resolve(); };")
   .replace('Doc.prototype.collection=function(){ return new Col(); };',
   "Doc.prototype.collection=function(n){ var c=new Col(); c.__n=(this.__col||'?')+'/'+this.__id+'/'+n; return c; };")
   .replace("Col.prototype.get=function(){ return Promise.resolve({ docs:[], forEach:function(){}, empty:true }); };",
@@ -123,6 +123,7 @@ console.log('═══ 1. ЗАПИС ЛИШАЄ ПОПЕРЕДНЮ КОПІЮ �
 const зап = await p.evaluate(async () => {
   window.__HIST = {}; window.__SETS = [];
   const j = designJobs['5000301'];
+  window.__DB.designJobs['5000301'] = JSON.parse(JSON.stringify(j));   // у базі лежить те, що приїхало знімком
   j.state = 'sketch'; j.updatedAt = new Date().toISOString();
   await designSave(j, orders.find(x => x.id === '1'));
   const h = window.__HIST['designJobs/5000301/hist'] || [];

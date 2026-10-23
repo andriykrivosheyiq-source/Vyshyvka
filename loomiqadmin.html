@@ -8052,33 +8052,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=cd5c22aaa6"></script>
-<script src="loomiq-fingerprint.js?v=cd5c22aaa6"></script>
-<script src="loomiq-pricing.js?v=cd5c22aaa6"></script>
+<script src="loomiq-select.js?v=3df1db8d89"></script>
+<script src="loomiq-fingerprint.js?v=3df1db8d89"></script>
+<script src="loomiq-pricing.js?v=3df1db8d89"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=cd5c22aaa6"></script>
+<script src="loomiq-money-core.js?v=3df1db8d89"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=cd5c22aaa6"></script>
-<script src="loomiq-bg.js?v=cd5c22aaa6"></script>
-<script src="loomiq-mock.js?v=cd5c22aaa6"></script>
+<script src="loomiq-design.js?v=3df1db8d89"></script>
+<script src="loomiq-bg.js?v=3df1db8d89"></script>
+<script src="loomiq-mock.js?v=3df1db8d89"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=cd5c22aaa6"></script>
+<script src="imagetracer.js?v=3df1db8d89"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=cd5c22aaa6"></script>
-<script src="loomiq-threads.js?v=cd5c22aaa6"></script>
+<script src="loomiq-chat.js?v=3df1db8d89"></script>
+<script src="loomiq-threads.js?v=3df1db8d89"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=cd5c22aaa6"></script>
+<script src="loomiq-cards.js?v=3df1db8d89"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8123,7 +8123,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'cd5c22aaa6';
+var LQ_VER = '3df1db8d89';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8866,11 +8866,12 @@ function dbLostBar(on){
 /* Версія картки в базі новіша за ту, з якої почали, — не затираємо.
    Повертає свіжий документ, коли конфлікт, інакше null. `base` — версія,
    яку ця вкладка бачила останньою (undefined = не бачила жодної). */
-async function dbNewer(ref, base, field){
+async function dbNewer(ref, base, field, out){
   let snap = null;
   try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); return null; }
   if(!snap || !snap.exists) return null;
   const d = snap.data() || {};
+  if(out) out.doc = d;                             // що лежить у базі зараз — для версій
   const v = String(d[field] || '');
   if(base === undefined) return d;                 // у базі є те, чого ми не читали
   if(v && v > String(base || '')) return d;
@@ -8906,7 +8907,19 @@ function watchOrders(){
     const спір = [];
     const тримаємо = ordersHeld();
     let мої = 0;
+    /* ЗНІМОК НЕСЕ ЛИШЕ ЗМІНУ (23.10, «висне»). Доти на КОЖЕН знімок —
+       а він приходить від будь-чиєї правки — сторінка розбирала й
+       серіалізувала ВСІ картки заново (сотні документів, на телефоні
+       десятки мілісекунд, помножені на тридцять людей). Тепер: знаємо, які
+       документи змінились (docChanges), решту беремо з памʼяті як є. */
+    let змінені = null;
+    try{ змінені = new Set(); snap.docChanges().forEach(c => { змінені.add(c.doc.id); }); }catch(e){ змінені = null; }
     snap.forEach(d=>{
+      if(змінені && !змінені.has(d.id) && ordersSaved.has(d.id) && було.has(d.id)){
+        list.push(було.get(d.id));
+        seen.set(d.id, ordersSaved.get(d.id));
+        return;
+      }
       const o = d.data() || {};
       o.id = o.id || d.id;
       const json = JSON.stringify(o);
@@ -29199,7 +29212,9 @@ let designJobs = {};              // orderId → задача
 let designWatching = false;
 let designDirty = {};             // що чекає запису
 let designSeen = {};              // orderId → updatedAt, який ця вкладка бачила останнім
-let designLast = {};              // orderId → JSON картки відділу, яку ця вкладка бачила останньою (для версій)
+/* Попередню копію для версій беремо з того самого читання бази, що й
+   звірку версії (designPut → dbNewer): окремої памʼяті на всі картки не
+   тримаємо — на телефоні це були б мегабайти рядків. */
 /* ══════════ ВЕРСІЇ КАРТОК У САМІЙ CRM (23.10) ══════════
 
    Андрій: «воно ж десь має зберігатись… як роблять топові CRM». Перед
@@ -29307,7 +29322,8 @@ async function designPut(job, opt){
   const id = String(job && job.orderId || '');
   if(!id) return false;
   if(dbLinkDead()) throw new Error('звʼязок з базою втрачено — оновіть сторінку');
-  const свіжа = await dbNewer(DESIGN_COL.doc(id), designSeen[id], 'updatedAt');
+  const було = {};
+  const свіжа = await dbNewer(DESIGN_COL.doc(id), designSeen[id], 'updatedAt', було);
   if(свіжа){
     designJobs[id] = свіжа; designSeen[id] = String(свіжа.updatedAt || '');
     delete designDirty[id];
@@ -29319,10 +29335,9 @@ async function designPut(job, opt){
     return false;
   }
   const body = JSON.stringify(job);
-  if(designLast[id] && designLast[id] !== body) await histPut(DESIGN_COL, id, designLast[id], opt && opt.why);
+  if(було.doc){ const prev = JSON.stringify(було.doc); if(prev !== body) await histPut(DESIGN_COL, id, prev, opt && opt.why); }
   await DESIGN_COL.doc(id).set(JSON.parse(body));
   designSeen[id] = String(job.updatedAt || '');
-  designLast[id] = body;
   return true;
 }
 /* Оформлені замовлення закупівлі. Лежать у тій самій колекції, що й
@@ -29766,7 +29781,12 @@ function watchDesign(){
   if(designWatching) return;
   designWatching = true;
   DESIGN_COL.onSnapshot(snap=>{
-    snap.forEach(d=>{
+    /* Лише змінені документи (23.10): картки відділу важкі (одяг, версії,
+       журнал), розбирати їх усі на кожен чужий дотик — це і є «висне». */
+    let зміни = null;
+    try{ зміни = snap.docChanges(); }catch(e){ зміни = null; }
+    const один = (d, gone) => {
+      if(gone){ const v0 = d.data() || {}; if(v0 && v0.orderId && !designDirty[v0.orderId]){ delete designJobs[v0.orderId]; delete designSeen[v0.orderId]; } return; }
       const v = d.data();
       if(v && v.kind === 'buy' && v.id){ designBuys[v.id] = v; return; }
       if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : [];
@@ -29776,8 +29796,9 @@ function watchDesign(){
       if(designDirty[v.orderId]) return;
       designJobs[v.orderId] = v;
       designSeen[v.orderId] = String(v.updatedAt || '');
-      designLast[v.orderId] = JSON.stringify(v);
-    });
+    };
+    if(зміни && typeof зміни.forEach === 'function') зміни.forEach(c => один(c.doc, c.type === 'removed'));
+    else snap.forEach(d => один(d, false));
     dbLinkOk('design');
     /* Доручення міг видати хтось інший із іншої вкладки — число на кнопці
        має зʼявитись без перезаходу. Це і є все наше сповіщення: усі сидять
