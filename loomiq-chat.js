@@ -1085,7 +1085,7 @@ function crmOutFind(o, text, files){
 
    Останній рубіж — памʼять про те, що ми самі відправили з цієї картки. */
 const crmSent = new Set();
-function crmIsMine(m, text, who, peer){
+function crmIsMine(m, text, who, peer, files){
   if(m.isOutgoing || m.outgoing || m.fromManager || m.isManager || m.isMine || m.mine) return true;
   if(m.isIncoming === true || m.incoming === true || m.fromClient === true) return false;
   if(m.isIncoming === false || m.incoming === false) return true;
@@ -1093,9 +1093,17 @@ function crmIsMine(m, text, who, peer){
     .filter(v => typeof v === 'string').join(' ').toLowerCase();
   if(/\b(out|outgoing|manager|operator|admin|shop|company|staff)\b/.test(words)) return true;
   if(/\b(in|incoming|client|customer|contact|lead)\b/.test(words)) return false;
+  /* Кого Sitniks поклав у запис: менеджера — наше, клієнта — його. */
+  if([m.manager, m.employee, m.operator].some(x => x && typeof x === 'object')) return true;
+  if([m.client, m.contact].some(x => x && typeof x === 'object')) return false;
   const sign = [(who || {}).name, (who || {}).nick].map(crmKeyOf).filter(Boolean);
   if((peer || []).length && sign.length)
     return !sign.some(s => peer.some(pk => s === pk || s.indexOf(pk) >= 0 || pk.indexOf(s) >= 0));
+  /* Без підпису й без напрямку (23.10): так Sitniks віддає і наше, і
+     часом клієнтове (Марта, 23.09) — вгадувати за відсутністю підпису не
+     можна. Лишається памʼять про відправлене (o.crmOut — у картці, тож
+     спільна для всіх вкладок) і памʼять цієї вкладки. Що саме кладе Sitniks
+     у такий запис — дивитись кнопкою «{ }» у вікні діалогу. */
   return crmSent.has(String(text).trim());
 }
 /* Вкладення приходять голим посиланням просто в тексті — і повідомлення
@@ -1293,7 +1301,7 @@ function crmNormMsgs(data, o){
     /* Своє надіслане впізнаємо першими: тут ми знаємо напевно, а не
        здогадуємось за підписом, якого в такому повідомленні немає. */
     const own = crmOutOwn(o, m, files, заЧасом) || crmOutFind(o, text, files);
-    const mine = own ? true : crmIsMine(m, text, who, peer);
+    const mine = own ? true : crmIsMine(m, text, who, peer, files);
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
        відправлене, його імʼям підписувати наше повідомлення не можна. */
