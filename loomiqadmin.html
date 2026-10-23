@@ -5543,6 +5543,21 @@
   .fc-r{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line);}
   .fin-audit{padding:12px 16px;}
   .fa-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;}
+  .fin-rb .rb-f{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin:10px 0;}
+  .fin-rb textarea{min-width:180px;min-height:72px;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;}
+  .fin-rb input[type=datetime-local]{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;}
+  .fin-rb .rb-q{display:flex;gap:6px;flex-wrap:wrap;}
+  .fin-rb .rb-q button,.fin-rb .rb-go,.fin-rb .rb-back{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .fin-rb .rb-go{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .fin-rb .rb-i{border-top:1px solid var(--line);padding:10px 0;font-size:14px;line-height:1.45;}
+  .fin-rb .rb-i.bad{color:#b91c1c;}
+  .fin-rb .rb-i b{font-weight:700;}
+  .fin-rb .rb-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0;}
+  @media(max-width:700px){.fin-rb .rb-cols{grid-template-columns:1fr;}}
+  .fin-rb .rb-c{background:var(--bg,#f6f6f6);border-radius:8px;padding:8px 10px;}
+  .fin-rb .rb-c .h{font-size:12px;opacity:.7;margin-bottom:4px;}
+  .fin-rb .rb-tr a{display:inline-block;margin:2px 6px 2px 0;}
+  .fin-rb .rb-note{font-size:13px;opacity:.75;margin-top:6px;}
   .fa-h b{font-weight:800;}
   .fa-ok{color:#1d7a3e;font-weight:700;}
   .fa-n{font-size:12px;font-weight:800;border-radius:20px;padding:2px 9px;}
@@ -6691,6 +6706,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div id="fin-pane-acc">
       <!-- Звірка грошей: усе, де гроші можуть загубитись з поля зору (04.10). -->
       <div class="card fin-audit" id="fin-audit"></div>
+      <!-- Відкат карток на стан у минулому (власник, 23.10): читає базу «як
+           було о …» (point-in-time recovery) і повертає картку відділу. -->
+      <div class="card fin-rb" id="fin-rollback" hidden></div>
       <div class="card">
         <div class="fin-accs-h">
           <span>Рахунки</span>
@@ -8018,33 +8036,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1091c2d440"></script>
-<script src="loomiq-fingerprint.js?v=1091c2d440"></script>
-<script src="loomiq-pricing.js?v=1091c2d440"></script>
+<script src="loomiq-select.js?v=5f0ec68527"></script>
+<script src="loomiq-fingerprint.js?v=5f0ec68527"></script>
+<script src="loomiq-pricing.js?v=5f0ec68527"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=1091c2d440"></script>
+<script src="loomiq-money-core.js?v=5f0ec68527"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1091c2d440"></script>
-<script src="loomiq-bg.js?v=1091c2d440"></script>
-<script src="loomiq-mock.js?v=1091c2d440"></script>
+<script src="loomiq-design.js?v=5f0ec68527"></script>
+<script src="loomiq-bg.js?v=5f0ec68527"></script>
+<script src="loomiq-mock.js?v=5f0ec68527"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1091c2d440"></script>
+<script src="imagetracer.js?v=5f0ec68527"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=1091c2d440"></script>
-<script src="loomiq-threads.js?v=1091c2d440"></script>
+<script src="loomiq-chat.js?v=5f0ec68527"></script>
+<script src="loomiq-threads.js?v=5f0ec68527"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1091c2d440"></script>
+<script src="loomiq-cards.js?v=5f0ec68527"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8089,7 +8107,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1091c2d440';
+var LQ_VER = '5f0ec68527';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11680,12 +11698,34 @@ function jobHasWork(j){
   return !!(units.length || (j.tasks || []).length || +j.approvedVersion || String(b.text || '').trim() || (b.pics || []).length ||
             (j.stitch || []).some(s => s && ((s.files || []).length || (s.versions || []).length)) || (j.state && j.state !== 'new'));
 }
+/* ЖУРНАЛ ДОСТУПІВ ЯК ПАМʼЯТЬ ЗВІРКИ. Видалена картка лишає слід «видалив
+   замовлення <ключ>», зʼєднання — «(ключ N → T)». Без цього сирота від
+   видаленої картки виглядала як «не дописалась», а помилкове зʼєднання
+   не було як відкотити. */
+function accFind(kind, re){
+  return accLogList().filter(r => r && r.kind === kind && re.test(String(r.text || '')));
+}
+function delLogOf(no){
+  const k = String(no || '').replace(/\D/g, ''); if(!k) return null;
+  const l = accFind('del', new RegExp('видалив замовлення (B2C )?' + k + '(\\D|$)'));
+  return l[l.length - 1] || null;
+}
+function joinLogFrom(no){
+  const k = String(no || '').replace(/\D/g, ''); if(!k) return null;
+  const l = accFind('renum', new RegExp('\\(ключ ' + k + ' → (\\d{7})\\)'));
+  const r = l[l.length - 1]; if(!r) return null;
+  const m = /\(ключ \d{7} → (\d{7})\)/.exec(r.text);
+  return m ? { to: m[1], at: r.at, by: r.by } : null;
+}
 function orphanB2cRows(){
   const out = [];
   const jobs = designJobs || {};
   const мають = {};
   (orders || []).forEach(o => { if(o && o.orderId) мають[String(o.orderId)] = 1; });
-  const сироти = Object.keys(jobs).filter(k => jobs[k] && jobs[k].orderId && !мають[k] && !jobs[k].draft && !jobs[k].gone);
+  /* Сироти: картка відділу є, картки замовлення під цим ключем немає.
+     Картка відділу ВИДАЛЕНОЇ картки (слід у журналі) — не сирота: її
+     платежі, якщо є, Звірка й так показує як «такого замовлення немає». */
+  const сироти = Object.keys(jobs).filter(k => jobs[k] && jobs[k].orderId && !мають[k] && !jobs[k].draft && !jobs[k].gone && !delLogOf(k));
   const плат = k => (payments || []).filter(p => p && String(p.orderId) === String(k) && (+p.amount || 0) > 0);
   const гр = n => fmt(n) + ' ₴';
   const хв = (a, b) => Math.abs((Date.parse(a || '') || 0) - (Date.parse(b || '') || 0));
@@ -11696,8 +11736,41 @@ function orphanB2cRows(){
      старим, Звірка відновила під ним порожню. Дві картки однієї людини —
      обʼєднати: справжня бере свій номер, порожня зникає. */
   const злиті = {};
+  const хто = r => (r && r.by ? ' (' + String(r.by).replace(/@.*/, '') + ')' : '');
+  /* 00) ВІДНОВЛЕННЯ, ЯКЕ НЕ ТРЕБА БУЛО РОБИТИ (23.10, дванадцять порожніх).
+     а) «Зʼєднати» перекинуло живу картку з N на T (слід «(ключ N → T)»), її
+        одяг і платежі лишились під N, Звірка відновила під N порожню —
+        «Повернути»: картка назад під N, порожня зникає.
+     б) картку під N видалили (слід «видалив замовлення N»), її картка
+        відділу лишилась і «Відновити» зробило порожню — «Прибрати». */
   (orders || []).forEach(a => {
-    if(!a || a.draft || !a.restoredAt || orderDir(a) !== 'b2c' || a.crmChatId || a.tgChatId || String(a.name || '').trim()) return;
+    if(!a || a.draft || !a.restoredAt || orderDir(a) !== 'b2c' || злиті[a.id]) return;
+    const N = String(a.orderId);
+    const jl = joinLogFrom(N);
+    const X = jl && (orders || []).find(x => x && !x.draft && x.id !== a.id && !x.restoredAt && String(x.orderId) === String(jl.to));
+    if(X){
+      злиті[a.id] = 1; злиті[X.id] = 1;
+      const p = плат(N);
+      out.push({ kind:'wrong_join', sev:'red', orderId: N, toNo: N, fromNo: String(X.orderId), no: noOf(N), docId: a.id, fromId: X.id,
+        text: 'Картку #' + noOf(N) + (X.name || X.crmChatName ? ' (' + (X.name || X.crmChatName) + ')' : '') + ' ' + коли(jl.at) + хто(jl) +
+              ' зʼєднали не з тією карткою відділу: вона стоїть під #' + noOf(X.orderId) + ' з чужим одягом і статусом, а її власний одяг' +
+              (p.length ? ', дизайн і ' + p.length + ' платіж(і) на ' + гр(p.reduce((q, x) => q + Math.round(+x.amount), 0)) : ' і дизайн') +
+              ' лишились під #' + noOf(N) + ', де тепер порожня «відновлена». Натисніть «Повернути» — картка стане назад під #' + noOf(N) + ', порожня зникне.' });
+      return;
+    }
+    const dl = delLogOf(N);
+    if(dl && !a.crmChatId && !a.tgChatId && !String(a.name || '').trim()){
+      злиті[a.id] = 1;
+      const p = плат(N);
+      out.push({ kind:'restored_del', sev:'red', orderId: N, toNo: N, no: noOf(N), docId: a.id,
+        text: 'Картка #' + noOf(N) + ' відновлена даремно: її видалили ' + коли(dl.at) + хто(dl) +
+              ', а картка відділу лишилась і виглядала «не дописаною».' +
+              (p.length ? ' Під номером є ' + p.length + ' платіж(і) на ' + гр(p.reduce((q, x) => q + Math.round(+x.amount), 0)) + ' — їх Звірка покаже окремо, привʼяжіть до правильної картки.' : '') +
+              ' Натисніть «Прибрати» — порожня картка зникне.' });
+    }
+  });
+  (orders || []).forEach(a => {
+    if(!a || a.draft || !a.restoredAt || orderDir(a) !== 'b2c' || злиті[a.id] || a.crmChatId || a.tgChatId || String(a.name || '').trim()) return;
     /* Стрибок номера йде лише вгору: справжня картка має номер БІЛЬШИЙ за
        відновлений. Своїх платежів чи накладної в неї немає — вони під
        старим номером. Робота у відділі під її номером не заважає: при
@@ -11768,6 +11841,45 @@ async function orphanB2cRestore(x){
     return;
   }
   if(x.kind === 'twin_b2c') return orderTwinMerge(x);
+  if(x.kind === 'restored_del'){
+    const r = (orders || []).find(q => q && q.id === x.docId);
+    if(!r) throw new Error('картки вже немає');
+    orders = (orders || []).filter(q => q && q.id !== r.id);
+    await jobTombstone(x.toNo, '');
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'прибрано даремно відновлену картку #' + x.no + ' (її було видалено)'); }catch(e){}
+    try{ repaintAfterOrders(); }catch(e){}
+    return;
+  }
+  if(x.kind === 'wrong_join'){
+    const R = (orders || []).find(q => q && q.id === x.docId);
+    const X = (orders || []).find(q => q && q.id === x.fromId);
+    if(!X) throw new Error('картки вже немає');
+    const N = String(x.toNo), T = String(X.orderId);
+    /* Робота відділу: старе «Зʼєднати» карток відділу не чіпало — під N
+       лежить власна. Нове могло перенести її під T і лишити під N надгробок —
+       тоді повертаємо всю роботу з-під T назад під N. */
+    const jN = (designJobs || {})[N], jT = (designJobs || {})[T];
+    if((!jN || jN.gone) && jT && !jT.gone){
+      const no = (jN && jN.no) || jT.no;
+      jT.orderId = N; jT.no = no; delete jT.gone; delete jT.mergedInto;
+      designJobs[N] = jT;
+      try{ await DESIGN_COL.doc(N).set(JSON.parse(JSON.stringify(jT))); }catch(e){ console.warn('картка відділу при поверненні', e); }
+      await jobTombstone(T, N);
+    }
+    if(!orderNosOff && fbDb && typeof fbDb.runTransaction === 'function'){
+      try{ await ORDER_NOS.doc(N).delete(); await ORDER_NOS.doc(N).set({ id: X.id, by: myEmail() || '', at: new Date().toISOString(), dir: 'b2c' }); }
+      catch(e){ const code = String((e && (e.code || e.message)) || e); if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)) orderNosOff = true; else console.warn('бронь при поверненні', e); }
+    }
+    X.orderId = N;
+    X.hist = (X.hist || []).concat([{ s:'renum', at:new Date().toISOString(), from: T }]).slice(-40);
+    if(R) orders = (orders || []).filter(q => q && q.id !== R.id);
+    touchOrder(X);
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'повернуто картку #' + x.no + ' (' + (X.name || X.crmChatName || '—') + ') під свій номер (ключ ' + T + ' → ' + N + '), даремно відновлену прибрано'); }catch(e){}
+    try{ repaintAfterOrders(); }catch(e){}
+    return;
+  }
   const o = (orders || []).find(q => q && q.id === x.docId);
   if(!o) throw new Error('картки вже немає');
   const було = String(o.orderId);
@@ -11880,6 +11992,214 @@ async function orderTwinMerge(x){
   try{ accLog('renum', 'обʼєднано картки #' + noOf(noA) + ' і #' + noOf(noB) + ': діалог і клієнт (' + (B.name || B.crmChatName || '—') + ') тепер у #' + noOf(noA) + ', зайва картка прибрана'); }catch(e){}
   try{ repaintAfterOrders(); }catch(e){}
 }
+/* ══════════ ВІДКАТ КАРТКИ НА СТАН У МИНУЛОМУ (23.10) ══════════
+
+   Андрій: «одобрені картки втратили картинки й статуси… воно ж десь має
+   зберігатись». У самій базі історії немає — крім випадку, коли в проєкті
+   ввімкнено point-in-time recovery: тоді Firestore віддає стан будь-якої
+   хвилини за останні 7 днів (readTime у REST-запиті; правила ті самі, що й
+   для звичайного читання). Без PITR база віддає лише останню хвилину і на
+   старішу дату відповідає відмовою — її тут показуємо як є, без здогадів.
+
+   Інструмент читає картку відділу й картку замовлення «як було о …»,
+   показує поруч із теперішніми (позиції, картинки, версії, етап) і
+   повертає картку відділу однією кнопкою. Поза базою сліди теж є:
+   надіслані клієнту ескізи лежать у картці (crmPicsOut) — їх показуємо
+   посиланнями, щоб було з чого відновлювати руками. */
+const rb = { nos: '', at: '', rows: null, busy: false, err: '' };
+function fsDecode(v){
+  if(v == null || typeof v !== 'object') return null;
+  if('stringValue' in v) return v.stringValue;
+  if('integerValue' in v) return +v.integerValue;
+  if('doubleValue' in v) return v.doubleValue;
+  if('booleanValue' in v) return v.booleanValue;
+  if('nullValue' in v) return null;
+  if('timestampValue' in v) return v.timestampValue;
+  if('mapValue' in v){ const o = {}; const f = (v.mapValue || {}).fields || {}; Object.keys(f).forEach(k => { o[k] = fsDecode(f[k]); }); return o; }
+  if('arrayValue' in v) return ((v.arrayValue || {}).values || []).map(fsDecode);
+  if('referenceValue' in v) return v.referenceValue;
+  if('bytesValue' in v) return v.bytesValue;
+  return null;
+}
+function fsDoc(d){ const o = {}; const f = (d && d.fields) || {}; Object.keys(f).forEach(k => { o[k] = fsDoc.one(f[k]); }); return o; }
+fsDoc.one = fsDecode;
+function fsBase(){
+  const pid = (typeof firebaseConfig === 'object' && firebaseConfig && firebaseConfig.projectId) || 'loomiq-admin';
+  return { url: 'https://firestore.googleapis.com/v1/projects/' + pid + '/databases/(default)', name: 'projects/' + pid + '/databases/(default)/documents/' };
+}
+/* Прочитати документи станом на мить `at` (ISO). Повертає { docs: {path → obj|null} }
+   або кидає Error з текстом відмови бази. */
+async function fsReadAt(paths, at){
+  const b = fsBase();
+  let idToken = '';
+  try{ idToken = await fbAuth.currentUser.getIdToken(); }catch(e){ throw new Error('сесія застаріла — увійдіть ще раз'); }
+  const r = await fetch(b.url + '/documents:batchGet', { method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + idToken },
+    body: JSON.stringify({ documents: paths.map(p => b.name + p), readTime: at }) });
+  const d = await r.json().catch(() => null);
+  if(!r.ok){
+    const m = (d && d.error && d.error.message) || ('HTTP ' + r.status);
+    throw new Error(m);
+  }
+  const out = {};
+  (Array.isArray(d) ? d : []).forEach(x => {
+    if(x && x.found){ const name = String(x.found.name || ''); out[name.slice(b.name.length)] = fsDoc(x.found); }
+    else if(x && x.missing){ out[String(x.missing).slice(b.name.length)] = null; }
+  });
+  return out;
+}
+function rbKeyOf(no){
+  const n = String(no || '').replace(/\D/g, ''); if(!n) return null;
+  const o = (orders || []).find(x => x && !x.draft && (String(showNo(x)) === n || String(x.orderId) === n));
+  if(o) return { no: n, key: String(o.orderId), docId: o.id, o };
+  const k = Object.keys(designJobs || {}).find(k => designJobs[k] && String(designJobs[k].no) === n);
+  if(k) return { no: n, key: k, docId: '', o: null };
+  return { no: n, key: '', docId: '', o: null };
+}
+function rbJobSum(j){
+  if(!j) return null;
+  const D = window.LQDesign, U = D && D.ui;
+  const units = U && U.unitsOf ? U.unitsOf(j) : (Array.isArray(j.units) ? j.units : []);
+  let pics = 0, vers = 0;
+  units.forEach(u => { pics += ((u && u.pics) || []).length; vers += ((u && u.graphic) || []).length + ((u && u.stitch) || []).length; });
+  const b = j.brief || {};
+  pics += (b.pics || []).length;
+  return { units: units.length, pics, vers, tasks: (j.tasks || []).length, state: String(j.state || ''), appr: +j.approvedVersion || 0,
+           at: String(j.updatedAt || ''), no: String(j.no || ''), gone: !!j.gone };
+}
+function rbOrderSum(o){
+  if(!o) return null;
+  return { name: String(o.name || o.crmChatName || ''), status: String(o.status || ''), items: (o.items || []).length,
+           chat: !!(o.crmChatId || o.tgChatId), pays: (o.payments || []).length, at: String(o.touchedAt || ''), pics: (o.crmPicsOut || []).length };
+}
+const rbFmt = s => { const d = new Date(s || ''); return isNaN(d) ? '—' : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+function rbJobText(x){
+  if(!x) return 'картки відділу немає';
+  if(x.gone) return 'надгробок (картка вибула)';
+  return 'етап ' + (x.state || '—') + ' · позицій ' + x.units + ' · картинок ' + x.pics + ' · версій макета ' + x.vers +
+    (x.appr ? ' · погоджена версія ' + x.appr : '') + (x.tasks ? ' · доручень ' + x.tasks : '') + ' · змінено ' + rbFmt(x.at);
+}
+function rbOrderText(x){
+  if(!x) return 'картки замовлення немає';
+  return (x.name ? x.name + ' · ' : 'без імені · ') + 'статус ' + (x.status || '—') + (x.chat ? ' · діалог привʼязано' : ' · без діалогу') +
+    ' · позицій ' + x.items + ' · платежів у картці ' + x.pays + ' · змінено ' + rbFmt(x.at);
+}
+async function rbLook(){
+  if(rb.busy) return;
+  const nos = String(rb.nos || '').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean);
+  if(!nos.length){ rb.err = 'Впишіть номери карток'; return renderRollback(); }
+  const at = new Date(rb.at || '');
+  if(isNaN(at)){ rb.err = 'Вкажіть дату й час'; return renderRollback(); }
+  rb.busy = true; rb.err = ''; rb.rows = null; renderRollback();
+  const keys = nos.map(rbKeyOf);
+  const paths = [];
+  keys.forEach(k => { if(k.key) paths.push('designJobs/' + k.key); if(k.docId) paths.push('kanbanOrders/' + k.docId); });
+  let docs = {};
+  try{ docs = paths.length ? await fsReadAt(paths, at.toISOString()) : {}; }
+  catch(e){
+    rb.busy = false;
+    const m = String((e && e.message) || e);
+    rb.err = /read.?time|point.in.time|PITR|too far|earlier than|retention|not enabled|INVALID_ARGUMENT|FAILED_PRECONDITION/i.test(m)
+      ? 'База не віддає стан на ' + rbFmt(at.toISOString()) + ': у проєкті не ввімкнено point-in-time recovery, історії в базі немає. ' +
+        'Відповідь бази: «' + m.slice(0, 200) + '». Відновлювати доведеться з решток поза базою (нижче — надіслані клієнту ескізи).'
+      : 'Не вдалось прочитати: ' + m.slice(0, 200);
+    rb.rows = keys.map(k => ({ k, then: null, thenO: null, now: rbJobSum((designJobs || {})[k.key]), nowO: rbOrderSum(k.o), traces: rbTraces(k) }));
+    return renderRollback();
+  }
+  rb.rows = keys.map(k => {
+    const then = k.key ? docs['designJobs/' + k.key] : null;
+    const thenO = k.docId ? docs['kanbanOrders/' + k.docId] : null;
+    return { k, thenDoc: then, thenODoc: thenO, then: rbJobSum(then), thenO: rbOrderSum(thenO),
+             now: rbJobSum((designJobs || {})[k.key]), nowO: rbOrderSum(k.o), traces: rbTraces(k) };
+  });
+  rb.busy = false;
+  renderRollback();
+}
+/* Сліди поза базою: ескізи, надіслані клієнту (адреси хмари в картці),
+   і записи журналу доступів з цим номером. */
+function rbTraces(k){
+  const o = k.o;
+  const pics = [];
+  /* Надіслані клієнту ескізи лежать полем у картці (діалог їх туди кладе);
+     читаємо поле, а не функцію діалогу — договір діалогу не розширюємо. */
+  (o && Array.isArray(o.crmPicsOut) ? o.crmPicsOut : []).forEach(e => (e.urls || []).forEach(u => { if(/^https?:/.test(u)) pics.push({ url: u, at: e.at || '', by: e.by || '' }); }));
+  const re = new RegExp('(#|№|\\b)' + k.no + '\\b' + (k.key ? '|' + k.key + '\\b' : ''));
+  const log = accLogList().filter(r => r && re.test(String(r.text || ''))).slice(-8);
+  return { pics, log };
+}
+async function rbRestore(i, what){
+  const r = (rb.rows || [])[i]; if(!r) return;
+  if(what === 'job'){
+    const j = r.thenDoc; if(!j) return;
+    if(!confirm('Повернути картку відділу #' + r.k.no + ' на стан від ' + rbFmt(r.then.at) + '?\n\nТеперішня: ' + rbJobText(r.now) + '\nБуде: ' + rbJobText(r.then))) return;
+    const копія = JSON.parse(JSON.stringify(j));
+    копія.orderId = r.k.key;
+    копія.restoredFrom = { at: rb.at, by: myEmail() || '', when: new Date().toISOString(), had: r.now };
+    designJobs[r.k.key] = копія;
+    await DESIGN_COL.doc(r.k.key).set(копія);
+    try{ accLog('renum', 'відкат картки відділу #' + r.k.no + ' на стан від ' + rbFmt(r.then.at) + ' (було: ' + rbJobText(r.now).slice(0, 80) + ')'); }catch(e){}
+    r.now = rbJobSum(копія);
+    try{ repaintAfterOrders(); }catch(e){}
+    toast('Картку відділу #' + r.k.no + ' повернуто на стан від ' + rbFmt(r.then.at));
+  }
+  if(what === 'order'){
+    const d = r.thenODoc; if(!d || !r.k.docId) return;
+    if(!confirm('Повернути картку замовлення #' + r.k.no + ' на стан від ' + rbFmt(r.thenO.at) + '?\n\nТеперішня: ' + rbOrderText(r.nowO) + '\nБуде: ' + rbOrderText(r.thenO) +
+      '\n\nПлатежі в базі лишаються на своїх місцях — вони привʼязані до номера, не до картки.')) return;
+    const копія = JSON.parse(JSON.stringify(d)); копія.id = r.k.docId;
+    копія.restoredFrom = { at: rb.at, by: myEmail() || '', when: new Date().toISOString() };
+    const i2 = (orders || []).findIndex(x => x && x.id === r.k.docId);
+    if(i2 >= 0) orders[i2] = копія; else orders.push(копія);
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'відкат картки замовлення #' + r.k.no + ' на стан від ' + rbFmt(r.thenO.at)); }catch(e){}
+    r.k.o = копія; r.nowO = rbOrderSum(копія);
+    try{ repaintAfterOrders(); }catch(e){}
+    toast('Картку #' + r.k.no + ' повернуто на стан від ' + rbFmt(r.thenO.at));
+  }
+  renderRollback();
+}
+function renderRollback(){
+  const box = document.getElementById('fin-rollback');
+  if(!box) return;
+  if(!canSetup()){ box.hidden = true; return; }
+  box.hidden = false;
+  const E = escapeHtml;
+  if(!rb.at){ const d = new Date(Date.now() - 3 * 864e5); d.setHours(9, 0, 0, 0); rb.at = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+  const quick = [[1, 'вчора 09:00'], [2, '2 дні тому'], [3, '3 дні тому'], [5, '5 днів тому'], [7, '7 днів тому']];
+  box.innerHTML = `<div class="fa-h"><b>Відкат карток</b><span>стан картки в базі на вибрану мить — і кнопка повернути</span></div>
+    <div class="rb-f">
+      <textarea data-rb-nos placeholder="Номери карток, по одному в рядку: 2000217…">${E(rb.nos)}</textarea>
+      <div>
+        <input type="datetime-local" data-rb-at value="${E(rb.at)}">
+        <div class="rb-q">${quick.map(q => `<button type="button" data-rb-q="${q[0]}">${q[1]}</button>`).join('')}</div>
+      </div>
+      <button type="button" class="rb-go" data-rb-go ${rb.busy ? 'disabled' : ''}>${rb.busy ? 'Читаю…' : 'Подивитись стан на цю мить'}</button>
+    </div>
+    ${rb.err ? `<div class="rb-i bad">${E(rb.err)}</div>` : ''}
+    ${(rb.rows || []).map((r, i) => `<div class="rb-i">
+      <b>#${E(r.k.no)}</b>${r.k.key ? '' : ' — <span class="bad">такої картки не знайдено ні серед замовлень, ні у відділі</span>'}
+      ${r.k.key ? `<div class="rb-cols">
+        <div class="rb-c"><div class="h">Зараз</div>${E(rbJobText(r.now))}<br>${E(rbOrderText(r.nowO))}</div>
+        <div class="rb-c"><div class="h">На ${E(rbFmt(new Date(rb.at).toISOString()))}</div>${rb.err ? '—' : E(rbJobText(r.then)) + '<br>' + E(rbOrderText(r.thenO))}</div>
+      </div>` : ''}
+      ${!rb.err && r.thenDoc && (!r.now || r.then.at !== r.now.at) ? `<button type="button" class="rb-back" data-rb-back="${i}" data-rb-what="job">Повернути картку відділу на цей стан</button> ` : ''}
+      ${!rb.err && r.thenODoc && (!r.nowO || r.thenO.at !== r.nowO.at) ? `<button type="button" class="rb-back" data-rb-back="${i}" data-rb-what="order">Повернути й картку замовлення</button>` : ''}
+      ${!rb.err && r.thenDoc && r.now && r.then.at === r.now.at ? '<div class="rb-note">На цю мить картка відділу була така сама, як зараз — відкочувати нема на що; спробуйте ранішу дату.</div>' : ''}
+      ${r.traces && r.traces.pics.length ? `<div class="rb-tr"><div class="h" style="font-size:12px;opacity:.7;margin-top:6px">Надіслані клієнту ескізи (поза базою, з них можна відновити руками):</div>${r.traces.pics.slice(-12).map(p => `<a href="${E(p.url)}" target="_blank" rel="noopener">${E(p.at || 'картинка')}${p.by ? ' · ' + E(p.by) : ''}</a>`).join('')}</div>` : (r.k.o ? '<div class="rb-note">Надісланих клієнту ескізів у картці не збережено.</div>' : '')}
+      ${r.traces && r.traces.log.length ? `<div class="rb-note">Журнал: ${r.traces.log.map(l => E(rbFmt(l.at)) + ' ' + E(String(l.by || '').replace(/@.*/, '')) + ': ' + E(String(l.text || '').slice(0, 90))).join(' · ')}</div>` : ''}
+      ${r.k.o ? `<div class="rb-note"><button type="button" class="rb-back" data-rb-open="${E(r.k.o.orderId)}">Відкрити картку</button></div>` : ''}
+    </div>`).join('')}`;
+  box.onclick = async e => {
+    const q = e.target.closest('[data-rb-q]');
+    if(q){ const d = new Date(Date.now() - (+q.dataset.rbQ) * 864e5); d.setHours(9, 0, 0, 0); rb.at = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); return renderRollback(); }
+    if(e.target.closest('[data-rb-go]')){ rb.nos = box.querySelector('[data-rb-nos]').value; rb.at = box.querySelector('[data-rb-at]').value; return rbLook(); }
+    const b = e.target.closest('[data-rb-back]');
+    if(b){ try{ await rbRestore(+b.dataset.rbBack, b.dataset.rbWhat); }catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); } return; }
+    const op = e.target.closest('[data-rb-open]');
+    if(op) openByNo(op.dataset.rbOpen);
+  };
+  box.oninput = e => { if(e.target.matches('[data-rb-nos]')) rb.nos = e.target.value; if(e.target.matches('[data-rb-at]')) rb.at = e.target.value; };
+}
 function renderFinAudit(){
   const box = document.getElementById('fin-audit');
   if(!box) return;
@@ -11889,7 +12209,7 @@ function renderFinAudit(){
     const сир = orphanB2cRows();
     /* «Платіж привʼязаний до #…, а такого замовлення немає» — те саме, що
        й розʼєднана картка: показуємо одне, з кнопкою, яка лагодить обоє. */
-    const закр = {}; сир.forEach(x => { закр[x.toNo] = 1; if(x.fromNo) закр[x.fromNo] = 1; });
+    const закр = {}; сир.forEach(x => { if(x.kind === 'restored_del') return; закр[x.toNo] = 1; if(x.fromNo) закр[x.fromNo] = 1; });
     list = сир.concat(list.filter(x => !(x.kind === 'lost_order' && закр[String(x.orderId)])));
   }catch(e){ console.warn('картки без номера', e); }
   const E = escapeHtml;
@@ -11922,7 +12242,9 @@ function renderFinAudit(){
           ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Зʼєднати</button>' : '<span class="fa-wait">зʼєднує власник</span>') : ''}
           ${x.kind === 'orphan_job' ? (canSetup() ? '<button class="pri" data-fa-restore>Відновити</button>' : '<span class="fa-wait">відновлює власник</span>') : ''}
           ${x.kind === 'twin_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Обʼєднати</button>' : '<span class="fa-wait">обʼєднує власник</span>') : ''}
-          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && x.kind !== 'orphan_b2c' && x.kind !== 'orphan_job' && x.kind !== 'twin_b2c' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+          ${x.kind === 'wrong_join' ? (canSetup() ? '<button class="pri" data-fa-restore>Повернути</button>' : '<span class="fa-wait">повертає власник</span>') : ''}
+          ${x.kind === 'restored_del' ? (canSetup() ? '<button class="pri" data-fa-restore>Прибрати</button>' : '<span class="fa-wait">прибирає власник</span>') : ''}
+          ${['cod_orphan', 'dup_no', 'orphan_b2c', 'orphan_job', 'twin_b2c', 'wrong_join', 'restored_del'].indexOf(x.kind) < 0 && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
         </div></div>`; }).join('')}</div>` : ''}`;
   box.onclick = async e => {
     if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
@@ -11934,7 +12256,9 @@ function renderFinAudit(){
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
     if(e.target.closest('[data-fa-restore]')){
-      try{ await orphanB2cRestore(x); toast(x.kind === 'twin_b2c' ? 'Картка #' + x.no + ' одна: діалог, одяг і платежі разом' : 'Картка #' + x.no + ' на місці — одяг, дизайн і платежі разом'); }
+      try{ await orphanB2cRestore(x); toast(x.kind === 'twin_b2c' ? 'Картка #' + x.no + ' одна: діалог, одяг і платежі разом' :
+          x.kind === 'wrong_join' ? 'Картка #' + x.no + ' знову під своїм номером, порожню прибрано' :
+          x.kind === 'restored_del' ? 'Порожню картку #' + x.no + ' прибрано' : 'Картка #' + x.no + ' на місці — одяг, дизайн і платежі разом'); }
       catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
       return renderFin();
     }
@@ -11968,6 +12292,7 @@ function renderFin(){
   /* Замовлення могли довантажитись пізніше за рухи — пробуємо ще раз. */
   try{ payAutoLinkTtn(); }catch(e){}
   try{ renderFinAudit(); }catch(e){ console.warn('звірка', e); }
+  try{ renderRollback(); }catch(e){ console.warn('відкат', e); }
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
      дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
      мати два різні числа про той самий день. */
@@ -29037,10 +29362,10 @@ async function designDeleteOrder(o){
       '', 'Разом із ним зникне робота відділу дизайну. Відновити не можна.'].join('\n'))) return;
   await accLog('del', 'видалив замовлення B2C ' + (o.orderId || o.id) +
     ' · ' + (o.name || o.instagram || o.crmChatName || 'без імені') + (sum ? ' · ' + Math.round(sum) + ' грн' : ''));
-  if(o.orderId){
-    try{ await DESIGN_COL.doc(o.orderId).delete(); }catch(e){ console.warn('задача дизайну', e); }
-    delete designJobs[o.orderId];
-  }
+  /* Видалити документ designJobs правила не дають — доти картка відділу
+     мовчки лишалась і після перезавантаження виглядала «не дописаною»
+     (23.10: дванадцять порожніх «відновлених» карток). Тому — надгробок. */
+  if(o.orderId){ await jobTombstone(o.orderId, ''); delete designJobs[o.orderId]; }
   try{ crmForget(o); }catch(e){}
   orders = orders.filter(x => x.id !== o.id);
   await storeSet('orders', orders);
