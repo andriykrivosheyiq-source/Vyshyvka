@@ -96,7 +96,9 @@ const r = await p.evaluate(async () => {
   o.payments.push({ sum:1700, at:'2026-10-20T09:00:00.000Z', kind:'final' });
   U.render(document.getElementById('dzRoot'));
   out.післяОплати = { tag: U.waitOf(j, o), card: /Чекаємо дані/.test(картка()) && !/доплату/.test(картка()) };
-  o.phone = '+380671112233'; o.ship = { cityRef:'c', cityName:'Київ', whRef:'w', whName:'Відділення 1' };
+  /* 23.10: у B2C імʼя картки — нік; отримувача вписують у форму або він
+     приходить з переписки (tests/ship-recipient.mjs). */
+  o.phone = '+380671112233'; o.ship = { name:'Петренко Асія', cityRef:'c', cityName:'Київ', whRef:'w', whName:'Відділення 1' };
   U.render(document.getElementById('dzRoot'));
   out.післяДаних = { tag: U.waitOf(j, o), card: !/Чекаємо/.test(картка()) };
   /* «ТТН не створена» — з «Ескіз узгоджено». */
