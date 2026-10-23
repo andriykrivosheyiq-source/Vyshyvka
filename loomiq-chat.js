@@ -2460,12 +2460,28 @@ function sweepInfoTxt(){
 function paintSweepInfo(){
   document.querySelectorAll('[data-sweep-info]').forEach(el => { el.textContent = sweepInfoTxt(); });
 }
+/* ПОШУК У СПИСКУ РОЗМОВ (23.10, Андрій: «пошук в чатах по імені»): імʼя,
+   нік, номер картки, телефон, останній текст. Запит живе на напрям і
+   переживає перемальовування списку (обхід раз на 30 с). */
+const chatsQ = { b2b: '', b2c: '' };
+function chatsMatch(r, q){
+  q = String(q || '').trim().toLowerCase();
+  if(!q) return true;
+  const o = r.o || {};
+  const hay = [r.who, r.channel, r.text, o.name, o.crmChatName, o.crmNick, o.ig, o.instagram, o.tgUser, o.phone, o.company,
+               o.orderId, showNo(o)].filter(Boolean).join(' ').toLowerCase();
+  return q.split(/\s+/).every(t => hay.indexOf(t) >= 0);
+}
+function chatsRowsQ(dir){ return chatsRows(dir).filter(r => chatsMatch(r, chatsQ[dir])); }
 function chatsHtml(dir){
-  const rows = chatsRows(dir);
-  if(!rows.length)
+  const all = chatsRows(dir);
+  const rows = chatsRowsQ(dir);
+  if(!all.length)
     return '<div class="chl-empty">Розмов тут поки немає. Вони зʼявляються, ' +
            'коли розмову привʼязують до замовлення цього напряму — у картці, ' +
            'кнопкою 🔗 біля клієнта.</div>';
+  if(!rows.length)
+    return '<div class="chl-empty">За «' + escapeHtml(chatsQ[dir]) + '» нічого немає.</div>';
   return rows.map((r, i) => `
     <button class="chl-row${r.waits ? ' waits' : ''}${
       chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
@@ -2516,20 +2532,34 @@ function renderChats(dir){
      цю мить, губився: «по Ctrl+Enter надсилає, а кнопка — ні». Вікно,
      що вже стоїть на місці, тепер не чіпаємо взагалі. */
   const list = root.querySelector('.ch2 > .ch2-list');
+  const qHtml = '<div class="chl-qw"><input type="search" class="chl-q" placeholder="Пошук: імʼя, нік, номер, телефон" value="' +
+    escapeHtml(chatsQ[dir]) + '" autocomplete="off"></div>';
   if(list && document.getElementById(host)){
-    list.innerHTML = chatsHtml(dir);
+    /* Лише рядки: поле пошуку з курсором і набраним лишається як є. */
+    const rowsEl = list.querySelector('.chl-rows');
+    if(rowsEl) rowsEl.innerHTML = chatsHtml(dir);
+    else list.innerHTML = qHtml + '<div class="chl-rows">' + chatsHtml(dir) + '</div>';
     if(!parked && !document.getElementById(host).children.length) chatsViewEmpty(dir);
   } else {
     if(parked) (document.querySelector('.workarea') || document.body).appendChild(cw);
     root.innerHTML = '<div class="ch2">' +
-        '<div class="ch2-list">' + chatsHtml(dir) + '</div>' +
+        '<div class="ch2-list">' + qHtml + '<div class="chl-rows">' + chatsHtml(dir) + '</div></div>' +
         '<div class="ch2-view" id="' + host + '"></div>' +
       '</div>';
     if(parked) chatsMount(dir);
     else chatsViewEmpty(dir);
   }
+  const qEl = root.querySelector('.chl-q');
+  if(qEl && !qEl.__wired){
+    qEl.__wired = true;
+    qEl.addEventListener('input', () => { chatsQ[dir] = qEl.value; const re = root.querySelector('.chl-rows'); if(re){ re.innerHTML = chatsHtml(dir); wireRows(); } });
+    qEl.addEventListener('keydown', e => { e.stopPropagation(); if(e.key === 'Escape'){ qEl.value = ''; qEl.dispatchEvent(new Event('input')); } });
+  }
+  const shown = chatsRowsQ(dir);
+  function wireRows(){
+  const now = chatsRowsQ(dir);
   root.querySelectorAll('[data-chl]').forEach(b => b.addEventListener('click', async ()=>{
-    const r = rows[+b.dataset.chl];
+    const r = now[+b.dataset.chl];
     if(!r || !r.o) return;
     chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm', { host: chatsHostId(dir), dir });
     /* Картка праворуч відкрита — переходить на замовлення нової розмови. */
@@ -2539,6 +2569,8 @@ function renderChats(dir){
     }
     renderChats(dir);
   }));
+  }
+  wireRows();
 }
 /* Поки нічого не обрано — праворуч не порожнеча, а підказка: порожня
    половина екрана читається як «зламалось». */
