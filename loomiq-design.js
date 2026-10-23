@@ -9424,6 +9424,33 @@
     });
   }
   var SOLO = null;
+  /* ТИХЕ ПЕРЕМАЛЬОВУВАННЯ (23.10, Андрій: «підвисає, блимає»). Знімок бази
+     при 30 людях і фоновому обході розмов приходить мало не щосекунди, і
+     кожен перебудовував відкриту картку цілком: зникав наведений курсор,
+     перезавантажувались картинки — звідси блимання. Тепер фонове оновлення
+     (renderSoft) не чіпає сторінку, коли вигляд не змінився, і не
+     перебудовує її, поки людина щось пише в полі — перемалюється, щойно
+     вона вийде з поля. Дії самої людини малюють як доти. */
+  var SOFT = false, softTimer = 0;
+  function softTyping(root){
+    var a = document.activeElement;
+    return !!(a && root.contains(a) && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable));
+  }
+  function softSkip(root, html){
+    if(!SOFT) return false;
+    if(root.__lqHtml === html && root.firstChild) return true;
+    if(softTyping(root)){
+      clearTimeout(softTimer);
+      softTimer = setTimeout(function(){ renderSoft(root); }, 2500);
+      return true;
+    }
+    return false;
+  }
+  function renderSoft(root){
+    if(!root) return;
+    SOFT = true;
+    try{ render(root); }finally{ SOFT = false; }
+  }
   function renderPanel(root, id, opt){
     if(!root) return;
     SOLO = { root: root, id: String(id || ''), onClose: (opt && opt.onClose) || (SOLO && SOLO.root === root ? SOLO.onClose : null) };
@@ -9432,7 +9459,10 @@
     U.setTab('acct');
     U.open(SOLO.id);
     var html = probBarHtml(SOLO.id) + panelFor('acct', SOLO.id);
-    root.innerHTML = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
+    var full = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
+    if(softSkip(root, full)) return !!html;
+    root.innerHTML = full;
+    root.__lqHtml = full;
     wire(root);
     try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
     if(_top){ var _p2 = root.querySelector('.dz-panel-b'); if(_p2) _p2.scrollTop = _top; }
@@ -9566,7 +9596,7 @@
          тільки власнику. */
       : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
         (seekHtml(шук) + архів + графік + перемикач);
-    root.innerHTML =
+    var _full =
       '<div class="dz-top">' + headHtml + '</div>' +
       /* Закупівля — без канбана: список «треба замовити», оформлені
          замовлення й склад. Андрій: «канбана тут немає». */
@@ -9576,6 +9606,9 @@
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
           (openId ? probBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
+    if(softSkip(root, _full)) return;
+    root.innerHTML = _full;
+    root.__lqHtml = _full;
     wire(root);
     /* Аркуш добирається сам, уже після того, як екран намальовано: спершу
        людина бачить картку, а збирання йде тихо позаду. */
@@ -10284,6 +10317,7 @@
   }
 
   window.LQDesign.ui.render = render;
+  window.LQDesign.ui.renderSoft = renderSoft;
   window.LQDesign.ui.renderPanel = renderPanel;
   window.LQDesign.ui.soloOff = function(){ SOLO = null; };
   /* Дії назовні — щоб їх можна було перевірити повз інтерфейс. Половина

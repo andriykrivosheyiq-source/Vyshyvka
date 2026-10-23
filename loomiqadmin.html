@@ -8064,33 +8064,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=901a40e52a"></script>
-<script src="loomiq-fingerprint.js?v=901a40e52a"></script>
-<script src="loomiq-pricing.js?v=901a40e52a"></script>
+<script src="loomiq-select.js?v=82d25895a0"></script>
+<script src="loomiq-fingerprint.js?v=82d25895a0"></script>
+<script src="loomiq-pricing.js?v=82d25895a0"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=901a40e52a"></script>
+<script src="loomiq-money-core.js?v=82d25895a0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=901a40e52a"></script>
-<script src="loomiq-bg.js?v=901a40e52a"></script>
-<script src="loomiq-mock.js?v=901a40e52a"></script>
+<script src="loomiq-design.js?v=82d25895a0"></script>
+<script src="loomiq-bg.js?v=82d25895a0"></script>
+<script src="loomiq-mock.js?v=82d25895a0"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=901a40e52a"></script>
+<script src="imagetracer.js?v=82d25895a0"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=901a40e52a"></script>
-<script src="loomiq-threads.js?v=901a40e52a"></script>
+<script src="loomiq-chat.js?v=82d25895a0"></script>
+<script src="loomiq-threads.js?v=82d25895a0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=901a40e52a"></script>
+<script src="loomiq-cards.js?v=82d25895a0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8135,7 +8135,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '901a40e52a';
+var LQ_VER = '82d25895a0';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9245,7 +9245,7 @@ function repaintAfterOrdersNow(){
   go('view-board', renderBoard);
   /* Лише перемалювати дошку — без підписок, опитувань і доведень, які
      робить openDesign при вході в розділ. */
-  go('view-design', () => { const r = document.getElementById('dzRoot'); if(r && window.LQDesign && LQDesign.ui) LQDesign.ui.render(r); });
+  go('view-design', () => { const r = document.getElementById('dzRoot'); if(r && window.LQDesign && LQDesign.ui) (LQDesign.ui.renderSoft || LQDesign.ui.render)(r); });
   go('view-chats', () => renderChats('b2b'));
   go('view-chatsc', () => renderChats('b2c'));
   go('view-problems', renderProblems);
@@ -30090,7 +30090,7 @@ function watchDesignAux(){
   try{ DESIGN_COL.where('kind', 'in', ['buy', 'stock']).onSnapshot(snap => {
     snap.forEach(d => { const v = d.data(); if(v && v.kind === 'buy' && v.id) designBuys[v.id] = v;
       if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : []; designStockMoves = Array.isArray(v.moves) ? v.moves : []; } });
-    try{ if(document.getElementById('view-design') && document.getElementById('view-design').style.display !== 'none') openDesign(); }catch(e){}
+    try{ if(document.getElementById('view-design') && document.getElementById('view-design').style.display !== 'none') openDesign(true); }catch(e){}
   }, e => { designAuxWatching = false; console.warn('закупівлі/склад', e); setTimeout(watchDesignAux, DB_RETRY_MS); }); }
   catch(e){ designAuxWatching = false; console.warn(e); }
 }
@@ -30127,7 +30127,7 @@ function watchDesign(){
     migrateSoloJobs();      // картки, заведені до появи напрямів
     priceLockAll();         // 15.10: старі картки фіксують свої ціни
     if(document.getElementById('view-design') &&
-       document.getElementById('view-design').style.display !== 'none') openDesign();
+       document.getElementById('view-design').style.display !== 'none') openDesign(true);
   }, e => { designWatching = false; dbLinkLost('design', e); });
 }
 /* ЦІНИ В ІСНУЮЧИХ КАРТКАХ — ФІКСУЄМО ОДИН РАЗ (15.10). Андрій міняє ціни в
@@ -30343,7 +30343,7 @@ async function b2cRefuseBack(o, job){
   accLog('refuse', 'повернуто в роботу ' + showNo(o));
   try{ repaintAfterOrders(); }catch(e){}
 }
-function openDesign(){
+function openDesign(soft){
   try{ prodNpPoll(false); }catch(e){}
   const root = document.getElementById('dzRoot');
   if(!root || !window.LQDesign || !window.LQDesign.ui) return;
@@ -30372,7 +30372,10 @@ function openDesign(){
   /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,
      і показувати її першою означає щодня просити перемкнути вкладку. */
   if(mine && window.LQDesign.ui.tab() === 'queue') window.LQDesign.ui.setTab('graphic');
-  window.LQDesign.ui.render(root);
+  /* Знімок бази — тихо (лише коли вигляд змінився, не під час набору);
+     вхід у розділ — повністю. */
+  if(soft === true && window.LQDesign.ui.renderSoft) window.LQDesign.ui.renderSoft(root);
+  else window.LQDesign.ui.render(root);
 }
 /* Гачки відділу для ядра (20.10): винесено з openDesign, бо потрібні й без
    відкритого відділу — пересилання з діалогу клієнта дизайнеру (loomiq-chat)

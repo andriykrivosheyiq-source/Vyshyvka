@@ -224,6 +224,10 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Тихе перемальовування відділу** (23.10): `renderSoft`/`softSkip`/
+  `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
+  у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
+  відділу — лише тихо. `tests/no-flicker.mjs`.
 - **Конструктор: колір і дубль товару** (23.10): `colorRename(gid, i)` (✎
   `data-pcolren` на чипі, пише `productColors[gid]` лише з новою назвою),
   `productDuplicate(src)` / `productDupPatch(src, id, name)` / `dupMergeLocal`
