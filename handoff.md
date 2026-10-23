@@ -217,9 +217,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   «Повернути й картку замовлення» (слід `restoredFrom`, журнал `renum`).
   PITR не ввімкнено → відмова бази текстом; сліди поза базою —
   `crmPicsOut` посиланнями, журнал. `tests/rollback.mjs` (у pre-commit).
-  Причина втрат — обірвані підписки + запис цілим документом (див. BUGS);
-  захист «не читали — не пишемо» ще не зроблено (погоджено, у стеші
-  гілки). **Порядок викладки:** 1) адмінка вже в main — власник
+  Причина втрат — обірвані підписки + запис цілим документом (див. BUGS).
+- **Не читали — не пишемо** (23.10): `dbLink`, `dbLinkLost`/`dbLinkOk`,
+  `dbLinkDead`, плашка `#db-lost`; `dbNewer(ref, base, field)`;
+  `saveOrders` звіряє `touchedAt` проти `ordersSaved`; `designPut(job, opt)`
+  звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
+  пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
+  `tests/db-link.mjs` (у pre-commit). **Порядок викладки:** 1) адмінка вже в main — власник
   заходить, броні наявних номерів ставляться самі (тост «заброньовано N»);
   2) лише ПІСЛЯ цього задеплоїти `firestore.rules`. Інакше нові картки не
   запишуться до бронювання старих. `tests/order-nos.mjs` (емулятор),
