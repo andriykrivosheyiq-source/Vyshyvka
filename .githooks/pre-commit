@@ -172,6 +172,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-reci
   }
   echo "✓ отримувач — з переписки, ніколи не нік"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/ttn-manual\.mjs)'; then
+  node tests/ttn-manual.mjs >/tmp/lq-ttn-manual.log 2>&1 || {
+    echo "✗ Поле «номер ТТН руками» знову бере будь-який текст або «✎ Змінити» не працює — коміт зупинено. Подробиці: /tmp/lq-ttn-manual.log"
+    grep '✗' /tmp/lq-ttn-manual.log
+    exit 1
+  }
+  echo "✓ номер ТТН руками — лише номер"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-mock\.js|loomiq-design\.js|tests/place-tools\.mjs)'; then
   node tests/place-tools.mjs >/tmp/lq-place-tools.log 2>&1 || {
     echo "✗ У вікні розміщення зламано поворот, колір, перед/спину чи PhotoRoom — коміт зупинено. Подробиці: /tmp/lq-place-tools.log"

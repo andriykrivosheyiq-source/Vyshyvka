@@ -2193,6 +2193,52 @@ async function crmChatsList(){
   try{ localStorage.setItem('crmChatsWay', '-'); }catch(e){}
   return base;
 }
+/* НАСТУПНІ СТОРІНКИ СПИСКУ РОЗМОВ (23.10, «бачу нові повідомлення, а в
+   воронці й у Чатах їх немає»). Розмір сторінки Sitniks міг і не
+   прийняти — тоді обхід бачив лише першу сторінку, а решту розмов страховка
+   дочитувала по дві за такт (годинами). Шукаємо раз, як просити наступну
+   сторінку (page / offset / skip), памʼятаємо й дочитуємо до двох сторінок
+   за такт — поки сторінка приносить нові розмови. */
+const CRM_CHATS_NEXT = ['page', 'offset', 'skip'];
+let crmChatsNext = null;
+try{ crmChatsNext = localStorage.getItem('crmChatsNext2') || null; }catch(e){}
+function crmChatsPageQ(nx, n, got){
+  const q = [];
+  if(crmChatsWay && crmChatsWay !== '-') q.push(crmChatsWay);
+  if(nx === 'page') q.push('page=' + n);
+  else q.push(nx + '=' + got);
+  return '/chats?' + q.join('&');
+}
+const crmRowId = r => String((r && (r.chatId || r.chat_id || r.id)) || '');
+async function crmChatsAll(){
+  const rows = await crmChatsList();
+  crmSweepPages = 1;
+  if(rows.length < 10 || crmChatsNext === '-') return rows;
+  const ids = new Set(rows.map(crmRowId));
+  const add = l => { let n = 0; l.forEach(r => { const id = crmRowId(r); if(id && !ids.has(id)){ ids.add(id); rows.push(r); n++; } }); return n; };
+  const ways = crmChatsNext ? [crmChatsNext] : CRM_CHATS_NEXT;
+  for(const nx of ways){
+    let page = 2, нові = 0;
+    while(page <= 3){
+      let l;
+      try{ l = crmListOf(await crmFetch(crmChatsPageQ(nx, page, rows.length))); }
+      catch(e){ if(e && e.status === 429) return rows; l = []; }
+      const n = add(l);
+      if(!n) break;
+      нові += n; crmSweepPages = page; page++;
+    }
+    if(нові){
+      if(crmChatsNext !== nx){ crmChatsNext = nx; try{ localStorage.setItem('crmChatsNext2', nx); }catch(e){} }
+      return rows;
+    }
+  }
+  /* Жоден спосіб не дав нових розмов — більше не питаємо (до очищення памʼяті). */
+  if(!crmChatsNext){ crmChatsNext = '-'; try{ localStorage.setItem('crmChatsNext2', '-'); }catch(e){} }
+  return rows;
+}
+let crmSweepPages = 1;
+/* Чому обхід стоїть — для рядка в Чатах (червоним, коли довше двох хвилин). */
+let crmSweepWhy = '';
 const crmChecked = {};
 let crmSweepInfo = null;
 /* Живе замовлення — є сенс стерегти розмову: не закрите й не скасоване. */
@@ -2217,10 +2263,11 @@ function crmTakeFeed(o, data){
   return було !== [+o.crmUnread || 0, o.crmAt || '', !!o.crmTheirs].join('|');
 }
 async function crmSweepOnce(){
-  if(crmSweepBusy || !crmBase() || document.hidden) return;
+  if(crmSweepBusy || document.hidden) return;
+  if(!crmBase()){ crmSweepWhy = 'не вписано адресу воркера Sitniks'; try{ paintSweepInfo(); }catch(e){} return; }
   /* Пауза після 429 — і поки відкритий діалог ще не дочитав свою стрічку:
      він важливіший за кружечки. */
-  if(crmCooling()) return;
+  if(crmCooling()){ crmSweepWhy = 'Sitniks просить паузу' + (crmCoolWhy ? ' (' + crmCoolWhy + ')' : ' (забагато запитів)'); try{ paintSweepInfo(); }catch(e){} return; }
   if(chatWin && chatWin.kind === 'crm' && !((crmChat[chatWin.id] || {}).msgs)) return;
   /* Поки щось надсилається — не питаємо: Sitniks рахує запити, і обхід
      у цю мить лише відбирає в картинки ліміт. */
@@ -2229,7 +2276,8 @@ async function crmSweepOnce(){
   (orders || []).forEach(o => { if(o && o.crmChatId) byChat[String(o.crmChatId)] = o; });
   crmSweepBusy = true;
   try{
-    const rows = await crmChatsList();
+    const rows = await crmChatsAll();
+    crmSweepWhy = '';
     let touched = false;
     const recount = [];
     const уСписку = new Set(rows.map(r => String((r && (r.chatId || r.chat_id || r.id)) || '')));
@@ -2289,16 +2337,19 @@ async function crmSweepOnce(){
        замовлень, яких у списку не було, — по дві за такт, найдавніше
        перевірені першими. */
     if(!впер){
+      /* Першими — ще не перевірені за цей сеанс, серед них — де розмова
+         жила останні два тижні (клієнт, що пише зараз, — майже завжди там). */
+      const свіжа = o => String(o.crmAt || o.touchedAt || o.createdAt || '') > new Date(Date.now() - 14 * 864e5).toISOString() ? 0 : 1;
       const черга = (orders || []).filter(o => o && o.crmChatId && !уСписку.has(String(o.crmChatId)) &&
           !(chatWin && chatWin.id === o.id) && crmSweepLive(o))
-        .sort((a, b) => (crmChecked[a.id] || 0) - (crmChecked[b.id] || 0)).slice(0, 2);
+        .sort((a, b) => ((crmChecked[a.id] || 0) - (crmChecked[b.id] || 0)) || (свіжа(a) - свіжа(b))).slice(0, 2);
       for(const o of черга){
         crmChecked[o.id] = Date.now();
         try{ if(crmTakeFeed(o, await crmFetch('/chats/' + encodeURIComponent(o.crmChatId) + '/messages'))) touched = true; }
         catch(e){ if(e && e.status === 429) break; }
       }
     }
-    crmSweepInfo = { at: new Date().toISOString(), rows: rows.length, way: crmChatsWay || '' };
+    crmSweepInfo = { at: new Date().toISOString(), rows: rows.length, way: crmChatsWay || '', pages: crmSweepPages };
     try{ paintSweepInfo(); }catch(e){}
     if(touched){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
@@ -2310,6 +2361,9 @@ async function crmSweepOnce(){
     /* 429 чи тимчасовий збій — просто пропускаємо такт. Наступний буде за
        хвилину, і нічого страшного не сталось. */
     if(!(e && e.status === 429)) console.warn('обхід розмов', e);
+    crmSweepWhy = (e && e.status === 429) ? 'Sitniks просить паузу (забагато запитів)'
+      : 'Sitniks не відповів' + (e && e.message ? ': ' + String(e.message).slice(0, 80) : '');
+    try{ paintSweepInfo(); }catch(e2){}
   }finally{ crmSweepBusy = false; }
 }
 /* ══════════ КЛІЄНТ ПИШЕ В ІНШУ РОЗМОВУ (14.10) ══════════
@@ -2451,14 +2505,21 @@ function chatsRows(dir){
 }
 /* Жива ознака обходу Instagram у «Чатах»: коли перевіряли й скільки розмов
    побачили — щоб на живих даних було видно, що він ходить і бачить усі. */
+/* Обхід стоїть довше двох хвилин — кажемо червоним і чому (23.10). */
+function sweepStuck(){
+  const i = crmSweepInfo;
+  return !!crmSweepWhy && (!i || Date.now() - new Date(i.at).getTime() > 120000);
+}
 function sweepInfoTxt(){
   const i = crmSweepInfo;
+  if(sweepStuck()) return '⚠ Instagram не перевіряється' + (i ? ' з ' + crmKyiv(i.at).slice(11, 16) : '') + ': ' + crmSweepWhy +
+    ' — нові повідомлення на дошці й у Чатах можуть запізнюватись';
   if(!i) return 'Instagram: ще не перевіряли';
   return 'Instagram перевірено о ' + crmKyiv(i.at).slice(11, 16) + ' · розмов у списку ' + i.rows +
-         (i.way && i.way !== '-' ? '' : ' (перша сторінка)');
+         ((i.way && i.way !== '-') || (i.pages || 1) > 1 ? '' : ' (перша сторінка)');
 }
 function paintSweepInfo(){
-  document.querySelectorAll('[data-sweep-info]').forEach(el => { el.textContent = sweepInfoTxt(); });
+  document.querySelectorAll('[data-sweep-info]').forEach(el => { el.textContent = sweepInfoTxt(); el.classList.toggle('is-err', sweepStuck()); });
 }
 /* ПОШУК У СПИСКУ РОЗМОВ (23.10, Андрій: «пошук в чатах по імені»): імʼя,
    нік, номер картки, телефон, останній текст. Запит живе на напрям і
@@ -2492,7 +2553,7 @@ function chatsHtml(dir){
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
     </button>`).join('') +
-    `<div class="chl-sweep" data-sweep-info>${escapeHtml(sweepInfoTxt())}</div>`;
+    `<div class="chl-sweep${sweepStuck() ? ' is-err' : ''}" data-sweep-info>${escapeHtml(sweepInfoTxt())}</div>`;
 }
 function crmDayShort(at){
   const s = String(at || '');
@@ -3670,9 +3731,12 @@ function qrUnitVals(u){
     колір: u.color || '',
     розмір: u.size || '',
     вишивка: spots.filter(sp => +sp.wCm > 0).map(sp => см(sp.wCm) + ' × ' + см(sp.hCm) + ' см').join(', '),
-    /* Фіксація однієї позиції: одяг одним рядком (модель, колір, розмір —
-       не вказано → прочерк) і нанесення без сантиметрів. */
-    фіксація: 'Одяг: ' + [(g && g.name) || u.name || '…', String(u.color || '').toLowerCase(), 'розмір ' + (u.size || '—')].filter(Boolean).join(', ') +
+    /* Фіксація однієї позиції — СТОВПЧИКОМ (23.10, Андрій: «кожний параметр
+       окремо… без кількості»): модель, колір, розмір (не вказано → прочерк)
+       і нанесення без сантиметрів. */
+    фіксація: 'Модель: ' + ((g && g.name) || u.name || '…') +
+              '\nКолір: ' + (u.color ? String(u.color).charAt(0).toUpperCase() + String(u.color).slice(1) : '—') +
+              '\nРозмір: ' + (u.size || '—') +
               '\nНанесення: ' + (spots.length ? spots.map(sp => ['вишивка', де(sp)].filter(Boolean).join(' ')).join(', ') : 'вишивка')
   };
 }

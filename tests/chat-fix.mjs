@@ -169,8 +169,9 @@ const кн = [];
 for(const [слово, як] of [['мишкою', 'клік'], ['під рукою', 'перемалювалось']]){
   await p.click('#chatWin .cw-inp');
   await p.keyboard.type(слово);
-  const b = await p.$('#chatWin [data-cw-go]');
-  const r = await b.boundingBox();
+  /* Кнопку беремо заново в мить натиску (локатор чекає, поки вона на місці):
+     під навантаженням вікно встигало перемалюватись між пошуком і замірами. */
+  const r = await p.locator('#chatWin [data-cw-go]').boundingBox({ timeout: 5000 });
   await p.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
   await p.mouse.down();
   if(як === 'перемалювалось') await p.evaluate(() => { renderChatWin(); try{ chatsLive(); }catch(e){} });

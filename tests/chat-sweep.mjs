@@ -385,6 +385,49 @@ ok(сторінка.n === 12 && сторінка.way === 'perPage=100' && сто
   'список розмов — не лише перша сторінка: параметр розміру знайдено сам і запамʼятовано',
   'сторінка: ' + JSON.stringify(сторінка));
 
+/* 23.10: «бачу нові повідомлення, а в воронці й у Чатах їх немає». Розмір
+   сторінки Sitniks не прийняв — обхід дочитує наступні сторінки сам. */
+const сторінки = await p.evaluate(async () => {
+  try{ chatClose(); }catch(e){}
+  const f = window.crmFetch;
+  const o = orders[0];
+  o.crmUnread = 0; o.crmTheirs = false; o.crmAt = '2026-10-16T08:00:00.000Z';
+  o.crmSeen = ''; o.crmSeenK = ''; o.crmSeenKt = ''; o.crmSeenTs = 0;
+  const id = String(o.crmChatId);
+  const перша = Array.from({ length: 20 }, (_, i) => ({ id:'p' + i, lastMessage:{ text:'x', createdAt:'2026-10-16T09:00:00Z' } }));
+  const друга = Array.from({ length: 5 }, (_, i) => ({ id: i === 3 ? id : 'q' + i,
+    lastMessage:{ text: i === 3 ? 'Коли відправите?' : 'y', createdAt:'2026-10-23T12:00:00Z' } }));
+  const питали = [];
+  window.crmFetch = async (path) => {
+    if(/^\/chats(\?|$)/.test(path)){ питали.push(path);
+      if(/[?&]page=2(&|$)/.test(path)) return { items: друга };
+      return { items: перша }; }
+    return f(path);
+  };
+  crmChatsWay = '-'; crmChatsNext = null; crmCoolUntil = 0;
+  await crmSweepOnce();
+  const r1 = { n: +o.crmUnread || 0, чекає: !!o.crmTheirs, остання: o.crmLast, спосіб: crmChatsNext, інфо: sweepInfoTxt(), питали: питали.slice() };
+  window.crmFetch = f;
+  return r1;
+});
+console.log('   ' + JSON.stringify(сторінки).slice(0, 400));
+ok(сторінки.чекає && сторінки.n >= 1 && /Коли відправите/.test(сторінки.остання) && сторінки.спосіб === 'page' &&
+   /розмов у списку 25/.test(сторінки.інфо) && !/перша сторінка/.test(сторінки.інфо),
+  'розмова на другій сторінці списку Sitniks — обхід дочитав її сам: кружечок на картці, «розмов у списку 25»',
+  'сторінки: ' + JSON.stringify(сторінки));
+const стоїть = await p.evaluate(async () => {
+  const f = window.crmFetch;
+  window.crmFetch = async (path) => { if(/^\/chats/.test(path) && !/messages/.test(path)){ const e = new Error('HTTP 500'); e.status = 500; throw e; } return f(path); };
+  crmSweepInfo = { at: new Date(Date.now() - 5 * 60000).toISOString(), rows: 25, way: '-', pages: 2 };
+  await crmSweepOnce();
+  const t = sweepInfoTxt(), st = sweepStuck();
+  window.crmFetch = f; crmSweepWhy = '';
+  return { t, st };
+});
+console.log('   ' + JSON.stringify(стоїть));
+ok(стоїть.st && /Instagram не перевіряється/.test(стоїть.t) && /Sitniks не відповів/.test(стоїть.t),
+  'обхід стоїть довше двох хвилин — у Чатах червоним: «Instagram не перевіряється … Sitniks не відповів»', JSON.stringify(стоїть));
+
 const око = await p.evaluate(() => {
   const o = orders[0];
   o.crmUnread = 2; o.crmTheirs = true;

@@ -228,6 +228,16 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
   у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
   відділу — лише тихо. `tests/no-flicker.mjs`.
+- **Номер ТТН руками / ✎ Змінити** (23.10): `D.ttnValid` (14 цифр) у
+  `[data-of="ttn"]`; `host.ttnDrop` → `shipTtnDrop(o)` (справжній номер — у
+  `o.ttnHist`, інше просто знімається), кнопка `[data-ship-ttn-x]`. Тест `ttn-manual`.
+- **Обхід розмов — усі сторінки** (23.10): `crmChatsAll` (page/offset/skip,
+  `crmChatsNext2`, до 2 сторінок за такт), страховка — спершу свіжі
+  (`crmAt` за 14 днів); `crmSweepWhy`/`sweepStuck` — червоний рядок у Чатах,
+  коли обхід стоїть понад 2 хв. Тест `chat-sweep`.
+- **Фон у вікні роботи — PhotoRoom одразу** (23.10): `вантажити` → `фон('photoroom')`
+  (крім прозорих файлів, `прозора`); помилка — `w.bgErr` з `bgWhy`, без
+  запасного. Фіксація в заготовці — стовпчиком (`qrUnitVals.фіксація`).
 - **Отримувач накладної з переписки** (23.10): `shipFromChat(o)` →
   `shipNameOf`/`shipPhoneOf` по `crmChat[o.id].msgs` (лише повідомлення
   клієнта); `shipVals` — `o.ship` > переписка > (лише B2B) `o.name`; нік
@@ -237,7 +247,7 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   (`w.rot`) на `w.clrOrig`; `поверни(delta)`, `[data-mko-rot]`; колір і
   поворот у кожному вікні. Дві роботи без розміщення — перед/спина
   (`спинаКлюч`); завантаження при зайнятому переді — на спину. `ФОН`:
-  PhotoRoom першим, падіння → простий (`w.bgFell`). У версії (`workVer`):
+  PhotoRoom першим; падіння — червоний напис `w.bgErr` (23.10, без тихого запасного). У версії (`workVer`):
   `rot`, `xfFrom`, data-оригінал вантажиться в сховище. Тест `place-tools`.
 - **Конструктор: колір і дубль товару** (23.10): `colorRename(gid, i)` (✎
   `data-pcolren` на чипі, пише `productColors[gid]` лише з новою назвою),

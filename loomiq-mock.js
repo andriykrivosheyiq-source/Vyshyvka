@@ -549,7 +549,10 @@
             '" data-mko-bg="' + f[0] + '"' + (w.bgBusy ? ' disabled' : '') + '>' + esc(f[1]) + '</button>';
         }).join('') +
         (w.bgBusy ? '<i class="mko-bg-w">' + esc(w.bgNote || 'прибираю…') + '</i>' : '') +
-        (!w.bgBusy && w.bg === 'local' ? '<i class="mko-bg-w">' + esc(w.bgFell ? 'PhotoRoom не відповів — прибрано простим способом' : 'не чисто — натисніть «PhotoRoom»') + '</i>' : '') +
+        /* PhotoRoom не відповів — кажемо прямо й чому; фон НЕ прибрано, простий
+           спосіб — лише кнопкою (23.10, Андрій: «щоб писали, що не відповідає»). */
+        (!w.bgBusy && w.bgErr ? '<i class="mko-bg-w is-err">' + esc(w.bgErr) + '</i>' : '') +
+        (!w.bgBusy && !w.bgErr && w.bg === 'local' ? '<i class="mko-bg-w">не чисто — натисніть «PhotoRoom»</i>' : '') +
       '</div>';
     }
     /* КОЛІР ПРИНТА (Андрій, 20.10): готовий дизайн білий, а треба чорний —
@@ -694,21 +697,19 @@
       w.bgBusy = true; малюй();
       var out = null;
       w.bgNote = '';
-      w.bgFell = false;
+      w.bgErr = '';
       try{ out = await removeBg(w.orig, mode, function(t){ w.bgNote = t; малюй(); }); }
       catch(e){
         console.warn('фон', e);
-        /* PhotoRoom не відповів (адреса, кредити, мережа) — одразу простий. */
+        w.bgBusy = false;
         if(mode === 'photoroom'){
-          try{ out = await removeBg(w.orig, 'local', function(t){ w.bgNote = t; малюй(); }); mode = 'local'; w.bgFell = true; }
-          catch(e2){ console.warn('фон (простий)', e2); }
+          /* Без тихого запасного: людина має знати, що PhotoRoom не відповів. */
+          w.bgErr = bgWhy(e);
+          малюй();
+          return say(w.bgErr);
         }
-        if(!out){
-          w.bgBusy = false; малюй();
-          return say(mode === 'photoroom'
-            ? 'PhotoRoom не відповів — перевірте адресу Worker у налаштуваннях'
-            : 'Фон не прибрався — картинка з чужого домену або пошкоджена');
-        }
+        малюй();
+        return say('Фон не прибрався — картинка з чужого домену або пошкоджена');
       }
       var im = await img(out);
       w.bgBusy = false;
@@ -1141,6 +1142,28 @@
         asp: асп[бік] || 0, ar: (places[бік] || []).map(арПро), dragging: !!drag }));
     };
 
+    /* ЧОМУ PHOTOROOM НЕ ПРИБРАВ ФОН — словами, а не кодом. */
+    function bgWhy(e){
+      var m = String((e && e.message) || e || '');
+      var st = (/api-(\d+)/.exec(m) || [])[1];
+      if(m === 'no-proxy') return 'PhotoRoom не відповідає: у налаштуваннях не вписана адреса воркера PhotoRoom — фон не прибрано';
+      if(st === '402') return 'PhotoRoom не відповідає: закінчились кредити — фон не прибрано';
+      if(st === '401' || st === '403') return 'PhotoRoom не відповідає: ключ не прийнято (воркер) — фон не прибрано';
+      if(st) return 'PhotoRoom не відповідає: помилка ' + st + ' — фон не прибрано';
+      if(e && e.name === 'AbortError') return 'PhotoRoom не відповідає 25 с — фон не прибрано';
+      return 'PhotoRoom не відповідає (мережа) — фон не прибрано';
+    }
+    /* Чи вже прозорий фон: усі чотири кути прозорі — PhotoRoom не кличемо
+       (кредити платні, а прибирати нема чого). */
+    function прозора(im){
+      try{
+        var c = document.createElement('canvas'), W = im.naturalWidth || im.width, H = im.naturalHeight || im.height;
+        if(!W || !H) return false;
+        c.width = W; c.height = H;
+        var x = c.getContext('2d'); x.drawImage(im, 0, 0);
+        return [[0, 0], [W - 1, 0], [0, H - 1], [W - 1, H - 1]].every(function(p){ return x.getImageData(p[0], p[1], 1, 1).data[3] < 16; });
+      }catch(e){ return false; }
+    }
     async function вантажити(){
       if(!opt.onUpload) return say('Завантаження недоступне');
       var f = null;
@@ -1161,6 +1184,10 @@
         try{ втисни(places[бік][обране]); }catch(e){}
       } else нове(works.length - 1);
       малюй();
+      /* ФОН — ОДРАЗУ PHOTOROOM (23.10, Андрій: «можна автоматичне прибирання
+         фоторумом»). Лише там, де є вибір фону (не «✎ Розміщення»), і лише
+         коли фон справді є. «Не прибирати» повертає оригінал. */
+      if(!opt.placeOnly && !f.threads && !прозора(im)) await фон('photoroom');
     }
 
     async function зберегти(){
@@ -1987,7 +2014,8 @@
   }
   function removeBgPhotoroom(dataUrl){
     var url = String((HOST.bgUrl && HOST.bgUrl()) || '').trim();
-    if(!/^https:\/\//i.test(url)) return Promise.reject(new Error('no-proxy'));
+    /* Лише https (локальна адреса — для тестів). */
+    if(!/^https:\/\//i.test(url) && !/^http:\/\/(127\.0\.0\.1|localhost)[:/]/i.test(url)) return Promise.reject(new Error('no-proxy'));
     return fetch(dataUrl).then(function(r){ return r.blob(); }).then(function(blob){
       var ctrl = new AbortController();
       var timer = setTimeout(function(){ ctrl.abort(); }, 25000);
