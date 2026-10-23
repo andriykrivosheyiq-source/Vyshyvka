@@ -2396,7 +2396,7 @@ function chatsOrders(dir){
     catch(e){ console.warn('чати B2C', e);
       return (orders || []).filter(o => orderDir(o) === 'b2c' && !o.draft); }
   }
-  return (orders || []).filter(o => orderDir(o) === 'b2b');
+  return (orders || []).filter(o => orderDir(o) === 'b2b' && o.arch !== true);   // архів — не в чатах
 }
 /* ── ОДНА РОЗМОВА, ДВА ЗАМОВЛЕННЯ ────────────────────────────────────────
 

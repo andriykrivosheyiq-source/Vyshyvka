@@ -224,6 +224,17 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   звіряє `updatedAt` проти `designSeen` (ставить `watchDesign`), ним
   пишуть `designSave` і `priceLockAll`. Правило в CLAUDE.md;
   `tests/db-link.mjs` (у pre-commit).
+- **Архів карток** (23.10): `ARCH_DAYS` 30, `archReady` (contentData.archSeed),
+  `liveOrdersQ`/`liveJobsQ`, `watchDesignAux` (buy/stock), `archFinished`/
+  `archPick`, `archSeedOnce` (власник, раз, batch arch:false), `archSweep`
+  (власник, раз на день, `contentData.archAt`; batch arch:true + `loomiq/arch`
+  {ids}; ловить картки без позначки), `archLoad` (на вимогу: Аналітика,
+  Дашборди, «Архів»), `archOpen`/`renderArch`/`archRows` (`#arch-pop`,
+  кнопки `#board-arch` і `arch-open` у відділі через host `archOpen`),
+  `archFetch` в `openByNo`; `saveOrders`/`designPut` знімають `arch` при
+  зміні; `boardPass`/`designOrders`/`chatsOrders` ховають `arch:true`;
+  `LQMoney.audit` opt.archived. `init` чекає перший знімок команди
+  (`contentFirst`, до 8 с) перед `loadOrders`. `tests/archive.mjs`.
 - **Знімок несе лише зміну** (23.10): `watchOrders` і `watchDesign`
   обробляють `snap.docChanges()` (немає — повний прохід, як у стубі);
   `designLast` немає — `designPut` бере попередню копію для `histPut` з

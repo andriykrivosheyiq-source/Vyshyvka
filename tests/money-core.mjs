@@ -241,5 +241,14 @@ console.log('═══ 12. ДВА ЗАМОВЛЕННЯ З ОДНИМ НОМЕР�
 }
 
 console.log('');
+console.log('═══ 13. АРХІВНА КАРТКА — НЕ «ТАКОГО ЗАМОВЛЕННЯ НЕМАЄ» (23.10) ═══');
+{
+  const p = { id:'p-arch', amount: 900, at: D + '10T10:00:00Z', acc:'mono1', src:'mono', orderId:'1000090', tag:'prepay' };
+  const без = M.audit([], [p], { now: NOW, np: {}, accs: [], ordersLoaded: true }).filter(x => x.kind === 'lost_order');
+  const з = M.audit([], [p], { now: NOW, np: {}, accs: [], ordersLoaded: true, archived: { '1000090': '2026-10-01' } }).filter(x => x.kind === 'lost_order');
+  ok(без.length === 1 && з.length === 0, 'платіж на номер з архіву (картки в памʼяті немає) — не пункт Звірки; без списку архіву — пункт є', JSON.stringify({ без: без.length, з: з.length }));
+}
+
+console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);

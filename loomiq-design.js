@@ -2468,6 +2468,7 @@
     return {
       orderId: String(orderId || ''),
       createdAt: nowIso(), updatedAt: nowIso(),
+      arch: false,          // жива; в архів — лише щоденним проходом (23.10)
       state: 'new',
       /* ТЗ живе тут, а не в картці замовлення: у картці лежить те, що
          ПРОДАЛИ, а тут — те, що треба НАМАЛЮВАТИ. Це різні речі, і
@@ -9550,9 +9551,10 @@
                    esc(r.label) + '</option>';
           }).join('') + '</select></label>'
       : '';
+    var архів = (seat === 'acct' && host().archOpen) ? '<button type="button" class="dz-b dz-arch" data-do="arch-open" title="Завершені картки без руху понад 30 днів">Архів</button>' : '';
     var headHtml = boss
       ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
-        seekHtml(шук) + графік + перемикач
+        seekHtml(шук) + архів + графік + перемикач
       /* Співробітнику не пишемо, хто він. Дошка в нього одна, зайти на чужу
          він не може — і підпис «Моя дошка · Графічний дизайнер» просто
          повторював те, що він і так про себе знає. Андрій: «чому він тут
@@ -9563,7 +9565,7 @@
          менеджер B2C): 22.10 він зник разом із перемикачем, який мав лишитись
          тільки власнику. */
       : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
-        (seekHtml(шук) + графік + перемикач);
+        (seekHtml(шук) + архів + графік + перемикач);
     root.innerHTML =
       '<div class="dz-top">' + headHtml + '</div>' +
       /* Закупівля — без канбана: список «треба замовити», оформлені
@@ -11816,6 +11818,10 @@
     }
     if(what === 'order-del'){
       if(host().deleteOrder) await host().deleteOrder(o);
+      return;
+    }
+    if(what === 'arch-open'){
+      if(host().archOpen) host().archOpen();
       return;
     }
     if(what === 'pin-off'){
