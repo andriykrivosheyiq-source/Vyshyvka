@@ -5675,6 +5675,15 @@
   .rd-t i{font-style:normal;font-size:12px;color:var(--ink-soft);}
   .rd-on{font-size:12px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;}
   .rd-ed{margin-top:10px;padding:12px;border:1px solid var(--accent);border-radius:12px;display:flex;flex-direction:column;gap:10px;}
+  #arch-pop{position:fixed;inset:0;z-index:275;background:rgba(15,32,52,.42);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;}
+  .arch-w{background:var(--paper,#fff);border-radius:14px;max-width:640px;width:100%;padding:14px 16px;box-shadow:0 18px 50px rgba(15,32,52,.3);}
+  .arch-h{display:flex;align-items:center;gap:10px;font-size:14px;} .arch-h span{opacity:.7;font-size:13px;} .arch-h b{font-size:16px;}
+  .arch-x{all:unset;cursor:pointer;margin-left:auto;font-size:22px;line-height:1;padding:0 6px;}
+  .arch-q{width:100%;box-sizing:border-box;margin:10px 0;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:10px;}
+  .arch-l{display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow:auto;}
+  .arch-r{all:unset;cursor:pointer;display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px;}
+  .arch-r:hover{background:#f6f7f9;} .arch-r b{font-weight:700;} .arch-r i{font-style:normal;opacity:.65;font-size:12px;}
+  .arch-n{font-size:12.5px;opacity:.7;padding:6px 2px;}
   #rd-pop{position:fixed;inset:0;z-index:270;background:rgba(15,32,52,.42);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;}
   .rd-pop-w{background:var(--paper,#fff);border-radius:14px;max-width:760px;width:100%;padding:14px 16px;box-shadow:0 18px 50px rgba(15,32,52,.3);}
   .rd-pop-h{display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -6996,6 +7005,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <select class="bt-sort" id="board-track" title="Яку дошку показувати"></select>
         </label>
         <button class="btn btn-accent" id="board-add">+ Нова картка</button>
+        <button class="btn btn-ghost" id="board-arch" title="Завершені картки без руху понад 30 днів">Архів</button>
         <button class="btn btn-ghost" id="st-toggle">Налаштувати етапи</button>
       </div>
       <!-- Пошук шукає по всій дошці, а не в одній колонці: замовлення, яке
@@ -8052,33 +8062,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3df1db8d89"></script>
-<script src="loomiq-fingerprint.js?v=3df1db8d89"></script>
-<script src="loomiq-pricing.js?v=3df1db8d89"></script>
+<script src="loomiq-select.js?v=28e2eb31a2"></script>
+<script src="loomiq-fingerprint.js?v=28e2eb31a2"></script>
+<script src="loomiq-pricing.js?v=28e2eb31a2"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=3df1db8d89"></script>
+<script src="loomiq-money-core.js?v=28e2eb31a2"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3df1db8d89"></script>
-<script src="loomiq-bg.js?v=3df1db8d89"></script>
-<script src="loomiq-mock.js?v=3df1db8d89"></script>
+<script src="loomiq-design.js?v=28e2eb31a2"></script>
+<script src="loomiq-bg.js?v=28e2eb31a2"></script>
+<script src="loomiq-mock.js?v=28e2eb31a2"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=3df1db8d89"></script>
+<script src="imagetracer.js?v=28e2eb31a2"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=3df1db8d89"></script>
-<script src="loomiq-threads.js?v=3df1db8d89"></script>
+<script src="loomiq-chat.js?v=28e2eb31a2"></script>
+<script src="loomiq-threads.js?v=28e2eb31a2"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3df1db8d89"></script>
+<script src="loomiq-cards.js?v=28e2eb31a2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8123,7 +8133,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3df1db8d89';
+var LQ_VER = '28e2eb31a2';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8878,12 +8888,203 @@ async function dbNewer(ref, base, field, out){
   return null;
 }
 function touchedOfJson(json){ try{ return String((JSON.parse(json) || {}).touchedAt || ''); }catch(e){ return ''; } }
+/* ══════════ АРХІВ КАРТОК — ЖИВІ ЗАМІСТЬ УСІЄЇ БАЗИ (23.10) ══════════
+
+   Андрій: «довго вантажить… висне… 30 користувачів». Сторінка тягнула всі
+   картки за весь час, і кожна з них важила на старті й на кожному знімку.
+   Тепер картка з `arch:true` — в архіві: на старті й на дошках її немає.
+   В архів іде сама (щоденний прохід з вкладки власника, `archSweep`), коли
+   все разом: замовлення завершене чи відмова, її не торкались ARCH_DAYS,
+   борг нуль, непрочитаного немає. Повертається з архіву сама, щойно її
+   змінили (`saveOrders` знімає `arch`).
+
+   Аналітика, Дашборди (зарплата по місяцях) і розділ «Архів» довантажують
+   архів у памʼять на вимогу (`archLoad`) — там цифри повні. Звірка знає
+   номери архівних карток з `loomiq/arch` (`archIds`), тож платіж на архівну
+   картку — не «такого замовлення немає».
+
+   Увімкнення: власник раз розмічає всі картки `arch:false` (`archSeedOnce`,
+   `contentData.archSeed`); доти всі вкладки тягнуть усе, як доти. Нова
+   картка завжди отримує `arch:false`. Жодного індексу від Firebase не
+   треба: запити по одному полю. */
+const ARCH_DAYS = (typeof window !== 'undefined' && +window.LQ_ARCH_DAYS) || 30;
+let archLoaded = false;
+let archIds = {};
+function archReady(){ return !!(contentLoaded && +((contentData || {}).archSeed || 0) >= 1); }
+function liveOrdersQ(){ return archReady() ? ORDERS_COL.where('arch', '==', false) : ORDERS_COL; }
+function liveJobsQ(){ return archReady() ? DESIGN_COL.where('arch', '==', false) : DESIGN_COL; }
+function archFinished(o){
+  if(!o) return false;
+  if(o.status === 'cancel') return true;
+  if(orderDir(o) === 'b2c'){
+    const D = window.LQDesign; const j = (designJobs || {})[o.orderId];
+    if(!D || !j) return false;
+    try{ return !!D.refusalOf(j, o) || D.chainAt(j, o) === 'shipped'; }catch(e){ return false; }
+  }
+  return o.status === 'done';
+}
+function archPick(o, now){
+  if(!o || o.draft || o.arch === true || !o.orderId) return false;
+  if(!archFinished(o)) return false;
+  const t = Math.max(Date.parse(o.touchedAt || '') || 0, Date.parse(orderActivityAt(o)) || 0, Date.parse(o.createdAt || '') || 0);
+  if(!t || (now || Date.now()) - t < ARCH_DAYS * 864e5) return false;
+  if(orderUnread(o)) return false;
+  try{ if(payLoaded && dueSum(o) > 0) return false; }catch(e){ return false; }
+  return true;
+}
+/* Раз розмітити всі картки й картки відділу `arch:false` (власник). */
+let archSeeding = false;
+async function archSeedOnce(){
+  if(archSeeding || !canSetup() || !contentLoaded || archReady() || dbLinkDead()) return;
+  archSeeding = true;
+  try{
+    let n = 0;
+    for(const col of [ORDERS_COL, DESIGN_COL]){
+      const snap = await col.get();
+      const ids = [];
+      snap.forEach(d => { const v = d.data() || {}; if(v.arch === undefined && (col === ORDERS_COL || v.orderId || v.kind)) ids.push({ id: d.id, gone: !!v.gone }); });
+      for(let i = 0; i < ids.length; i += 400){
+        const b = fbDb.batch();
+        ids.slice(i, i + 400).forEach(x => { b.set(col.doc(x.id), { arch: !!x.gone }, { merge:true }); n++; });
+        await b.commit();
+      }
+    }
+    await PHOTOS_DOC.set({ archSeed: 1 }, { merge:true });
+    contentData.archSeed = 1;
+    (orders || []).forEach(o => { if(o && o.arch === undefined) o.arch = false; });
+    Object.keys(designJobs || {}).forEach(k => { const j = designJobs[k]; if(j && j.arch === undefined) j.arch = !!j.gone; });
+    try{ accLog('arch', 'архів увімкнено: розмічено карток ' + n); }catch(e){}
+    toast('Архів увімкнено: розмічено ' + n + ' карток. Після наступного оновлення сторінка вантажить лише живі.');
+  }catch(e){ console.warn('розмітка архіву', e); }
+  finally{ archSeeding = false; }
+}
+/* Щоденний прохід (власник): що дозріло — в архів. Працює з памʼяті (живі
+   картки вже тут), плюс раз на день ловить картки без позначки (зі старих
+   вкладок), щоб вони не випали з живого запиту. */
+let archSweeping = false;
+async function archSweep(force){
+  if(archSweeping || !canSetup() || !archReady() || !payLoaded || dbLinkDead()) return 0;
+  const today = new Date().toISOString().slice(0, 10);
+  if(!force && String(contentData.archAt || '') >= today) return 0;
+  archSweeping = true;
+  let n = 0;
+  try{
+    const now = Date.now(), at = new Date().toISOString();
+    const список = (orders || []).filter(o => archPick(o, now));
+    const ids = {};
+    for(let i = 0; i < список.length; i += 200){
+      const b = fbDb.batch();
+      список.slice(i, i + 200).forEach(o => {
+        b.set(ORDERS_COL.doc(o.id), { arch: true, archAt: at }, { merge:true });
+        if(orderDir(o) === 'b2c' && (designJobs || {})[o.orderId]) b.set(DESIGN_COL.doc(String(o.orderId)), { arch: true, archAt: at }, { merge:true });
+        ids[String(o.orderId)] = at; n++;
+      });
+      await b.commit();
+    }
+    if(n) await fbDb.collection('loomiq').doc('arch').set({ ids }, { merge:true });
+    /* Картки без позначки (зі старих вкладок) — у живі. */
+    try{
+      const snap = await ORDERS_COL.get();
+      const без = []; snap.forEach(d => { const v = d.data() || {}; if(v.arch === undefined) без.push(d.id); });
+      for(let i = 0; i < без.length; i += 400){ const b = fbDb.batch(); без.slice(i, i + 400).forEach(id => b.set(ORDERS_COL.doc(id), { arch:false }, { merge:true })); await b.commit(); }
+      const sj = await DESIGN_COL.get();
+      const безJ = []; sj.forEach(d => { const v = d.data() || {}; if(v.arch === undefined && (v.orderId || v.kind)) безJ.push({ id: d.id, gone: !!v.gone }); });
+      for(let i = 0; i < безJ.length; i += 400){ const b = fbDb.batch(); безJ.slice(i, i + 400).forEach(x => b.set(DESIGN_COL.doc(x.id), { arch: !!x.gone }, { merge:true })); await b.commit(); }
+    }catch(e){ console.warn('картки без позначки архіву', e); }
+    await PHOTOS_DOC.set({ archAt: today }, { merge:true });
+    contentData.archAt = today;
+    список.forEach(o => { o.arch = true; o.archAt = at; const j = (designJobs || {})[o.orderId]; if(j) j.arch = true; });
+    if(n){ try{ accLog('arch', 'в архів: ' + n + ' карток (завершені, без руху ' + ARCH_DAYS + ' дн.)'); }catch(e){} }
+    try{ repaintAfterOrders(); }catch(e){}
+  }catch(e){ console.warn('архівування', e); }
+  finally{ archSweeping = false; }
+  return n;
+}
+/* Довантажити архів у памʼять (аналітика, дашборди, розділ «Архів»). */
+let archLoading = null;
+function archLoad(){
+  if(archLoaded) return Promise.resolve(0);
+  if(archLoading) return archLoading;
+  if(!archReady()){ archLoaded = true; return Promise.resolve(0); }
+  archLoading = (async () => {
+    let n = 0;
+    try{
+      const so = await ORDERS_COL.where('arch', '==', true).get();
+      const є = new Set((orders || []).map(o => o && o.id));
+      so.forEach(d => { const o = d.data() || {}; o.id = o.id || d.id; if(є.has(o.id)) return;
+        orders.push(o); ordersSaved.set(o.id, JSON.stringify(o)); n++; });
+      const sj = await DESIGN_COL.where('arch', '==', true).get();
+      sj.forEach(d => { const v = d.data() || {}; if(!v.orderId || v.gone || designJobs[v.orderId]) return;
+        designJobs[v.orderId] = v; designSeen[v.orderId] = String(v.updatedAt || ''); });
+      orders = ordersSortDesc(orders);
+      archLoaded = true;
+    }catch(e){ console.warn('архів не довантажився', e); toast('Архів не довантажився: ' + ((e && e.message) || e)); }
+    archLoading = null;
+    return n;
+  })();
+  return archLoading;
+}
+/* Розділ «Архів»: пошук за номером, імʼям, ніком, телефоном; відкрити. */
+const archUi = { dir: 'b2b', q: '', open: false };
+async function archOpen(dir){
+  archUi.dir = dir || 'b2b'; archUi.open = true; archUi.q = '';
+  renderArch();
+  await archLoad();
+  renderArch();
+}
+function archRows(){
+  const q = String(archUi.q || '').trim().toLowerCase();
+  const qn = q.replace(/\D/g, '');
+  return (orders || []).filter(o => o && o.arch === true && orderDir(o) === archUi.dir && !o.draft)
+    .filter(o => { if(!q) return true;
+      const hay = [showNo(o), o.orderId, o.name, o.crmChatName, o.crmNick, o.ig, o.instagram, o.phone, o.company].map(x => String(x || '').toLowerCase());
+      return hay.some(h => h.includes(q)) || (qn && hay.some(h => h.replace(/\D/g, '').includes(qn))); })
+    .sort((a, b) => String(b.archAt || b.touchedAt || '').localeCompare(String(a.archAt || a.touchedAt || '')));
+}
+function renderArch(){
+  let box = document.getElementById('arch-pop');
+  if(!archUi.open){ if(box) box.remove(); return; }
+  if(!box){ box = document.createElement('div'); box.id = 'arch-pop'; document.body.appendChild(box); }
+  const E = escapeHtml;
+  const rows = archLoaded ? archRows() : null;
+  const всього = (orders || []).filter(o => o && o.arch === true && orderDir(o) === archUi.dir).length;
+  box.innerHTML = `<div class="arch-w">
+    <div class="arch-h"><b>Архів · ${archUi.dir === 'b2c' ? 'B2C' : 'B2B'}</b>
+      <span>завершені картки без руху понад ${ARCH_DAYS} дн.${archLoaded ? ' · ' + всього : ''}</span>
+      <button type="button" class="arch-x" data-arch-x>×</button></div>
+    <input type="search" class="arch-q" data-arch-q placeholder="Номер, імʼя, нік або телефон" value="${E(archUi.q)}">
+    <div class="arch-l">${rows === null ? '<div class="arch-n">Читаю архів…</div>' : (rows.length ? rows.slice(0, 80).map(o => `
+      <button type="button" class="arch-r" data-arch-open="${E(String(o.orderId))}">
+        <b>#${E(showNo(o))}</b><span>${E(o.name || o.crmChatName || o.company || o.instagram || '—')}</span>
+        <i>${E(o.status === 'cancel' ? 'відмова' : 'виконано')} · ${E(rbFmt(o.archAt || o.touchedAt || ''))}</i></button>`).join('') +
+      (rows.length > 80 ? '<div class="arch-n">…ще ' + (rows.length - 80) + ', уточніть пошук</div>' : '')
+      : '<div class="arch-n">' + (archUi.q ? 'Нічого не знайдено' : 'В архіві поки порожньо') + '</div>')}</div>
+    <div class="arch-n">Відкрита й змінена картка сама повертається з архіву в живі.</div></div>`;
+  box.onclick = e => {
+    if(e.target === box || e.target.closest('[data-arch-x]')){ archUi.open = false; renderArch(); return; }
+    const r = e.target.closest('[data-arch-open]');
+    if(r){ archUi.open = false; renderArch(); openByNo(r.dataset.archOpen); }
+  };
+  box.oninput = e => {
+    if(!e.target.matches('[data-arch-q]')) return;
+    archUi.q = e.target.value;
+    const l = box.querySelector('.arch-l');
+    if(!l) return;
+    const rows2 = archLoaded ? archRows() : null;
+    l.innerHTML = rows2 === null ? '<div class="arch-n">Читаю архів…</div>' : (rows2.length ? rows2.slice(0, 80).map(o => `
+      <button type="button" class="arch-r" data-arch-open="${E(String(o.orderId))}">
+        <b>#${E(showNo(o))}</b><span>${E(o.name || o.crmChatName || o.company || o.instagram || '—')}</span>
+        <i>${E(o.status === 'cancel' ? 'відмова' : 'виконано')} · ${E(rbFmt(o.archAt || o.touchedAt || ''))}</i></button>`).join('') +
+      (rows2.length > 80 ? '<div class="arch-n">…ще ' + (rows2.length - 80) + ', уточніть пошук</div>' : '')
+      : '<div class="arch-n">' + (archUi.q ? 'Нічого не знайдено' : 'В архіві поки порожньо') + '</div>');
+  };
+}
 // Жива синхронізація Канбану між вкладками й пристроями.
 let ordersWatching = false;
 function watchOrders(){
   if(ordersWatching) return;
   ordersWatching = true;
-  ORDERS_COL.onSnapshot(function(snap){
+  liveOrdersQ().onSnapshot(function(snap){
     dbLinkOk('orders');
     const list = [];
     const seen = new Map();
@@ -8940,6 +9141,9 @@ function watchOrders(){
        губити її не можна тим паче. */
     було.forEach((o, id)=>{
       if(seen.has(id)) return;
+      /* Архівна картка, довантажена на вимогу, у живому знімку відсутня —
+         лишається в памʼяті зі своїм записом. */
+      if(ordersSaved.has(id) && o && o.arch === true){ list.push(o); seen.set(id, ordersSaved.get(id)); return; }
       if(ordersSaved.has(id)) return;   // була в базі й зникла — значить справді видалена
       list.push(o);
     });
@@ -8952,6 +9156,8 @@ function watchOrders(){
     webDupesFix();
     repaintAfterOrders();
     try{ orderNosSeedOnce(); }catch(e){}
+    try{ archSeedOnce(); }catch(e){}
+    setTimeout(() => { try{ archSweep(); }catch(e){} }, 4000);
   }, function(e){
     ordersWatching = false;
     dbLinkLost('orders', e);
@@ -9025,7 +9231,7 @@ function webDupesFix(){
   }).catch(e => console.warn('дублі заявок', e));
 }
 async function loadOrders(){
-  const snap = await ORDERS_COL.get();
+  const snap = await liveOrdersQ().get();
   const list = [];
   ordersSaved = new Map();
   snap.forEach(d=>{
@@ -9047,7 +9253,17 @@ async function saveOrders(opts){
   const застарілі = [];
   /* Чернетка нового B2C-замовлення (22.10) у базу не йде, поки її не
      створили кнопкою «Створити замовлення». */
-  (orders || []).forEach(o=>{ if(o && o.id && !o.draft) cur.set(o.id, JSON.stringify(o)); });
+  (orders || []).forEach(o=>{
+    if(!o || !o.id || o.draft) return;
+    if(!ordersSaved.has(o.id) && o.arch === undefined) o.arch = false;   // нова — жива
+    let json = JSON.stringify(o);
+    /* Архівну картку змінили — вона знову жива. */
+    if(o.arch === true && ordersSaved.has(o.id) && ordersSaved.get(o.id) !== json){
+      o.arch = false; o.unarchAt = new Date().toISOString(); json = JSON.stringify(o);
+      try{ accLog('arch', 'картка #' + noOf(o.orderId) + ' повернулась з архіву (змінено)'); }catch(e){}
+    }
+    cur.set(o.id, json);
+  });
   const failed = [];
   for(const [id, json] of cur){
     if(ordersSaved.get(id) === json) continue;
@@ -9829,8 +10045,8 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
-    if(view==='analytics' && window.__anOpen) window.__anOpen();
-    if(view==='dash') renderDash();
+    if(view==='analytics' && window.__anOpen){ window.__anOpen(); archLoad().then(n => { if(n && window.__anOpen) window.__anOpen(); }); }
+    if(view==='dash'){ renderDash(); archLoad().then(n => { if(n) renderDash(); }); }
     if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='today') renderToday();
     if(view==='design') openDesign();
@@ -10921,6 +11137,10 @@ function watchPayments(){
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
   });
   /* Залишки, які назвав сам банк (пише грошовий воркер). */
+  fbDb.collection('loomiq').doc('arch').onSnapshot(sn => {
+    archIds = (sn.exists && (sn.data() || {}).ids) || {};
+    try{ renderFinAudit(); }catch(e){}
+  }, e => console.warn('архівні номери', e));
   fbDb.collection('loomiq').doc('bankBal').onSnapshot(sn => {
     bankBal = sn.exists ? (sn.data() || {}) : {};
     if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
@@ -11778,7 +11998,7 @@ function orderTotalOf(o){
 function moneyAudit(){
   if(!payLoaded) return [];
   return LQMoney.audit((orders || []).filter(o => !(o && o.draft)), payments || [], { np: npState, totalOf: orderTotalOf, noOf: noOf,
-    accs: finAccounts(), ordersLoaded: (orders || []).length > 0, bal: bankBal, sync: bankSync });
+    accs: finAccounts(), ordersLoaded: (orders || []).length > 0, bal: bankBal, sync: bankSync, archived: archIds });
 }
 /* КАРТКА, ЩО ВТРАТИЛА НОМЕР (23.10). Збій броні 23.10 міняв номер картки в
    памʼяті, а картка відділу й платежі лишались під старим: замовлення
@@ -12000,7 +12220,7 @@ async function jobTombstone(no, intoNo){
   const старе = (designJobs || {})[k] || {};
   const t = window.LQDesign.emptyJob(k);
   t.no = старе.no || ''; t.createdAt = старе.createdAt || t.createdAt;
-  t.gone = true; t.mergedInto = String(intoNo || ''); t.goneAt = new Date().toISOString();
+  t.gone = true; t.mergedInto = String(intoNo || ''); t.goneAt = new Date().toISOString(); t.arch = true;
   designJobs[k] = t;
   try{ await DESIGN_COL.doc(k).set(JSON.parse(JSON.stringify(t))); }catch(e){ console.warn('надгробок картки відділу', k, e); }
 }
@@ -15892,7 +16112,7 @@ function noOf(id){
 function openByNo(id){
   const k = String(id == null ? '' : id).trim();
   const o = (orders || []).find(x => x && String(x.orderId) === k);
-  if(!o){ toast('Замовлення ' + noOf(k) + ' не знайдено'); return false; }
+  if(!o){ archFetch(k).then(ok => { if(ok) openByNo(k); else toast('Замовлення ' + noOf(k) + ' не знайдено'); }); return false; }
   if(orderDir(o) === 'b2c' && window.LQDesign && LQDesign.ui){
     const b = document.querySelector('.nav button[data-view="design"]');
     if(b) b.click();
@@ -15902,6 +16122,20 @@ function openByNo(id){
   }
   openOrderDrawer(o);
   return true;
+}
+/* Картки немає в памʼяті (архів) — беремо з бази разом із карткою відділу. */
+async function archFetch(k){
+  try{
+    const s = await ORDERS_COL.where('orderId', '==', String(k)).limit(1).get();
+    let o = null; s.forEach(d => { if(!o){ o = d.data() || {}; o.id = o.id || d.id; } });
+    if(!o) return false;
+    if(!(orders || []).some(x => x && x.id === o.id)){ orders.push(o); ordersSaved.set(o.id, JSON.stringify(o)); orders = ordersSortDesc(orders); }
+    if(orderDir(o) === 'b2c' && !(designJobs || {})[String(o.orderId)]){
+      const dj = await DESIGN_COL.doc(String(o.orderId)).get();
+      if(dj && dj.exists){ const v = dj.data() || {}; if(v.orderId){ designJobs[v.orderId] = v; designSeen[v.orderId] = String(v.updatedAt || ''); } }
+    }
+    return true;
+  }catch(e){ console.warn('картка з архіву', e); return false; }
 }
 function dirIsC(dir){ return dir === 'b2c'; }
 function dirMin(dir){ return dirIsC(dir) ? ORDER_ID_MIN_C : ORDER_ID_MIN; }
@@ -16334,6 +16568,10 @@ function renderStatusEditor(){
 /* Клієнт приходить не лише з сайту: подзвонив, написав знайомий, зустріли
    на виставці. Досі такого не було куди записати — картка заводилась лише
    з форми, бота або конструктора, тож половина звернень жила в голові. */
+(function wireBoardArch(){
+  const b = document.getElementById('board-arch');
+  if(b) b.addEventListener('click', () => archOpen('b2b'));
+})();
 (function wireBoardAdd(){
   const b = document.getElementById('board-add');
   if(!b) return;
@@ -20221,6 +20459,7 @@ function boardFlagPass(o, key){
 }
 function boardPass(o){
   const v = boardView;
+  if(o && o.arch === true) return false;   // архів — лише в розділі «Архів»
   /* Дошка Канбану — це B2B і тільки B2B. Замовлення B2C лежать у тій самій
      колекції (щоб чати, картка й пошук працювали тим самим кодом), але
      показувати їх тут не можна: інший бізнес, інші етапи, інший менеджер.
@@ -28508,6 +28747,7 @@ function contentBanner(text){
 }
 function contentReadOk(){ contentBanner(''); }
 function contentReadFailed(e){
+  try{ contentFirstRes && contentFirstRes(); }catch(e2){}
   console.warn('photos snapshot', e);
   contentBanner('Не вдалось прочитати дані сайту (' +
     ((e && (e.code || e.message)) || 'помилка') +
@@ -29334,6 +29574,8 @@ async function designPut(job, opt){
     }
     return false;
   }
+  if(job.arch === undefined) job.arch = false;
+  if(job.arch === true && !job.gone) job.arch = false;              // торкнулись — жива
   const body = JSON.stringify(job);
   if(було.doc){ const prev = JSON.stringify(було.doc); if(prev !== body) await histPut(DESIGN_COL, id, prev, opt && opt.why); }
   await DESIGN_COL.doc(id).set(JSON.parse(body));
@@ -29384,7 +29626,7 @@ function designOrders(){
      заведено, ховати не можна — робота там справжня. */
   /* B2C у відмові (22.10) лишається тут — у колонці «Відмова» акаунта;
      дошки дизайнерів, цеху й закупівлі її відсіюють самі (pairsLive). */
-  return (orders || []).filter(o => o && o.orderId && (o.status !== 'cancel' || orderDir(o) === 'b2c') &&
+  return (orders || []).filter(o => o && o.orderId && o.arch !== true && (o.status !== 'cancel' || orderDir(o) === 'b2c') &&
     (orderDir(o) === 'b2c' ||
      (designJobs[o.orderId] && o.status !== 'done' && (o.items || []).length)));
 }
@@ -29777,10 +30019,24 @@ async function designSweep(){
   toast('Прибрано ' + gone + ' — лишилось ' + Object.keys(designJobs).length);
   try{ openDesign(); }catch(e){}
 }
+let designAuxWatching = false;
+function watchDesignAux(){
+  if(designAuxWatching) return;
+  designAuxWatching = true;
+  try{ DESIGN_COL.where('kind', 'in', ['buy', 'stock']).onSnapshot(snap => {
+    snap.forEach(d => { const v = d.data(); if(v && v.kind === 'buy' && v.id) designBuys[v.id] = v;
+      if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : []; designStockMoves = Array.isArray(v.moves) ? v.moves : []; } });
+    try{ if(document.getElementById('view-design') && document.getElementById('view-design').style.display !== 'none') openDesign(); }catch(e){}
+  }, e => { designAuxWatching = false; console.warn('закупівлі/склад', e); setTimeout(watchDesignAux, DB_RETRY_MS); }); }
+  catch(e){ designAuxWatching = false; console.warn(e); }
+}
 function watchDesign(){
   if(designWatching) return;
   designWatching = true;
-  DESIGN_COL.onSnapshot(snap=>{
+  /* Закупівлі й склад лежать у тій самій колекції без arch — окремим
+     слухачем (один раз), коли живі картки відбираються за полем. */
+  if(archReady()) watchDesignAux();
+  liveJobsQ().onSnapshot(snap=>{
     /* Лише змінені документи (23.10): картки відділу важкі (одяг, версії,
        журнал), розбирати їх усі на кожен чужий дотик — це і є «висне». */
     let зміни = null;
@@ -30369,6 +30625,7 @@ function designHostInit(){
     bind: (o, url) => designBindChat(o, url),
     unbind: o => designUnbindChat(o),
     deleteOrder: o => designDeleteOrder(o),
+    archOpen: () => archOpen('b2c'),
     /* Версії картки відділу (23.10): список і повернення — лише власник. */
     versionsHtml: (job, o) => versionsHtml(job, o),
     versionsLoad: job => versionsLoad(job),
@@ -35297,6 +35554,8 @@ function uploadCloudinary(blob){
    до зняття заслони (команда приїхала) і до приходу карток. Пишеться в
    loomiq/perf під ключем пошти, раз на вхід; дивитись — у консолі Firebase. */
 const perfT0 = (typeof performance !== 'undefined' && performance.timeOrigin) ? performance.timeOrigin : Date.now();
+let contentFirstRes = null;
+const contentFirst = new Promise(r => { contentFirstRes = r; });
 const perfMark = { gate: 0, orders: 0, sent: false };
 function perfNote(k){
   if(perfMark[k]) return;
@@ -35322,6 +35581,10 @@ async function init(){
      команди, який знімає заслону «Оновлення…». Тепер заслона знімається,
      щойно є доступи; дошка заповнюється, коли приїхали картки. */
   subscribePhotos();
+  /* Документ команди каже, чи база вже розмічена на живі/архів — від цього
+     залежить, який запит робити за картками. Чекаємо його, але не довше
+     8 с: без нього вантажимо все, як доти. */
+  await Promise.race([contentFirst, new Promise(r => setTimeout(r, 8000))]);
   orders   = await loadOrders();
   perfNote('orders');
   // Перший запуск після оновлення: забираємо картки зі старого сховища
@@ -35349,6 +35612,7 @@ async function init(){
     contentData = snap.exists ? (snap.data() || {}) : {};
     contentLoaded = true;
     perfNote('gate');
+    try{ contentFirstRes && contentFirstRes(); }catch(e){}
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки
     contentReadOk();

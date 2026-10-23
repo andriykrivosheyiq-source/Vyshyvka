@@ -292,7 +292,8 @@
             text: 'Оплату на карту ' + грн(s) + де + ' позначено «не дійшло» — вона не рахується, у замовленні борг. Домовтесь із клієнтом або приберіть запис.' });
       }
       /* Привʼязаний до замовлення, якого немає. */
-      if(opt.ordersLoaded !== false && id(p.orderId) && !ordersById[id(p.orderId)] && s > 0)
+      /* Архівна картка (23.10) в памʼяті не лежить — її номер відомий з opt.archived. */
+      if(opt.ordersLoaded !== false && id(p.orderId) && !ordersById[id(p.orderId)] && !(opt.archived && opt.archived[id(p.orderId)]) && s > 0)
         out.push({ kind:'lost_order', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s, fix:'unlink',
           text: 'Платіж ' + грн(s) + ' (' + (p.counter || '—') + ') привʼязаний до #' + no(id(p.orderId)) +
             ', а такого замовлення немає. Відвʼяжіть і привʼяжіть до правильного.' });
