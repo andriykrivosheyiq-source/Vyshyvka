@@ -5543,6 +5543,21 @@
   .fc-r{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line);}
   .fin-audit{padding:12px 16px;}
   .fa-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;}
+  .fin-rb .rb-f{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin:10px 0;}
+  .fin-rb textarea{min-width:180px;min-height:72px;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;}
+  .fin-rb input[type=datetime-local]{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;}
+  .fin-rb .rb-q{display:flex;gap:6px;flex-wrap:wrap;}
+  .fin-rb .rb-q button,.fin-rb .rb-go,.fin-rb .rb-back{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .fin-rb .rb-go{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .fin-rb .rb-i{border-top:1px solid var(--line);padding:10px 0;font-size:14px;line-height:1.45;}
+  .fin-rb .rb-i.bad{color:#b91c1c;}
+  .fin-rb .rb-i b{font-weight:700;}
+  .fin-rb .rb-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0;}
+  @media(max-width:700px){.fin-rb .rb-cols{grid-template-columns:1fr;}}
+  .fin-rb .rb-c{background:var(--bg,#f6f6f6);border-radius:8px;padding:8px 10px;}
+  .fin-rb .rb-c .h{font-size:12px;opacity:.7;margin-bottom:4px;}
+  .fin-rb .rb-tr a{display:inline-block;margin:2px 6px 2px 0;}
+  .fin-rb .rb-note{font-size:13px;opacity:.75;margin-top:6px;}
   .fa-h b{font-weight:800;}
   .fa-ok{color:#1d7a3e;font-weight:700;}
   .fa-n{font-size:12px;font-weight:800;border-radius:20px;padding:2px 9px;}
@@ -6691,6 +6706,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div id="fin-pane-acc">
       <!-- Звірка грошей: усе, де гроші можуть загубитись з поля зору (04.10). -->
       <div class="card fin-audit" id="fin-audit"></div>
+      <!-- Відкат карток на стан у минулому (власник, 23.10): читає базу «як
+           було о …» (point-in-time recovery) і повертає картку відділу. -->
+      <div class="card fin-rb" id="fin-rollback" hidden></div>
       <div class="card">
         <div class="fin-accs-h">
           <span>Рахунки</span>
@@ -8018,33 +8036,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e37cbf93a4"></script>
-<script src="loomiq-fingerprint.js?v=e37cbf93a4"></script>
-<script src="loomiq-pricing.js?v=e37cbf93a4"></script>
+<script src="loomiq-select.js?v=c10febb8c5"></script>
+<script src="loomiq-fingerprint.js?v=c10febb8c5"></script>
+<script src="loomiq-pricing.js?v=c10febb8c5"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=e37cbf93a4"></script>
+<script src="loomiq-money-core.js?v=c10febb8c5"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e37cbf93a4"></script>
-<script src="loomiq-bg.js?v=e37cbf93a4"></script>
-<script src="loomiq-mock.js?v=e37cbf93a4"></script>
+<script src="loomiq-design.js?v=c10febb8c5"></script>
+<script src="loomiq-bg.js?v=c10febb8c5"></script>
+<script src="loomiq-mock.js?v=c10febb8c5"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e37cbf93a4"></script>
+<script src="imagetracer.js?v=c10febb8c5"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=e37cbf93a4"></script>
-<script src="loomiq-threads.js?v=e37cbf93a4"></script>
+<script src="loomiq-chat.js?v=c10febb8c5"></script>
+<script src="loomiq-threads.js?v=c10febb8c5"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e37cbf93a4"></script>
+<script src="loomiq-cards.js?v=c10febb8c5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8089,7 +8107,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e37cbf93a4';
+var LQ_VER = 'c10febb8c5';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11974,6 +11992,214 @@ async function orderTwinMerge(x){
   try{ accLog('renum', 'обʼєднано картки #' + noOf(noA) + ' і #' + noOf(noB) + ': діалог і клієнт (' + (B.name || B.crmChatName || '—') + ') тепер у #' + noOf(noA) + ', зайва картка прибрана'); }catch(e){}
   try{ repaintAfterOrders(); }catch(e){}
 }
+/* ══════════ ВІДКАТ КАРТКИ НА СТАН У МИНУЛОМУ (23.10) ══════════
+
+   Андрій: «одобрені картки втратили картинки й статуси… воно ж десь має
+   зберігатись». У самій базі історії немає — крім випадку, коли в проєкті
+   ввімкнено point-in-time recovery: тоді Firestore віддає стан будь-якої
+   хвилини за останні 7 днів (readTime у REST-запиті; правила ті самі, що й
+   для звичайного читання). Без PITR база віддає лише останню хвилину і на
+   старішу дату відповідає відмовою — її тут показуємо як є, без здогадів.
+
+   Інструмент читає картку відділу й картку замовлення «як було о …»,
+   показує поруч із теперішніми (позиції, картинки, версії, етап) і
+   повертає картку відділу однією кнопкою. Поза базою сліди теж є:
+   надіслані клієнту ескізи лежать у картці (crmPicsOut) — їх показуємо
+   посиланнями, щоб було з чого відновлювати руками. */
+const rb = { nos: '', at: '', rows: null, busy: false, err: '' };
+function fsDecode(v){
+  if(v == null || typeof v !== 'object') return null;
+  if('stringValue' in v) return v.stringValue;
+  if('integerValue' in v) return +v.integerValue;
+  if('doubleValue' in v) return v.doubleValue;
+  if('booleanValue' in v) return v.booleanValue;
+  if('nullValue' in v) return null;
+  if('timestampValue' in v) return v.timestampValue;
+  if('mapValue' in v){ const o = {}; const f = (v.mapValue || {}).fields || {}; Object.keys(f).forEach(k => { o[k] = fsDecode(f[k]); }); return o; }
+  if('arrayValue' in v) return ((v.arrayValue || {}).values || []).map(fsDecode);
+  if('referenceValue' in v) return v.referenceValue;
+  if('bytesValue' in v) return v.bytesValue;
+  return null;
+}
+function fsDoc(d){ const o = {}; const f = (d && d.fields) || {}; Object.keys(f).forEach(k => { o[k] = fsDoc.one(f[k]); }); return o; }
+fsDoc.one = fsDecode;
+function fsBase(){
+  const pid = (typeof firebaseConfig === 'object' && firebaseConfig && firebaseConfig.projectId) || 'loomiq-admin';
+  return { url: 'https://firestore.googleapis.com/v1/projects/' + pid + '/databases/(default)', name: 'projects/' + pid + '/databases/(default)/documents/' };
+}
+/* Прочитати документи станом на мить `at` (ISO). Повертає { docs: {path → obj|null} }
+   або кидає Error з текстом відмови бази. */
+async function fsReadAt(paths, at){
+  const b = fsBase();
+  let idToken = '';
+  try{ idToken = await fbAuth.currentUser.getIdToken(); }catch(e){ throw new Error('сесія застаріла — увійдіть ще раз'); }
+  const r = await fetch(b.url + '/documents:batchGet', { method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + idToken },
+    body: JSON.stringify({ documents: paths.map(p => b.name + p), readTime: at }) });
+  const d = await r.json().catch(() => null);
+  if(!r.ok){
+    const m = (d && d.error && d.error.message) || ('HTTP ' + r.status);
+    throw new Error(m);
+  }
+  const out = {};
+  (Array.isArray(d) ? d : []).forEach(x => {
+    if(x && x.found){ const name = String(x.found.name || ''); out[name.slice(b.name.length)] = fsDoc(x.found); }
+    else if(x && x.missing){ out[String(x.missing).slice(b.name.length)] = null; }
+  });
+  return out;
+}
+function rbKeyOf(no){
+  const n = String(no || '').replace(/\D/g, ''); if(!n) return null;
+  const o = (orders || []).find(x => x && !x.draft && (String(showNo(x)) === n || String(x.orderId) === n));
+  if(o) return { no: n, key: String(o.orderId), docId: o.id, o };
+  const k = Object.keys(designJobs || {}).find(k => designJobs[k] && String(designJobs[k].no) === n);
+  if(k) return { no: n, key: k, docId: '', o: null };
+  return { no: n, key: '', docId: '', o: null };
+}
+function rbJobSum(j){
+  if(!j) return null;
+  const D = window.LQDesign, U = D && D.ui;
+  const units = U && U.unitsOf ? U.unitsOf(j) : (Array.isArray(j.units) ? j.units : []);
+  let pics = 0, vers = 0;
+  units.forEach(u => { pics += ((u && u.pics) || []).length; vers += ((u && u.graphic) || []).length + ((u && u.stitch) || []).length; });
+  const b = j.brief || {};
+  pics += (b.pics || []).length;
+  return { units: units.length, pics, vers, tasks: (j.tasks || []).length, state: String(j.state || ''), appr: +j.approvedVersion || 0,
+           at: String(j.updatedAt || ''), no: String(j.no || ''), gone: !!j.gone };
+}
+function rbOrderSum(o){
+  if(!o) return null;
+  return { name: String(o.name || o.crmChatName || ''), status: String(o.status || ''), items: (o.items || []).length,
+           chat: !!(o.crmChatId || o.tgChatId), pays: (o.payments || []).length, at: String(o.touchedAt || ''), pics: (o.crmPicsOut || []).length };
+}
+const rbFmt = s => { const d = new Date(s || ''); return isNaN(d) ? '—' : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+function rbJobText(x){
+  if(!x) return 'картки відділу немає';
+  if(x.gone) return 'надгробок (картка вибула)';
+  return 'етап ' + (x.state || '—') + ' · позицій ' + x.units + ' · картинок ' + x.pics + ' · версій макета ' + x.vers +
+    (x.appr ? ' · погоджена версія ' + x.appr : '') + (x.tasks ? ' · доручень ' + x.tasks : '') + ' · змінено ' + rbFmt(x.at);
+}
+function rbOrderText(x){
+  if(!x) return 'картки замовлення немає';
+  return (x.name ? x.name + ' · ' : 'без імені · ') + 'статус ' + (x.status || '—') + (x.chat ? ' · діалог привʼязано' : ' · без діалогу') +
+    ' · позицій ' + x.items + ' · платежів у картці ' + x.pays + ' · змінено ' + rbFmt(x.at);
+}
+async function rbLook(){
+  if(rb.busy) return;
+  const nos = String(rb.nos || '').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean);
+  if(!nos.length){ rb.err = 'Впишіть номери карток'; return renderRollback(); }
+  const at = new Date(rb.at || '');
+  if(isNaN(at)){ rb.err = 'Вкажіть дату й час'; return renderRollback(); }
+  rb.busy = true; rb.err = ''; rb.rows = null; renderRollback();
+  const keys = nos.map(rbKeyOf);
+  const paths = [];
+  keys.forEach(k => { if(k.key) paths.push('designJobs/' + k.key); if(k.docId) paths.push('kanbanOrders/' + k.docId); });
+  let docs = {};
+  try{ docs = paths.length ? await fsReadAt(paths, at.toISOString()) : {}; }
+  catch(e){
+    rb.busy = false;
+    const m = String((e && e.message) || e);
+    rb.err = /read.?time|point.in.time|PITR|too far|earlier than|retention|not enabled|INVALID_ARGUMENT|FAILED_PRECONDITION/i.test(m)
+      ? 'База не віддає стан на ' + rbFmt(at.toISOString()) + ': у проєкті не ввімкнено point-in-time recovery, історії в базі немає. ' +
+        'Відповідь бази: «' + m.slice(0, 200) + '». Відновлювати доведеться з решток поза базою (нижче — надіслані клієнту ескізи).'
+      : 'Не вдалось прочитати: ' + m.slice(0, 200);
+    rb.rows = keys.map(k => ({ k, then: null, thenO: null, now: rbJobSum((designJobs || {})[k.key]), nowO: rbOrderSum(k.o), traces: rbTraces(k) }));
+    return renderRollback();
+  }
+  rb.rows = keys.map(k => {
+    const then = k.key ? docs['designJobs/' + k.key] : null;
+    const thenO = k.docId ? docs['kanbanOrders/' + k.docId] : null;
+    return { k, thenDoc: then, thenODoc: thenO, then: rbJobSum(then), thenO: rbOrderSum(thenO),
+             now: rbJobSum((designJobs || {})[k.key]), nowO: rbOrderSum(k.o), traces: rbTraces(k) };
+  });
+  rb.busy = false;
+  renderRollback();
+}
+/* Сліди поза базою: ескізи, надіслані клієнту (адреси хмари в картці),
+   і записи журналу доступів з цим номером. */
+function rbTraces(k){
+  const o = k.o;
+  const pics = [];
+  /* Надіслані клієнту ескізи лежать полем у картці (діалог їх туди кладе);
+     читаємо поле, а не функцію діалогу — договір діалогу не розширюємо. */
+  (o && Array.isArray(o.crmPicsOut) ? o.crmPicsOut : []).forEach(e => (e.urls || []).forEach(u => { if(/^https?:/.test(u)) pics.push({ url: u, at: e.at || '', by: e.by || '' }); }));
+  const re = new RegExp('(#|№|\\b)' + k.no + '\\b' + (k.key ? '|' + k.key + '\\b' : ''));
+  const log = accLogList().filter(r => r && re.test(String(r.text || ''))).slice(-8);
+  return { pics, log };
+}
+async function rbRestore(i, what){
+  const r = (rb.rows || [])[i]; if(!r) return;
+  if(what === 'job'){
+    const j = r.thenDoc; if(!j) return;
+    if(!confirm('Повернути картку відділу #' + r.k.no + ' на стан від ' + rbFmt(r.then.at) + '?\n\nТеперішня: ' + rbJobText(r.now) + '\nБуде: ' + rbJobText(r.then))) return;
+    const копія = JSON.parse(JSON.stringify(j));
+    копія.orderId = r.k.key;
+    копія.restoredFrom = { at: rb.at, by: myEmail() || '', when: new Date().toISOString(), had: r.now };
+    designJobs[r.k.key] = копія;
+    await DESIGN_COL.doc(r.k.key).set(копія);
+    try{ accLog('renum', 'відкат картки відділу #' + r.k.no + ' на стан від ' + rbFmt(r.then.at) + ' (було: ' + rbJobText(r.now).slice(0, 80) + ')'); }catch(e){}
+    r.now = rbJobSum(копія);
+    try{ repaintAfterOrders(); }catch(e){}
+    toast('Картку відділу #' + r.k.no + ' повернуто на стан від ' + rbFmt(r.then.at));
+  }
+  if(what === 'order'){
+    const d = r.thenODoc; if(!d || !r.k.docId) return;
+    if(!confirm('Повернути картку замовлення #' + r.k.no + ' на стан від ' + rbFmt(r.thenO.at) + '?\n\nТеперішня: ' + rbOrderText(r.nowO) + '\nБуде: ' + rbOrderText(r.thenO) +
+      '\n\nПлатежі в базі лишаються на своїх місцях — вони привʼязані до номера, не до картки.')) return;
+    const копія = JSON.parse(JSON.stringify(d)); копія.id = r.k.docId;
+    копія.restoredFrom = { at: rb.at, by: myEmail() || '', when: new Date().toISOString() };
+    const i2 = (orders || []).findIndex(x => x && x.id === r.k.docId);
+    if(i2 >= 0) orders[i2] = копія; else orders.push(копія);
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'відкат картки замовлення #' + r.k.no + ' на стан від ' + rbFmt(r.thenO.at)); }catch(e){}
+    r.k.o = копія; r.nowO = rbOrderSum(копія);
+    try{ repaintAfterOrders(); }catch(e){}
+    toast('Картку #' + r.k.no + ' повернуто на стан від ' + rbFmt(r.thenO.at));
+  }
+  renderRollback();
+}
+function renderRollback(){
+  const box = document.getElementById('fin-rollback');
+  if(!box) return;
+  if(!canSetup()){ box.hidden = true; return; }
+  box.hidden = false;
+  const E = escapeHtml;
+  if(!rb.at){ const d = new Date(Date.now() - 3 * 864e5); d.setHours(9, 0, 0, 0); rb.at = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+  const quick = [[1, 'вчора 09:00'], [2, '2 дні тому'], [3, '3 дні тому'], [5, '5 днів тому'], [7, '7 днів тому']];
+  box.innerHTML = `<div class="fa-h"><b>Відкат карток</b><span>стан картки в базі на вибрану мить — і кнопка повернути</span></div>
+    <div class="rb-f">
+      <textarea data-rb-nos placeholder="Номери карток, по одному в рядку: 2000217…">${E(rb.nos)}</textarea>
+      <div>
+        <input type="datetime-local" data-rb-at value="${E(rb.at)}">
+        <div class="rb-q">${quick.map(q => `<button type="button" data-rb-q="${q[0]}">${q[1]}</button>`).join('')}</div>
+      </div>
+      <button type="button" class="rb-go" data-rb-go ${rb.busy ? 'disabled' : ''}>${rb.busy ? 'Читаю…' : 'Подивитись стан на цю мить'}</button>
+    </div>
+    ${rb.err ? `<div class="rb-i bad">${E(rb.err)}</div>` : ''}
+    ${(rb.rows || []).map((r, i) => `<div class="rb-i">
+      <b>#${E(r.k.no)}</b>${r.k.key ? '' : ' — <span class="bad">такої картки не знайдено ні серед замовлень, ні у відділі</span>'}
+      ${r.k.key ? `<div class="rb-cols">
+        <div class="rb-c"><div class="h">Зараз</div>${E(rbJobText(r.now))}<br>${E(rbOrderText(r.nowO))}</div>
+        <div class="rb-c"><div class="h">На ${E(rbFmt(new Date(rb.at).toISOString()))}</div>${rb.err ? '—' : E(rbJobText(r.then)) + '<br>' + E(rbOrderText(r.thenO))}</div>
+      </div>` : ''}
+      ${!rb.err && r.thenDoc && (!r.now || r.then.at !== r.now.at) ? `<button type="button" class="rb-back" data-rb-back="${i}" data-rb-what="job">Повернути картку відділу на цей стан</button> ` : ''}
+      ${!rb.err && r.thenODoc && (!r.nowO || r.thenO.at !== r.nowO.at) ? `<button type="button" class="rb-back" data-rb-back="${i}" data-rb-what="order">Повернути й картку замовлення</button>` : ''}
+      ${!rb.err && r.thenDoc && r.now && r.then.at === r.now.at ? '<div class="rb-note">На цю мить картка відділу була така сама, як зараз — відкочувати нема на що; спробуйте ранішу дату.</div>' : ''}
+      ${r.traces && r.traces.pics.length ? `<div class="rb-tr"><div class="h" style="font-size:12px;opacity:.7;margin-top:6px">Надіслані клієнту ескізи (поза базою, з них можна відновити руками):</div>${r.traces.pics.slice(-12).map(p => `<a href="${E(p.url)}" target="_blank" rel="noopener">${E(p.at || 'картинка')}${p.by ? ' · ' + E(p.by) : ''}</a>`).join('')}</div>` : (r.k.o ? '<div class="rb-note">Надісланих клієнту ескізів у картці не збережено.</div>' : '')}
+      ${r.traces && r.traces.log.length ? `<div class="rb-note">Журнал: ${r.traces.log.map(l => E(rbFmt(l.at)) + ' ' + E(String(l.by || '').replace(/@.*/, '')) + ': ' + E(String(l.text || '').slice(0, 90))).join(' · ')}</div>` : ''}
+      ${r.k.o ? `<div class="rb-note"><button type="button" class="rb-back" data-rb-open="${E(r.k.o.orderId)}">Відкрити картку</button></div>` : ''}
+    </div>`).join('')}`;
+  box.onclick = async e => {
+    const q = e.target.closest('[data-rb-q]');
+    if(q){ const d = new Date(Date.now() - (+q.dataset.rbQ) * 864e5); d.setHours(9, 0, 0, 0); rb.at = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); return renderRollback(); }
+    if(e.target.closest('[data-rb-go]')){ rb.nos = box.querySelector('[data-rb-nos]').value; rb.at = box.querySelector('[data-rb-at]').value; return rbLook(); }
+    const b = e.target.closest('[data-rb-back]');
+    if(b){ try{ await rbRestore(+b.dataset.rbBack, b.dataset.rbWhat); }catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); } return; }
+    const op = e.target.closest('[data-rb-open]');
+    if(op) openByNo(op.dataset.rbOpen);
+  };
+  box.oninput = e => { if(e.target.matches('[data-rb-nos]')) rb.nos = e.target.value; if(e.target.matches('[data-rb-at]')) rb.at = e.target.value; };
+}
 function renderFinAudit(){
   const box = document.getElementById('fin-audit');
   if(!box) return;
@@ -12066,6 +12292,7 @@ function renderFin(){
   /* Замовлення могли довантажитись пізніше за рухи — пробуємо ще раз. */
   try{ payAutoLinkTtn(); }catch(e){}
   try{ renderFinAudit(); }catch(e){ console.warn('звірка', e); }
+  try{ renderRollback(); }catch(e){ console.warn('відкат', e); }
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
      дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
      мати два різні числа про той самий день. */

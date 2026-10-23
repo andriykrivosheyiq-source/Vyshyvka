@@ -124,6 +124,14 @@ fi
 # ЗАСЛОНА ДОСТУПІВ (22.10). Андрій: «перші секунди відкривається все, а потім
 # звужується… щоб йому навіть не показувалось». До приходу документа команди
 # — лише «Завантажую доступи…», нікому не власник; приїхав — одразу своє.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/rollback\.mjs)'; then
+  node tests/rollback.mjs >/tmp/lq-rollback.log 2>&1 || {
+    echo "✗ Відкат картки на стан у минулому зламано — коміт зупинено. Подробиці: /tmp/lq-rollback.log"
+    grep '✗' /tmp/lq-rollback.log
+    exit 1
+  }
+  echo "✓ відкат картки цілий"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/acc-gate\.mjs)'; then
   node tests/acc-gate.mjs >/tmp/lq-acc-gate.log 2>&1 || {
     echo "✗ До приходу доступів щось показується або хтось стає власником — коміт зупинено. Подробиці: /tmp/lq-acc-gate.log"
