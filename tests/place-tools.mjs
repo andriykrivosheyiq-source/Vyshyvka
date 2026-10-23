@@ -10,7 +10,8 @@
    4. Відкрили версію з поворотом — кут той самий, крутиться від оригіналу;
       без оригіналу — кут від нуля (без подвійного повороту).
    5. Дві роботи без розміщення: перша — перед, друга — спина.
-   6. Фон: першим — PhotoRoom; не відповів — простий підхоплює сам.
+   6. Фон: першим — PhotoRoom; не відповів — так і пишемо, тихо простим не прибираємо.
+   7. Завантажили роботу — PhotoRoom прибирає фон сам (прозорий файл — не кличемо).
 
    Запуск:  node tests/place-tools.mjs  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -20,8 +21,12 @@ import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const PORT = 9049;
+let prCalls = 0;
 const srv = createServer(async (req, res) => {
   const u = req.url.split('?')[0];
+  /* Підставний воркер PhotoRoom: повертає прозорий PNG 4×4 і рахує виклики. */
+  if(u === '/pr'){ prCalls++; res.writeHead(200, { 'Content-Type':'image/png' });
+    return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAEUlEQVR42mNgGAWjYBSMAggAAAQQAAGFP6pyAAAAAElFTkSuQmCC', 'base64')); }
   if(u === '/t.html'){ res.writeHead(200, { 'Content-Type':'text/html' });
     return res.end('<!doctype html><meta charset="utf-8"><body><script src="/loomiq-mock.js"></script></body>'); }
   try{ const body = await readFile(path.join(ROOT, decodeURIComponent(u).replace(/^\/+/, '')));
@@ -145,9 +150,10 @@ const м = await p.evaluate(() => { const r = window.__res; if(!r) return null;
 console.log('  ' + JSON.stringify(м));
 ok(м && м.sides.indexOf('front') >= 0 && м.sides.indexOf('back') >= 0, 'мокап зібрано на обидва боки', JSON.stringify(м));
 
-console.log('═══ 6. ФОН: PHOTOROOM НЕ ВІДПОВІВ — ПРОСТИЙ ПІДХОПИВ ═══');
+console.log('═══ 6. ФОН: PHOTOROOM НЕ ВІДПОВІДАЄ — ТАК І ПИШЕМО, ФОН НЕ ЧІПАЄМО ═══');
 await p.evaluate(() => {
   const зФоном = __png(120, 120, x => { x.fillStyle = '#fff'; x.fillRect(0, 0, 120, 120); x.fillStyle = '#c00'; x.fillRect(30, 30, 60, 60); });
+  window.__зФоном = зФоном;
   window.LQMock.openWork({ gid: 'hoodie', size: 'M', color: 'чорний', name: 'фон',
     sides: [{ key: 'front', label: 'Перед', url: __фото }],
     works: [{ name: 'фото.png', url: зФоном, hash: 'f' }],
@@ -159,11 +165,39 @@ await p.waitForFunction(() => !document.querySelector('[data-mko-bg][disabled]')
 await p.waitForTimeout(400);
 const ф = await p.evaluate(async () => { const d = await new Promise(r => { const im = new Image(); im.onload = () => {
     const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
-    r({ кут: x.getImageData(2, 2, 1, 1).data[3], центр: Array.from(x.getImageData(60, 60, 1, 1).data) }); }; im.src = document.querySelector('.mko-wk img').src; });
-  return Object.assign(d, { note: (document.querySelector('[data-mko-bgbox]') || {}).textContent || '' }); });
+    r({ кут: x.getImageData(2, 2, 1, 1).data[3] }); }; im.src = document.querySelector('.mko-wk img').src; });
+  return Object.assign(d, { note: (document.querySelector('[data-mko-bgbox] .is-err') || {}).textContent || '',
+    on: (document.querySelector('[data-mko-bg].on') || {}).getAttribute ? document.querySelector('[data-mko-bg].on').getAttribute('data-mko-bg') : '' }); });
 console.log('  ' + JSON.stringify(ф));
-ok(ф.кут === 0 && ф.центр[3] === 255, 'фон прибрано простим способом', JSON.stringify(ф));
-ok(/PhotoRoom не відповів/.test(ф.note), 'людині сказано, що PhotoRoom не відповів і спрацював простий', ф.note);
+ok(ф.кут === 255 && ф.on === 'none', 'фон не чіпали тихо простим способом — робота як була', JSON.stringify(ф));
+ok(/PhotoRoom не відповідає/.test(ф.note) && /адреса воркера/.test(ф.note), 'червоним: «PhotoRoom не відповідає: … адреса воркера …»', ф.note);
+
+console.log('═══ 7. ЗАВАНТАЖИЛИ — PHOTOROOM ПРИБИРАЄ ФОН САМ ═══');
+await p.evaluate(h => {
+  window.LQMock.host = { bgUrl: () => h + '/pr' };
+  window.LQMock.openWork({ gid: 'hoodie', size: 'M', color: 'чорний', name: 'авто',
+    sides: [{ key: 'front', label: 'Перед', url: __фото }], works: [], places: [],
+    onUpload: async () => ({ name: 'лого.png', url: __зФоном, hash: 'u1' }), onDone: () => {} });
+}, 'http://127.0.0.1:' + PORT);
+await p.waitForTimeout(500);
+prCalls = 0;
+await p.click('[data-mko-up]');
+await p.waitForFunction(() => document.querySelector('[data-mko-bg="photoroom"].on'), null, { timeout: 15000 }).catch(() => {});
+await p.waitForTimeout(300);
+const ав = await p.evaluate(() => ({ on: (document.querySelector('[data-mko-bg].on') || { getAttribute: () => '' }).getAttribute('data-mko-bg'),
+  err: (document.querySelector('[data-mko-bgbox] .is-err') || {}).textContent || '' }));
+ok(prCalls === 1 && ав.on === 'photoroom' && !ав.err, 'після завантаження — один виклик PhotoRoom, фон прибрано без натискань', JSON.stringify(ав) + ' викликів ' + prCalls);
+await p.evaluate(() => { window.LQMock.close && window.LQMock.close(); });
+await p.evaluate(() => {
+  window.LQMock.openWork({ gid: 'hoodie', size: 'M', color: 'чорний', name: 'прозора',
+    sides: [{ key: 'front', label: 'Перед', url: __фото }], works: [], places: [],
+    onUpload: async () => ({ name: 'прозоре.png', url: __білий, hash: 'u2' }), onDone: () => {} });
+});
+await p.waitForTimeout(500);
+prCalls = 0;
+await p.click('[data-mko-up]');
+await p.waitForTimeout(1200);
+ok(prCalls === 0, 'файл уже з прозорим фоном — PhotoRoom не кличемо (кредити)', 'викликів ' + prCalls);
 
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'поворот, колір, перед і спина, PhotoRoom — на місці');

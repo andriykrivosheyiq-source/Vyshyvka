@@ -473,6 +473,8 @@
   /* За кордон (21.10): замість ТТН — текст «куди відправити». Там, де
      ланцюг вимагає накладної, це вважається накладною. */
   function shipAbroad(o){ var sh = o && o.ship; return !!(sh && sh.abroad && String(sh.abroadTo || '').trim()); }
+  /* Номер накладної Нової пошти — 14 цифр (пробіли й дефіси не рахуються). */
+  function ttnValid(t){ return /^\d{14}$/.test(String(t || '').replace(/[\s-]/g, '')); }
   function shipKnown(o){ return !!String((o && o.ttn) || '').trim() || shipAbroad(o); }
   /* Після цеху — за станом цеху (07.10): ТТН менеджер створює й до
      погодження, тож «є ТТН» більше не означає «відправлено». Відправлено —
@@ -2964,7 +2966,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
+    ttnValid: ttnValid, readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -6514,7 +6516,11 @@
           ? '<div class="dz-ship"><div class="dz-ship-l"><b>Накладна ' + esc(ttn) + '</b>' +
               (o.ttnStatus ? '<span>' + esc(o.ttnStatus) + '</span>' : '') +
               (o.ttnCity ? '<span>' + esc(o.ttnCity + (o.ttnWh ? ' · ' + o.ttnWh : '')) + '</span>' : '') + '</div>' +
-              '<button class="dz-b" data-ship-track>Оновити статус</button></div>' + ttnInfoHtml(o)
+              '<button class="dz-b" data-ship-track>Оновити статус</button>' +
+              /* ✎ Змінити (23.10): помилкова чи замінена накладна — назад до
+                 форми; стара лягає в o.ttnHist (гроші за неї знайдуть картку). */
+              (host.ttnDrop ? '<button class="dz-b dz-quiet" data-ship-ttn-x>✎ Змінити</button>' : '') +
+            '</div>' + ttnInfoHtml(o)
           : host.shipForm(o)) +
         (ttn ? '' : '<label class="dz-own-f dz-ship-man"><span>Або номер ТТН руками</span>' +
           '<input data-of="ttn" value="" placeholder="якщо накладну створили в кабінеті НП"></label>');
@@ -10551,6 +10557,17 @@
     root.querySelectorAll('[data-of]').forEach(function(el){
       el.onchange = function(){
         var c = ctx(); if(!c || !c.o) return;
+        /* НОМЕР ТТН РУКАМИ — ЛИШЕ НОМЕР (23.10, #2000184: у поле вставили
+           пошту й телефон, і картка вирішила, що накладна є — форма зникла,
+           виправити було нічим). Накладна Нової пошти — 14 цифр. */
+        if(el.dataset.of === 'ttn'){
+          var tv = String(el.value || '').replace(/[\s-]/g, '');
+          if(tv && !D.ttnValid(tv)){
+            el.value = '';
+            return say('Це не номер ТТН — у накладної Нової пошти 14 цифр. Адресу за кордон — у «✈ За кордон».');
+          }
+          el.value = tv;
+        }
         // Пишемо в САМЕ замовлення: своїх полів у напряму немає.
         c.o[el.dataset.of] = String(el.value || '').trim();
         save(c.job, c.o, '');
@@ -10566,6 +10583,10 @@
       var c = ctx();
       if(box && c && c.o && host().shipWire)
         host().shipWire(box, c.o, function(){ return save(c.job, c.o, ''); });
+      var tx = root.querySelector('[data-ship-ttn-x]');
+      if(tx && c && c.o && host().ttnDrop) tx.onclick = function(){
+        if(host().ttnDrop(c.o)) save(c.job, c.o, 'Накладну знято — можна вписати іншу');
+      };
       var tr = root.querySelector('[data-ship-track]');
       if(tr && c && c.o && host().shipTrack) tr.onclick = function(){ host().shipTrack(c.o); };
     })();
