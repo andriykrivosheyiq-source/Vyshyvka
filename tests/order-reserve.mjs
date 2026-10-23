@@ -6,6 +6,7 @@
    3. Повторний запис тієї самої картки номер не міняє.
    4–5. Звірка: розʼєднана картка — «Зʼєднати», незаписана — «Відновити».
    6. Відновили порожню, а справжня з діалогом під іншим номером — «Обʼєднати».
+   7. Журнал: видалена картка — не сирота; помилкове «Зʼєднати» — «Повернути».
 
    Запуск:  node tests/order-reserve.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -231,6 +232,39 @@ ok(двійня.taken === 'real-303' && двійня.retired === 'gone:real-303'
   'бронь #2000302 тепер за справжньою карткою, #2000303 помічено «вибув» (не видається знову), порожня картка зникла, Звірка чиста', JSON.stringify(двійня));
 ok(двійня.job303gone && двійня.job302 && !двійня.job302.gone && двійня.job302.no === '2000302' && двійня.job302.units === 1,
   'одяг з-під #2000303 переїхав у картку відділу #2000302, під #2000303 — надгробок', JSON.stringify(двійня.job302));
+
+console.log('');
+console.log('═══ 7. ЖУРНАЛ ПАМʼЯТАЄ: ВИДАЛЕНА КАРТКА — НЕ СИРОТА; ПОМИЛКОВЕ «ЗʼЄДНАТИ» — «ПОВЕРНУТИ» (23.10) ═══');
+const журн = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const at = new Date().toISOString();
+  contentData.accessLog = [
+    { at, by: 'test@loomiq', kind: 'del',   text: 'видалив замовлення B2C 5000310 · Іра · 900 грн' },
+    { at, by: 'test@loomiq', kind: 'renum', text: 'зʼєднано картку #2000320 зі своєю карткою відділу (ключ 5000320 → 5000311)' } ];
+  /* а) картку 5000310 видалили, картка відділу лишилась (правила не дали видалити); «Відновити» вже натиснули */
+  const j10 = D.emptyJob('5000310'); j10.no = '2000310'; j10.createdAt = at; j10.units = [D.ui.unitNew()]; designJobs['5000310'] = j10;
+  const R2 = { id: 'rest-310', orderId: '5000310', type: 'client', dir: 'b2c', name: '', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at, restoredAt: at };
+  orders.push(R2); ordersSaved.set(R2.id, JSON.stringify(R2));
+  /* б) живу картку Іри (5000320) «Зʼєднати» перекинуло на 5000311; її одяг і платіж — під 5000320, там відновили порожню */
+  const X = { id: 'x-1', orderId: '5000311', type: 'client', dir: 'b2c', name: 'Іра', crmChatId: 'c320', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at };
+  const R = { id: 'rest-320', orderId: '5000320', type: 'client', dir: 'b2c', name: '', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at, restoredAt: at };
+  orders.push(X, R); ordersSaved.set(X.id, JSON.stringify(X)); ordersSaved.set(R.id, JSON.stringify(R));
+  const j20 = D.emptyJob('5000320'); j20.no = '2000320'; j20.createdAt = at; j20.units = [D.ui.unitNew()]; designJobs['5000320'] = j20;
+  /* під 5000311 — картка відділу ВИДАЛЕНОЇ картки (з нею й зʼєднали помилково) */
+  const j11 = D.emptyJob('5000311'); j11.no = '2000311'; j11.createdAt = at; j11.units = [D.ui.unitNew()]; designJobs['5000311'] = j11;
+  contentData.accessLog.push({ at, by: 'test@loomiq', kind: 'del', text: 'видалив замовлення B2C 5000311 · Хтось' });
+  payments.push({ id: 'p-320', amount: 900, at, acc: 'mono1', src: 'mono', orderId: '5000320', tag: 'prepay' });
+  const rows = orphanB2cRows();
+  const r = { kinds: rows.map(x => x.kind).sort().join(), t1: (rows.find(x => x.kind === 'wrong_join') || {}).text, t2: (rows.find(x => x.kind === 'restored_del') || {}).text };
+  for(const x of rows) await orphanB2cRestore(x);
+  return Object.assign(r, { xNo: X.orderId, rGone: !orders.some(o => o.id === 'rest-320'), r2Gone: !orders.some(o => o.id === 'rest-310'),
+    paid: paidSum(X), job310gone: !!(designJobs['5000310'] || {}).gone, left: orphanB2cRows().map(x => x.kind).join() });
+});
+console.log('   ' + JSON.stringify(журн));
+ok(журн.kinds === 'restored_del,wrong_join' && /#2000320 \(Іра\).*test.*не з тією.*під #2000311.*під #2000320/.test(журн.t1) && /#2000310 відновлена даремно.*видалили/.test(журн.t2),
+  'Звірка: «Картку #2000320 (Іра) зʼєднали не з тією…» → «Повернути»; «#2000310 відновлена даремно: її видалили» → «Прибрати»; сироти від видаленої немає', JSON.stringify(журн));
+ok(журн.xNo === '5000320' && журн.rGone && журн.r2Gone && журн.paid === 900 && журн.job310gone && журн.left === '',
+  '«Повернути»: Іра знову під #2000320 з платежем 900 ₴, порожня зникла; «Прибрати»: порожня #2000310 зникла, під нею надгробок; Звірка чиста', JSON.stringify(журн));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

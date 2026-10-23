@@ -8018,33 +8018,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1091c2d440"></script>
-<script src="loomiq-fingerprint.js?v=1091c2d440"></script>
-<script src="loomiq-pricing.js?v=1091c2d440"></script>
+<script src="loomiq-select.js?v=e37cbf93a4"></script>
+<script src="loomiq-fingerprint.js?v=e37cbf93a4"></script>
+<script src="loomiq-pricing.js?v=e37cbf93a4"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=1091c2d440"></script>
+<script src="loomiq-money-core.js?v=e37cbf93a4"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1091c2d440"></script>
-<script src="loomiq-bg.js?v=1091c2d440"></script>
-<script src="loomiq-mock.js?v=1091c2d440"></script>
+<script src="loomiq-design.js?v=e37cbf93a4"></script>
+<script src="loomiq-bg.js?v=e37cbf93a4"></script>
+<script src="loomiq-mock.js?v=e37cbf93a4"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1091c2d440"></script>
+<script src="imagetracer.js?v=e37cbf93a4"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=1091c2d440"></script>
-<script src="loomiq-threads.js?v=1091c2d440"></script>
+<script src="loomiq-chat.js?v=e37cbf93a4"></script>
+<script src="loomiq-threads.js?v=e37cbf93a4"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1091c2d440"></script>
+<script src="loomiq-cards.js?v=e37cbf93a4"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8089,7 +8089,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1091c2d440';
+var LQ_VER = 'e37cbf93a4';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -11680,12 +11680,34 @@ function jobHasWork(j){
   return !!(units.length || (j.tasks || []).length || +j.approvedVersion || String(b.text || '').trim() || (b.pics || []).length ||
             (j.stitch || []).some(s => s && ((s.files || []).length || (s.versions || []).length)) || (j.state && j.state !== 'new'));
 }
+/* ЖУРНАЛ ДОСТУПІВ ЯК ПАМʼЯТЬ ЗВІРКИ. Видалена картка лишає слід «видалив
+   замовлення <ключ>», зʼєднання — «(ключ N → T)». Без цього сирота від
+   видаленої картки виглядала як «не дописалась», а помилкове зʼєднання
+   не було як відкотити. */
+function accFind(kind, re){
+  return accLogList().filter(r => r && r.kind === kind && re.test(String(r.text || '')));
+}
+function delLogOf(no){
+  const k = String(no || '').replace(/\D/g, ''); if(!k) return null;
+  const l = accFind('del', new RegExp('видалив замовлення (B2C )?' + k + '(\\D|$)'));
+  return l[l.length - 1] || null;
+}
+function joinLogFrom(no){
+  const k = String(no || '').replace(/\D/g, ''); if(!k) return null;
+  const l = accFind('renum', new RegExp('\\(ключ ' + k + ' → (\\d{7})\\)'));
+  const r = l[l.length - 1]; if(!r) return null;
+  const m = /\(ключ \d{7} → (\d{7})\)/.exec(r.text);
+  return m ? { to: m[1], at: r.at, by: r.by } : null;
+}
 function orphanB2cRows(){
   const out = [];
   const jobs = designJobs || {};
   const мають = {};
   (orders || []).forEach(o => { if(o && o.orderId) мають[String(o.orderId)] = 1; });
-  const сироти = Object.keys(jobs).filter(k => jobs[k] && jobs[k].orderId && !мають[k] && !jobs[k].draft && !jobs[k].gone);
+  /* Сироти: картка відділу є, картки замовлення під цим ключем немає.
+     Картка відділу ВИДАЛЕНОЇ картки (слід у журналі) — не сирота: її
+     платежі, якщо є, Звірка й так показує як «такого замовлення немає». */
+  const сироти = Object.keys(jobs).filter(k => jobs[k] && jobs[k].orderId && !мають[k] && !jobs[k].draft && !jobs[k].gone && !delLogOf(k));
   const плат = k => (payments || []).filter(p => p && String(p.orderId) === String(k) && (+p.amount || 0) > 0);
   const гр = n => fmt(n) + ' ₴';
   const хв = (a, b) => Math.abs((Date.parse(a || '') || 0) - (Date.parse(b || '') || 0));
@@ -11696,8 +11718,41 @@ function orphanB2cRows(){
      старим, Звірка відновила під ним порожню. Дві картки однієї людини —
      обʼєднати: справжня бере свій номер, порожня зникає. */
   const злиті = {};
+  const хто = r => (r && r.by ? ' (' + String(r.by).replace(/@.*/, '') + ')' : '');
+  /* 00) ВІДНОВЛЕННЯ, ЯКЕ НЕ ТРЕБА БУЛО РОБИТИ (23.10, дванадцять порожніх).
+     а) «Зʼєднати» перекинуло живу картку з N на T (слід «(ключ N → T)»), її
+        одяг і платежі лишились під N, Звірка відновила під N порожню —
+        «Повернути»: картка назад під N, порожня зникає.
+     б) картку під N видалили (слід «видалив замовлення N»), її картка
+        відділу лишилась і «Відновити» зробило порожню — «Прибрати». */
   (orders || []).forEach(a => {
-    if(!a || a.draft || !a.restoredAt || orderDir(a) !== 'b2c' || a.crmChatId || a.tgChatId || String(a.name || '').trim()) return;
+    if(!a || a.draft || !a.restoredAt || orderDir(a) !== 'b2c' || злиті[a.id]) return;
+    const N = String(a.orderId);
+    const jl = joinLogFrom(N);
+    const X = jl && (orders || []).find(x => x && !x.draft && x.id !== a.id && !x.restoredAt && String(x.orderId) === String(jl.to));
+    if(X){
+      злиті[a.id] = 1; злиті[X.id] = 1;
+      const p = плат(N);
+      out.push({ kind:'wrong_join', sev:'red', orderId: N, toNo: N, fromNo: String(X.orderId), no: noOf(N), docId: a.id, fromId: X.id,
+        text: 'Картку #' + noOf(N) + (X.name || X.crmChatName ? ' (' + (X.name || X.crmChatName) + ')' : '') + ' ' + коли(jl.at) + хто(jl) +
+              ' зʼєднали не з тією карткою відділу: вона стоїть під #' + noOf(X.orderId) + ' з чужим одягом і статусом, а її власний одяг' +
+              (p.length ? ', дизайн і ' + p.length + ' платіж(і) на ' + гр(p.reduce((q, x) => q + Math.round(+x.amount), 0)) : ' і дизайн') +
+              ' лишились під #' + noOf(N) + ', де тепер порожня «відновлена». Натисніть «Повернути» — картка стане назад під #' + noOf(N) + ', порожня зникне.' });
+      return;
+    }
+    const dl = delLogOf(N);
+    if(dl && !a.crmChatId && !a.tgChatId && !String(a.name || '').trim()){
+      злиті[a.id] = 1;
+      const p = плат(N);
+      out.push({ kind:'restored_del', sev:'red', orderId: N, toNo: N, no: noOf(N), docId: a.id,
+        text: 'Картка #' + noOf(N) + ' відновлена даремно: її видалили ' + коли(dl.at) + хто(dl) +
+              ', а картка відділу лишилась і виглядала «не дописаною».' +
+              (p.length ? ' Під номером є ' + p.length + ' платіж(і) на ' + гр(p.reduce((q, x) => q + Math.round(+x.amount), 0)) + ' — їх Звірка покаже окремо, привʼяжіть до правильної картки.' : '') +
+              ' Натисніть «Прибрати» — порожня картка зникне.' });
+    }
+  });
+  (orders || []).forEach(a => {
+    if(!a || a.draft || !a.restoredAt || orderDir(a) !== 'b2c' || злиті[a.id] || a.crmChatId || a.tgChatId || String(a.name || '').trim()) return;
     /* Стрибок номера йде лише вгору: справжня картка має номер БІЛЬШИЙ за
        відновлений. Своїх платежів чи накладної в неї немає — вони під
        старим номером. Робота у відділі під її номером не заважає: при
@@ -11768,6 +11823,45 @@ async function orphanB2cRestore(x){
     return;
   }
   if(x.kind === 'twin_b2c') return orderTwinMerge(x);
+  if(x.kind === 'restored_del'){
+    const r = (orders || []).find(q => q && q.id === x.docId);
+    if(!r) throw new Error('картки вже немає');
+    orders = (orders || []).filter(q => q && q.id !== r.id);
+    await jobTombstone(x.toNo, '');
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'прибрано даремно відновлену картку #' + x.no + ' (її було видалено)'); }catch(e){}
+    try{ repaintAfterOrders(); }catch(e){}
+    return;
+  }
+  if(x.kind === 'wrong_join'){
+    const R = (orders || []).find(q => q && q.id === x.docId);
+    const X = (orders || []).find(q => q && q.id === x.fromId);
+    if(!X) throw new Error('картки вже немає');
+    const N = String(x.toNo), T = String(X.orderId);
+    /* Робота відділу: старе «Зʼєднати» карток відділу не чіпало — під N
+       лежить власна. Нове могло перенести її під T і лишити під N надгробок —
+       тоді повертаємо всю роботу з-під T назад під N. */
+    const jN = (designJobs || {})[N], jT = (designJobs || {})[T];
+    if((!jN || jN.gone) && jT && !jT.gone){
+      const no = (jN && jN.no) || jT.no;
+      jT.orderId = N; jT.no = no; delete jT.gone; delete jT.mergedInto;
+      designJobs[N] = jT;
+      try{ await DESIGN_COL.doc(N).set(JSON.parse(JSON.stringify(jT))); }catch(e){ console.warn('картка відділу при поверненні', e); }
+      await jobTombstone(T, N);
+    }
+    if(!orderNosOff && fbDb && typeof fbDb.runTransaction === 'function'){
+      try{ await ORDER_NOS.doc(N).delete(); await ORDER_NOS.doc(N).set({ id: X.id, by: myEmail() || '', at: new Date().toISOString(), dir: 'b2c' }); }
+      catch(e){ const code = String((e && (e.code || e.message)) || e); if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)) orderNosOff = true; else console.warn('бронь при поверненні', e); }
+    }
+    X.orderId = N;
+    X.hist = (X.hist || []).concat([{ s:'renum', at:new Date().toISOString(), from: T }]).slice(-40);
+    if(R) orders = (orders || []).filter(q => q && q.id !== R.id);
+    touchOrder(X);
+    await storeSet('orders', orders);
+    try{ accLog('renum', 'повернуто картку #' + x.no + ' (' + (X.name || X.crmChatName || '—') + ') під свій номер (ключ ' + T + ' → ' + N + '), даремно відновлену прибрано'); }catch(e){}
+    try{ repaintAfterOrders(); }catch(e){}
+    return;
+  }
   const o = (orders || []).find(q => q && q.id === x.docId);
   if(!o) throw new Error('картки вже немає');
   const було = String(o.orderId);
@@ -11889,7 +11983,7 @@ function renderFinAudit(){
     const сир = orphanB2cRows();
     /* «Платіж привʼязаний до #…, а такого замовлення немає» — те саме, що
        й розʼєднана картка: показуємо одне, з кнопкою, яка лагодить обоє. */
-    const закр = {}; сир.forEach(x => { закр[x.toNo] = 1; if(x.fromNo) закр[x.fromNo] = 1; });
+    const закр = {}; сир.forEach(x => { if(x.kind === 'restored_del') return; закр[x.toNo] = 1; if(x.fromNo) закр[x.fromNo] = 1; });
     list = сир.concat(list.filter(x => !(x.kind === 'lost_order' && закр[String(x.orderId)])));
   }catch(e){ console.warn('картки без номера', e); }
   const E = escapeHtml;
@@ -11922,7 +12016,9 @@ function renderFinAudit(){
           ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Зʼєднати</button>' : '<span class="fa-wait">зʼєднує власник</span>') : ''}
           ${x.kind === 'orphan_job' ? (canSetup() ? '<button class="pri" data-fa-restore>Відновити</button>' : '<span class="fa-wait">відновлює власник</span>') : ''}
           ${x.kind === 'twin_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Обʼєднати</button>' : '<span class="fa-wait">обʼєднує власник</span>') : ''}
-          ${x.kind !== 'cod_orphan' && x.kind !== 'dup_no' && x.kind !== 'orphan_b2c' && x.kind !== 'orphan_job' && x.kind !== 'twin_b2c' && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
+          ${x.kind === 'wrong_join' ? (canSetup() ? '<button class="pri" data-fa-restore>Повернути</button>' : '<span class="fa-wait">повертає власник</span>') : ''}
+          ${x.kind === 'restored_del' ? (canSetup() ? '<button class="pri" data-fa-restore>Прибрати</button>' : '<span class="fa-wait">прибирає власник</span>') : ''}
+          ${['cod_orphan', 'dup_no', 'orphan_b2c', 'orphan_job', 'twin_b2c', 'wrong_join', 'restored_del'].indexOf(x.kind) < 0 && !x.acc && x.fix !== 'check' ? '<button data-fa-okay title="Подивились — усе гаразд, більше не показувати">Гаразд</button>' : ''}
         </div></div>`; }).join('')}</div>` : ''}`;
   box.onclick = async e => {
     if(e.target.closest('[data-fa-toggle]')){ finAudit.open = !finAudit.open; return renderFinAudit(); }
@@ -11934,7 +12030,9 @@ function renderFinAudit(){
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
     if(e.target.closest('[data-fa-restore]')){
-      try{ await orphanB2cRestore(x); toast(x.kind === 'twin_b2c' ? 'Картка #' + x.no + ' одна: діалог, одяг і платежі разом' : 'Картка #' + x.no + ' на місці — одяг, дизайн і платежі разом'); }
+      try{ await orphanB2cRestore(x); toast(x.kind === 'twin_b2c' ? 'Картка #' + x.no + ' одна: діалог, одяг і платежі разом' :
+          x.kind === 'wrong_join' ? 'Картка #' + x.no + ' знову під своїм номером, порожню прибрано' :
+          x.kind === 'restored_del' ? 'Порожню картку #' + x.no + ' прибрано' : 'Картка #' + x.no + ' на місці — одяг, дизайн і платежі разом'); }
       catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
       return renderFin();
     }
@@ -29037,10 +29135,10 @@ async function designDeleteOrder(o){
       '', 'Разом із ним зникне робота відділу дизайну. Відновити не можна.'].join('\n'))) return;
   await accLog('del', 'видалив замовлення B2C ' + (o.orderId || o.id) +
     ' · ' + (o.name || o.instagram || o.crmChatName || 'без імені') + (sum ? ' · ' + Math.round(sum) + ' грн' : ''));
-  if(o.orderId){
-    try{ await DESIGN_COL.doc(o.orderId).delete(); }catch(e){ console.warn('задача дизайну', e); }
-    delete designJobs[o.orderId];
-  }
+  /* Видалити документ designJobs правила не дають — доти картка відділу
+     мовчки лишалась і після перезавантаження виглядала «не дописаною»
+     (23.10: дванадцять порожніх «відновлених» карток). Тому — надгробок. */
+  if(o.orderId) await jobTombstone(o.orderId, '');
   try{ crmForget(o); }catch(e){}
   orders = orders.filter(x => x.id !== o.id);
   await storeSet('orders', orders);
