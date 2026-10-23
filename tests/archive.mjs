@@ -50,7 +50,8 @@ const СТАРО = '2026-09-01T10:00:00.000Z', СВІЖО = '2026-10-21T10:00:00
 const ORDERS = [
   { id:'1', orderId:'1000001', type:'client', dir:'b2b', name:'Завершене давно', status:'done', site:'main', payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 0, items:[] },
   { id:'2', orderId:'1000002', type:'client', dir:'b2b', name:'У роботі давно', status:'kp', site:'main', payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 0, items:[] },
-  { id:'3', orderId:'5000301', type:'client', dir:'b2c', name:'Відмова B2C давно', status:'cancel', site:'main', crmChatId:'c3', payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 0, items:[] },
+  { id:'3', orderId:'5000301', type:'client', dir:'b2c', name:'Відмова B2C давно', status:'cancel', site:'main', payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 0, items:[] },
+  { id:'7', orderId:'5000307', type:'client', dir:'b2c', name:'Відмова B2C з діалогом', status:'cancel', site:'main', crmChatId:'c7', payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 0, items:[] },
   { id:'4', orderId:'1000004', type:'client', dir:'b2b', name:'Завершене свіже', status:'done', site:'main', payments:[], hist:[], createdAt:СТАРО, touchedAt:СВІЖО, totalPrice: 0, items:[] },
   { id:'5', orderId:'1000005', type:'client', dir:'b2b', name:'Завершене, клієнт пише', status:'done', site:'main', crmChatId:'c5', crmUnread: 2, payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 0, items:[] },
   { id:'6', orderId:'1000006', type:'client', dir:'b2b', name:'Завершене, борг', status:'done', site:'main', payments:[], hist:[], createdAt:СТАРО, touchedAt:СТАРО, totalPrice: 500, items:[] }
@@ -72,7 +73,7 @@ fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
   .replace("Col.prototype.get=function(){ return Promise.resolve({ docs:[], forEach:function(){}, empty:true }); };",
   "Col.prototype.get=function(){ var w=this.__w; var src=this.__n==='designJobs'?window.__JOBS:[]; var l=src.filter(function(o){ return !w || o[w[0]]===w[2]; }); return Promise.resolve({ docs:l.map(function(x){ return new Snap(x.orderId||x.id, JSON.parse(JSON.stringify(x))); }), forEach:function(f){ l.forEach(function(x){ f(new Snap(x.orderId||x.id, JSON.parse(JSON.stringify(x)))); }); }, empty:!l.length }); };")
   .replace('Doc.prototype.set=function(){ return Promise.resolve(); };',
-  "Doc.prototype.set=function(d){ if(this.__col==='kanbanOrders'||this.__col==='designJobs') (window.__SETS=window.__SETS||[]).push({ col:this.__col, id:this.__id, d:JSON.parse(JSON.stringify(d)) }); if(this.__col==='loomiq'){ window.__DOCS=window.__DOCS||{}; var k=this.__id; window.__DOCS[k]=window.__DOCS[k]||{}; var cur=window.__DOCS[k]; Object.keys(d).forEach(function(f){ if(d[f]&&typeof d[f]==='object'&&!Array.isArray(d[f])&&cur[f]&&typeof cur[f]==='object') Object.assign(cur[f], d[f]); else cur[f]=d[f]; }); } return Promise.resolve(); };")
+  "Doc.prototype.set=function(d,opt){ if(this.__col==='kanbanOrders'||this.__col==='designJobs') (window.__SETS=window.__SETS||[]).push({ col:this.__col, id:this.__id, d:JSON.parse(JSON.stringify(d)) }); if(this.__col==='loomiq'){ window.__DOCS=window.__DOCS||{}; var k=this.__id; if(!(opt&&opt.merge)){ window.__DOCS[k]=JSON.parse(JSON.stringify(d)); return Promise.resolve(); } window.__DOCS[k]=window.__DOCS[k]||{}; var cur=window.__DOCS[k]; Object.keys(d).forEach(function(f){ if(d[f]&&typeof d[f]==='object'&&!Array.isArray(d[f])&&cur[f]&&typeof cur[f]==='object') Object.assign(cur[f], d[f]); else cur[f]=d[f]; }); } return Promise.resolve(); };")
   .replace("Col.prototype.onSnapshot=function(cb){ try{ cb({ docs:[], forEach:function(){}, empty:true }); }catch(e){} return function(){}; };",
   "Col.prototype.onSnapshot=function(cb, err){ if(this.__n==='designJobs'){ window.__DES={ cb:cb, err:err, n:((window.__DES||{}).n||0)+1 }; try{ cb({ docs:[], forEach:function(f){ window.__JOBS.forEach(function(j){ f(new Snap(j.orderId, JSON.parse(JSON.stringify(j)))); }); }, empty:false }); }catch(e){ console.error(e); } return function(){}; } try{ cb({ docs:[], forEach:function(){}, empty:true }); }catch(e){} return function(){}; };");
 fbstub = fbstub.replace(
@@ -132,8 +133,8 @@ const розм = await p.evaluate(async () => {
     пам: orders.every(o => o.arch === false), n: orders.length };
 });
 console.log('   ' + JSON.stringify(розм));
-ok(розм.ready && розм.seed === 1 && розм.всі && розм.job === false && розм.пам && розм.n === 6,
-  'усі картки й картки відділу розмічено arch:false, позначка в документі команди, в памʼяті всі 6', JSON.stringify(розм));
+ok(розм.ready && розм.seed === 1 && розм.всі && розм.job === false && розм.пам && розм.n === 7,
+  'усі картки й картки відділу розмічено arch:false, позначка в документі команди, в памʼяті всі 7', JSON.stringify(розм));
 
 console.log('');
 console.log('═══ 2. ЩОДЕННИЙ ПРОХІД: ЩО ДОЗРІЛО — В АРХІВ ═══');
@@ -148,8 +149,8 @@ const прох = await p.evaluate(async () => {
     chats: chatsOrders('b2b').some(o => o.orderId === '1000001'), log: accLogList().slice(-1)[0].text };
 });
 console.log('   ' + JSON.stringify(прох));
-ok(прох.pick['1000001'] && прох.pick['5000301'] && !прох.pick['1000002'] && !прох.pick['1000004'] && !прох.pick['1000005'] && !прох.pick['1000006'],
-  'дозріли лише завершене давнє B2B і відмова B2C; у роботі / свіже / з непрочитаним / з боргом — ні', JSON.stringify(прох.pick));
+ok(прох.pick['1000001'] && прох.pick['5000301'] && !прох.pick['5000307'] && !прох.pick['1000002'] && !прох.pick['1000004'] && !прох.pick['1000005'] && !прох.pick['1000006'],
+  'дозріли лише завершене давнє B2B і відмова B2C без діалогу; з діалогом / у роботі / свіже / з непрочитаним / з боргом — ні', JSON.stringify(прох.pick));
 ok(прох.n === 2 && /1000001:true/.test(прох.db) && /5000301:true/.test(прох.db) && /1000002:false/.test(прох.db) && прох.job === true &&
    прох.ids === '1000001,5000301' && /^\d{4}-\d{2}-\d{2}$/.test(прох.archAt) && /в архів: 2/.test(прох.log),
   'в архів 2 картки (і картка відділу B2C), номери в loomiq/arch, позначка дня, слід у журналі', JSON.stringify(прох));
@@ -162,7 +163,7 @@ const старт = await p.evaluate(async () => {
   return { n: l.length, nos: l.map(o => o.orderId).sort().join() };
 });
 console.log('   ' + JSON.stringify(старт));
-ok(старт.n === 4 && старт.nos === '1000002,1000004,1000005,1000006', 'з бази приїхали лише 4 живі картки', JSON.stringify(старт));
+ok(старт.n === 5 && старт.nos === '1000002,1000004,1000005,1000006,5000307', 'з бази приїхали лише 5 живих карток (з діалогом — жива)', JSON.stringify(старт));
 
 console.log('');
 console.log('═══ 4. АНАЛІТИКА ДОВАНТАЖУЄ АРХІВ; ЗМІНЕНА АРХІВНА — ЗНОВУ ЖИВА; З АРХІВУ ЗА НОМЕРОМ ═══');
@@ -184,7 +185,7 @@ const дов = await p.evaluate(async () => {
   return r;
 });
 console.log('   ' + JSON.stringify({ n: дов.n, всі: дов.всі, an: дов.an, job: дов.job, board: дов.board, arch: дов.arch, setArch: дов.set && дов.set.arch, fetched: дов.fetched }));
-ok(дов.n === 2 && дов.всі === 6 && дов.an && дов.job && !дов.board, 'архів довантажено: 6 карток у памʼяті, аналітика бачить архівну, дошка — ні', JSON.stringify(дов));
+ok(дов.n === 2 && дов.всі === 7 && дов.an && дов.job && !дов.board, 'архів довантажено: 7 карток у памʼяті, аналітика бачить архівну, дошка — ні', JSON.stringify(дов));
 ok(дов.set && дов.set.arch === false && дов.arch === false && /повернулась з архіву/.test(дов.log), 'змінена архівна картка записана живою (arch:false), слід у журналі', JSON.stringify(дов.set && дов.set.arch));
 ok(дов.fetched, 'картка, якої немає в памʼяті, береться з бази за номером разом із карткою відділу', JSON.stringify(дов.fetched));
 
@@ -203,6 +204,19 @@ const ui = await p.evaluate(async () => {
 console.log('   ' + JSON.stringify(ui));
 ok(ui.rows0 === 1 && ui.rows1 === '5000301', 'список архіву B2C показує архівну картку, пошук «давно» її знаходить', JSON.stringify(ui));
 ok(ui.closed && ui.b2bBtn, 'клік по картці закриває архів і відкриває картку; кнопка «Архів» на дошці B2B є', JSON.stringify(ui));
+
+console.log('');
+console.log('═══ 6. РАЗОВЕ ПОВЕРНЕННЯ З АРХІВУ (ПЕРШИЙ ПРОХІД СХОВАВ ДІАЛОГИ) ═══');
+const undo = await p.evaluate(async () => {
+  delete contentData.archUndo1;
+  window.__ORDERS.forEach(o => { if(o.orderId === '5000307' || o.orderId === '5000301') o.arch = true; });
+  window.__JOBS[0].arch = true;
+  window.__DOCS['arch'] = { ids: { '5000307': 'x', '5000301': 'x' } };
+  await archUndoOnce();
+  return { all: window.__ORDERS.every(o => o.arch === false), job: window.__JOBS[0].arch, ids: Object.keys(window.__DOCS['arch'].ids || {}).length, flag: contentData.archUndo1, log: accLogList().slice(-1)[0].text };
+});
+console.log('   ' + JSON.stringify(undo));
+ok(undo.all && undo.job === false && undo.ids === 0 && undo.flag === 1 && /повернуто з архіву все/.test(undo.log), 'усе повернуто в живі, список архівних номерів порожній, позначка — щоб не повторювати', JSON.stringify(undo));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
