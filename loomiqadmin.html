@@ -5565,10 +5565,12 @@
   .fin-rb .rb-vh{font-size:12px;font-weight:700;margin-top:6px;}
   .fin-rb .rb-vr{font-size:13px;padding:4px 0;border-top:1px dashed var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .fin-rb .rb-vr button{margin-left:auto;}
-  .dz-vers{display:flex;flex-direction:column;gap:8px;}
-  .dz-vers-n{font-size:13px;opacity:.7;}
-  .dz-vers-r{border-top:1px dashed var(--line);padding-top:8px;font-size:13px;}
-  .dz-vers-s{opacity:.75;margin:2px 0 6px;}
+  .dz-hv-w{margin-top:14px;padding-top:10px;border-top:1px solid var(--line);}
+  .dz-hv-h{font-weight:700;font-size:13px;margin-bottom:6px;}
+  .dz-hv{display:flex;flex-direction:column;gap:8px;}
+  .dz-hv-n{font-size:13px;opacity:.7;}
+  .dz-hv-r{border-top:1px dashed var(--line);padding-top:8px;font-size:13px;}
+  .dz-hv-s{opacity:.75;margin:2px 0 6px;}
   .fa-h b{font-weight:800;}
   .fa-ok{color:#1d7a3e;font-weight:700;}
   .fa-n{font-size:12px;font-weight:800;border-radius:20px;padding:2px 9px;}
@@ -8047,33 +8049,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=914570fd36"></script>
-<script src="loomiq-fingerprint.js?v=914570fd36"></script>
-<script src="loomiq-pricing.js?v=914570fd36"></script>
+<script src="loomiq-select.js?v=d3817b8627"></script>
+<script src="loomiq-fingerprint.js?v=d3817b8627"></script>
+<script src="loomiq-pricing.js?v=d3817b8627"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=914570fd36"></script>
+<script src="loomiq-money-core.js?v=d3817b8627"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=914570fd36"></script>
-<script src="loomiq-bg.js?v=914570fd36"></script>
-<script src="loomiq-mock.js?v=914570fd36"></script>
+<script src="loomiq-design.js?v=d3817b8627"></script>
+<script src="loomiq-bg.js?v=d3817b8627"></script>
+<script src="loomiq-mock.js?v=d3817b8627"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=914570fd36"></script>
+<script src="imagetracer.js?v=d3817b8627"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=914570fd36"></script>
-<script src="loomiq-threads.js?v=914570fd36"></script>
+<script src="loomiq-chat.js?v=d3817b8627"></script>
+<script src="loomiq-threads.js?v=d3817b8627"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=914570fd36"></script>
+<script src="loomiq-cards.js?v=d3817b8627"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8118,7 +8120,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '914570fd36';
+var LQ_VER = 'd3817b8627';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -29271,13 +29273,13 @@ function versionsHtml(job, o){
   const id = String(job && job.orderId || '');
   const l = designVers[id];
   const E = escapeHtml;
-  if(!l) return '<div class="dz-vers"><button type="button" class="dz-b" data-do="vers-load">Показати версії картки</button>' +
-    '<div class="dz-vers-n">Перед кожним записом картки її попередня копія лишається в базі. Повернути можна будь-яку.</div></div>';
-  if(!l.length) return '<div class="dz-vers"><div class="dz-vers-n">Збережених версій ще немає' + (histOff ? ' — у базі не опубліковано правила для версій' : '') + '.</div></div>';
-  return '<div class="dz-vers">' + l.map(v => { const s = rbJobSum(v); const m = v._v || {};
-    return '<div class="dz-vers-r"><b>' + E(rbFmt(m.at || v.__id)) + '</b> · ' + E(String(m.by || '').replace(/@.*/, '') || '—') +
-      (m.why === 'restore' ? ' · перед поверненням' : '') + '<div class="dz-vers-s">' + E(rbJobText(s)) + '</div>' +
-      '<button type="button" class="dz-b dz-vers-b" data-do="vers-back" data-ts="' + E(v.__id) + '">Повернути цю версію</button></div>'; }).join('') + '</div>';
+  if(!l) return '<div class="dz-hv"><button type="button" class="dz-b" data-do="vers-load">Показати версії картки</button>' +
+    '<div class="dz-hv-n">Перед кожним записом картки її попередня копія лишається в базі. Повернути можна будь-яку.</div></div>';
+  if(!l.length) return '<div class="dz-hv"><div class="dz-hv-n">Збережених версій ще немає' + (histOff ? ' — у базі не опубліковано правила для версій' : '') + '.</div></div>';
+  return '<div class="dz-hv">' + l.map(v => { const s = rbJobSum(v); const m = v._v || {};
+    return '<div class="dz-hv-r"><b>' + E(rbFmt(m.at || v.__id)) + '</b> · ' + E(String(m.by || '').replace(/@.*/, '') || '—') +
+      (m.why === 'restore' ? ' · перед поверненням' : '') + '<div class="dz-hv-s">' + E(rbJobText(s)) + '</div>' +
+      '<button type="button" class="dz-b dz-hv-b" data-do="vers-back" data-ts="' + E(v.__id) + '">Повернути цю версію</button></div>'; }).join('') + '</div>';
 }
 async function versionRestore(job, ts){
   const id = String(job && job.orderId || '');

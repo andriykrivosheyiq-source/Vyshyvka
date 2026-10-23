@@ -92,7 +92,7 @@
    (`histPut` у `designPut` і `saveOrders`; з вкладки не частіше ніж раз
    на 10 хв на картку, повернення — завжди). `firestore.rules`: версію
    створює `known()`, не править ніхто, стирає лише `may('setup')`.
-   Повернути: згортка «Версії» у картці B2C (власник, `versionsHtml` /
+   Повернути: блок «Версії картки» в низу Історії картки B2C (власник, `versionsHtml` /
    `versionsLoad` / `versionRestore`) і «Відкат карток» у Фінансах
    (`histList`, `orderVersionRestore`); теперішній стан перед поверненням
    теж лягає версією. Перевіряють `tests/versions.mjs` (у pre-commit) і

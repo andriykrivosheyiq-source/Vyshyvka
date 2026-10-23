@@ -179,18 +179,19 @@ const згортка = await p.evaluate(async () => {
   const U = window.LQDesign.ui; U.setTab('acct'); U.render(document.getElementById('dzRoot'));
   const c = document.querySelector('#dzRoot .dz-card[data-open="5000301"]'); if(c) c.click();
   await new Promise(r => setTimeout(r, 300));
-  const h = [...document.querySelectorAll('.dz-panel .dz-z-h')].find(x => /Версії/.test(x.textContent));
-  if(h) h.click();                                             // згортка закрита — відкриваємо
+  const h = [...document.querySelectorAll('.dz-panel .dz-z-h')].find(x => /Історія/.test(x.textContent));
+  if(h) h.click();                                             // згортка «Історія» закрита — відкриваємо; версії в її низу
   await new Promise(r => setTimeout(r, 300));
   const btn = document.querySelector('.dz-panel [data-do="vers-load"]');
   if(btn) btn.click();
   await new Promise(r => setTimeout(r, 400));
   const back = document.querySelector('.dz-panel [data-do="vers-back"]');
-  return { card: !!c, fold: !!h, load: !!btn, back: !!back, rows: document.querySelectorAll('.dz-panel .dz-vers-r').length };
+  const zones = [...document.querySelectorAll('.dz-panel .dz-z-h b')].map(x => x.textContent);
+  return { card: !!c, fold: !!h && !!document.querySelector('.dz-panel .dz-hv-h'), load: !!btn, back: !!back, rows: document.querySelectorAll('.dz-panel .dz-hv-r').length, last: zones[zones.length - 1] };
 });
 console.log('   ' + JSON.stringify(згортка));
-ok(згортка.card && згортка.fold && згортка.load && згортка.back && згортка.rows === 2,
-  'згортка «Версії» з кнопкою, після «Показати» — дві версії з «Повернути цю версію»', JSON.stringify(згортка));
+ok(згортка.card && згортка.fold && згортка.load && згортка.back && згортка.rows === 2 && згортка.last === 'Історія',
+  '«Версії картки» в низу Історії (Історія — остання зона), після «Показати» — дві версії з «Повернути цю версію»', JSON.stringify(згортка));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

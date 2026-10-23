@@ -228,7 +228,7 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `<col>/<id>/hist/<час>` з `_v {at, by, why}` (`designLast` /
   `ordersSaved` — попередня копія; `HIST_GAP_MS` 10 хв; `histOff` при
   відмові правил), `histList` (до `HIST_KEEP` 30, старі прибирає власник),
-  картка B2C: згортка «Версії» (host `versionsHtml`/`versionsLoad`/
+  картка B2C: «Версії картки» в низу Історії (host `versionsHtml`/`versionsLoad`/
   `versionRestore`, acts `vers-load`/`vers-back`, `designVers`); «Відкат
   карток»: «Версії в CRM» (`rbVersHtml`, `orderVersionRestore`). Правила —
   `hist` під `designJobs` і `kanbanOrders`. `tests/versions.mjs`,

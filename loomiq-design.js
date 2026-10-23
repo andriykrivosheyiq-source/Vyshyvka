@@ -7870,15 +7870,15 @@
         /* Історія — в самому низу. Її читають не щодня, але коли читають —
            читають усю, і місце їй саме там, де вона нікому не заважає. */
         U.foldHtml('gray', '🕘', 'Історія', function(){ return U.histSub(job, o); }, function(){ return U.histHtml(job, o) +
+          /* ВЕРСІЇ (23.10) — лише власнику, в самому низу історії: попередні
+             копії картки відділу перед кожним записом, «Повернути цю версію». */
+          (((U.host.role && U.host.role()) === 'owner' && host().versionsHtml)
+            ? '<div class="dz-hv-w"><div class="dz-hv-h">🗂 Версії картки</div>' + host().versionsHtml(job, o) + '</div>' : '') +
           /* ВИДАЛИТИ — лише власнику (Андрій, 15.10), унизу історії: дія
              рідкісна й остаточна, і місце їй там, де випадково не натиснеш. */
           (((U.host.role && U.host.role()) === 'owner' && host().deleteOrder)
             ? '<div class="dz-del-row"><button type="button" class="dz-b dz-del" data-do="order-del" ' +
               'title="Видалити замовлення назавжди — лише власник">🗑 Видалити замовлення</button></div>' : ''); }) +
-        /* ВЕРСІЇ (23.10) — лише власнику: попередні копії картки відділу
-           перед кожним записом; «Повернути цю версію». */
-        (((U.host.role && U.host.role()) === 'owner' && host().versionsHtml)
-          ? U.foldHtml('gray', '🗂', 'Версії', '', function(){ return host().versionsHtml(job, o); }) : '') +
       '</div>' +
       /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
          У картці десяток блоків, і кнопка в кінці означає «догортайте до
@@ -11770,12 +11770,12 @@
     }
     if(what === 'vers-load'){
       if(host().versionsLoad) await host().versionsLoad(job);
-      U.FOLD['Версії'] = 1;
+      U.FOLD['Історія'] = 1;
       return render(root);
     }
     if(what === 'vers-back'){
       if(host().versionRestore) await host().versionRestore(job, String((data && data.ts) || ''));
-      U.FOLD['Версії'] = 1;
+      U.FOLD['Історія'] = 1;
       return render(root);
     }
     if(what === 'unbind'){
