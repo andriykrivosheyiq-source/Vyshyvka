@@ -441,7 +441,13 @@
     var works = (opt.works || []).slice().map(function(w){
       /* Уже перефарбований (колір лежить у розміщенні версії) — відкриваємо в
          тому ж кольорі, і «↩ Повернути колір» знає, до чого повертати. */
-      if(w && w.color && w.color.from && !w.clrOrig) return Object.assign({}, w, { clrOrig: w.color.from });
+      /* Повернутий (23.10) — так само: оригінал і кут лежать у версії. Без
+         оригіналу поворот уже «впечений» у файл — кут від нуля. */
+      if(w && !w.clrOrig){
+        var з = (w.color && w.color.from) || w.xfFrom || '';
+        if(з) return Object.assign({}, w, { clrOrig: з, rot: +w.rot || 0 });
+        if(+w.rot) return Object.assign({}, w, { rot: 0 });
+      }
       return w;
     });
     var places = {};
@@ -465,6 +471,14 @@
               w: (w > 0) ? Math.min(w, 1) : 0.26 } });
     });
     var втиснуто = {};
+    /* ДВІ КАРТИНКИ — ПЕРЕД І СПИНА (23.10, Андрій: «дві картинки — на макеті
+       спереду й ззаду; спереду показали, а ззаду ні»). Відкрили з роботами,
+       але без розміщення: перша — на груди, друга — на спину. */
+    var спинаКлюч = (сторони.filter(function(s){ return s.key === 'back'; })[0] || {}).key || '';
+    if(!(opt.places || []).length && works.length >= 2 && спинаКлюч){
+      places[сторони[0].key].push({ work: 0, box: { x:0.5, y:0.34, w:0.26 } });
+      places[спинаКлюч].push({ work: 1, box: { x:0.5, y:0.3, w:0.34 } });
+    }
 
     var бік = сторони[0].key;
     /* Перше нанесення обране одразу: числа під ним — головне, що тут є, і
@@ -517,8 +531,11 @@
     }
     /* 1 — внутрішній (безкоштовно, у браузері), 2 — PhotoRoom (платний).
        Андрій (07.10): спершу внутрішній, зовнішній — коли той не впорався. */
-    var ФОН = [['none', 'Не прибирати'], ['local', '1 · Внутрішній'],
-               ['photoroom', '2 · PhotoRoom']];
+    /* 23.10, Андрій: «для дизайнерів — платна підписка, бо внутрішній погано
+       прибирає». Першим — PhotoRoom; простий (у браузері, безкоштовно) —
+       запасний і сам підхоплює, коли PhotoRoom не відповів. */
+    var ФОН = [['none', 'Не прибирати'], ['photoroom', 'Прибрати фон · PhotoRoom'],
+               ['local', 'Простий (безкоштовно)']];
     function фонHtml(){
       var i = активна();
       if(i < 0 || opt.placeOnly) return '';
@@ -532,7 +549,7 @@
             '" data-mko-bg="' + f[0] + '"' + (w.bgBusy ? ' disabled' : '') + '>' + esc(f[1]) + '</button>';
         }).join('') +
         (w.bgBusy ? '<i class="mko-bg-w">' + esc(w.bgNote || 'прибираю…') + '</i>' : '') +
-        (!w.bgBusy && w.bg === 'local' ? '<i class="mko-bg-w">не чисто — спробуйте «2 · PhotoRoom»</i>' : '') +
+        (!w.bgBusy && w.bg === 'local' ? '<i class="mko-bg-w">' + esc(w.bgFell ? 'PhotoRoom не відповів — прибрано простим способом' : 'не чисто — натисніть «PhotoRoom»') + '</i>' : '') +
       '</div>';
     }
     /* КОЛІР ПРИНТА (Андрій, 20.10): готовий дизайн білий, а треба чорний —
@@ -561,11 +578,20 @@
     function колірHtml(){
       /* У КОЖНОМУ «Поправити розміщення» (20.10): доти кнопка була лише у
          вікні з бібліотеки, а «✎ Розміщення» під версією її не мало. */
-      if(!opt.recolor && !opt.placeOnly) return '';
+      /* 23.10: колір і поворот — у кожному вікні розміщення, і дизайнеру теж
+         («перефарбував, повернув і поїхав»). */
       var i = активна();
       if(i < 0) return '';
       var w = works[i];
-      return '<div class="mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
+      var кут = ((+w.rot || 0) % 360 + 360) % 360;
+      return '<div class="mko-clr"><span>Поворот' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
+        '<button type="button" class="mko-bg-b" data-mko-rot="-90" title="Повернути на 90° проти годинникової">↺ 90°</button>' +
+        '<button type="button" class="mko-bg-b" data-mko-rot="-15" title="−15°">−15°</button>' +
+        '<button type="button" class="mko-bg-b" data-mko-rot="15" title="+15°">+15°</button>' +
+        '<button type="button" class="mko-bg-b" data-mko-rot="90" title="Повернути на 90° за годинниковою">↻ 90°</button>' +
+        (кут ? '<i class="mko-bg-w">' + кут + '°</i><button type="button" class="mko-bg-b" data-mko-rot="0">↩ Без повороту</button>' : '') +
+      '</div>' +
+      '<div class="mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
         '<button type="button" class="mko-bg-b' + (колірВідкр ? ' on' : '') + '" data-mko-clr>🎨 ' +
           esc(w.color ? w.color.name : 'Змінити колір') + '</button>' +
         (w.color ? '<button type="button" class="mko-bg-b" data-mko-clr-x>↩ Повернути колір</button>' : '') +
@@ -578,35 +604,63 @@
           }).join('') + '</span>' : '') +
       '</div>';
     }
-    async function фарбуй(hex){
-      var i = активна();
-      if(i < 0) return;
-      var w = works[i];
+    /* КОЛІР І ПОВОРОТ — ЗАВЖДИ З ОРИГІНАЛУ (23.10). Обидва накладаються на
+       той самий чистий файл (w.clrOrig): перефарбували після повороту чи
+       навпаки — якість не губиться й одне не скасовує друге. Повернутий
+       файл і є робота: так його бачить клієнт на мокапі й отримує цех. */
+    async function перебудуй(w, i){
       if(!w.clrOrig) w.clrOrig = w.url;
-      w.clrBusy = true; малюй();
+      var кут = ((+w.rot || 0) % 360 + 360) % 360;
+      if(!w.color && !кут){
+        w.url = w.clrOrig; delete w.clrOrig;
+        арт[i] = await img(w.url);
+        return true;
+      }
       var im = await img(w.clrOrig);
-      var out = null;
-      try{
-        if(!im) throw new Error('не відкрилась');
-        var c = document.createElement('canvas');
-        c.width = im.naturalWidth || 1; c.height = im.naturalHeight || 1;
-        var x = c.getContext('2d');
-        x.drawImage(im, 0, 0);
-        var d = x.getImageData(0, 0, c.width, c.height), px = d.data;
-        var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex) || [];
+      if(!im) return false;
+      var c = document.createElement('canvas');
+      var nw = im.naturalWidth || im.width || 1, nh = im.naturalHeight || im.height || 1;
+      c.width = nw; c.height = nh;
+      var x = c.getContext('2d');
+      x.drawImage(im, 0, 0);
+      if(w.color){
+        var d = x.getImageData(0, 0, nw, nh), px = d.data;
+        var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(w.color.hex) || [];
         var R = parseInt(m[1], 16) || 0, G = parseInt(m[2], 16) || 0, B = parseInt(m[3], 16) || 0;
         for(var k = 0; k < px.length; k += 4){
           if(px[k + 3] === 0) continue;          // прозоре лишаємо прозорим
           px[k] = R; px[k + 1] = G; px[k + 2] = B;
         }
         x.putImageData(d, 0, 0);
-        out = c.toDataURL('image/png');
-      }catch(e){ console.warn('колір принта', e); }
-      w.clrBusy = false;
-      if(!out){ малюй(); return say('Колір не змінився — картинка не відкрилась для перефарбування'); }
+      }
+      if(кут){
+        var rad = кут * Math.PI / 180, cs = Math.abs(Math.cos(rad)), sn = Math.abs(Math.sin(rad));
+        var W2 = Math.max(1, Math.round(nw * cs + nh * sn)), H2 = Math.max(1, Math.round(nw * sn + nh * cs));
+        var c2 = document.createElement('canvas');
+        c2.width = W2; c2.height = H2;
+        var x2 = c2.getContext('2d');
+        x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high';
+        x2.translate(W2 / 2, H2 / 2); x2.rotate(rad);
+        x2.drawImage(c, -nw / 2, -nh / 2);
+        c = c2;
+      }
+      var out = c.toDataURL('image/png');
       var ni = await img(out);
-      w.url = out; w.color = { hex: hex, name: колірНазва(hex) };
+      w.url = out;
       if(ni) арт[i] = ni;
+      return true;
+    }
+    async function фарбуй(hex){
+      var i = активна();
+      if(i < 0) return;
+      var w = works[i];
+      var було = w.color;
+      w.color = { hex: hex, name: колірНазва(hex) };
+      w.clrBusy = true; малюй();
+      var ok = false;
+      try{ ok = await перебудуй(w, i); }catch(e){ console.warn('колір принта', e); }
+      w.clrBusy = false;
+      if(!ok){ w.color = було; малюй(); return say('Колір не змінився — картинка не відкрилась для перефарбування'); }
       малюй();
     }
     async function безКольору(){
@@ -614,8 +668,21 @@
       if(i < 0) return;
       var w = works[i];
       if(!w.clrOrig) return;
-      w.url = w.clrOrig; delete w.clrOrig; delete w.color;
-      арт[i] = await img(w.url);
+      delete w.color;
+      await перебудуй(w, i);
+      малюй();
+    }
+    async function поверни(delta){
+      var i = активна();
+      if(i < 0) return;
+      var w = works[i];
+      var було = +w.rot || 0;
+      w.rot = delta === 0 ? 0 : (((було + delta) % 360) + 360) % 360;
+      w.clrBusy = true; малюй();
+      var ok = false;
+      try{ ok = await перебудуй(w, i); }catch(e){ console.warn('поворот', e); }
+      w.clrBusy = false;
+      if(!ok){ w.rot = було; малюй(); return say('Не повернулось — картинка не відкрилась'); }
       малюй();
     }
     async function фон(mode){
@@ -627,19 +694,29 @@
       w.bgBusy = true; малюй();
       var out = null;
       w.bgNote = '';
+      w.bgFell = false;
       try{ out = await removeBg(w.orig, mode, function(t){ w.bgNote = t; малюй(); }); }
       catch(e){
         console.warn('фон', e);
-        w.bgBusy = false; малюй();
-        return say(mode === 'photoroom'
-          ? 'PhotoRoom не відповів — перевірте адресу Worker у налаштуваннях або спробуйте вбудований'
-          : 'Фон не прибрався — картинка з чужого домену або пошкоджена');
+        /* PhotoRoom не відповів (адреса, кредити, мережа) — одразу простий. */
+        if(mode === 'photoroom'){
+          try{ out = await removeBg(w.orig, 'local', function(t){ w.bgNote = t; малюй(); }); mode = 'local'; w.bgFell = true; }
+          catch(e2){ console.warn('фон (простий)', e2); }
+        }
+        if(!out){
+          w.bgBusy = false; малюй();
+          return say(mode === 'photoroom'
+            ? 'PhotoRoom не відповів — перевірте адресу Worker у налаштуваннях'
+            : 'Фон не прибрався — картинка з чужого домену або пошкоджена');
+        }
       }
       var im = await img(out);
       w.bgBusy = false;
       if(!im){ малюй(); return say('Картинка після прибирання фону не відкрилась'); }
       w.url = out; w.bg = mode;
       арт[i] = im;
+      /* Принт уже перефарбований чи повернутий — накладаємо це на чистий. */
+      if(w.color || +w.rot){ w.clrOrig = out; await перебудуй(w, i); }
       малюй();
     }
     /* ── РАМКА = ФОТО ──
@@ -1029,6 +1106,8 @@
       if(bgb) return фон(bgb.getAttribute('data-mko-bg'));
       if(t.closest && t.closest('[data-mko-clr]')){ колірВідкр = !колірВідкр; return малюй(); }
       if(t.closest && t.closest('[data-mko-clr-x]')) return безКольору();
+      var rb = t.closest && t.closest('[data-mko-rot]');
+      if(rb) return поверни(+rb.getAttribute('data-mko-rot') || 0);
       var sw = t.closest && t.closest('[data-mko-sw]');
       if(sw) return фарбуй(sw.getAttribute('data-mko-sw'));
       if(t.closest && t.closest('[data-mko-save]')) return зберегти();
@@ -1072,8 +1151,15 @@
       works.push(f);
       арт.push(im);
       /* Щойно завантажену роботу одразу кладемо на виріб: людина її для
-         цього й вантажила, а зайве натискання тут читається як «а що тепер?». */
-      нове(works.length - 1);
+         цього й вантажила, а зайве натискання тут читається як «а що тепер?».
+         Перед уже зайнятий, а спина порожня — друга картинка йде на спину
+         (23.10): так макет одразу показує обидва боки. */
+      if(спинаКлюч && бік !== спинаКлюч && (places[бік] || []).length && !(places[спинаКлюч] || []).length){
+        бік = спинаКлюч;
+        places[бік].push({ work: works.length - 1, box: { x:0.5, y:0.3, w:0.34 } });
+        обране = places[бік].length - 1;
+        try{ втисни(places[бік][обране]); }catch(e){}
+      } else нове(works.length - 1);
       малюй();
     }
 
