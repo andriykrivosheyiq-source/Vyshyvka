@@ -148,6 +148,15 @@ ok(s5.gate && /Не вдалось завантажити/.test(s5.gateTxt) && s
 await p3.close();
 
 console.log('');
+console.log('═══ КОМАНДА ПРИЇЖДЖАЄ ПЕРШОЮ (23.10) ═══');
+{
+  const h = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const i0 = h.indexOf('async function init(){');
+  const iP = h.indexOf('subscribePhotos();', i0), iO = h.indexOf('orders   = await loadOrders();', i0);
+  ok(i0 > 0 && iP > i0 && iO > iP, 'у старті підписка на документ команди стоїть ДО завантаження всіх замовлень — заслона знімається, не чекаючи карток',
+    'замовлення вантажаться перед командою: заслона чекає всю базу');
+}
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
 console.log(bad ? 'розходжень: ' + bad : 'до приходу доступів — нічого; приїхали — одразу своє');
