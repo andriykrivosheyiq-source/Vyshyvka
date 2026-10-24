@@ -417,47 +417,48 @@ function crmChatIdFromUrl(text){
   const any = /([0-9a-f]{24})/i.exec(t);
   return any ? any[1] : '';
 }
+/* ПРИВʼЯЗКА ЗА ПОСИЛАННЯМ — ОДРАЗУ (24.10, «трішки висне, коли вставляєш
+   посилання на діалог»). Номер розмови вже в адресі: привʼязуємо в ту ж мить,
+   а імʼя, нік і канал (один-два запити до Sitniks, буває й 20 с) — у фоні:
+   доїхали — лягають у картку тим самим правилом, що й у crmPickChat
+   (порожні поля заповнюємо, правлене руками не чіпаємо). */
 async function crmBindUrl(o, text){
   const id = crmChatIdFromUrl(text);
   if(!id){
     toast('Не схоже на посилання з Sitniks — скопіюйте адресу відкритої розмови');
     return;
   }
-  const st = crmSeek[o.id] || (crmSeek[o.id] = {});
-  st.binding = true; st.bindErr = '';
-  renderOrderDrawer();
-  /* Перевіряємо одним запитом, що така розмова справді є, і заразом читаємо з
-     неї співрозмовника: імʼя, нік, канал. Саме заради цього привʼязка й
-     робиться посиланням — менеджер не має переписувати руками те, що вже
-     написано в Sitniks.
-
-     Дивимось два шляхи: у самому діалозі людина є не завжди, а в стрічці
-     повідомлень вона підписана під кожним. Якщо обидва закриті — привʼязуємо
-     однаково: ідентифікатор узятий з їхньої ж адреси, вигадати його нізвідки. */
+  delete crmSeek[o.id];
+  await crmPickChat(o, { chatId:id, name:'', nick:'', channel:'' });
+  toast('Розмову привʼязано — імʼя підтягнеться з Sitniks');
+  crmWhoLater(o, id);
+}
+async function crmWhoLater(o, id){
   let who = null;
   for(const path of ['/chats/' + encodeURIComponent(id),
                      '/chats/' + encodeURIComponent(id) + '/messages']){
     try{
       const data = await crmFetch(path);
       /* Відповідь зі списком ({items:[…]}) читаємо як список, а один обʼєкт
-         (сама розмова) — як запис. Доти {items} загортався в масив і
-         людина в ньому не знаходилась — картка лишалась без імені й ніка. */
+         (сама розмова) — як запис. */
       const list = crmNormFound((Array.isArray(data) || crmListOf(data).length) ? data : [data], true);
       const one = list.find(r => r.name || r.nick);
       if(one){ who = one; break; }
-      // Відповів, але назвати людину нічим — шукаємо в наступному місці.
-    }catch(e){
-      if(e.status && e.status !== 404 && e.status !== 405){
-        st.binding = false;
-        st.bindErr = e.message || 'не вдалось перевірити';
-        renderOrderDrawer();
-        return;
-      }
-    }
+    }catch(e){ /* закрито — лишаємось привʼязаними за самим номером */ }
   }
-  st.binding = false;
-  await crmPickChat(o, { chatId:id, name:(who && who.name) || '',
-                         nick:(who && who.nick) || '', channel:(who && who.channel) || '' });
+  if(!who || String(o.crmChatId || '') !== String(id)) return;
+  /* Поки імені не було, chanFill міг поставити заглушку «чат <номер>» — її
+     вважаємо порожнім місцем, а не правкою руками. */
+  const порожнє = v => { v = String(v || '').trim(); return !v || v === 'чат ' + id; };
+  if(who.nick) o.crmNick = String(who.nick).replace(/^@/, '');
+  if(порожнє(o.crmChatName)) o.crmChatName = who.name || who.nick || '';
+  if(who.name && порожнє(o.name)) o.name = who.name;
+  if(who.nick && порожнє(o.ig) && !/^(Telegram|Viber|WhatsApp|Facebook)$/.test(who.channel || ''))
+    chanSet(o, 'ig', who.nick);
+  chanFill(o);
+  try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
+  try{ renderOrderDrawer(); }catch(e){}
+  if(chatWin && chatWin.id === o.id) try{ renderChatWin(); }catch(e){}
 }
 /* Привʼязати розмову до картки — і перенести в неї те, що в розмові вже
    відоме. Порожні поля картки заповнюємо, заповнені не чіпаємо: людина могла
@@ -512,7 +513,8 @@ async function crmPickChat(o, r){
   chanFill(o);                       // ніка немає зовсім — лишиться імʼя з розмови
   delete crmSeek[o.id];
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
-  await crmLoadChat(o);
+  /* Стрічку — не чекаючи (24.10): вона малює себе сама, щойно доїде. */
+  crmLoadChat(o).catch(e => console.warn('стрічка після привʼязки', e));
   /* Вікно розмови відкрите — показує вже нову й слухає її. */
   if(заміна && chatWin && chatWin.id === o.id && chatWin.kind === 'crm'){ renderChatWin(true); try{ crmStartPoll(o); }catch(e){} }
   try{ renderBoard(); }catch(e){}

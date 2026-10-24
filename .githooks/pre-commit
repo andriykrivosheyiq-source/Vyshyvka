@@ -172,6 +172,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-reci
   }
   echo "✓ отримувач — з переписки, ніколи не нік"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|loomiq-design\.js|tests/bind-fast\.mjs)'; then
+  node tests/bind-fast.mjs >/tmp/lq-bind-fast.log 2>&1 || {
+    echo "✗ Привʼязка розмови за посиланням знову чекає Sitniks — коміт зупинено. Подробиці: /tmp/lq-bind-fast.log"
+    grep '✗' /tmp/lq-bind-fast.log
+    exit 1
+  }
+  echo "✓ привʼязка розмови — миттєва"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|tests/chat-extras\.mjs)'; then
   node tests/chat-extras.mjs >/tmp/lq-chat-extras.log 2>&1 || {
     echo "✗ Смайлики чи фільтр «Непрочитані» в Чатах зламано — коміт зупинено. Подробиці: /tmp/lq-chat-extras.log"
