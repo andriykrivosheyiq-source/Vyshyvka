@@ -12,7 +12,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const PORT = 8987;
+const PORT = 9124;
 const srv = createServer(async (req, res) => {
   const u = req.url.split('?')[0];
   if(u === '/t.html'){ res.writeHead(200, { 'Content-Type':'text/html' });
