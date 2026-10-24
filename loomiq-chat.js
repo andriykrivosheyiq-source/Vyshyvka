@@ -2533,7 +2533,18 @@ function chatsMatch(r, q){
                o.orderId, showNo(o)].filter(Boolean).join(' ').toLowerCase();
   return q.split(/\s+/).every(t => hay.indexOf(t) >= 0);
 }
-function chatsRowsQ(dir){ return chatsRows(dir).filter(r => chatsMatch(r, chatsQ[dir])); }
+/* ФІЛЬТР «НЕПРОЧИТАНІ» (24.10, Андрій: «всі перед очима всі замовлення,
+   які потребують уваги»): лишаються розмови, де клієнт написав, а ми ще не
+   відповіли (r.waits — той самий підрахунок, що й кружечок). Відповіли чи
+   👁 — розмова сама виходить із фільтра. Памʼятає браузер, на напрям. */
+const chatsUnr = { b2b: false, b2c: false };
+try{ ['b2b', 'b2c'].forEach(d => { chatsUnr[d] = localStorage.getItem('lq_chats_unr_' + d) === '1'; }); }catch(e){}
+function chatsUnrBtn(dir){
+  const n = chatsRows(dir).filter(r => r.waits).length;
+  return '<button type="button" class="chl-unr' + (chatsUnr[dir] ? ' on' : '') + '" data-chl-unr title="' +
+    (chatsUnr[dir] ? 'Показати всі розмови' : 'Лише ті, що чекають на відповідь') + '">Непрочитані' + (n ? ' · ' + n : '') + '</button>';
+}
+function chatsRowsQ(dir){ return chatsRows(dir).filter(r => chatsMatch(r, chatsQ[dir]) && (!chatsUnr[dir] || r.waits)); }
 function chatsHtml(dir){
   const all = chatsRows(dir);
   const rows = chatsRowsQ(dir);
@@ -2542,7 +2553,9 @@ function chatsHtml(dir){
            'коли розмову привʼязують до замовлення цього напряму — у картці, ' +
            'кнопкою 🔗 біля клієнта.</div>';
   if(!rows.length)
-    return '<div class="chl-empty">За «' + escapeHtml(chatsQ[dir]) + '» нічого немає.</div>';
+    return '<div class="chl-empty">' + (chatsUnr[dir] && !String(chatsQ[dir] || '').trim()
+      ? 'Непрочитаних немає — усім відповіли 🎉'
+      : 'За «' + escapeHtml(chatsQ[dir]) + '» нічого' + (chatsUnr[dir] ? ' серед непрочитаних' : '') + ' немає.') + '</div>';
   return rows.map((r, i) => `
     <button class="chl-row${r.waits ? ' waits' : ''}${
       chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
@@ -2594,7 +2607,7 @@ function renderChats(dir){
      що вже стоїть на місці, тепер не чіпаємо взагалі. */
   const list = root.querySelector('.ch2 > .ch2-list');
   const qHtml = '<div class="chl-qw"><input type="search" class="chl-q" placeholder="Пошук: імʼя, нік, номер, телефон" value="' +
-    escapeHtml(chatsQ[dir]) + '" autocomplete="off"></div>';
+    escapeHtml(chatsQ[dir]) + '" autocomplete="off">' + chatsUnrBtn(dir) + '</div>';
   if(list && document.getElementById(host)){
     /* Лише рядки: поле пошуку з курсором і набраним лишається як є. */
     const rowsEl = list.querySelector('.chl-rows');
@@ -2609,6 +2622,17 @@ function renderChats(dir){
       '</div>';
     if(parked) chatsMount(dir);
     else chatsViewEmpty(dir);
+  }
+  /* Число на «Непрочитані» — свіже при кожному перемальовуванні списку. */
+  const ub = root.querySelector('[data-chl-unr]');
+  if(ub){
+    ub.outerHTML = chatsUnrBtn(dir);
+    const ub2 = root.querySelector('[data-chl-unr]');
+    ub2.addEventListener('click', () => {
+      chatsUnr[dir] = !chatsUnr[dir];
+      try{ localStorage.setItem('lq_chats_unr_' + dir, chatsUnr[dir] ? '1' : '0'); }catch(e){}
+      renderChats(dir);
+    });
   }
   const qEl = root.querySelector('.chl-q');
   if(qEl && !qEl.__wired){
@@ -3618,7 +3642,60 @@ async function cardsDownload(o){
 
    Список один на всіх і лежить там само, куди пише конструктор сайту, тож
    двох різних наборів не буває. */
+/* ══════════ КАРТИНКИ В ЗАГОТОВКАХ (24.10) ══════════
+   Андрій: «у панелі швидких відповідей — розділити тексти й картинки; туди
+   завантажуємо картинки (каталог, сітки), щоб надсилати». Лежать у
+   loomiq/photos → quickPics [{id, f: папка, n: назва, url, dir, at, by}];
+   правити — те саме право, що й тексти (canQuick, у базі — налаштування).
+   Клік кладе картинку в смужку відправки, як 📎: дописали текст — ➤. */
+function quickPics(){ const l = (contentData && contentData.quickPics) || []; return Array.isArray(l) ? l.filter(x => x && x.url) : []; }
+async function qpStore(list){
+  const clean = list.filter(x => x && x.url).map(x => {
+    const r = { id: String(x.id), f: String(x.f || 'Інше').slice(0, 40), n: String(x.n || '').slice(0, 60), url: String(x.url),
+                at: x.at || new Date().toISOString(), by: x.by || '' };
+    if(x.dir === 'b2b' || x.dir === 'b2c') r.dir = x.dir;
+    return r; });
+  await PHOTOS_DOC.set({ quickPics: clean }, { merge:true });
+  contentData.quickPics = clean;
+}
+function qpPanelHtml(o){
+  const dir = chatDirOf(o);
+  const мої = quickPics().filter(x => !x.dir || x.dir === dir);
+  const папки = [];
+  мої.forEach(x => { const f = x.f || 'Інше'; if(папки.indexOf(f) < 0) папки.push(f); });
+  const can = canQuick();
+  const head = `<div class="cw-qr-head"><b>Картинки</b><span>натисніть — картинка ляже в повідомлення${can ? ' · ＋ — завантажити' : ''}</span></div>`;
+  const body = папки.map(f => `<div class="cw-qr-grp">${escapeHtml(f)}${can
+      ? ` <button type="button" class="cw-qp-add" data-qp-add="${escapeHtml(f)}" title="Завантажити в цю папку">＋</button>` : ''}</div>
+    <div class="cw-qp-grid">${мої.filter(x => (x.f || 'Інше') === f).map(x => `
+      <span class="cw-qp">
+        <button type="button" class="cw-qp-b" data-qp="${escapeHtml(x.id)}" title="${escapeHtml(x.n || 'Надіслати')}">
+          <img src="${escapeHtml(x.url)}" alt="" loading="lazy"><i>${escapeHtml(x.n || '')}</i></button>
+        ${can ? `<button type="button" class="cw-qp-x" data-qp-del="${escapeHtml(x.id)}" title="Прибрати з заготовок">✕</button>` : ''}
+      </span>`).join('')}</div>`).join('');
+  const пусто = папки.length ? '' : '<div class="cw-tip" style="padding:6px 2px">Картинок ще немає.' +
+    (can ? ' Створіть папку (наприклад «Каталог» чи «Розмірні сітки») і завантажте картинки.' : ' Їх додає той, хто править заготовки.') + '</div>';
+  const нова = can ? `<div class="cw-qp-new">
+      <button type="button" class="cw-qr-add" data-qp-add="">＋ Нова папка</button>
+      <label class="cw-qr-dir"><span>Кому</span><select class="cw-qp-dir">
+        <option value=""${!(chatWin || {}).qpDir ? ' selected' : ''}>Обом напрямам</option>
+        <option value="b2c"${(chatWin || {}).qpDir === 'b2c' ? ' selected' : ''}>Тільки B2C</option>
+        <option value="b2b"${(chatWin || {}).qpDir === 'b2b' ? ' selected' : ''}>Тільки B2B</option></select></label>
+      <input type="file" accept="image/*" multiple data-qp-file hidden></div>` : '';
+  return head + body + пусто + нова;
+}
+function qrTabsHtml(o){
+  const dir = chatDirOf(o);
+  const n = quickPics().filter(x => !x.dir || x.dir === dir).length;
+  const t = (chatWin && chatWin.qrTab === 'p') ? 'p' : 't';
+  return `<div class="cw-qr-tabs"><button type="button" class="cw-qr-tab${t === 't' ? ' on' : ''}" data-qr-tab="t">Тексти</button>` +
+    `<button type="button" class="cw-qr-tab${t === 'p' ? ' on' : ''}" data-qr-tab="p">Картинки${n ? ' · ' + n : ''}</button></div>`;
+}
 function qrPanelHtml(o){
+  if(chatWin && chatWin.qrTab === 'p') return qrTabsHtml(o) + qpPanelHtml(o);
+  return qrTabsHtml(o) + qrPanelTextHtml(o);
+}
+function qrPanelTextHtml(o){
   const L = quickReplies();
   const ed = chatWin && chatWin.qrEdit;
   /* Панель мовчала про себе: люди бачили список і не здогадувались, що його
@@ -3876,6 +3953,19 @@ function chatClose(){
   if(dir){ try{ renderChats(dir); }catch(e){} }
 }
 
+/* ══════════ СМАЙЛИКИ (24.10) ══════════
+   Найуживаніші — однією панеллю; нещодавні — першими (памʼятає браузер). */
+const CHAT_EMO = ['😊','🙂','😉','😍','🥰','😘','🤗','🙏','👍','👌','🤝','👏','🙌','💪','🔥','✨','🎉','🎁',
+  '❤️','🤍','💜','💙','💚','🧡','💛','😂','🤣','😅','😁','😄','😌','🤔','😔','😢','😮','✅','❗','📦','🚚','🧵'];
+function chatEmoRecent(){ try{ const l = JSON.parse(localStorage.getItem('lq_emo_recent') || '[]'); return Array.isArray(l) ? l.slice(0, 8) : []; }catch(e){ return []; } }
+function chatEmoUse(e){ try{ const l = [e].concat(chatEmoRecent().filter(x => x !== e)).slice(0, 8); localStorage.setItem('lq_emo_recent', JSON.stringify(l)); }catch(er){} }
+function chatEmoHtml(){
+  const нещ = chatEmoRecent();
+  const кн = l => l.map(e => '<button type="button" data-emo="' + escapeHtml(e) + '">' + escapeHtml(e) + '</button>').join('');
+  return '<div class="cw-emo">' +
+    (нещ.length ? '<span class="cw-emo-h">Нещодавні</span>' + кн(нещ) + '<span class="cw-emo-h">Усі</span>' : '') +
+    кн(CHAT_EMO) + '</div>';
+}
 function renderChatWin(toBottom){
   const d = document.getElementById('chatWin');
   if(!d || !chatWin) return;
@@ -4066,6 +4156,7 @@ function renderChatWin(toBottom){
         Sitniks лист прийме, а до людини він не дійде. Напишіть з іншого каналу
         або дочекайтесь, поки клієнт озветься сам.</div>` : ''}
       ${chatTrayHtml()}
+      ${chatWin.emo ? chatEmoHtml() : ''}
       <div class="cw-row">
         ${/* Підпис окремим вузлом: на телефоні він ховається, і кнопка стає
              самим знаком. Текстом вона з’їдала третину смуги, а поле для
@@ -4074,6 +4165,7 @@ function renderChatWin(toBottom){
           title="Заготовлені повідомлення — вставити або відредагувати">⚡<span
           class="cw-ic-l">Заготовки</span></button>
         ${canSendFiles() ? '<button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>' : ''}
+        <button class="cw-ic${chatWin.emo ? ' on' : ''}" data-cw-emo title="Смайлики">😊</button>
         ${chatFwdOn() ? (chatWin.fwdMode
           ? `<button class="cw-ic on" data-cw-fwdgo title="Переслати відмічене дизайнеру">➤ ${
               Object.keys(chatWin.fwdSel || {}).filter(k => chatWin.fwdSel[k]).length || ''}</button><button class="cw-ic" data-cw-fwdoff title="Скасувати вибір">✕</button>`
@@ -4336,6 +4428,23 @@ function wireChatWin(box, o, focusIn){
     send();
   });
   goB.addEventListener('click', () => { if(Date.now() - (chatWin.goAt || 0) < 1500) return; send(); });
+  /* СМАЙЛИКИ (24.10): 😊 відкриває панель; клік — вставити туди, де курсор.
+     mousedown не забирає фокус із поля — курсор лишається на місці. */
+  const emoB = box.querySelector('[data-cw-emo]');
+  if(emoB) emoB.addEventListener('click', ()=>{ chatWin.emo = !chatWin.emo; renderChatWin(); });
+  box.querySelectorAll('[data-emo]').forEach(b => {
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', ()=>{
+      const e = b.dataset.emo;
+      const a = (inp.selectionStart != null) ? inp.selectionStart : inp.value.length;
+      const z = (inp.selectionEnd != null) ? inp.selectionEnd : a;
+      inp.value = inp.value.slice(0, a) + e + inp.value.slice(z);
+      const k = a + e.length;
+      try{ inp.focus(); inp.setSelectionRange(k, k); }catch(er){}
+      inp.dispatchEvent(new Event('input'));
+      chatEmoUse(e);
+    });
+  });
   box.querySelector('[data-cw-qr]').addEventListener('click', ()=>{
     chatWin.qr = !chatWin.qr; renderChatWin();
   });
@@ -4428,6 +4537,59 @@ function wireChatWin(box, o, focusIn){
       if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     });
   });
+  /* Вкладки «Тексти / Картинки» і картинки заготовок (24.10). */
+  box.querySelectorAll('[data-qr-tab]').forEach(b => b.addEventListener('click', ()=>{
+    chatWin.qrTab = b.dataset.qrTab === 'p' ? 'p' : 't'; chatWin.qrEdit = null; chatWin.draft = inp.value; renderChatWin();
+  }));
+  box.querySelectorAll('[data-qp]').forEach(b => b.addEventListener('click', async ()=>{
+    const x = quickPics().filter(q => q.id === b.dataset.qp)[0];
+    if(!x) return;
+    if(chatWin.picsBusy || chatWin.sending) return toast('Ще надсилається попереднє — секунду');
+    try{
+      const r = await fetch(x.url);
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      const bl = await r.blob();
+      chatWin.draft = inp.value;
+      await chatTake([new File([bl], (x.n || 'картинка').replace(/[\\/:*?"<>|]/g, '') + '.jpg', { type: bl.type || 'image/jpeg' })]);
+      toast('Картинку додано в повідомлення — допишіть текст і ➤');
+    }catch(e){ console.warn('картинка заготовки', e); toast('Картинка не відкрилась — спробуйте ще раз'); }
+  }));
+  const qpDirEl = box.querySelector('.cw-qp-dir');
+  if(qpDirEl) qpDirEl.addEventListener('change', ()=>{ chatWin.qpDir = qpDirEl.value; });
+  const qpFile = box.querySelector('[data-qp-file]');
+  box.querySelectorAll('[data-qp-add]').forEach(b => b.addEventListener('click', ()=>{
+    if(!canQuick()) return toast('Картинки заготовок править той, хто править заготовки');
+    let f = b.dataset.qpAdd;
+    if(!f){ f = String(prompt('Назва папки (наприклад «Каталог» чи «Розмірні сітки»):', '') || '').trim(); if(!f) return; }
+    chatWin.qpFolder = f.slice(0, 40);
+    if(qpFile) qpFile.click();
+  }));
+  if(qpFile) qpFile.addEventListener('change', async ()=>{
+    const list = Array.from(qpFile.files || []).filter(f => /^image\//.test(f.type || ''));
+    qpFile.value = '';
+    if(!list.length) return;
+    toast('Завантажую ' + list.length + '…');
+    const нові = [];
+    for(const f of list){
+      try{
+        const bl = await shrinkImage(f);
+        const url = await uploadCloudinary(bl);
+        if(url) нові.push({ id: 'qp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), f: chatWin.qpFolder || 'Інше',
+          n: String(f.name || '').replace(/\.[a-z0-9]+$/i, ''), url, dir: chatWin.qpDir || '', at: new Date().toISOString(), by: myEmail() || '' });
+      }catch(e){ console.warn('завантаження картинки заготовки', e); }
+    }
+    if(!нові.length) return toast('Не завантажилось — спробуйте ще раз');
+    try{ await qpStore(quickPics().concat(нові)); }catch(e){ console.error(e); return toast('Не збереглось: ' + ((e && e.message) || e)); }
+    toast('Додано ' + нові.length + ' у «' + (chatWin.qpFolder || 'Інше') + '»');
+    chatWin.draft = inp.value; renderChatWin();
+  });
+  box.querySelectorAll('[data-qp-del]').forEach(b => b.addEventListener('click', async ()=>{
+    if(!canQuick()) return;
+    const x = quickPics().filter(q => q.id === b.dataset.qpDel)[0];
+    if(!x || !confirm('Прибрати «' + (x.n || 'картинку') + '» із заготовок?')) return;
+    try{ await qpStore(quickPics().filter(q => q.id !== x.id)); }catch(e){ console.error(e); return toast('Не збереглось'); }
+    chatWin.draft = inp.value; renderChatWin();
+  }));
   box.querySelectorAll('[data-qr-edit]').forEach(b=>{
     b.addEventListener('click', ()=>{
       const v = b.dataset.qrEdit;

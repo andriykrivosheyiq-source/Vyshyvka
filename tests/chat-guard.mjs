@@ -412,7 +412,12 @@ await openChat('2000501');
 const до = await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000501');
   chatOutbox[o.id] = [{ text:'стара черга' }];
   return { name: o.name, ig: o.ig || '', chat: o.crmChatId, head: (document.querySelector('#chatWin .cw-t, #chatWin .cw-h b, #chatWin .cw-name') || {}).textContent || '' }; });
-await p.evaluate(async () => { const o = orders.find(x => x.orderId === '2000501'); await crmBindUrl(o, 'https://app.sitniks.com/dialog/abcdef0123456789'); });
+/* Привʼязку запускаємо й далі опитуємо результат (wait нижче), а не чекаємо
+   її всередині одного evaluate: довгий evaluate з мережею зрідка (≈1 з 6)
+   рвався «Execution context was destroyed» без жодної навігації сторінки. */
+await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000501');
+  window.__bindDone = 0; crmBindUrl(o, 'https://app.sitniks.com/dialog/abcdef0123456789').then(() => { window.__bindDone = 1; }, e => { window.__bindDone = String(e); }); });
+await wait(() => window.__bindDone || null, 100);
 await wait(() => { const st = crmChat[(orders.find(x => x.orderId === '2000501') || {}).id] || {}; return (!st.loading && st.chatId === 'abcdef0123456789' && Array.isArray(st.msgs)) ? true : null; });
 await p.waitForTimeout(300);
 const після = await p.evaluate(() => { const o = orders.find(x => x.orderId === '2000501');

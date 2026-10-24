@@ -172,6 +172,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-reci
   }
   echo "✓ отримувач — з переписки, ніколи не нік"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|tests/chat-extras\.mjs)'; then
+  node tests/chat-extras.mjs >/tmp/lq-chat-extras.log 2>&1 || {
+    echo "✗ Смайлики чи фільтр «Непрочитані» в Чатах зламано — коміт зупинено. Подробиці: /tmp/lq-chat-extras.log"
+    grep '✗' /tmp/lq-chat-extras.log
+    exit 1
+  }
+  echo "✓ смайлики й «Непрочитані»"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/pic-notes\.mjs)'; then
   node tests/pic-notes.mjs >/tmp/lq-pic-notes.log 2>&1 || {
     echo "✗ Підписи на картинках ТЗ зламано — коміт зупинено. Подробиці: /tmp/lq-pic-notes.log"

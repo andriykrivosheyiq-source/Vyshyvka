@@ -13,7 +13,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const PORT = 8997;
+const PORT = 9126;
 const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css',
                '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
                '.webp':'image/webp' };

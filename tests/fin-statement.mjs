@@ -24,7 +24,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const PORT = 8877;
+const PORT = 9107;
 const MIME = { '.html':'text/html', '.js':'application/javascript; charset=utf-8',
                '.css':'text/css', '.svg':'image/svg+xml', '.png':'image/png' };
 const srv = createServer(async (req, res) => {
