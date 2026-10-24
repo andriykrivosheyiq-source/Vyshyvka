@@ -228,6 +228,10 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
   у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
   відділу — лише тихо. `tests/no-flicker.mjs`.
+- **Колонка цеху з записів закупника** (24.10): `prodAt` → `buyStateFor(job, o)`
+  (`host.buys`, без `del.void`) → `buyOrderState`; ранг з треку й записів,
+  береться більший. `buyTrackSync` пише лише замовлення (`host.orderSave`).
+  Тест `b2c-buy` §8.
 - **Підпис на картинці ТЗ** (24.10, #2000251): `u.pics[i].note` (`D.unitPicNote`,
   ≤200 знаків), поле `[data-pic-note="uid|i"]` під мініатюрою в картці
   менеджера (на час набору розгортається, Enter — зберегти); номер
