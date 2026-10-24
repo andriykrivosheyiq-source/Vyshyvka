@@ -746,6 +746,18 @@
     u.pics.push({ name: String(pic.name || ''), url: String(pic.url) });
     return u;
   }
+  /* ПІДПИС ДО КАРТИНКИ (24.10, Андрій: «скидають різні картинки, і з кожної
+     треба щось взяти… на самій картинці підпис»). Лежить у самій картинці
+     (u.pics[i].note) — прибрали картинку, зник і її підпис, номери не
+     плутаються. true — змінилось. */
+  function unitPicNote(u, i, text){
+    var pp = u && Array.isArray(u.pics) ? u.pics[i] : null;
+    if(!pp) return false;
+    var t = String(text || '').trim().slice(0, 200);
+    if(String(pp.note || '') === t) return false;
+    if(t) pp.note = t; else delete pp.note;
+    return true;
+  }
   function unitPicDel(u, i){
     if(!u || !Array.isArray(u.pics)) return null;
     u.pics.splice(i, 1);
@@ -2949,7 +2961,7 @@
     taskSay: taskSay, taskAge: taskAge, taskOpen: taskOpen, tasksOf: tasksOf,
     taskFile: taskFile,
     briefSet: briefSet, briefPic: briefPic, briefPicDel: briefPicDel,
-    unitPic: unitPic, unitPicDel: unitPicDel,
+    unitPic: unitPic, unitPicDel: unitPicDel, unitPicNote: unitPicNote,
     dzNew: dzNew, dzList: dzList, dzAt: dzAt, dzName: dzName,
     dzAttach: dzAttach, dzSend: dzSend, sentAny: sentAny, waiting: waiting,
     /* Строк дизайнера й дві його відповіді на передачу. */
@@ -3956,6 +3968,10 @@
   }
   /* Перегляд однієї картинки. Те саме вікно, що й каталог: одна поведінка
      на обидва випадки — клацнув повз, натиснув Escape, і воно закрилось. */
+  /* Номер картинки (коли їх кілька) і її підпис — однаково в менеджера,
+     дизайнера й цеху: «дракон з 1, напис з 2» читається однаково всюди. */
+  function picNoHtml(pics, k){ return (pics || []).length > 1 ? '<i class="dz-pic-no">' + (k + 1) + '</i>' : ''; }
+  function picCapHtml(pp){ return pp && pp.note ? '<span class="dz-pic-cap">' + esc(pp.note) + '</span>' : ''; }
   function picOpen(url){
     if(!url) return;
     pickClose();
@@ -5423,13 +5439,19 @@
            одній базі. */
         '<div class="dz-pics">' +
           (u.pics || []).map(function(pp, i){
-              return '<span class="dz-pic">' +
+              return '<span class="dz-pic"><span class="dz-pic-im">' +
                 '<button type="button" class="dz-pic-b" data-do="pic-open" ' +
-                  'data-url="' + esc(pp.url) + '" title="' + esc(pp.name || 'Подивитись') + '">' +
+                  'data-url="' + esc(pp.url) + '" title="' + esc(pp.note || pp.name || 'Подивитись') + '">' +
                   '<img src="' + esc(pp.url) + '" alt="" loading="lazy">' +
-                '</button>' +
+                '</button>' + picNoHtml(u.pics, i) +
                 (ro ? '' : '<button class="dz-pic-x" data-do="u-pic-del" data-u="' + esc(u.id) +
-                '" data-i="' + i + '">×</button>') + '</span>';
+                '" data-i="' + i + '">×</button>') + '</span>' +
+                /* Підпис: що взяти з цієї картинки. Поле під мініатюрою; на час
+                   набору розгортається поверх сусідів, ряд не стрибає. */
+                (ro ? picCapHtml(pp)
+                    : '<span class="dz-pic-cw"><textarea class="dz-pic-in" rows="1" data-pic-note="' + esc(u.id) + '|' + i +
+                      '" placeholder="що взяти" title="' + esc(pp.note || 'Що взяти з цієї картинки') + '">' + esc(pp.note || '') + '</textarea></span>') +
+                '</span>';
           }).join('') +
           ((ro || u.ready) ? '' : '<button type="button" class="dz-pic-add" data-do="u-pic" data-u="' +
             esc(u.id) + '" title="Додати картинку">＋</button>') +
@@ -6846,7 +6868,7 @@
     waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, histHtml: histHtml, histSub: histSub,
-    picOpen: picOpen, prodView: prodView,
+    picOpen: picOpen, picNoHtml: picNoHtml, picCapHtml: picCapHtml, prodView: prodView,
     DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName, SIDE_AT: SIDE_AT,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
        самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
@@ -8269,16 +8291,16 @@
          референс. */
       ((u.pics || []).length
         ? '<div class="dz-pics">' + u.pics.map(function(pp, k){
-            return '<span class="dz-pic">' +
+            return '<span class="dz-pic"><span class="dz-pic-im">' +
               '<button type="button" class="dz-pic-b" data-do="pic-open" ' +
-                'data-url="' + esc(pp.url) + '" title="' + esc(pp.name || 'Подивитись') + '">' +
+                'data-url="' + esc(pp.url) + '" title="' + esc(pp.note || pp.name || 'Подивитись') + '">' +
                 '<img src="' + esc(pp.url) + '" alt="" loading="lazy">' +
-              '</button>' +
+              '</button>' + U.picNoHtml(u.pics, k) +
               '<button type="button" class="dz-pic-dl" data-do="dz-dl" data-url="' +
                 esc(pp.url) + '" data-name="' +
                 esc(U.dlBase(x.job ? U.unitNo(x.job, u) : '', null) + '_референс' +
                     (u.pics.length > 1 ? (k + 1) : '')) +
-                '" title="Скачати">⤓</button>' +
+                '" title="Скачати">⤓</button></span>' + U.picCapHtml(pp) +
             '</span>';
           }).join('') + '</div>'
         : '<div class="dz-miss is-calm">Картинок до цього виробу не додали.</div>')) +
@@ -8936,11 +8958,13 @@
      позиціях. Тепер — і те, і те; кілька позицій — з підписом виробу. */
   function prodPicsHtml(pics, base){
     return '<div class="dz-pics">' + pics.map(function(pp, k){
-      return '<span class="dz-pic">' +
+      return '<span class="dz-pic"><span class="dz-pic-im">' +
         '<button type="button" class="dz-pic-b" data-do="pic-open" data-url="' + esc(pp.url) + '" ' +
-          'title="' + esc(pp.name || 'Подивитись') + '"><img src="' + esc(pp.url) + '" alt="" loading="lazy"></button>' +
+          'title="' + esc(pp.note || pp.name || 'Подивитись') + '"><img src="' + esc(pp.url) + '" alt="" loading="lazy"></button>' +
+        U.picNoHtml(pics, k) +
         '<button type="button" class="dz-pic-dl" data-do="dz-dl" data-url="' + esc(pp.url) + '" data-name="' +
-          esc(U.dlFile(base || 'замовлення', pp, 'референс', k, pics.length)) + '" title="Скачати">⤓</button></span>';
+          esc(U.dlFile(base || 'замовлення', pp, 'референс', k, pics.length)) + '" title="Скачати">⤓</button></span>' +
+        U.picCapHtml(pp) + '</span>';
     }).join('') + '</div>';
   }
   function prodTzHtml(job, o){
@@ -10553,6 +10577,16 @@
           .then(function(){ render(document.getElementById('dzRoot')); })
           .catch(function(e){ console.error(e); el.disabled = false; });
       };
+    });
+    root.querySelectorAll('[data-pic-note]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c || !c.job) return;
+        var pp = String(el.dataset.picNote).split('|');
+        var u = U.unitAt(c.job, pp[0]);
+        if(u && D.unitPicNote(u, +pp[1] || 0, el.value)) save(c.job, c.o, 'Підпис до картинки ' + ((+pp[1] || 0) + 1));
+      };
+      /* Enter — зберегти й вийти; Shift+Enter — новий рядок. */
+      el.onkeydown = function(e){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); el.blur(); } };
     });
     root.querySelectorAll('[data-of]').forEach(function(el){
       el.onchange = function(){

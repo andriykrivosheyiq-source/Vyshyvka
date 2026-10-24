@@ -172,6 +172,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-reci
   }
   echo "✓ отримувач — з переписки, ніколи не нік"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/pic-notes\.mjs)'; then
+  node tests/pic-notes.mjs >/tmp/lq-pic-notes.log 2>&1 || {
+    echo "✗ Підписи на картинках ТЗ зламано — коміт зупинено. Подробиці: /tmp/lq-pic-notes.log"
+    grep '✗' /tmp/lq-pic-notes.log
+    exit 1
+  }
+  echo "✓ підписи на картинках ТЗ"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/ttn-manual\.mjs)'; then
   node tests/ttn-manual.mjs >/tmp/lq-ttn-manual.log 2>&1 || {
     echo "✗ Поле «номер ТТН руками» знову бере будь-який текст або «✎ Змінити» не працює — коміт зупинено. Подробиці: /tmp/lq-ttn-manual.log"
