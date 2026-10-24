@@ -10615,8 +10615,11 @@
         var v = String(el.value || '').trim();
         if(!v) return;
         el.disabled = true;
+        /* Привʼязка тепер миттєва (24.10): імʼя з Sitniks доїде само. Поле
+           відпускаємо й перемальовуємо тихо — під фокусом не перебудовується. */
         Promise.resolve(host().bind ? host().bind(c.o, v) : false)
-          .then(function(){ render(document.getElementById('dzRoot')); })
+          .then(function(){ el.disabled = false; try{ el.blur(); }catch(e){}
+                            (U.renderSoft || render)(document.getElementById('dzRoot')); })
           .catch(function(e){ console.error(e); el.disabled = false; });
       };
     });

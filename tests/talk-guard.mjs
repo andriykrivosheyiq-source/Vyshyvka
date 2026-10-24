@@ -193,15 +193,27 @@ await крок('акаунт → графічному з другої картк
 await крок('і з відділу, поки дзеркало ще відкрите', 'graphic', '#dzRoot', '[data-dzsay="' + kg + '"]', '[data-do="dz-note"][data-dz="' + kg + '"]', 'Правка з відділу', 'acct', 'p@loomiq', 'graphic');
 await p.evaluate(() => { const b = document.getElementById('talkSolo'); if(b) b.remove(); window.LQDesign.ui.soloOff(); });
 
+/* Вибір файлу: кнопку беремо, коли вона вже стоїть, і за потреби тиснемо ще
+   раз — під навантаженням перший натиск зрідка припадав на перемальовування
+   й вікно вибору не відкривалось (30 с очікування в нікуди). */
+async function вибір(sel){
+  for(let k = 0; k < 3; k++){
+    await p.waitForSelector(sel, { timeout: 8000 }).catch(() => {});
+    try{
+      const [fc] = await Promise.all([p.waitForEvent('filechooser', { timeout: 8000 }), p.evaluate(s => { const b = document.querySelector(s); if(b) b.click(); }, sel)]);
+      return fc;
+    }catch(e){ if(k === 2) throw e; }
+  }
+}
 console.log('═══ 4. ФОТО В ОБИДВА БОКИ ═══');
 await як('owner', 'acct');
-const [fc1] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(kg => document.querySelector('#dzRoot [data-do="dz-note-pic"][data-dz="' + kg + '"]').click(), kg)]);
+const fc1 = await вибір('#dzRoot [data-do="dz-note-pic"][data-dz="' + kg + '"]');
 await fc1.setFiles([{ name:'ref1.png', mimeType:'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') }, { name:'ref2.png', mimeType:'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') }]);
 await p.waitForTimeout(1200);
 let л = await стрічка('graphic');
 ok(л.filter(m => /x\/up\/ref/.test(m.file || '')).length === 2, 'акаунт → графічному: два фото в стрічці', JSON.stringify(л.slice(-3)));
 await як('designer', 'graphic');
-const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(kg => document.querySelector('#dzRoot [data-do="dz-msg-file"][data-dz="' + kg + '"]').click(), kg)]);
+const fc2 = await вибір('#dzRoot [data-do="dz-msg-file"][data-dz="' + kg + '"]');
 await fc2.setFiles([{ name:'shot.png', mimeType:'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') }]);
 await p.waitForTimeout(1200);
 л = await стрічка('graphic');

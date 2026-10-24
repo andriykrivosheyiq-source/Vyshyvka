@@ -185,6 +185,8 @@ const нік = await p.evaluate(async () => {
   /* Адреса саме того вигляду, який Sitniks дає в рядку браузера: розбір
      чекає на /dialog/<шістнадцяткові>. */
   await designBindChat(o, 'https://crm.sitniks.com/dialog/a1b2c3d4e5f6a7b8');
+  /* 24.10: привʼязка миттєва, імʼя й нік доїжджають у фоні — чекаємо їх. */
+  for(let k = 0; k < 60 && designWhoWait[o.id]; k++) await new Promise(r => setTimeout(r, 50));
   return { було, nick:o.crmNick, name:o.crmChatName,
            підпис: crmWhoLabel(o), ig:o.ig || '' };
 });

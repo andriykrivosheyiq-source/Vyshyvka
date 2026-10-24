@@ -8105,33 +8105,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d78538a922"></script>
-<script src="loomiq-fingerprint.js?v=d78538a922"></script>
-<script src="loomiq-pricing.js?v=d78538a922"></script>
+<script src="loomiq-select.js?v=10dee8c9d7"></script>
+<script src="loomiq-fingerprint.js?v=10dee8c9d7"></script>
+<script src="loomiq-pricing.js?v=10dee8c9d7"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=d78538a922"></script>
+<script src="loomiq-money-core.js?v=10dee8c9d7"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d78538a922"></script>
-<script src="loomiq-bg.js?v=d78538a922"></script>
-<script src="loomiq-mock.js?v=d78538a922"></script>
+<script src="loomiq-design.js?v=10dee8c9d7"></script>
+<script src="loomiq-bg.js?v=10dee8c9d7"></script>
+<script src="loomiq-mock.js?v=10dee8c9d7"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=d78538a922"></script>
+<script src="imagetracer.js?v=10dee8c9d7"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=d78538a922"></script>
-<script src="loomiq-threads.js?v=d78538a922"></script>
+<script src="loomiq-chat.js?v=10dee8c9d7"></script>
+<script src="loomiq-threads.js?v=10dee8c9d7"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d78538a922"></script>
+<script src="loomiq-cards.js?v=10dee8c9d7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8176,7 +8176,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd78538a922';
+var LQ_VER = '10dee8c9d7';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -22512,6 +22512,7 @@ function chanMigrate(o){
 function crmWhoLabel(o){
   const nick = String((o && o.crmNick) || '').trim();
   const name = String((o && o.crmChatName) || '').trim();
+  if(!nick && !name && o && o.crmChatId && designWhoWait[o.id]) return 'підтягую імʼя з Sitniks…';
   if(nick && name && name.toLowerCase() !== nick.toLowerCase()) return '@' + nick + ' · ' + name;
   if(nick) return '@' + nick;
   return name;
@@ -29961,6 +29962,12 @@ function designJobMake(orderId){ return designJobOf(orderId, true); }
    переписка, і все воно приходить із Sitniks саме таким, як є. Тому
    привʼязуємо тим самим способом, що й у Канбані: адресою відкритої
    розмови, у якій лежить її номер. */
+/* ПРИВʼЯЗКА — ОДРАЗУ, ІМʼЯ — У ФОНІ (24.10, «трішки висне, коли вставляєш
+   посилання на діалог»). Номер розмови вже в самому посиланні: картка
+   привʼязується в ту ж мить, поле не чекає Sitniks. Імʼя й нік (один-два
+   запити до Sitniks, буває й 20 с) довантажуються у фоні й самі лягають у
+   картку; поки чекаємо — «підтягую імʼя з Sitniks…» (designWhoWait). */
+const designWhoWait = {};
 async function designBindChat(o, text){
   if(!o) return false;
   const id = crmChatIdFromUrl(text);
@@ -29968,6 +29975,18 @@ async function designBindChat(o, text){
     toast('Не схоже на посилання з Sitniks — скопіюйте адресу відкритої розмови');
     return false;
   }
+  /* НІК І ІМʼЯ — ДВА РІЗНІ ПОЛЯ, І ЗЛИПАТИСЬ ЇМ НЕ МОЖНА (crmNick окремо від
+     crmChatName: підпис клієнта будується саме з ніка). */
+  const та = String(o.crmChatId || '') === id;
+  if(o.crmChatId && !та){ crmForget(o); o.crmChatName = ''; delete o.crmNick; }
+  o.crmChatId = id;
+  designWhoWait[o.id] = id;
+  const записано = saveOrderMeta(o).catch(e => console.warn('привʼязка розмови', e));
+  toast('Розмову привʼязано — підтягую імʼя з Sitniks…');
+  designWhoFetch(o, id, записано);
+  return true;
+}
+async function designWhoFetch(o, id, після){
   let who = null;
   for(const path of ['/chats/' + encodeURIComponent(id),
                      '/chats/' + encodeURIComponent(id) + '/messages']){
@@ -29976,33 +29995,23 @@ async function designBindChat(o, text){
       const list = crmNormFound(Array.isArray(data) ? data : [data], true);
       const one = list.find(r => r.name || r.nick);
       if(one){ who = one; break; }
-    }catch(e){ /* закрито — привʼяжемо за самим номером */ }
+    }catch(e){ /* закрито — лишаємось привʼязаними за самим номером */ }
   }
-  /* НІК І ІМʼЯ — ДВА РІЗНІ ПОЛЯ, І ЗЛИПАТИСЬ ЇМ НЕ МОЖНА.
-
-     Доти сюди клалось одне значення: нік, якщо він був, інакше імʼя, — і
-     все це лягало в `crmChatName`. Поле `crmNick` не заповнювалось ніколи, а
-     підпис клієнта будується саме з нього: «@нік · Імʼя». Через це ніків у
-     картках не було видно взагалі — Андрій: «в клієнта нік чомусь зараз не
-     видно».
-
-     Зовні це виглядало як «нік не підтягується», хоча Sitniks його чесно
-     віддавав, а ми самі його викидали рядком нижче. */
-  if(o.crmChatId && String(o.crmChatId) !== id) crmForget(o);
+  try{ await після; }catch(e){}
+  /* Поки чекали, розмову могли перевʼязати на іншу — тоді не чіпаємо. */
+  if(designWhoWait[o.id] !== id || String(o.crmChatId || '') !== id) return;
+  delete designWhoWait[o.id];
   if(who && who.nick) o.crmNick = String(who.nick).replace(/^@/, '');
   const імʼя = (who && who.name) || '';
   const підпис = імʼя || (who && who.nick) || o.crmChatName || ('чат ' + id);
-  o.crmChatId = id;
   o.crmChatName = підпис;
   if(!o.name) o.name = підпис;
-  /* Нік із розмови Instagram кладемо й у канал: за ним людину знаходять і
-     з картки Канбану, не лише у відділі. */
+  /* Нік із розмови Instagram — і в канал: за ним людину знаходять і з Канбану. */
   if(o.crmNick && !String(o.ig || '').trim() &&
      !/^(Telegram|Viber|WhatsApp|Facebook)$/.test((who && who.channel) || ''))
     chanSet(o, 'ig', o.crmNick);
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
-  toast('Розмову привʼязано: ' + crmWhoLabel(o));
-  return true;
+  try{ repaintAfterOrders(); }catch(e){}
 }
 /* Відвʼязали — забуваємо й те, що памʼятала сесія (14.10): доти кеш
    розмови лишався, і після перевʼязки повідомлення йшли в стару. */
