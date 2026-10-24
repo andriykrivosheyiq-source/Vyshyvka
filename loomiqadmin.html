@@ -918,6 +918,10 @@
   .chl-row:hover{border-color:var(--ink-soft);}
   .chl-row.waits{border-left:3px solid var(--bad);}
   .chl-sweep{font-size:11px;color:var(--muted);padding:8px 10px 4px;}
+  /* «Непрочитані» поруч із пошуком (24.10). */
+  .chl-unr{all:unset;cursor:pointer;flex:none;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;
+    border:1px solid var(--line);color:var(--ink-soft);background:#fff;white-space:nowrap;}
+  .chl-unr.on{background:var(--accent);border-color:var(--accent);color:#fff;}
   .chl-sweep.is-err{color:#c0392b;font-weight:600;}
   .chl-row.free{background:var(--canvas);}
   .chl-who{font-size:13.5px;font-weight:700;color:var(--ink);overflow:hidden;
@@ -1340,7 +1344,8 @@
   .sidebar.is-folded .role-sw span{display:none;}
   .tu-half{display:block;font-style:normal;font-size:11px;color:#B54708;margin-top:2px;}
   /* Пошук у списку розмов (23.10). */
-  .chl-qw{padding:8px 10px 6px;position:sticky;top:0;background:var(--paper,#fff);z-index:2;}
+  .chl-qw{padding:8px 10px 6px;position:sticky;top:0;background:var(--paper,#fff);z-index:2;display:flex;gap:6px;align-items:center;}
+  .chl-qw .chl-q{flex:1;min-width:0;}
   .chl-q{width:100%;box-sizing:border-box;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
   /* Деталі накладної в картці B2C (22.10). */
   .dz-ttnd{display:flex;flex-direction:column;gap:3px;margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#FCFCFD;font-size:12.5px;}
@@ -2101,6 +2106,12 @@
     display:flex;align-items:center;justify-content:center;}
   .cw-tr-add:hover{border-color:var(--accent);color:var(--accent-deep);}
   .cw-row{display:flex;align-items:flex-end;gap:7px;}
+  /* Смайлики (24.10). */
+  .cw-emo{display:flex;flex-wrap:wrap;gap:2px;padding:6px;margin:0 0 7px;border:1px solid var(--line);border-radius:12px;
+    background:#fff;max-height:156px;overflow:auto;}
+  .cw-emo button{all:unset;cursor:pointer;width:34px;height:34px;line-height:34px;text-align:center;font-size:20px;border-radius:8px;}
+  .cw-emo button:hover{background:var(--soft, #F3F4F6);}
+  .cw-emo-h{width:100%;font-size:11px;color:var(--muted);padding:2px 4px 0;}
   .cw-inp{flex:1;min-width:0;font:inherit;font-size:14px;line-height:1.45;border:1px solid var(--line);
     border-radius:18px;padding:11px 15px;resize:none;max-height:130px;background:var(--canvas);}
   .cw-inp:focus{outline:none;border-color:var(--accent);background:#fff;}
@@ -2209,6 +2220,8 @@
     /* Службові кнопки налаштувальника — не на телефоні: там із ними не
        працюють, а місця в шапці вони зʼїдають більше за все інше. */
     .cw-head [data-cw-raw],.cw-head [data-cw-sniff]{display:none;}
+    /* Смайлики на телефоні — з клавіатури: кнопка 😊 тут лише стискала б поле. */
+    .cw-row [data-cw-emo],.cw-bar .cw-emo{display:none;}
     .cw-oid{font-size:12px;padding:8px 10px;min-height:36px;display:flex;align-items:center;}
     .cw-x{font-size:20px;padding:9px 11px;min-width:42px;text-align:center;}
     /* ПОЛЕ ВВОДУ. 16 px — не про красу: менший кегль змушує Safari
@@ -8078,33 +8091,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=263cf88876"></script>
-<script src="loomiq-fingerprint.js?v=263cf88876"></script>
-<script src="loomiq-pricing.js?v=263cf88876"></script>
+<script src="loomiq-select.js?v=b33b5943cd"></script>
+<script src="loomiq-fingerprint.js?v=b33b5943cd"></script>
+<script src="loomiq-pricing.js?v=b33b5943cd"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=263cf88876"></script>
+<script src="loomiq-money-core.js?v=b33b5943cd"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=263cf88876"></script>
-<script src="loomiq-bg.js?v=263cf88876"></script>
-<script src="loomiq-mock.js?v=263cf88876"></script>
+<script src="loomiq-design.js?v=b33b5943cd"></script>
+<script src="loomiq-bg.js?v=b33b5943cd"></script>
+<script src="loomiq-mock.js?v=b33b5943cd"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=263cf88876"></script>
+<script src="imagetracer.js?v=b33b5943cd"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=263cf88876"></script>
-<script src="loomiq-threads.js?v=263cf88876"></script>
+<script src="loomiq-chat.js?v=b33b5943cd"></script>
+<script src="loomiq-threads.js?v=b33b5943cd"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=263cf88876"></script>
+<script src="loomiq-cards.js?v=b33b5943cd"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8149,7 +8162,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '263cf88876';
+var LQ_VER = 'b33b5943cd';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

@@ -2533,7 +2533,18 @@ function chatsMatch(r, q){
                o.orderId, showNo(o)].filter(Boolean).join(' ').toLowerCase();
   return q.split(/\s+/).every(t => hay.indexOf(t) >= 0);
 }
-function chatsRowsQ(dir){ return chatsRows(dir).filter(r => chatsMatch(r, chatsQ[dir])); }
+/* ФІЛЬТР «НЕПРОЧИТАНІ» (24.10, Андрій: «всі перед очима всі замовлення,
+   які потребують уваги»): лишаються розмови, де клієнт написав, а ми ще не
+   відповіли (r.waits — той самий підрахунок, що й кружечок). Відповіли чи
+   👁 — розмова сама виходить із фільтра. Памʼятає браузер, на напрям. */
+const chatsUnr = { b2b: false, b2c: false };
+try{ ['b2b', 'b2c'].forEach(d => { chatsUnr[d] = localStorage.getItem('lq_chats_unr_' + d) === '1'; }); }catch(e){}
+function chatsUnrBtn(dir){
+  const n = chatsRows(dir).filter(r => r.waits).length;
+  return '<button type="button" class="chl-unr' + (chatsUnr[dir] ? ' on' : '') + '" data-chl-unr title="' +
+    (chatsUnr[dir] ? 'Показати всі розмови' : 'Лише ті, що чекають на відповідь') + '">Непрочитані' + (n ? ' · ' + n : '') + '</button>';
+}
+function chatsRowsQ(dir){ return chatsRows(dir).filter(r => chatsMatch(r, chatsQ[dir]) && (!chatsUnr[dir] || r.waits)); }
 function chatsHtml(dir){
   const all = chatsRows(dir);
   const rows = chatsRowsQ(dir);
@@ -2542,7 +2553,9 @@ function chatsHtml(dir){
            'коли розмову привʼязують до замовлення цього напряму — у картці, ' +
            'кнопкою 🔗 біля клієнта.</div>';
   if(!rows.length)
-    return '<div class="chl-empty">За «' + escapeHtml(chatsQ[dir]) + '» нічого немає.</div>';
+    return '<div class="chl-empty">' + (chatsUnr[dir] && !String(chatsQ[dir] || '').trim()
+      ? 'Непрочитаних немає — усім відповіли 🎉'
+      : 'За «' + escapeHtml(chatsQ[dir]) + '» нічого' + (chatsUnr[dir] ? ' серед непрочитаних' : '') + ' немає.') + '</div>';
   return rows.map((r, i) => `
     <button class="chl-row${r.waits ? ' waits' : ''}${
       chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
@@ -2594,7 +2607,7 @@ function renderChats(dir){
      що вже стоїть на місці, тепер не чіпаємо взагалі. */
   const list = root.querySelector('.ch2 > .ch2-list');
   const qHtml = '<div class="chl-qw"><input type="search" class="chl-q" placeholder="Пошук: імʼя, нік, номер, телефон" value="' +
-    escapeHtml(chatsQ[dir]) + '" autocomplete="off"></div>';
+    escapeHtml(chatsQ[dir]) + '" autocomplete="off">' + chatsUnrBtn(dir) + '</div>';
   if(list && document.getElementById(host)){
     /* Лише рядки: поле пошуку з курсором і набраним лишається як є. */
     const rowsEl = list.querySelector('.chl-rows');
@@ -2609,6 +2622,17 @@ function renderChats(dir){
       '</div>';
     if(parked) chatsMount(dir);
     else chatsViewEmpty(dir);
+  }
+  /* Число на «Непрочитані» — свіже при кожному перемальовуванні списку. */
+  const ub = root.querySelector('[data-chl-unr]');
+  if(ub){
+    ub.outerHTML = chatsUnrBtn(dir);
+    const ub2 = root.querySelector('[data-chl-unr]');
+    ub2.addEventListener('click', () => {
+      chatsUnr[dir] = !chatsUnr[dir];
+      try{ localStorage.setItem('lq_chats_unr_' + dir, chatsUnr[dir] ? '1' : '0'); }catch(e){}
+      renderChats(dir);
+    });
   }
   const qEl = root.querySelector('.chl-q');
   if(qEl && !qEl.__wired){
@@ -3876,6 +3900,19 @@ function chatClose(){
   if(dir){ try{ renderChats(dir); }catch(e){} }
 }
 
+/* ══════════ СМАЙЛИКИ (24.10) ══════════
+   Найуживаніші — однією панеллю; нещодавні — першими (памʼятає браузер). */
+const CHAT_EMO = ['😊','🙂','😉','😍','🥰','😘','🤗','🙏','👍','👌','🤝','👏','🙌','💪','🔥','✨','🎉','🎁',
+  '❤️','🤍','💜','💙','💚','🧡','💛','😂','🤣','😅','😁','😄','😌','🤔','😔','😢','😮','✅','❗','📦','🚚','🧵'];
+function chatEmoRecent(){ try{ const l = JSON.parse(localStorage.getItem('lq_emo_recent') || '[]'); return Array.isArray(l) ? l.slice(0, 8) : []; }catch(e){ return []; } }
+function chatEmoUse(e){ try{ const l = [e].concat(chatEmoRecent().filter(x => x !== e)).slice(0, 8); localStorage.setItem('lq_emo_recent', JSON.stringify(l)); }catch(er){} }
+function chatEmoHtml(){
+  const нещ = chatEmoRecent();
+  const кн = l => l.map(e => '<button type="button" data-emo="' + escapeHtml(e) + '">' + escapeHtml(e) + '</button>').join('');
+  return '<div class="cw-emo">' +
+    (нещ.length ? '<span class="cw-emo-h">Нещодавні</span>' + кн(нещ) + '<span class="cw-emo-h">Усі</span>' : '') +
+    кн(CHAT_EMO) + '</div>';
+}
 function renderChatWin(toBottom){
   const d = document.getElementById('chatWin');
   if(!d || !chatWin) return;
@@ -4066,6 +4103,7 @@ function renderChatWin(toBottom){
         Sitniks лист прийме, а до людини він не дійде. Напишіть з іншого каналу
         або дочекайтесь, поки клієнт озветься сам.</div>` : ''}
       ${chatTrayHtml()}
+      ${chatWin.emo ? chatEmoHtml() : ''}
       <div class="cw-row">
         ${/* Підпис окремим вузлом: на телефоні він ховається, і кнопка стає
              самим знаком. Текстом вона з’їдала третину смуги, а поле для
@@ -4074,6 +4112,7 @@ function renderChatWin(toBottom){
           title="Заготовлені повідомлення — вставити або відредагувати">⚡<span
           class="cw-ic-l">Заготовки</span></button>
         ${canSendFiles() ? '<button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>' : ''}
+        <button class="cw-ic${chatWin.emo ? ' on' : ''}" data-cw-emo title="Смайлики">😊</button>
         ${chatFwdOn() ? (chatWin.fwdMode
           ? `<button class="cw-ic on" data-cw-fwdgo title="Переслати відмічене дизайнеру">➤ ${
               Object.keys(chatWin.fwdSel || {}).filter(k => chatWin.fwdSel[k]).length || ''}</button><button class="cw-ic" data-cw-fwdoff title="Скасувати вибір">✕</button>`
@@ -4336,6 +4375,23 @@ function wireChatWin(box, o, focusIn){
     send();
   });
   goB.addEventListener('click', () => { if(Date.now() - (chatWin.goAt || 0) < 1500) return; send(); });
+  /* СМАЙЛИКИ (24.10): 😊 відкриває панель; клік — вставити туди, де курсор.
+     mousedown не забирає фокус із поля — курсор лишається на місці. */
+  const emoB = box.querySelector('[data-cw-emo]');
+  if(emoB) emoB.addEventListener('click', ()=>{ chatWin.emo = !chatWin.emo; renderChatWin(); });
+  box.querySelectorAll('[data-emo]').forEach(b => {
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', ()=>{
+      const e = b.dataset.emo;
+      const a = (inp.selectionStart != null) ? inp.selectionStart : inp.value.length;
+      const z = (inp.selectionEnd != null) ? inp.selectionEnd : a;
+      inp.value = inp.value.slice(0, a) + e + inp.value.slice(z);
+      const k = a + e.length;
+      try{ inp.focus(); inp.setSelectionRange(k, k); }catch(er){}
+      inp.dispatchEvent(new Event('input'));
+      chatEmoUse(e);
+    });
+  });
   box.querySelector('[data-cw-qr]').addEventListener('click', ()=>{
     chatWin.qr = !chatWin.qr; renderChatWin();
   });
