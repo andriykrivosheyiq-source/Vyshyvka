@@ -679,6 +679,27 @@ const одягЦех = await p.evaluate(() => { const D = window.LQDesign, j = D
           st({ supply:'got', prod:'work' })].join(); });
 ok(одягЦех === 'new,new,wait,wait,ready,run',
   'цех: не замовлено — «Нове», замовлено чи прийшла частина — «Очікуємо одяг», прийнято весь — одразу «Готово до роботи»', одягЦех);
+/* 24.10, Андрій: «замовив — одяг не переїхав в Очікуємо одяг». Трек у
+   замовленні не записався, а напис «одяг: замовлено» (із записів закупника)
+   вже був. Колонка тепер з тих самих записів; трек — лише якщо він далі. */
+const зЗаписів = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui;
+  const j = D.emptyJob('2000999');
+  j.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:2 })];
+  const o = { orderId:'2000999', tracks:{} }, u = j.units[0];
+  const r = [D.prodAt(j, o)];
+  const b = D.buyNew(Object.values(designBuys), 'x', [{ orderId:'2000999', uid:u.id, qty:2 }]);
+  designBuys[b.id] = b;
+  r.push(D.prodAt(j, o));
+  D.buySetStatus(b, 'got', 'x');
+  r.push(D.prodAt(j, o));
+  D.buySetStatus(b, 'sent', 'x'); o.tracks = { supply:'got' };
+  r.push(D.prodAt(j, o));
+  delete designBuys[b.id];
+  return r.join();
+});
+ok(зЗаписів === 'new,wait,ready,ready',
+  'трек у замовленні порожній, а закупник оформив — «Очікуємо одяг»; отримав — «Готово до роботи»; трек, що далі, назад не тягне', зЗаписів);
 ok(пос.st2 === 'got' && пос.рядків === 1 && пос.пропало.join() === 'XL' && пос.плашка,
   'пропала позиція: прийняте — Отримано, пропале вийшло з закупівлі й видно «не прийшло»', JSON.stringify(пос));
 

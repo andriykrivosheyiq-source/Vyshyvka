@@ -302,10 +302,30 @@
        одяг; як прийняли — одразу готовий до роботи». Нічого не замовлено
        (todo) — «Нове»; замовлено чи прийшла частина — «Очікуємо одяг»;
        прийнято весь — «Готово до роботи», без ручного перенесення. */
-    var sup = trk(o, 'supply');
-    if(sup === 'got') return 'ready';
-    if(sup && sup !== 'todo') return 'wait';
+    /* КОЛОНКА З ТИХ САМИХ ЗАПИСІВ ЗАКУПНИКА, ЩО Й НАПИС «одяг: замовлено»
+       (24.10, Андрій: «замовив — одяг не переїхав в Очікуємо одяг»). Трек
+       закупівлі в замовленні синхронізувався окремим записом, і коли той
+       не проходив, напис казав «замовлено», а картка стояла в «Нове».
+       Тепер: замовлено чи прийшла частина — «Очікуємо одяг», отримано все —
+       «Готово до роботи». Трек лишається для старих карток без позицій і
+       ніколи не тягне назад: береться той, що далі. */
+    var ранг = function(k){ return k === 'got' ? 2 : (k && k !== 'todo') ? 1 : 0; };
+    var r = ранг(trk(o, 'supply'));
+    var зЗаписів = buyStateFor(job, o);
+    if(ранг(зЗаписів) > r) r = ранг(зЗаписів);
+    if(r === 2) return 'ready';
+    if(r === 1) return 'wait';
     return 'new';
+  }
+  /* Стан одягу замовлення з записів закупника (designJobs kind 'buy') —
+     через host, як і решта живих даних; без них — порожньо. */
+  function buyStateFor(job, o){
+    try{
+      var h = (typeof window !== 'undefined' && window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host) || null;
+      if(!h || !h.buys || !job || !o || !o.orderId) return '';
+      var all = (h.buys() || []).filter(function(b){ return b && !(b.del && b.del.void); });
+      return buyOrderState(job, o.orderId, all) || '';
+    }catch(e){ return ''; }
   }
   /* Дошка закупівлі. Чотири стани з ТЗ і жодного зайвого: закупникові не
      потрібні ні макети, ні виробництво — йому потрібно знати, що замовити
@@ -10272,7 +10292,13 @@
       p.o.tracks.supply = st;
       p.o.trackHist = (p.o.trackHist || []).concat([{ t:'supply', s:st, at: new Date().toISOString(),
         by: (host().me && host().me()) || '' }]).slice(-60);
-      try{ if(host().save) await host().save(p.job, p.o); }catch(e){ console.warn('трек одягу', e); }
+      try{
+        if(host().orderSave) await host().orderSave(p.o);
+        else if(host().save) await host().save(p.job, p.o);
+      }catch(e){
+        console.warn('трек одягу', e);
+        say('Стан одягу в замовленні ' + U.jobNo(p.job) + ' не записався — колонка цеху однаково рахується з закупівлі');
+      }
     }
   }
   async function buySave(b, msg){ return buySaveAll([b], msg); }
