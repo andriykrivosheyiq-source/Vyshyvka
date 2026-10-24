@@ -184,16 +184,18 @@ const adj = await p.evaluate(() => { const st = window.LQDesign.ui.host.stockSta
 ok(adj.qty === 7 && adj.m === 'adj:-1:брак', 'перерахунок: 3 → 2, у журналі «−1 · Інвентаризація · брак»', 'інвентаризація: ' + JSON.stringify(adj));
 
 console.log('');
-console.log('═══ 4. НЕ ВЛАСНИК — ЛИШЕ ДИВИТЬСЯ ═══');
+console.log('═══ 4. ЗАКУПНИК ЗАПОВНЮЄ Й ЗАМОВЛЯЄ НА СКЛАД; ІНВЕНТАРИЗАЦІЯ — ВЛАСНИК ═══');
 /* 22.10: дошка бере крісла з усіх ролей людини (host.roles) — підставляємо
    справжню роль закупівлі, а не вигадану. */
 const ro = await p.evaluate(() => { const U = window.LQDesign.ui; const old = U.host.role, oldR = U.host.roles;
   U.host.role = () => 'supply'; U.host.roles = () => ['supply'];
   U.render(document.getElementById('dzRoot'));
-  const r = { add: !!document.querySelector('[data-do="stock-form"]'), edit: !!document.querySelector('[data-do="stock-edit"]'),
+  const r = { add: !!document.querySelector('[data-do="stock-form"][data-mode="in"]'), order: !!document.querySelector('[data-do="stock-form"][data-mode="order"]'),
+              edit: !!document.querySelector('[data-do="stock-edit"]'),
               hint: /править власник/.test((document.querySelector('.dz-stk') || {}).textContent || '') };
   U.host.role = old; U.host.roles = oldR; U.render(document.getElementById('dzRoot')); return r; });
-ok(!ro.add && !ro.edit && ro.hint, 'закупник бачить склад і ціни, але заповнити й перерахувати може лише власник', 'не власник: ' + JSON.stringify(ro));
+/* 24.10, Андрій: «склад заповнює закупник — те, що вже є, + замовляє на склад окремо». */
+ok(ro.add && ro.order && !ro.edit && !ro.hint, 'закупник: «+ Заповнити склад» і «Замовити на склад» є; інвентаризація — лише власник', 'закупник: ' + JSON.stringify(ro));
 
 console.log('');
 console.log('═══ 5. ПОВЕРНУТИ НА СКЛАД ═══');
@@ -218,7 +220,47 @@ ok(back.кнопка && back.стало === back.було + 2 && back.m === 'bac
   'взяте зі складу повертається одним натиском: +2 на склад, рух «Повернення», документ позначено', 'повернення: ' + JSON.stringify(back));
 
 console.log('');
+console.log('═══ 6. ЗАМОВИТИ НА СКЛАД → ПРИЇХАЛО → НА СКЛАДІ (24.10) ═══');
+const наСклад = await p.evaluate(async (gid) => {
+  const U = window.LQDesign.ui, old = U.host.role, oldR = U.host.roles;
+  U.host.role = () => 'supply'; U.host.roles = () => ['supply'];
+  const root = document.getElementById('dzRoot');
+  const t = ms => new Promise(r => setTimeout(r, ms));
+  const tab = k => { const b = document.querySelector('[data-do="buy-tab"][data-k="' + k + '"]'); if(b) b.click(); };
+  tab('stock'); await t(200);
+  const шт0 = U.host.stockState().items.reduce((a, x) => a + x.qty, 0);
+  document.querySelector('[data-do="stock-form"][data-mode="order"]').click(); await t(200);
+  const s = document.querySelector('[data-stkf="gid"]'); s.value = gid; s.dispatchEvent(new Event('change')); await t(200);
+  const c = document.querySelector('[data-stkf="color"]'); c.value = c.options[1].value; c.dispatchEvent(new Event('change')); await t(200);
+  const z = [...document.querySelectorAll('[data-sfq]')].map(x => x.dataset.sfq);
+  const set = (k, v) => { const i = document.querySelector('[data-sfq="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('input')); };
+  set(z[0], 2); set(z[2], 1);
+  const кнопка = (document.querySelector('[data-do="stock-order"]') || {}).textContent || '';
+  document.querySelector('[data-do="stock-order"]').click(); await t(500);
+  const b = U.host.buys().filter(x => x.toStock).slice(-1)[0];
+  const шт1 = U.host.stockState().items.reduce((a, x) => a + x.qty, 0);
+  const до = { є: !!b, st: b && b.status, rows: b && b.rows.length, без: b && b.rows.every(r => !r.orderId), склад: шт1 - шт0 };
+  [...document.querySelectorAll('.dz-buy-tab')][0].click(); await t(300);
+  const назва = [...document.querySelectorAll('.dz-buy-oh b')].map(x => x.textContent).filter(x => /На склад/.test(x))[0] || '';
+  document.querySelector('[data-do="buy-check"][data-id="' + b.id + '"]').click(); await t(200);
+  document.querySelector('[data-do="buy-ck-all"][data-id="' + b.id + '"]').click(); await t(200);
+  document.querySelector('[data-do="buy-recv"][data-id="' + b.id + '"]').click(); await t(700);
+  const st = U.host.stockState();
+  const шт2 = st.items.reduce((a, x) => a + x.qty, 0);
+  const рухи = st.moves.slice(-2).map(m => m.kind + ':' + m.qty + ':' + /закупівля на склад/.test(m.note || ''));
+  const b2 = U.host.buys().filter(x => x.id === b.id)[0];
+  U.host.role = old; U.host.roles = oldR; U.render(root);
+  return { кнопка, до, назва, після: шт2 - шт0, рухи, st2: b2 && b2.status };
+}, gid);
+console.log('   ' + JSON.stringify(наСклад));
+ok(/Оформити замовлення на склад/.test(наСклад.кнопка) && наСклад.до.є && наСклад.до.st === 'sent' && наСклад.до.rows === 2 && наСклад.до.без && наСклад.до.склад === 0,
+  'закупник оформив «на склад» (без замовлень клієнтів) — закупівля «Замовлено», склад поки не змінився', JSON.stringify(наСклад.до));
+ok(/^На склад №\d+/.test(наСклад.назва), 'у списку закупівель — «На склад №N від …»', наСклад.назва);
+ok(наСклад.після === 3 && наСклад.st2 === 'got' && наСклад.рухи.every(x => /^in:\d+:true$/.test(x)),
+  'посилку перевірили й підтвердили — +3 шт на складі, у журналі «Прихід · закупівля на склад №N»', JSON.stringify(наСклад));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
-console.log(bad ? 'розходжень: ' + bad : 'склад: дві вкладки, сітка розмірів, собівартість, журнал, правка лише власником');
+console.log(bad ? 'розходжень: ' + bad : 'склад: дві вкладки, сітка розмірів, собівартість, журнал; заповнює й замовляє закупник, інвентаризація — власник');
 await browser.close(); srv.close();
 process.exit(bad ? 1 : 0);

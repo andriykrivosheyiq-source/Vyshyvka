@@ -9867,6 +9867,7 @@
   }
   function buyTitle(b){
     if(b.stock) return 'Зі складу від ' + buyDate(b.at);
+    if(b.toStock) return 'На склад №' + (b.n || '—') + ' від ' + buyDate(b.at);
     return 'Закупівля №' + (b.n || '—') + ' від ' + buyDate(b.at);
   }
   /* ── СКЛАД (04.10) ──
@@ -9909,6 +9910,15 @@
     var r = '';
     try{ r = (U.host.role && U.host.role()) || ''; }catch(e){}
     return !r || r === 'owner';
+  }
+  /* ЗАПОВНЮЄ Й ЗАМОВЛЯЄ НА СКЛАД — і закупник (24.10, Андрій: «склад
+     заповнює закупник — те, що вже є, + замовляє на склад окремо»).
+     Інвентаризація (виправлення залишків) і видалення закупівель — як і
+     доти, лише власник (stockCan). */
+  function stockFillCan(){
+    var r = '';
+    try{ r = (U.host.role && U.host.role()) || ''; }catch(e){}
+    return !r || r === 'owner' || r === 'supply';
   }
   function грнК(n){
     var v = Math.round((+n || 0) * 100) / 100;
@@ -9982,14 +9992,14 @@
   /* Вкладка «Склад». */
   var STOCK_KIND = { 'in':'Прихід', back:'Повернення', out:'Списано', adj:'Інвентаризація' };
   function stockScreenHtml(){
-    var st = stockSt(), can = stockCan();
+    var st = stockSt(), can = stockCan(), fill = stockFillCan();
     var l = st.items.filter(function(x){ return (+x.qty || 0) > 0 || STOCK_EDIT; });
     var шт = st.items.reduce(function(a, x){ return a + Math.max(0, +x.qty || 0); }, 0);
     var gs = buyGroups(st.items.map(function(x, i){
       return { gid: x.gid, name: x.name, color: x.color, colorHex: x.colorHex || '',
                size: x.size, qty: Math.max(0, +x.qty || 0), cost: unitCost(x.gid, x.cost), i: i }; }));
     var форма = '';
-    if(can && STOCK_FORM){
+    if(fill && STOCK_FORM){
       var g = catOf(STOCK_FORM.gid);
       var opt = function(v, t, cur){
         return '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? ' selected' : '') + '>' + esc(t) + '</option>'; };
@@ -10002,7 +10012,8 @@
             ((g && g.colors) || []).map(function(c){ return opt(c.name || c.id, c.name || c.id, STOCK_FORM.color); }).join('') + '</select>' +
           (g ? '<span class="dz-stk-cost">' + (unitCost(g.id) ? 'Собівартість B2C: ' + грнК(unitCost(g.id)) + '/шт'
               : 'Собівартість моделі не задана в Налаштуваннях B2C') + '</span>' : '') +
-          '<input type="text" data-stkf="note" maxlength="120" placeholder="звідки (необовʼязково)" value="' + esc(STOCK_FORM.note || '') + '">' +
+          '<input type="text" data-stkf="note" maxlength="120" placeholder="' + (STOCK_FORM.mode === 'order' ? 'підрядник, примітка (необовʼязково)' : 'звідки (необовʼязково)') +
+            '" value="' + esc(STOCK_FORM.note || '') + '">' +
         '</div>' +
         (g ? '<div class="dz-stk-grid">' + розм.map(function(z){
             return '<label><span>' + esc(z) + '</span><input type="number" min="0" data-sfq="' + esc(z) + '" value="' +
@@ -10010,17 +10021,22 @@
           }).join('') + '</div>'
           : '<div class="dz-miss is-calm">Оберіть модель — зʼявиться вся сітка розмірів одразу.</div>') +
         '<div class="dz-stk-fb">' +
-          '<button type="button" class="dz-b pri" data-do="stock-in">Додати на склад</button>' +
-          '<button type="button" class="dz-b" data-do="stock-form">Скасувати</button>' +
+          (STOCK_FORM.mode === 'order'
+            ? '<button type="button" class="dz-b pri" data-do="stock-order">Оформити замовлення на склад</button>'
+            : '<button type="button" class="dz-b pri" data-do="stock-in">Додати на склад</button>') +
+          '<button type="button" class="dz-b" data-do="stock-form" data-mode="' + esc(STOCK_FORM.mode || 'in') + '">Скасувати</button>' +
         '</div></div>';
     }
     return '<div class="dz-stk">' +
       '<div class="dz-buy-need">' +
         '<div class="dz-buy-h"><b>Склад</b><span>' + шт + ' шт · на ' + грнК(stockWorth(st.items)) + ' за собівартістю B2C</span>' +
           '<input type="search" class="dz-stk-q" data-stock-q placeholder="Пошук: модель, колір, розмір">' +
-          (can ? '<button type="button" class="dz-b pri" data-do="stock-form">' + (STOCK_FORM ? 'Сховати форму' : '+ Заповнити склад') + '</button>' : '') +
+          (fill ? '<button type="button" class="dz-b pri" data-do="stock-form" data-mode="in">' +
+                    (STOCK_FORM && STOCK_FORM.mode !== 'order' ? 'Сховати форму' : '+ Заповнити склад') + '</button>' +
+                  '<button type="button" class="dz-b" data-do="stock-form" data-mode="order">' +
+                    (STOCK_FORM && STOCK_FORM.mode === 'order' ? 'Сховати форму' : 'Замовити на склад') + '</button>' : '') +
         '</div>' +
-        (can ? '' : '<div class="dz-miss is-calm">Склад править власник. Тут видно, що лежить і за якою ціною.</div>') +
+        (fill ? '' : '<div class="dz-miss is-calm">Склад заповнюють закупник і власник. Тут видно, що лежить і за якою ціною.</div>') +
         форма +
         (gs.length ? gs.map(function(x){
           var ред = can && STOCK_EDIT === x.key;
@@ -10047,7 +10063,7 @@
                 }).join('') + '</div>') +
           '</div>';
         }).join('')
-        : '<div class="dz-miss is-calm">Склад порожній.' + (can ? ' Натисніть «+ Заповнити склад» — модель, колір, і одразу вся сітка розмірів.' : '') + '</div>') +
+        : '<div class="dz-miss is-calm">Склад порожній.' + (fill ? ' Натисніть «+ Заповнити склад» — модель, колір, і одразу вся сітка розмірів.' : '') + '</div>') +
       '</div>' +
       stockLogHtml(st.moves) +
     '</div>';
@@ -11664,6 +11680,19 @@
       if(!host().buySave) return say('Збереження закупівлі недоступне');
       try{ await host().buySave(bc); }catch(e){ console.error(e); return say('Закупівля не збереглась'); }
       try{ await buyTrackSync(для); }catch(e){ console.warn(e); }
+      /* Закупівля НА СКЛАД (24.10): прийняте — приходом на склад. */
+      if(bc.toStock && (bc.rows || []).length){
+        var stR = stockSt(), штR = 0;
+        for(var iR = 0; iR < bc.rows.length; iR++){
+          var rR = bc.rows[iR];
+          var resR = D.stockApply(stR, { kind:'in', gid: rR.gid, name: rR.name || '', color: rR.color, colorHex: rR.colorHex || '',
+            size: rR.size, qty: Math.round(+rR.qty || 0), cost: unitCost(rR.gid) || null, by: хто2,
+            note: 'закупівля на склад №' + (bc.n || '') + (bc.note ? ' · ' + bc.note : '') });
+          if(!resR.ok){ say(resR.err); break; }
+          stR = resR.st; штR += Math.round(+rR.qty || 0);
+        }
+        if(штR) return stockCommit(stR, buyTitle(bc) + ' · отримано, на склад +' + штR + ' шт');
+      }
       say(what === 'buy-recv' ? buyTitle(bc) + ' · отримано, усе на місці'
                               : buyTitle(bc) + ' · прийнято, пропале повернулось у «Треба замовити»');
       return render(root);
@@ -11759,14 +11788,37 @@
       return buySaveAll([bb], 'Повернуто на склад');
     }
     if(what === 'stock-form'){
-      if(!stockCan()) return say('Склад править власник');
-      STOCK_FORM = STOCK_FORM ? null : { gid:'', color:'', cost:'', note:'', q:{} };
+      if(!stockFillCan()) return say('Склад заповнюють закупник і власник');
+      var режим = (data && data.mode) === 'order' ? 'order' : 'in';
+      STOCK_FORM = (STOCK_FORM && (STOCK_FORM.mode || 'in') === режим) ? null
+        : Object.assign({ gid:'', color:'', cost:'', note:'', q:{} }, STOCK_FORM ? { gid: STOCK_FORM.gid, color: STOCK_FORM.color, q: STOCK_FORM.q } : {}, { mode: режим });
       return render(root);
+    }
+    /* ЗАМОВИТИ НА СКЛАД (24.10): закупівля без замовлень клієнтів —
+       модель, колір, сітка розмірів. Приїде — «Перевірити посилку» →
+       «Підтвердити отримання», і весь одяг ляже на склад приходом. */
+    if(what === 'stock-order'){
+      if(!stockFillCan()) return say('Замовляти на склад можуть закупник і власник');
+      var fo = STOCK_FORM || {};
+      var go = catOf(fo.gid);
+      if(!go || !fo.color) return say('Оберіть модель і колір');
+      var розмО = Object.keys(fo.q || {}).filter(function(z){ return Math.round(+fo.q[z] || 0) > 0; });
+      if(!розмО.length) return say('Впишіть кількість хоча б в одному розмірі');
+      var co = (go.colors || []).filter(function(x){ return String(x.name || x.id) === fo.color; })[0] || {};
+      var хтоО = (host().me && host().me()) || '';
+      var bo = D.buyNew(buysAll().slice(), хтоО, розмО.map(function(z){
+        return { orderId:'', uid:'', no:'склад', gid: go.id, name: go.name || '', color: fo.color, colorHex: co.hex || '',
+                 size: z, qty: Math.round(+fo.q[z]) }; }));
+      bo.toStock = true;
+      if(fo.note) bo.note = String(fo.note).slice(0, 120);
+      STOCK_FORM = null;
+      return buySaveAll([bo], 'Оформлено · ' + buyTitle(bo) + ' · ' +
+        bo.rows.reduce(function(a, r){ return a + r.qty; }, 0) + ' шт — приїде, підтвердіть отримання, і воно ляже на склад');
     }
     if(what === 'stock-log-more'){ STOCK_LOG += 50; return render(root); }
     /* ЗАПОВНИТИ СКЛАД: модель, колір, ціна — і вся сітка розмірів одразу. */
     if(what === 'stock-in'){
-      if(!stockCan()) return say('Склад править власник');
+      if(!stockFillCan()) return say('Склад заповнюють закупник і власник');
       var f = STOCK_FORM || {};
       var g3 = catOf(f.gid);
       if(!g3 || !f.color) return say('Оберіть модель і колір');

@@ -228,6 +228,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
   у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
   відділу — лише тихо. `tests/no-flicker.mjs`.
+- **Склад заповнює й замовляє закупник** (24.10): `stockFillCan` (власник або
+  `supply`) — «+ Заповнити склад» і «Замовити на склад» (`STOCK_FORM.mode`
+  'in' | 'order', дія `stock-order` → `D.buyNew` з `toStock:true`, рядки без
+  `orderId`, назва «На склад №N»). Отримання (`buy-recv`) такої закупівлі —
+  прихід на склад (`stockApply` kind 'in', примітка «закупівля на склад №N»).
+  Інвентаризація й видалення закупівель — як доти, `stockCan` (власник).
+  Тест `stock` §4, §6.
 - **Колонка цеху з записів закупника** (24.10): `prodAt` → `buyStateFor(job, o)`
   (`host.buys`, без `del.void`) → `buyOrderState`; ранг з треку й записів,
   береться більший. `buyTrackSync` пише лише замовлення (`host.orderSave`).
