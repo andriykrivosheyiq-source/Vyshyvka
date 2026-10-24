@@ -6012,6 +6012,18 @@
   .dz-pics{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
     gap:6px;margin-top:8px;}
   .dz-pic{position:relative;display:block;}
+  /* Номер і підпис картинки ТЗ (24.10). */
+  .dz-pic-im{position:relative;display:block;}
+  .dz-pic-no{position:absolute;top:4px;left:4px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;
+    border-radius:9px;background:rgba(17,24,39,.72);color:#fff;font:600 10.5px/17px system-ui,sans-serif;
+    font-style:normal;text-align:center;pointer-events:none;z-index:1;}
+  .dz-pic-cap{display:block;margin-top:3px;font-size:11px;line-height:1.25;color:var(--ink);word-break:break-word;}
+  .dz-pic-cw{display:block;position:relative;height:24px;margin-top:3px;}
+  .dz-pic-in{position:absolute;right:0;top:0;width:100%;height:24px;box-sizing:border-box;resize:none;overflow:hidden;
+    font-family:inherit;font-size:11px;line-height:1.25;padding:4px 5px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);}
+  .dz-pic-in:not(:placeholder-shown){border-color:var(--accent);background:#FAF7FF;}
+  .dz-pic-in:focus{width:220px;height:66px;overflow:auto;z-index:6;outline:none;border-color:var(--accent);
+    box-shadow:0 6px 18px rgba(17,24,39,.18);background:#fff;}
   .dz-pic-b{all:unset;cursor:zoom-in;display:block;width:100%;aspect-ratio:1;
     background:#F4F6F9;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
   .dz-pic-b img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -8066,33 +8078,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d34ccaae52"></script>
-<script src="loomiq-fingerprint.js?v=d34ccaae52"></script>
-<script src="loomiq-pricing.js?v=d34ccaae52"></script>
+<script src="loomiq-select.js?v=a59281613c"></script>
+<script src="loomiq-fingerprint.js?v=a59281613c"></script>
+<script src="loomiq-pricing.js?v=a59281613c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=d34ccaae52"></script>
+<script src="loomiq-money-core.js?v=a59281613c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d34ccaae52"></script>
-<script src="loomiq-bg.js?v=d34ccaae52"></script>
-<script src="loomiq-mock.js?v=d34ccaae52"></script>
+<script src="loomiq-design.js?v=a59281613c"></script>
+<script src="loomiq-bg.js?v=a59281613c"></script>
+<script src="loomiq-mock.js?v=a59281613c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=d34ccaae52"></script>
+<script src="imagetracer.js?v=a59281613c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=d34ccaae52"></script>
-<script src="loomiq-threads.js?v=d34ccaae52"></script>
+<script src="loomiq-chat.js?v=a59281613c"></script>
+<script src="loomiq-threads.js?v=a59281613c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d34ccaae52"></script>
+<script src="loomiq-cards.js?v=a59281613c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8137,7 +8149,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd34ccaae52';
+var LQ_VER = 'a59281613c';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

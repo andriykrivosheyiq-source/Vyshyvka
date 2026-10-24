@@ -228,6 +228,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
   у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
   відділу — лише тихо. `tests/no-flicker.mjs`.
+- **Підпис на картинці ТЗ** (24.10, #2000251): `u.pics[i].note` (`D.unitPicNote`,
+  ≤200 знаків), поле `[data-pic-note="uid|i"]` під мініатюрою в картці
+  менеджера (на час набору розгортається, Enter — зберегти); номер
+  `U.picNoHtml` (коли картинок кілька) і підпис `U.picCapHtml` — у дизайнера
+  й у ТЗ цеху. Картинка з бейджами — `.dz-pic-im`. Тест `pic-notes`.
 - **Номер ТТН руками / ✎ Змінити** (23.10): `D.ttnValid` (14 цифр) у
   `[data-of="ttn"]`; `host.ttnDrop` → `shipTtnDrop(o)` (справжній номер — у
   `o.ttnHist`, інше просто знімається), кнопка `[data-ship-ttn-x]`. Тест `ttn-manual`.
