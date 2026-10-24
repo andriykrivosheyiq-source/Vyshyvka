@@ -3642,7 +3642,60 @@ async function cardsDownload(o){
 
    Список один на всіх і лежить там само, куди пише конструктор сайту, тож
    двох різних наборів не буває. */
+/* ══════════ КАРТИНКИ В ЗАГОТОВКАХ (24.10) ══════════
+   Андрій: «у панелі швидких відповідей — розділити тексти й картинки; туди
+   завантажуємо картинки (каталог, сітки), щоб надсилати». Лежать у
+   loomiq/photos → quickPics [{id, f: папка, n: назва, url, dir, at, by}];
+   правити — те саме право, що й тексти (canQuick, у базі — налаштування).
+   Клік кладе картинку в смужку відправки, як 📎: дописали текст — ➤. */
+function quickPics(){ const l = (contentData && contentData.quickPics) || []; return Array.isArray(l) ? l.filter(x => x && x.url) : []; }
+async function qpStore(list){
+  const clean = list.filter(x => x && x.url).map(x => {
+    const r = { id: String(x.id), f: String(x.f || 'Інше').slice(0, 40), n: String(x.n || '').slice(0, 60), url: String(x.url),
+                at: x.at || new Date().toISOString(), by: x.by || '' };
+    if(x.dir === 'b2b' || x.dir === 'b2c') r.dir = x.dir;
+    return r; });
+  await PHOTOS_DOC.set({ quickPics: clean }, { merge:true });
+  contentData.quickPics = clean;
+}
+function qpPanelHtml(o){
+  const dir = chatDirOf(o);
+  const мої = quickPics().filter(x => !x.dir || x.dir === dir);
+  const папки = [];
+  мої.forEach(x => { const f = x.f || 'Інше'; if(папки.indexOf(f) < 0) папки.push(f); });
+  const can = canQuick();
+  const head = `<div class="cw-qr-head"><b>Картинки</b><span>натисніть — картинка ляже в повідомлення${can ? ' · ＋ — завантажити' : ''}</span></div>`;
+  const body = папки.map(f => `<div class="cw-qr-grp">${escapeHtml(f)}${can
+      ? ` <button type="button" class="cw-qp-add" data-qp-add="${escapeHtml(f)}" title="Завантажити в цю папку">＋</button>` : ''}</div>
+    <div class="cw-qp-grid">${мої.filter(x => (x.f || 'Інше') === f).map(x => `
+      <span class="cw-qp">
+        <button type="button" class="cw-qp-b" data-qp="${escapeHtml(x.id)}" title="${escapeHtml(x.n || 'Надіслати')}">
+          <img src="${escapeHtml(x.url)}" alt="" loading="lazy"><i>${escapeHtml(x.n || '')}</i></button>
+        ${can ? `<button type="button" class="cw-qp-x" data-qp-del="${escapeHtml(x.id)}" title="Прибрати з заготовок">✕</button>` : ''}
+      </span>`).join('')}</div>`).join('');
+  const пусто = папки.length ? '' : '<div class="cw-tip" style="padding:6px 2px">Картинок ще немає.' +
+    (can ? ' Створіть папку (наприклад «Каталог» чи «Розмірні сітки») і завантажте картинки.' : ' Їх додає той, хто править заготовки.') + '</div>';
+  const нова = can ? `<div class="cw-qp-new">
+      <button type="button" class="cw-qr-add" data-qp-add="">＋ Нова папка</button>
+      <label class="cw-qr-dir"><span>Кому</span><select class="cw-qp-dir">
+        <option value=""${!(chatWin || {}).qpDir ? ' selected' : ''}>Обом напрямам</option>
+        <option value="b2c"${(chatWin || {}).qpDir === 'b2c' ? ' selected' : ''}>Тільки B2C</option>
+        <option value="b2b"${(chatWin || {}).qpDir === 'b2b' ? ' selected' : ''}>Тільки B2B</option></select></label>
+      <input type="file" accept="image/*" multiple data-qp-file hidden></div>` : '';
+  return head + body + пусто + нова;
+}
+function qrTabsHtml(o){
+  const dir = chatDirOf(o);
+  const n = quickPics().filter(x => !x.dir || x.dir === dir).length;
+  const t = (chatWin && chatWin.qrTab === 'p') ? 'p' : 't';
+  return `<div class="cw-qr-tabs"><button type="button" class="cw-qr-tab${t === 't' ? ' on' : ''}" data-qr-tab="t">Тексти</button>` +
+    `<button type="button" class="cw-qr-tab${t === 'p' ? ' on' : ''}" data-qr-tab="p">Картинки${n ? ' · ' + n : ''}</button></div>`;
+}
 function qrPanelHtml(o){
+  if(chatWin && chatWin.qrTab === 'p') return qrTabsHtml(o) + qpPanelHtml(o);
+  return qrTabsHtml(o) + qrPanelTextHtml(o);
+}
+function qrPanelTextHtml(o){
   const L = quickReplies();
   const ed = chatWin && chatWin.qrEdit;
   /* Панель мовчала про себе: люди бачили список і не здогадувались, що його
@@ -4484,6 +4537,59 @@ function wireChatWin(box, o, focusIn){
       if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     });
   });
+  /* Вкладки «Тексти / Картинки» і картинки заготовок (24.10). */
+  box.querySelectorAll('[data-qr-tab]').forEach(b => b.addEventListener('click', ()=>{
+    chatWin.qrTab = b.dataset.qrTab === 'p' ? 'p' : 't'; chatWin.qrEdit = null; chatWin.draft = inp.value; renderChatWin();
+  }));
+  box.querySelectorAll('[data-qp]').forEach(b => b.addEventListener('click', async ()=>{
+    const x = quickPics().filter(q => q.id === b.dataset.qp)[0];
+    if(!x) return;
+    if(chatWin.picsBusy || chatWin.sending) return toast('Ще надсилається попереднє — секунду');
+    try{
+      const r = await fetch(x.url);
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      const bl = await r.blob();
+      chatWin.draft = inp.value;
+      await chatTake([new File([bl], (x.n || 'картинка').replace(/[\\/:*?"<>|]/g, '') + '.jpg', { type: bl.type || 'image/jpeg' })]);
+      toast('Картинку додано в повідомлення — допишіть текст і ➤');
+    }catch(e){ console.warn('картинка заготовки', e); toast('Картинка не відкрилась — спробуйте ще раз'); }
+  }));
+  const qpDirEl = box.querySelector('.cw-qp-dir');
+  if(qpDirEl) qpDirEl.addEventListener('change', ()=>{ chatWin.qpDir = qpDirEl.value; });
+  const qpFile = box.querySelector('[data-qp-file]');
+  box.querySelectorAll('[data-qp-add]').forEach(b => b.addEventListener('click', ()=>{
+    if(!canQuick()) return toast('Картинки заготовок править той, хто править заготовки');
+    let f = b.dataset.qpAdd;
+    if(!f){ f = String(prompt('Назва папки (наприклад «Каталог» чи «Розмірні сітки»):', '') || '').trim(); if(!f) return; }
+    chatWin.qpFolder = f.slice(0, 40);
+    if(qpFile) qpFile.click();
+  }));
+  if(qpFile) qpFile.addEventListener('change', async ()=>{
+    const list = Array.from(qpFile.files || []).filter(f => /^image\//.test(f.type || ''));
+    qpFile.value = '';
+    if(!list.length) return;
+    toast('Завантажую ' + list.length + '…');
+    const нові = [];
+    for(const f of list){
+      try{
+        const bl = await shrinkImage(f);
+        const url = await uploadCloudinary(bl);
+        if(url) нові.push({ id: 'qp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), f: chatWin.qpFolder || 'Інше',
+          n: String(f.name || '').replace(/\.[a-z0-9]+$/i, ''), url, dir: chatWin.qpDir || '', at: new Date().toISOString(), by: myEmail() || '' });
+      }catch(e){ console.warn('завантаження картинки заготовки', e); }
+    }
+    if(!нові.length) return toast('Не завантажилось — спробуйте ще раз');
+    try{ await qpStore(quickPics().concat(нові)); }catch(e){ console.error(e); return toast('Не збереглось: ' + ((e && e.message) || e)); }
+    toast('Додано ' + нові.length + ' у «' + (chatWin.qpFolder || 'Інше') + '»');
+    chatWin.draft = inp.value; renderChatWin();
+  });
+  box.querySelectorAll('[data-qp-del]').forEach(b => b.addEventListener('click', async ()=>{
+    if(!canQuick()) return;
+    const x = quickPics().filter(q => q.id === b.dataset.qpDel)[0];
+    if(!x || !confirm('Прибрати «' + (x.n || 'картинку') + '» із заготовок?')) return;
+    try{ await qpStore(quickPics().filter(q => q.id !== x.id)); }catch(e){ console.error(e); return toast('Не збереглось'); }
+    chatWin.draft = inp.value; renderChatWin();
+  }));
   box.querySelectorAll('[data-qr-edit]').forEach(b=>{
     b.addEventListener('click', ()=>{
       const v = b.dataset.qrEdit;

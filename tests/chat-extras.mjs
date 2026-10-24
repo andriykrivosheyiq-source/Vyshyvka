@@ -1,4 +1,4 @@
-/* ЧАТИ: СМАЙЛИКИ Й ФІЛЬТР «НЕПРОЧИТАНІ» (24.10).
+/* ЧАТИ: СМАЙЛИКИ, ФІЛЬТР «НЕПРОЧИТАНІ», КАРТИНКИ В ЗАГОТОВКАХ (24.10).
 
    Андрій: «додати смайлики; фільтр „непрочитані“ — всі перед очима всі
    замовлення, які потребують уваги». Фільтр лишає розмови, що чекають на
@@ -154,7 +154,43 @@ const нещ = await p.evaluate(() => { const e = document.querySelector('#chatW
   перший: (e.querySelector('[data-emo]') || {}).dataset.emo, текст: document.querySelector('#chatWin .cw-inp').value }; });
 ok(нещ.є && нещ.перший === '🙏' && нещ.текст === 'Дякую 🙏', 'нещодавні — першими; закрили-відкрили панель — текст у полі на місці', JSON.stringify(нещ));
 
+console.log('═══ 3. ЗАГОТОВКИ: «ТЕКСТИ / КАРТИНКИ», ПАПКИ, НАДІСЛАТИ, ЗАВАНТАЖИТИ ═══');
+/* 24.10, Андрій: «у панелі швидких відповідей — розділити тексти й
+   картинки; туди завантажуємо картинки, щоб надсилати». */
+await p.evaluate(() => {
+  const png = c => { const k = document.createElement('canvas'); k.width = 40; k.height = 40; const x = k.getContext('2d'); x.fillStyle = c; x.fillRect(0, 0, 40, 40); return k.toDataURL('image/png'); };
+  window.__png = png;
+  contentData.quickPics = [
+    { id:'qa', f:'Каталог', n:'Худі базове', url: png('#333') },
+    { id:'qb', f:'Розмірні сітки', n:'Сітка B2B', url: png('#a00'), dir:'b2b' } ];
+  window.uploadCloudinary = async () => png('#0a0');
+  chatWin.pics = []; chatWin.emo = false;
+  renderChatWin();
+});
+await p.click('#chatWin [data-cw-qr]'); await p.waitForTimeout(200);
+const т0 = await p.evaluate(() => [...document.querySelectorAll('#chatWin [data-qr-tab]')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')));
+ok(т0.join('|') === 'Тексти*|Картинки · 1', 'у ⚡ дві вкладки: «Тексти» (відкрита) і «Картинки · 1» (B2B-картинка в B2C-розмові не рахується)', JSON.stringify(т0));
+await p.click('#chatWin [data-qr-tab="p"]'); await p.waitForTimeout(200);
+const т1 = await p.evaluate(() => ({ папки: [...document.querySelectorAll('#chatWin .cw-qr-grp')].map(x => x.textContent.replace(/＋/g, '').trim()),
+  карт: document.querySelectorAll('#chatWin [data-qp]').length, текстів: document.querySelectorAll('#chatWin [data-qr]').length }));
+ok(т1.папки.join('|') === 'Каталог' && т1.карт === 1 && !т1.текстів, '«Картинки»: папка «Каталог» з картинкою, текстів тут немає', JSON.stringify(т1));
+await p.click('#chatWin [data-qp="qa"]');
+await p.waitForFunction(() => (chatWin.pics || []).length === 1 && chatWin.pics[0].url, null, { timeout: 8000 }).catch(() => {});
+const т2 = await p.evaluate(() => ({ n: (chatWin.pics || []).length, url: !!((chatWin.pics || [])[0] || {}).url, панель: !!document.querySelector('#chatWin .cw-qp-grid') }));
+ok(т2.n === 1 && т2.url && т2.панель, 'клік по картинці — вона в смужці відправки, як 📎 (можна дописати текст і ➤)', JSON.stringify(т2));
+const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('#chatWin [data-qp-add="Каталог"]')]);
+await fc.setFiles([{ name:'сітка-худі.png', mimeType:'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a8f50000000049454e44ae426082', 'hex') }]);
+await p.waitForFunction(() => (contentData.quickPics || []).length === 3, null, { timeout: 8000 }).catch(() => {});
+const т3 = await p.evaluate(() => { const l = contentData.quickPics || []; const x = l[l.length - 1] || {};
+  return { n: l.length, f: x.f, name: x.n, у: document.querySelectorAll('#chatWin [data-qp]').length }; });
+ok(т3.n === 3 && т3.f === 'Каталог' && т3.name === 'сітка-худі' && т3.у === 2, '«＋» біля папки — картинку завантажено в «Каталог» і збережено в заготовках', JSON.stringify(т3));
+await p.click('#chatWin [data-qp-del="qa"]'); await p.waitForTimeout(300);
+const т4 = await p.evaluate(() => ({ ids: (contentData.quickPics || []).map(x => x.id), у: document.querySelectorAll('#chatWin [data-qp]').length }));
+ok(т4.ids.indexOf('qa') < 0 && т4.ids.length === 2 && т4.у === 1, '✕ — картинку прибрано із заготовок (з підтвердженням)', JSON.stringify(т4));
+await p.click('#chatWin [data-qr-tab="t"]'); await p.waitForTimeout(200);
+ok(await p.evaluate(() => document.querySelectorAll('#chatWin [data-qr]').length > 0 && !document.querySelector('#chatWin [data-qp]')), '«Тексти» — заготовки-тексти на місці', 'тексти зникли');
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
-console.log(bad ? 'розходжень: ' + bad : 'смайлики й «Непрочитані» — на місці');
+console.log(bad ? 'розходжень: ' + bad : 'смайлики, «Непрочитані» й картинки заготовок — на місці');
 await browser.close(); srv.close();
 process.exit(bad ? 1 : 0);

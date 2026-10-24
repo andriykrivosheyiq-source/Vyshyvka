@@ -228,6 +228,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `softTyping` у loomiq-design.js (`root.__lqHtml`; таймер 2,5 с, поки фокус
   у полі), `openDesign(soft)`; `repaintAfterOrdersNow` і обидва слухачі
   відділу — лише тихо. `tests/no-flicker.mjs`.
+- **Заготовки: «Тексти / Картинки»** (24.10, loomiq-chat.js): `chatWin.qrTab`
+  ('t' | 'p'), `qrTabsHtml`; картинки — `contentData.quickPics` [{id, f: папка,
+  n, url, dir}] у `loomiq/photos` (`qpStore`, у базі — право «налаштування»,
+  як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
+  (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
+  Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
 - **Чати: смайлики й «Непрочитані»** (24.10, loomiq-chat.js): 😊 `[data-cw-emo]`
   → `chatEmoHtml` (`CHAT_EMO`, нещодавні — `lq_emo_recent`), вставка в курсор,
   фокус не губиться; на телефоні кнопки немає (клавіатура). «Непрочитані» —
