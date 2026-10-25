@@ -234,6 +234,18 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Вхід у localStorage, без Google-iframe** (25.10): блок `/* ▶ auth-ls … ◀ auth-ls */`
+  перед `const fbAuth = firebase.auth()` — `IDBFactory.prototype.open` кидає
+  для `firebaseLocalStorageDb` (SDK сам бере localStorage), `window.gapi`
+  заглушка (SDK не чекає apis.google.com на телефонах). Вимкнути:
+  `window.LQ_AUTH_IDB = 1`. Форма входу: `authRace` (сховище 4 с, вхід
+  `AUTH_WAIT_MS` 45 с, тести `LQ_AUTH_WAIT_MS`), текст `lq/timeout`.
+  Слід: `lq_auth_mark` (пошта, час, keep) при вході; `authLostNote`
+  ('start' — відкрили без збереженого входу, 'out' — злетів посеред
+  роботи, крім «Вийти» — `authByeBye`) → `lq_auth_lost` → `authLostFlush`
+  в `init` → `accLog('auth-lost', …)`. Тест `tests/auth-keep.mjs` бере
+  справжню збірку з `LQ_FB_DIR` або `/tmp/claude-0/emu/node_modules/firebase`
+  (без неї кроки 1–6 «пропущено»), мережу Google підміняє. Див. BUGS 25.10.
 - **Швидкість, крок 2** (25.10): `fbDb.enablePersistence({synchronizeTabs:true})`
   одразу після `firebase.firestore()` (`fbCacheOn`; `lq_nocache` у localStorage,
   `?nocache=1`/`?cache=1`, `window.LQ_NO_CACHE`); `loadOrders()` = перший

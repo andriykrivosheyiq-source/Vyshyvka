@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/auth-keep\.mjs)'; then
+  node tests/auth-keep.mjs >/tmp/lq-auth-keep.log 2>&1 || {
+    echo "✗ Вхід знову може злетіти або зависнути (IndexedDB / Google-iframe / «Вхід…» без таймауту) — коміт зупинено. Подробиці: /tmp/lq-auth-keep.log"
+    grep '✗' /tmp/lq-auth-keep.log
+    exit 1
+  }
+  echo "✓ вхід тримається в localStorage і не висить"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|loomiq-design\.js|tests/bind-fast\.mjs)'; then
   node tests/bind-fast.mjs >/tmp/lq-bind-fast.log 2>&1 || {
     echo "✗ Привʼязка розмови за посиланням знову чекає Sitniks — коміт зупинено. Подробиці: /tmp/lq-bind-fast.log"

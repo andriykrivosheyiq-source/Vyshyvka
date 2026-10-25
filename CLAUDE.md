@@ -271,6 +271,16 @@ stage, at, by, prev} для аналітики, `o.refuseHist` для істор
 грошового ядра — через `opt.noOf`. Номер в іншому розділі — кнопка в
 картку: `openByNo(id)`. Перевіряє `tests/order-no.mjs` (у pre-commit).
 
+## Вхід живе в localStorage і не чекає Google (25.10.2026)
+
+Менеджерка з iPhone: «після кожного збереження вибиває… «Вхід…» висить».
+Блок `auth-ls` перед `firebase.auth()` в `loomiqadmin.html`: для бази SDK
+IndexedDB «немає» (SDK сам бере localStorage), `gapi` — заглушка (SDK не
+вантажить Google-iframe перед відновленням входу). Не прибирати, не
+додавати вхід через Google popup/redirect без окремої домовленості; кожен
+крок форми входу — з таймаутом (`authRace`). Перевіряє
+`tests/auth-keep.mjs` на справжній збірці SDK (у pre-commit).
+
 ## Інше
 
 - Спілкування українською; на великих задачах — спершу переказати, як

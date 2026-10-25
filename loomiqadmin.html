@@ -8112,33 +8112,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ab7a9b874f"></script>
-<script src="loomiq-fingerprint.js?v=ab7a9b874f"></script>
-<script src="loomiq-pricing.js?v=ab7a9b874f"></script>
+<script src="loomiq-select.js?v=d0cc869bbb"></script>
+<script src="loomiq-fingerprint.js?v=d0cc869bbb"></script>
+<script src="loomiq-pricing.js?v=d0cc869bbb"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=ab7a9b874f"></script>
+<script src="loomiq-money-core.js?v=d0cc869bbb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ab7a9b874f"></script>
-<script src="loomiq-bg.js?v=ab7a9b874f"></script>
-<script src="loomiq-mock.js?v=ab7a9b874f"></script>
+<script src="loomiq-design.js?v=d0cc869bbb"></script>
+<script src="loomiq-bg.js?v=d0cc869bbb"></script>
+<script src="loomiq-mock.js?v=d0cc869bbb"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=ab7a9b874f"></script>
+<script src="imagetracer.js?v=d0cc869bbb"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=ab7a9b874f"></script>
-<script src="loomiq-threads.js?v=ab7a9b874f"></script>
+<script src="loomiq-chat.js?v=d0cc869bbb"></script>
+<script src="loomiq-threads.js?v=d0cc869bbb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ab7a9b874f"></script>
+<script src="loomiq-cards.js?v=d0cc869bbb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8183,7 +8183,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ab7a9b874f';
+var LQ_VER = 'd0cc869bbb';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8364,6 +8364,46 @@ const firebaseConfig = {
   appId: "1:828527183830:web:69895ce3f3c5505d014677"
 };
 firebase.initializeApp(firebaseConfig);
+/* ▶ auth-ls — ВХІД ТРИМАЄМО В localStorage І НЕ ЧЕКАЄМО GOOGLE (25.10).
+
+   Менеджер з iPhone: «після кожного збереження вибиває, треба входити з
+   Face ID… і коли перезавантажую», «Вхід…» висить. У джерелах Firebase
+   Auth 10.12.2 дві причини, обидві лише на телефоні:
+   1. Збережений вхід SDK кладе в IndexedDB. Відкриття бази в Safari iOS
+      часом не відповідає взагалі (ні успіху, ні помилки) — у SDK на це
+      немає таймауту: перевірка сховища висить, за нею в черзі висять і
+      відновлення входу, і setPersistence, і сам вхід («Вхід…» назавжди).
+      А коли база відповідає відмовою — SDK мовчки бере інше сховище, де
+      входу немає: людина «вибита». Тому для бази SDK (firebaseLocalStorageDb)
+      IndexedDB «немає» — SDK сам переходить на localStorage: синхронне,
+      без черг, переживає перезавантаження й перехід на конструктор і назад.
+      Решта (кеш Firestore, передача з телефона lq_handoff) — як і доти.
+   2. На iOS/Safari/Android SDK перед відновленням входу вантажить
+      apis.google.com і iframe Google (потрібні лише для входу через
+      Google, якого в нас немає): до 60 с на поганому звʼязку, і весь цей
+      час людина бачить форму входу, хоч вхід збережено. Заглушка gapi
+      каже SDK «не вийшло» одразу — він так і передбачає («don't halt auth
+      loading»). Вхід через Google popup/redirect із цим не працюватиме.
+   Повернути як було (тести): window.LQ_AUTH_IDB = 1. Перевіряє
+   tests/auth-keep.mjs на справжньому SDK. */
+(function(){
+  if(window.LQ_AUTH_IDB === 1) return;
+  try{
+    const open = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function(name){
+      if(name === 'firebaseLocalStorageDb') throw new Error('Loomiq: вхід живе в localStorage');
+      return open.apply(this, arguments);
+    };
+  }catch(e){}
+  try{
+    if(!window.gapi) window.gapi = {
+      load: function(n, o){ try{ o && o.ontimeout && o.ontimeout(); }catch(e){} },
+      iframes: { Iframe: function(){}, CROSS_ORIGIN_IFRAMES_FILTER: 1,
+        getContext: function(){ return { open: function(){ return Promise.reject(new Error('Loomiq: вхід через Google не використовується')); } }; } }
+    };
+  }catch(e){}
+})();
+/* ◀ auth-ls */
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 /* КЕШ БАЗИ НА ПРИСТРОЇ (25.10, крок 2 швидкості). Доти кожне відкриття
@@ -8563,7 +8603,42 @@ const authErrText = {
   'auth/api-key-not-valid': 'Ключ Firebase не дійсний для цього домену',
   'auth/user-disabled': 'Цей користувач заблокований',
   'auth/internal-error': 'Firebase відхилив запит. Часта причина — обмеження ключа за доменом у Google Cloud',
+  'lq/timeout': 'Вхід не відповідає. Перевірте інтернет і спробуйте ще раз',
 };
+/* «Вхід…» НЕ ВИСИТЬ НАЗАВЖДИ (25.10). Кожен крок входу обмежений у часі:
+   сховище — 4 с (далі слабше), сам вхід — 45 с (далі кажемо словами й
+   повертаємо кнопку). Якщо вхід усе ж дійде пізніше — onAuthStateChanged
+   відкриє адмінку сам. Тести: window.LQ_AUTH_WAIT_MS. */
+const AUTH_WAIT_MS = (typeof window !== 'undefined' && +window.LQ_AUTH_WAIT_MS) || 45000;
+function authRace(p, ms){
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() =>
+    rej(Object.assign(new Error('timeout'), { code:'lq/timeout' })), ms))]);
+}
+/* Слід, щоб зрозуміти «вибиває»: на пристрої памʼятаємо, що вхід був
+   (lq_auth_mark); якщо сторінка відкрилась без нього або вхід злетів
+   посеред роботи — пишемо в lq_auth_lost, а після наступного входу —
+   у журнал доступів (accLog 'auth-lost'), де це побачить власник. */
+let authHadUser = false, authByeBye = false;
+function authLostNote(kind){
+  try{
+    const mark = JSON.parse(localStorage.getItem('lq_auth_mark') || 'null');
+    if(!mark || !mark.keep) return;
+    const ua = String(navigator.userAgent || '');
+    const dev = /iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'інше';
+    const prev = JSON.parse(localStorage.getItem('lq_auth_lost') || '[]');
+    prev.push({ kind, at:new Date().toISOString(), dev, since: mark.at || '' });
+    localStorage.setItem('lq_auth_lost', JSON.stringify(prev.slice(-5)));
+  }catch(e){}
+}
+async function authLostFlush(){
+  let rows = [];
+  try{ rows = JSON.parse(localStorage.getItem('lq_auth_lost') || '[]'); }catch(e){}
+  if(!rows.length || !contentLoaded) return;
+  const txt = rows.map(r => (r.kind === 'out' ? 'злетів посеред роботи' : 'не відновився при відкритті') +
+    ' ' + String(r.at || '').slice(5, 16).replace('T', ' ') + ' (' + (r.dev || '?') + ')').join('; ');
+  try{ localStorage.removeItem('lq_auth_lost'); }catch(e){}
+  try{ await accLog('auth-lost', 'вхід на пристрої: ' + txt); }catch(e){}
+}
 document.getElementById('auth-form').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const email = document.getElementById('auth-email').value.trim();
@@ -8580,13 +8655,14 @@ document.getElementById('auth-form').addEventListener('submit', async (e)=>{
     const P = firebase.auth.Auth.Persistence;
     const want = document.getElementById('auth-remember').checked ? P.LOCAL : P.SESSION;
     let usedNone = false;
-    try{ await fbAuth.setPersistence(want); }
+    try{ await authRace(fbAuth.setPersistence(want), 4000); }
     catch(e1){
-      try{ await fbAuth.setPersistence(P.SESSION); }
-      catch(e2){ try{ await fbAuth.setPersistence(P.NONE); usedNone = true; }catch(e3){} }
+      try{ await authRace(fbAuth.setPersistence(P.SESSION), 4000); }
+      catch(e2){ try{ await authRace(fbAuth.setPersistence(P.NONE), 4000); usedNone = true; }catch(e3){} }
     }
-    await fbAuth.signInWithEmailAndPassword(email, pass);
+    await authRace(fbAuth.signInWithEmailAndPassword(email, pass), AUTH_WAIT_MS);
     if(usedNone) console.warn('Сховище браузера недоступне — вхід лише на цю вкладку');
+    try{ localStorage.setItem('lq_auth_mark', JSON.stringify({ mail: email, at: new Date().toISOString(), keep: want === P.LOCAL && !usedNone })); }catch(e){}
     // onAuthStateChanged розблокує інтерфейс
   }catch(err){
     // Код лишаємо на видноті: без нього не зрозуміти, це пароль чи налаштування
@@ -8598,6 +8674,8 @@ document.getElementById('auth-form').addEventListener('submit', async (e)=>{
   }
 });
 document.getElementById('logout-btn').addEventListener('click', function(){
+  authByeBye = true;
+  try{ localStorage.removeItem('lq_auth_mark'); }catch(e){}
   fbAuth.signOut();
 });
 
@@ -8785,10 +8863,16 @@ fbAuth.onAuthStateChanged(function(user){
      лишити акаунт без пароля — назад на цей екран вона вже не потрапить. */
   if(inviteBusy){ gate.style.display = 'none'; return; }
   if(user){
+    authHadUser = true;
     gate.style.display = 'none';
     if(!contentLoaded) accGate(true);
     if(!appStarted){ appStarted = true; init(); }
   }else{
+    /* Вхід мав бути збережений, а його немає (при відкритті) або він злетів
+       посеред роботи (SDK сам виходить, коли ключ відкликано: змінений
+       пароль, вимкнений акаунт) — лишаємо слід для журналу доступів. */
+    if(!authByeBye) authLostNote(authHadUser ? 'out' : 'start');
+    authByeBye = false;
     gate.style.display = 'flex';
   }
 });
@@ -32057,7 +32141,7 @@ function applyNoAccess(){
       'побачить її в «Команді й доступах». Якщо запрошення приходило на іншу пошту — ' +
       'вийдіть і зайдіть нею.</p>' +
       '<button type="button">Вийти</button></div>';
-    el.querySelector('button').addEventListener('click', ()=> fbAuth.signOut());
+    el.querySelector('button').addEventListener('click', ()=> { authByeBye = true; fbAuth.signOut(); });
   }
   el.querySelector('.na-mail').textContent = myEmail() || '—';
   document.body.classList.add('no-access');
@@ -36024,6 +36108,7 @@ async function init(){
      залежить, який запит робити за картками. Чекаємо його, але не довше
      8 с: без нього вантажимо все, як доти. */
   await Promise.race([contentFirst, new Promise(r => setTimeout(r, 8000))]);
+  try{ authLostFlush(); }catch(e){}
   /* ПОЗИЦІЯ З ТЕЛЕФОНА — ОДНІЄЮ КАРТКОЮ, НЕ ЧЕКАЮЧИ ВСІХ (25.10, «товар не
      зберігся»): доти запис чекав повного завантаження всіх замовлень. */
   try{ await calcSoloEarly(); }catch(e){ console.warn('позиція з телефона (ранній запис)', e); }
