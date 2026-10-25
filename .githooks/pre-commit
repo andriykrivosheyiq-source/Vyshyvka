@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/ship-date\.mjs)'; then
+  node tests/ship-date.mjs >/tmp/lq-ship-date.log 2>&1 || {
+    echo "✗ Дата відправки для цеху зламана (робочі дні, «виготовити й відправити») — коміт зупинено. Подробиці: /tmp/lq-ship-date.log"
+    grep '✗' /tmp/lq-ship-date.log
+    exit 1
+  }
+  echo "✓ дата відправки: цех бачить за 3 робочі дні"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/buy-units\.mjs)'; then
   node tests/buy-units.mjs >/tmp/lq-buy-units.log 2>&1 || {
     echo "✗ Закупівля чи перевірка посилки по штуках зламана — коміт зупинено. Подробиці: /tmp/lq-buy-units.log"

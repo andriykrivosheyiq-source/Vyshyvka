@@ -3282,7 +3282,12 @@
     if(c.left !== null && c.left !== undefined)
       кандидати.push({ m: c.left, late: c.left < 0, soon: c.left >= 0 && c.left < 180,
         t: c.left < 0 ? 'прострочено ' + hm(-c.left) : 'лишилось ' + hm(c.left) });
-    if(лишок && c.due){
+    /* Цех (25.10): дата відправки робочими днями — «виготовити й відправити
+       до DD.MM» за 3 робочі дні. */
+    if(c.ship){
+      var кінС = new Date(String(c.ship.due) + 'T23:59:00').getTime(), хвС = isNaN(кінС) ? 1e9 : Math.round((кінС - Date.now()) / 60000);
+      кандидати.push({ m: c.ship.late ? Math.min(хвС, -1) : хвС, late: !!c.ship.late, soon: !!c.ship.soon, t: c.ship.txt, title: c.ship.title });
+    } else if(лишок && c.due){
       var кін = new Date(String(c.due) + 'T23:59:00').getTime(), хв = isNaN(кін) ? 1e9 : Math.round((кін - Date.now()) / 60000);
       кандидати.push({ m: лишок.late ? Math.min(хв, -1) : хв, late: !!лишок.late, soon: !!лишок.soon,
         t: лишок.late ? 'прострочено ' + dueShort(c.due) : String(лишок.txt).replace(/^лишилось\s+/i, 'до відправки '),
@@ -5912,6 +5917,30 @@
     }
     return { soon: дн <= 2, txt: 'лишилось ' + дн + ' ' + dayWord(дн) };
   }
+  /* ДАТА ВІДПРАВКИ ДЛЯ ЦЕХУ (25.10, Андрій: «за 2–3 робочі дні, щоб
+     побачити, що потрібно виготовити і відправити»). Та сама дата, що
+     «📅 Відправити» в картці менеджера (job.due) — другої не заводимо. Робочі
+     дні — пн–пт: від завтра до дати включно. Уже відправлене (реєстр, кур'єр,
+     дорога, доставка) — без позначки. */
+  function workDays(v){
+    var d = calParse(v); if(!d) return null;
+    var t = calParse(calIso(new Date())), n = 0;
+    if(d < t) return -1;
+    var x = new Date(t.getTime());
+    while(x < d){ x.setDate(x.getDate() + 1); var w = x.getDay(); if(w !== 0 && w !== 6) n++; }
+    return n;
+  }
+  var SHIPPED = ['reg', 'courier', 'way', 'arrived', 'stuck', 'done', 'refused'];
+  function shipInfo(job, at){
+    var v = job && (job.due || job.readyAt);
+    if(!v || !calParse(v) || SHIPPED.indexOf(at) >= 0) return null;
+    var wd = workDays(v);
+    if(wd < 0) return { late: true, soon: false, wd: wd, due: v, txt: 'прострочено відправку ' + dueShort(v) };
+    var soon = wd <= 3;
+    return { late: false, soon: soon, wd: wd, due: v,
+             txt: (soon ? 'виготовити й відправити до ' : 'відправити до ') + dueShort(v),
+             title: 'Відправка клієнту до ' + dueShort(v) + ' · ' + (wd === 0 ? 'сьогодні' : wd + ' роб. ' + (wd === 1 ? 'день' : wd < 5 ? 'дні' : 'днів')) };
+  }
   /* «1 день», «2 дні», «6 днів» — правило української, а не англійський
      хвіст «s». Написане неправильно, число читається як чужий текст. */
   function dayWord(n){
@@ -5962,7 +5991,8 @@
            кнопка виглядала як напис: дата й слово «Готово», і те, що вона
            взагалі натискається, доводилось вгадувати. */
         '<i class="dz-duo-c">\uD83D\uDCC5</i>' +
-        '<span>Готово</span><b>' + esc(v ? dueTxt(v) : 'обрати дату') + '</b>' +
+        /* 25.10: «Відправити» — та сама дата бачить цех («відправити до»). */
+        '<span>Відправити</span><b>' + esc(v ? dueTxt(v) : 'обрати дату') + '</b>' +
         (л ? '<i class="dz-duo-l' + (л.late ? ' late' : л.soon ? ' soon' : '') + '">' +
              esc(л.txt) + '</i>' : '') +
       '</button>';
@@ -6883,7 +6913,7 @@
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
     orderCost: orderCost, sumRows: sumRows, netSum: netSum, priceLock: priceLock, priceLockJob: priceLockJob,
-    daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
+    daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2, shipInfo: shipInfo, workDays: workDays,
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
     waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
@@ -8825,8 +8855,10 @@
   }
   function prodPanel(p){
     var job = p.job, o = p.o;
+    var шп = U.shipInfo(job, D.prodAt(job, o));
     return '<div class="dz-panel-h">' + U.jobNo(job) +
         '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' +
+        (шп ? '<span class="dz-ship-due' + (шп.late ? ' late' : шп.soon ? ' soon' : '') + '" title="' + esc(шп.title || '') + '">📦 ' + esc(шп.txt) + '</span>' : '') +
         clockHtml(D.stageLeft(job, o, 'prod', termHours('prod'))) +
         '<button class="dz-x" data-close>×</button>' +
         U.chainHtml(stageMarks(job, o, buys()), 'in-panel') + '</div>' +
@@ -8881,7 +8913,9 @@
       head = 'Чекає погодження';
       body = photosHtml(q.photos) + (q.note ? '<div class="dz-w-note"><i>Коментар цеху</i>' + esc(q.note) + '</div>' : '') +
         (as === 'acct'
-          ? '<div class="dz-prod-acts">' +
+          ? '<div class="dz-ship-set">' + U.dueHtml(job) +
+              '<i>цех побачить «виготовити й відправити» за 3 робочі дні</i></div>' +
+            '<div class="dz-prod-acts">' +
               (D.shipKnown(o) ? '' : '<div class="dz-miss">Без ТТН погодити не можна — спершу створіть накладну.</div>' +
                 '<button type="button" class="dz-b" data-do="ship">Створити ТТН</button>') +
               '<button type="button" class="dz-b pri" data-do="prod-ok"' + (D.shipKnown(o) ? '' : ' disabled') + '>Погодити</button>' +
@@ -9291,6 +9325,7 @@
         ready: готов,
         green: готов.length && готов.every(function(r){ return r.ok; }) && крокП !== 'shipped',
         due: p.job.due || p.job.readyAt || '',
+        ship: U.shipInfo(p.job, крокП),
         title: U.jobNo(p.job),
         left: D.stageLeft(p.job, p.o, 'prod', termHours('prod')),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })

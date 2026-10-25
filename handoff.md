@@ -234,6 +234,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Дата відправки для цеху** (25.10): одна дата — `job.due` (кнопка
+  «📅 Відправити», раніше «Готово»; `U.dueHtml`). `workDays(v)` — робочі дні
+  від завтра до дати; `shipInfo(job, at)` → `{soon (≤3), late, txt, title}`,
+  для `SHIPPED` (реєстр і далі) — null. Плитка цеху — `c.ship` у стікері,
+  шапка картки цеху — `.dz-ship-due`, у менеджера в «Чекає погодження» —
+  `.dz-ship-set` з `U.dueHtml(job)`. Тест `tests/ship-date.mjs`.
 - **«Почати замовлення»** (25.10): `BUY_FIX = {at, keys}` (лише вкладка):
   `buy-fix` data-on=1 фіксує ключі рядків потреби; `buyScreenHtml` показує
   лише їх, нове — блоком `.dz-buy-new` зверху; `buy-make` бере лише
