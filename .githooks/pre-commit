@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/buy-units\.mjs)'; then
+  node tests/buy-units.mjs >/tmp/lq-buy-units.log 2>&1 || {
+    echo "✗ Закупівля чи перевірка посилки по штуках зламана — коміт зупинено. Подробиці: /tmp/lq-buy-units.log"
+    grep '✗' /tmp/lq-buy-units.log
+    exit 1
+  }
+  echo "✓ закупівля й перевірка — по штуках"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/reg-make\.mjs)'; then
   node tests/reg-make.mjs >/tmp/lq-reg-make.log 2>&1 || {
     echo "✗ Реєстр НП: у «Передано курʼєру» знову йде не те, що прийняла Нова пошта — коміт зупинено. Подробиці: /tmp/lq-reg-make.log"

@@ -9918,6 +9918,9 @@
      Нижче — оформлені замовлення: склад, ТТН і стан. ТТН вписує закупник;
      з нею цех бачить, де одяг. */
   var BUY_SEL = {};          // позначене галочками: «замовлення|позиція»
+  /* Скільки замовляємо з рядка розміру (25.10): «M × 2» — замовили 1, друга
+     лишається в «Треба замовити». Ключ — той самий, що в галочки розміру. */
+  var BUY_QTY = {};
   var BUY_OPEN = {};         // розгорнуті рядки й закупівлі
   var BUY_ALL = false;       // показати всю історію
   /* ВИДАЛЕНІ ВЛАСНИКОМ (20.10): документ лишається (designJobs не
@@ -10005,8 +10008,8 @@
   }
   function buyTitle(b){
     if(b.stock) return 'Зі складу від ' + buyDate(b.at);
-    if(b.toStock) return 'На склад №' + (b.n || '—') + ' від ' + buyDate(b.at);
-    return 'Закупівля №' + (b.n || '—') + ' від ' + buyDate(b.at);
+    if(b.toStock) return 'На склад №' + (b.n || '—') + ' від ' + buyDate(b.at) + (b.partOf ? ' · прийнята частина' : '');
+    return 'Закупівля №' + (b.n || '—') + ' від ' + buyDate(b.at) + (b.partOf ? ' · прийнята частина' : '');
   }
   /* ── СКЛАД (04.10) ──
      Дві вкладки закупівлі: «Замовити одяг» і «Склад». У першій потреба
@@ -10265,9 +10268,13 @@
                 '<span>' + esc(g.color) + '</span><em>' + g.qty + ' шт</em></label>' +
               g.list.map(function(sz){
                 var k = gk + '|' + sz.size;
+                var обрШт = sz.rows.filter(function(r){ return BUY_SEL[r.key]; }).reduce(function(a, r){ return a + r.qty; }, 0);
                 return '<div class="dz-buy-s">' +
                   '<label><input type="checkbox" data-buys="' + esc(k) + '"' + buyChk(sz.rows) + '>' +
                     '<b>' + esc(sz.size) + '</b><span>× ' + sz.qty + '</span></label>' +
+                  /* Замовити менше, ніж треба (25.10): решта лишається тут. */
+                  (обрШт ? '<label class="dz-buy-q">замовляю <input type="number" min="0" max="' + обрШт + '" data-buyq="' + esc(k) + '" value="' +
+                    Math.min(обрШт, BUY_QTY[k] == null ? обрШт : BUY_QTY[k]) + '"> з ' + обрШт + '</label>' : '') +
                   (function(){
                     var mm = buyMissMap(), звідки = sz.rows.map(function(r){ return mm[D.buyKey(r.orderId, r.uid)]; }).filter(Boolean)[0];
                     return звідки ? '<em class="dz-buy-miss">не прийшло з «' + esc(звідки) + '»</em>' : '';
@@ -10304,27 +10311,51 @@
      замовити» з позначкою, звідки не прийшло. Прийняте йде далі одразу. */
   var BUY_CHECK = {};        // відкрита перевірка: id закупівлі → 1
   var BUY_CHK = {};          // відмічене: id → { індекс рядка: 1 }
+  /* ПЕРЕВІРКА ПО ШТУКАХ (25.10, Андрій: «на перевірці… ставити кількість»).
+     BUY_CHK[id][i] — скільки штук рядка прийшло (0…qty). Галочка — увесь
+     рядок, поле — частина. Нестача — дві дороги: «Решта ще їде» (прийняте
+     окремим документом «Отримано», решта лишається в цій закупівлі) або
+     «Не приїде — замовити знову» (решта — у «Треба замовити»). */
+  function ckGot(b, i){
+    var r = (b.rows || [])[i] || {}, q = Math.max(0, Math.round(+r.qty || 0));
+    var v = (BUY_CHK[b.id] || {})[i];
+    return v == null ? 0 : Math.max(0, Math.min(q, Math.round(+v || 0)));
+  }
+  function ckSplit(b){
+    var got = [], left = [];
+    (b.rows || []).forEach(function(r, i){
+      var q = Math.max(0, Math.round(+r.qty || 0)), g = ckGot(b, i);
+      if(g > 0) got.push(Object.assign({}, r, { qty: g }));
+      if(q - g > 0) left.push(Object.assign({}, r, { qty: q - g }));
+    });
+    return { got: got, left: left };
+  }
   function buyCheckHtml(b){
-    var m = BUY_CHK[b.id] || {};
     var rows = b.rows || [];
-    var є = rows.filter(function(r, i){ return m[i]; }).length;
-    var усе = rows.length && є === rows.length;
+    var sp = ckSplit(b);
+    var є = rows.filter(function(r, i){ return ckGot(b, i) >= Math.round(+r.qty || 0); }).length;
+    var усе = rows.length && !sp.left.length;
+    var прийшло = sp.got.reduce(function(a, r){ return a + r.qty; }, 0), бракує = sp.left.reduce(function(a, r){ return a + r.qty; }, 0);
     return '<div class="dz-buy-ck">' +
       '<div class="dz-buy-ckh">Відмітьте, що є в посилці <i>' + є + ' з ' + rows.length + '</i>' +
         '<button type="button" class="dz-buy-more" data-do="buy-ck-all" data-id="' + esc(b.id) + '">' +
           (усе ? 'зняти всі' : 'відмітити всі') + '</button></div>' +
       rows.map(function(r, i){
-        return '<label class="dz-buy-ckr' + (m[i] ? ' on' : '') + '">' +
-          '<input type="checkbox" data-bchk="' + esc(b.id + '|' + i) + '"' + (m[i] ? ' checked' : '') + '>' +
+        var q = Math.round(+r.qty || 0), g = ckGot(b, i);
+        return '<div class="dz-buy-ckr' + (g >= q ? ' on' : g ? ' is-part' : '') + '">' +
+          '<label><input type="checkbox" data-bchk="' + esc(b.id + '|' + i) + '"' + (g >= q ? ' checked' : '') + '>' +
           '<b>' + esc([r.name, r.color].filter(Boolean).join(' · ')) + '</b>' +
-          '<span>' + esc(r.size || '') + ' × ' + (+r.qty || 0) + '</span>' +
-          '<i>№' + esc(r.no || r.orderId) + '</i></label>';
+          '<span>' + esc(r.size || '') + ' × ' + q + '</span></label>' +
+          (q > 1 ? '<label class="dz-buy-q">прийшло <input type="number" min="0" max="' + q + '" data-bchq="' + esc(b.id + '|' + i) + '" value="' + g + '"> з ' + q + '</label>' : '') +
+          '<i>№' + esc(r.no || r.orderId) + '</i></div>';
       }).join('') +
       '<div class="dz-buy-cka">' +
         '<button type="button" class="dz-b pri" data-do="buy-recv" data-id="' + esc(b.id) + '"' + (усе ? '' : ' disabled') + '>' +
           'Підтвердити отримання</button>' +
+        '<button type="button" class="dz-b" data-do="buy-part" data-id="' + esc(b.id) + '"' + (прийшло && !усе ? '' : ' disabled') + '>' +
+          'Решта ще їде' + (прийшло && !усе ? ' · ' + бракує + ' шт' : '') + '</button>' +
         '<button type="button" class="dz-b" data-do="buy-miss" data-id="' + esc(b.id) + '"' + (rows.length && !усе ? '' : ' disabled') + '>' +
-          'Пропала позиція' + (rows.length && !усе ? ' · ' + (rows.length - є) : '') + '</button>' +
+          'Не приїде — замовити знову' + (rows.length && !усе ? ' · ' + бракує + ' шт' : '') + '</button>' +
       '</div></div>';
   }
   /* Звідки позиція не прийшла: «замовлення|позиція» → назва закупівлі. */
@@ -10456,6 +10487,24 @@
     }
   }
   async function buySave(b, msg){ return buySaveAll([b], msg); }
+  /* Прийняте, що йде НА СКЛАД: уся закупівля «на склад» (24.10) або рядки,
+     переадресовані на склад, бо позицію взяли зі складу (25.10). */
+  async function buyStockIn(b, by){
+    var l = b.toStock ? (b.rows || []) : (b.rows || []).filter(function(r){ return r && r.toStock; });
+    if(!l.length) return 0;
+    var st = stockSt(), шт = 0;
+    for(var i = 0; i < l.length; i++){
+      var r = l[i];
+      var res = D.stockApply(st, { kind:'in', gid: r.gid, name: r.name || '', color: r.color, colorHex: r.colorHex || '',
+        size: r.size, qty: Math.round(+r.qty || 0), cost: unitCost(r.gid) || null, by: by,
+        note: (b.toStock ? 'закупівля на склад №' + (b.n || '') + (b.note ? ' · ' + b.note : '')
+                         : 'закупівля №' + (b.n || '') + ' · ' + (r.no || 'склад')) });
+      if(!res.ok){ say(res.err); break; }
+      st = res.st; шт += Math.round(+r.qty || 0);
+    }
+    if(шт) await stockCommit(st, '');
+    return шт;
+  }
   async function buySaveAll(list, msg){
     if(!host().buySave) return say('Збереження закупівлі недоступне');
     for(var i = 0; i < list.length; i++){
@@ -10644,9 +10693,21 @@
       el.onchange = function(){
         var pp = String(el.dataset.bchk).split('|'), id = pp[0], i = +pp[1];
         BUY_CHK[id] = BUY_CHK[id] || {};
-        if(el.checked) BUY_CHK[id][i] = 1; else delete BUY_CHK[id][i];
+        var bq = buyFind(id), rq = bq && (bq.rows || [])[i];
+        if(el.checked) BUY_CHK[id][i] = Math.round(+((rq || {}).qty) || 0) || 1; else delete BUY_CHK[id][i];
         render(root);
       };
+    });
+    root.querySelectorAll('[data-bchq]').forEach(function(el){
+      el.onchange = function(){
+        var pp = String(el.dataset.bchq).split('|'), id = pp[0], i = +pp[1];
+        BUY_CHK[id] = BUY_CHK[id] || {};
+        BUY_CHK[id][i] = Math.max(0, Math.round(+el.value || 0));
+        render(root);
+      };
+    });
+    root.querySelectorAll('[data-buyq]').forEach(function(el){
+      el.onchange = function(){ BUY_QTY[el.dataset.buyq] = Math.max(0, Math.round(+el.value || 0)); render(root); };
     });
     root.querySelectorAll('[data-buydesc]').forEach(function(el){
       el.onchange = function(){
@@ -11790,18 +11851,44 @@
     if(what === 'buy-ck-all'){
       var ca = buys().filter(function(x){ return x.id === (data && data.id); })[0];
       if(!ca) return;
-      var mA = BUY_CHK[ca.id] || {}, всі = (ca.rows || []).every(function(r, i){ return mA[i]; });
+      var всі = !ckSplit(ca).left.length;
       BUY_CHK[ca.id] = {};
-      if(!всі) (ca.rows || []).forEach(function(r, i){ BUY_CHK[ca.id][i] = 1; });
+      if(!всі) (ca.rows || []).forEach(function(r, i){ BUY_CHK[ca.id][i] = Math.round(+r.qty || 0) || 1; });
       return render(root);
+    }
+    /* РЕШТА ЩЕ ЇДЕ (25.10): прийняте — окремим документом «Отримано»
+       (позиції, що прийшли повністю, одразу йдуть далі), нестача лишається
+       в цій закупівлі зі старим станом — її перевірять, коли доїде. */
+    if(what === 'buy-part'){
+      var bp = buys().filter(function(x){ return x.id === (data && data.id); })[0];
+      if(!bp) return;
+      var sp2 = ckSplit(bp);
+      if(!sp2.got.length) return say('Відмітьте, що прийшло');
+      if(!sp2.left.length) return say('Прийшло все — підтвердіть отримання');
+      var штГ = sp2.got.reduce(function(a, r){ return a + r.qty; }, 0), штЛ = sp2.left.reduce(function(a, r){ return a + r.qty; }, 0);
+      var окП = true;
+      try{ окП = window.confirm('Прийшло ' + штГ + ' шт, ще їде ' + штЛ + ' шт. Прийняти те, що прийшло? Решта лишиться в цій закупівлі.'); }catch(e){}
+      if(!окП) return;
+      var хтоП = (host().me && host().me()) || '', atП = new Date().toISOString();
+      var nb = JSON.parse(JSON.stringify(bp));
+      nb.id = 'buy-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      nb.rows = sp2.got; nb.partOf = bp.id; nb.checked = { at: atП, by: хтоП };
+      D.buySetStatus(nb, 'got', хтоП);
+      bp.rows = sp2.left;
+      bp.hist = (bp.hist || []).concat([{ at: atП, by: хтоП, s: bp.status, note: 'прийшла частина: ' + штГ + ' шт, ще їде ' + штЛ + ' шт' }]).slice(-30);
+      delete BUY_CHECK[bp.id]; delete BUY_CHK[bp.id];
+      await buySaveAll([nb, bp], '');
+      var штП = await buyStockIn(nb, хтоП);
+      return say(buyTitle(bp) + ' · прийнято ' + штГ + ' шт' + (штП ? ' (на склад +' + штП + ')' : '') + ', ще їде ' + штЛ + ' шт');
     }
     if(what === 'buy-recv' || what === 'buy-miss'){
       var bc = buys().filter(function(x){ return x.id === (data && data.id); })[0];
       if(!bc) return;
-      var mk = BUY_CHK[bc.id] || {}, хто2 = (host().me && host().me()) || '';
-      var прийшло = (bc.rows || []).filter(function(r, i){ return mk[i]; });
-      var нема = (bc.rows || []).filter(function(r, i){ return !mk[i]; });
-      if(what === 'buy-recv' && нема.length) return say('Відмічено не все — або відмітьте, або «Пропала позиція»');
+      var хто2 = (host().me && host().me()) || '';
+      /* По штуках (25.10): «прийшло 1 з 2» — 1 у прийняте, 1 у нестачу. */
+      var спл = ckSplit(bc);
+      var прийшло = спл.got, нема = спл.left;
+      if(what === 'buy-recv' && нема.length) return say('Відмічено не все — або «Решта ще їде», або «Не приїде — замовити знову»');
       if(what === 'buy-miss'){
         if(!нема.length) return say('Усе відмічено — підтвердіть отримання');
         var шт2 = нема.reduce(function(a, r){ return a + (+r.qty || 0); }, 0);
@@ -11823,22 +11910,8 @@
       if(!host().buySave) return say('Збереження закупівлі недоступне');
       try{ await host().buySave(bc); }catch(e){ console.error(e); return say('Закупівля не збереглась'); }
       try{ await buyTrackSync(для); }catch(e){ console.warn(e); }
-      /* Закупівля НА СКЛАД (24.10): прийняте — приходом на склад. Так само
-         рядки, переадресовані на склад, бо позицію взяли зі складу (25.10). */
-      var наСкладR = bc.toStock ? (bc.rows || []) : (bc.rows || []).filter(function(r){ return r && r.toStock; });
-      if(наСкладR.length){
-        var stR = stockSt(), штR = 0;
-        for(var iR = 0; iR < наСкладR.length; iR++){
-          var rR = наСкладR[iR];
-          var resR = D.stockApply(stR, { kind:'in', gid: rR.gid, name: rR.name || '', color: rR.color, colorHex: rR.colorHex || '',
-            size: rR.size, qty: Math.round(+rR.qty || 0), cost: unitCost(rR.gid) || null, by: хто2,
-            note: (bc.toStock ? 'закупівля на склад №' + (bc.n || '') + (bc.note ? ' · ' + bc.note : '')
-                              : 'закупівля №' + (bc.n || '') + ' · ' + (rR.no || 'склад')) });
-          if(!resR.ok){ say(resR.err); break; }
-          stR = resR.st; штR += Math.round(+rR.qty || 0);
-        }
-        if(штR) return stockCommit(stR, buyTitle(bc) + ' · отримано' + (bc.toStock ? '' : ', позиції замовлень — у замовлення') + ', на склад +' + штR + ' шт');
-      }
+      var штR = await buyStockIn(bc, хто2);
+      if(штR) return say(buyTitle(bc) + ' · отримано' + (bc.toStock ? '' : ', позиції замовлень — у замовлення') + ', на склад +' + штR + ' шт');
       say(what === 'buy-recv' ? buyTitle(bc) + ' · отримано, усе на місці'
                               : buyTitle(bc) + ' · прийнято, пропале повернулось у «Треба замовити»');
       return render(root);
@@ -11848,6 +11921,23 @@
     if(what === 'buy-make'){
       var обр = buySplitNow().buy.filter(function(r){ return BUY_SEL[r.key]; });
       if(!обр.length) return say('Позначте галочками, що замовили');
+      /* Частина розміру (25.10): «замовляю 1 з 2» — розкладаємо по рядках
+         від першого; що не влізло — лишається в «Треба замовити». */
+      var обрК = [];
+      bySup(обр).forEach(function(sp){
+        buyGroups(sp.rows).forEach(function(g){
+          g.list.forEach(function(sz){
+            var kq = sp.key + '|' + g.key + '|' + sz.size;
+            var ліміт = BUY_QTY[kq] == null ? Infinity : Math.max(0, Math.round(+BUY_QTY[kq] || 0));
+            sz.rows.forEach(function(r){
+              var q = Math.min(r.qty, ліміт);
+              if(q > 0){ обрК.push(Object.assign({}, r, { qty: q })); ліміт -= q; }
+            });
+          });
+        });
+      });
+      обр = обрК;
+      if(!обр.length) return say('Кількість — нуль: нічого замовляти');
       var шт0 = обр.reduce(function(a, r){ return a + r.qty; }, 0);
       var групи = bySup(обр);
       var ок = true;
@@ -11861,7 +11951,7 @@
         bn.sup = gr.key ? { id: gr.key, name: gr.name } : null;
         вже.push(bn); нові.push(bn);
       });
-      BUY_SEL = {};
+      BUY_SEL = {}; BUY_QTY = {};
       return buySaveAll(нові, 'Оформлено · ' + нові.map(buyTitle).join(', '));
     }
     if(what === 'buy-del'){
