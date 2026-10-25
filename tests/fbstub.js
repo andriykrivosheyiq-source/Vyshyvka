@@ -36,7 +36,10 @@
     enablePersistence:function(){ return Promise.resolve(); },
     settings:function(){} }; };
   fs.FieldValue={ serverTimestamp:function(){ return new Date().toISOString(); },
-    delete:function(){ return { __del:1 }; }, arrayUnion:function(){ return []; } };
+    delete:function(){ return null; }, arrayUnion:function(){ return []; } };
+  /* Вилучення поля (крок 3): позначка-обʼєкт, як у справжній базі; update
+     стуба за нею прибирає ключ, color-move дивиться на __delete. */
+  fs.FieldValue.delete=function(){ return { __delete:true, __del:1 }; };
   fs.Timestamp={ now:function(){ return { toDate:function(){ return new Date(); } }; } };
   window.firebase={
     initializeApp:function(){ return {}; },
