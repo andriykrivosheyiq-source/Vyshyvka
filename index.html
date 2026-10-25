@@ -1658,9 +1658,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-bgask-b{display:flex;flex-direction:column;gap:8px;}
   .pm-bgask-b button{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:12px 14px;border:1.5px solid #D0D5DD;border-radius:12px;background:#fff;font:inherit;font-size:15px;font-weight:700;color:#111;cursor:pointer;text-align:left;}
   .pm-bgask-b button small{font-size:12px;font-weight:500;color:#667085;}
-  .pm-bgask-b button[data-bg="in"]{border-color:#111;}
+  .pm-bgask-b button[data-bg="pro"]{border-color:#111;}
   .pm-bgask-b button:disabled{opacity:.5;cursor:default;}
   .pm-bgask-n{min-height:18px;font-size:13px;color:#475467;}
+  .pm-bgask-n.is-err{color:#B42318;}
+  .pm-bg-dot.is-busy{opacity:.5;}
   @media (max-width:560px){
     .pm-bgask{align-items:flex-end;padding:0;}
     .pm-bgask-w{max-width:none;border-radius:18px 18px 0 0;padding-bottom:calc(14px + env(safe-area-inset-bottom));}
@@ -6951,15 +6953,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0d5fa29cfc"></script>
-<script src="loomiq-fingerprint.js?v=0d5fa29cfc"></script>
-<script src="loomiq-pricing.js?v=0d5fa29cfc"></script>
+<script src="loomiq-select.js?v=9ce8ee7873"></script>
+<script src="loomiq-fingerprint.js?v=9ce8ee7873"></script>
+<script src="loomiq-pricing.js?v=9ce8ee7873"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<!-- Прибирання фону: перевірка «рівне тло / чи прибрався фон» (08.10). Модель
-     тут не вантажиться — клієнту фон прибирає PhotoRoom. -->
-<script src="loomiq-bg.js?v=0d5fa29cfc"></script>
-<script src="loomiq-constructor.js?v=0d5fa29cfc"></script>
+<script src="loomiq-constructor.js?v=9ce8ee7873"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

@@ -597,9 +597,11 @@
 .pm-bgask-b{display:flex;flex-direction:column;gap:8px;}
 .pm-bgask-b button{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:12px 14px;border:1.5px solid #D0D5DD;border-radius:12px;background:#fff;font:inherit;font-size:15px;font-weight:700;color:#111;cursor:pointer;text-align:left;}
 .pm-bgask-b button small{font-size:12px;font-weight:500;color:#667085;}
-.pm-bgask-b button[data-bg="in"]{border-color:#111;}
+.pm-bgask-b button[data-bg="pro"]{border-color:#111;}
 .pm-bgask-b button:disabled{opacity:.5;cursor:default;}
 .pm-bgask-n{min-height:18px;font-size:13px;color:#475467;}
+.pm-bgask-n.is-err{color:#B42318;}
+.pm-bg-dot.is-busy{opacity:.5;}
 @media (max-width:560px){
 
     .pm-bgask{align-items:flex-end;padding:0;}

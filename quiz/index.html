@@ -150,12 +150,12 @@
 <input type="file" id="qFile" accept="image/*,.svg,.pdf" hidden>
 
 <script src="/catalog-base.js"></script>
-<script src="/loomiq-pricing.js?v=0d5fa29cfc"></script>
-<script src="/loomiq-mock.js?v=0d5fa29cfc"></script>
+<script src="/loomiq-pricing.js?v=9ce8ee7873"></script>
+<script src="/loomiq-mock.js?v=9ce8ee7873"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/an.js"></script>
-<script src="/loomiq-kit.js?v=0d5fa29cfc"></script>
+<script src="/loomiq-kit.js?v=9ce8ee7873"></script>
 <script>
 (function(){
   'use strict';
@@ -427,8 +427,8 @@
         var M = W.LQMock;
         if(!M) return im;
         M.host = { bgUrl: function(){ return ((C.bgApi || {}).proxyUrl || '').trim(); } };
+        /* Лише PhotoRoom (25.10): не відповів — логотип як є, без внутрішнього. */
         return withTimeout(M.removeBg(raw, 'photoroom'), 15000)
-          .catch(function(){ return withTimeout(M.removeBg(raw, 'local'), 8000); })
           .then(loadImg).then(function(x){ return x || im; })
           .catch(function(){ return im; });
       });

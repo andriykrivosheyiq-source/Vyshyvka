@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|loomiq-mock\.js|index\.html|quiz/index\.html|offer-edit\.html|tests/bg-photoroom\.mjs)'; then
+  node tests/bg-photoroom.mjs >/tmp/lq-bg-photoroom.log 2>&1 || {
+    echo "✗ Фон знову прибирається не лише PhotoRoom або відмова мовчить — коміт зупинено. Подробиці: /tmp/lq-bg-photoroom.log"
+    grep '✗' /tmp/lq-bg-photoroom.log
+    exit 1
+  }
+  echo "✓ фон — лише PhotoRoom, відмова словами"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/fbstub\.js|tests/field-write\.mjs)'; then
   node tests/field-write.mjs >/tmp/lq-field-write.log 2>&1 || {
     echo "✗ Картка знову пишеться цілком або злиття полями затирає чуже — коміт зупинено. Подробиці: /tmp/lq-field-write.log"

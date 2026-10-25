@@ -234,6 +234,18 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Фон — лише PhotoRoom** (25.10): `loomiq-bg.js` (нейромережа BiRefNet) і
+  прості алгоритми (`removeBgLocal`, `removeBgInternal`) видалено з
+  конструктора, мокапа, сторінок і збірки (`tools/build-sites.py` більше не
+  знає `CTOR_BG`). Конструктор: `bgWhyText(err)` (є `window.__lqBgWhy`),
+  `bgSay` (toast адмінки / alert, лише менеджеру), `alreadyClear` (чотири
+  кути прозорі — без виклику), `removeBgForUpload` → `removeBgPro`, `bgAsk`
+  з кнопками `pro`/`no` (відмова — `.pm-bgask-n.is-err`, кнопки живі),
+  `bgProLayer` на перемикачі `data-bgtoggle`; кнопки `data-bgpro` немає.
+  Мокап: `ФОН` два пункти, `removeBg(src, 'local'|'photoroom')` → PhotoRoom.
+  Квіз: без запасного `local`. Лічильник у налаштуваннях: «PhotoRoom з CRM N
+  · внутрішній (до 25.10) M». Тест `tests/bg-photoroom.mjs` замість
+  `bg-internal.mjs`.
 - **Швидкість, крок 3: запис полями, живі пропозиції** (25.10): у `saveOrders`
   наявна картка йде `update`-ом лише зі зміненими полями (`orderPatch(base,
   mine)` → `docPatchWrite(ref, patch, whole)`; вилучені — `FieldValue.delete()`;

@@ -82,9 +82,9 @@ await p.waitForTimeout(1200);
 await p.evaluate(() => window.__openProductModal('tee'));
 await p.waitForTimeout(800);
 await p.setInputFiles('#pmFileInput', LOGO);
-/* CRM (08.10): перед завантаженням — вибір фону; тут — «Внутрішній». */
+/* CRM: перед завантаженням — вибір фону (25.10: лише PhotoRoom або «Не прибирати»); тут — «Не прибирати». */
 await p.waitForTimeout(400);
-await p.evaluate(() => { const b = document.querySelector('#pmBgAsk [data-bg="in"]'); if(b) b.click(); });
+await p.evaluate(() => { const b = document.querySelector('#pmBgAsk [data-bg="no"]'); if(b) b.click(); });
 await p.waitForTimeout(1800);
 
 /* Де логотип на сцені — у частках самого фото, а не контейнера. Саме це
