@@ -8592,14 +8592,45 @@
     return (d.vers || []).filter(function(v){ return +v.n === +d.ok.ver; })[0] ||
            (d.vers || [])[(d.vers || []).length - 1] || null;
   }
+  /* ══════════ ВЗЯТИ ЗІ СКЛАДУ — У САМІЙ КАРТЦІ (25.10) ══════════
+
+     Андрій: «всередині самого замовлення, де виробництво бере… якщо цей
+     одяг є на складі і співпадає — кнопка «Взяти зі складу»». Позиція ще
+     не має всього одягу (не замовлено, замовлено чи в дорозі), а на складі
+     лежить та сама модель, колір і розмір — у рядку «Одяг» зʼявляється
+     кнопка. Тиснуть — зі складу списується, позиція закрита документом
+     «Зі складу» (отримано), замовлення йде далі. А рядки цієї позиції в
+     закупівлі, що вже їде, переадресовуються НА СКЛАД («склад · замість
+     #…»): приїде посилка, перевірять — ці речі ляжуть приходом на склад,
+     а не в замовлення. Частково теж можна: взяли скільки є, решта їде. */
+  function rowOfU(r, o, u){ return r && String(r.orderId || '') === String(o.orderId || '') && String(r.uid || '') === String(u.id || ''); }
+  function stockTakeQty(o, u){
+    if(!o || !u || !u.gid || !o.orderId) return 0;
+    var all = buys();
+    if(D.buyStateOf(all, o.orderId, u.id, D.buyQty(u)).key === 'got') return 0;
+    var є = all.reduce(function(a, b){
+      return a + (b && b.status === 'got' ? (b.rows || []).reduce(function(x, r){ return x + (rowOfU(r, o, u) ? Math.max(0, Math.round(+r.qty || 0)) : 0); }, 0) : 0);
+    }, 0);
+    var треба = D.buyQty(u) - є;
+    if(треба <= 0) return 0;
+    return Math.min(треба, stockHave(u.gid, u.color, u.size));
+  }
   function clothHtml(o, u){
     var bs = D.buyStateOf(buys(), o.orderId, u.id, D.buyQty(u));
     var b = bs.buy;
+    /* Кнопка — лише тим, хто має доступ до виробництва, і лише поки одягу
+       позиції ще не вистачає. На складі такого немає — сіра, неактивна. */
+    var треба = bs.key !== 'got' && can('prod');
+    var взяти = треба ? stockTakeQty(o, u) : 0;
     return '<span class="dz-cloth is-' + esc(bs.key) + '">' + esc(bs.label) +
       (b ? (b.stock ? ' · зі складу' : ' · №' + esc(b.n) + ' від ' + esc(buyDate(b.at))) : '') +
       (b && b.ttn ? ' · <a href="' + esc(buyTtnUrl(b.ttn)) + '" target="_blank" rel="noopener" ' +
                     'title="Відстежити посилку">ТТН ' + esc(b.ttn) + ' ↗</a>' : '') +
-    '</span>';
+    '</span>' +
+      (взяти ? '<button type="button" class="dz-b pri dz-cloth-take" data-do="u-stock-take" data-u="' + esc(u.id) + '" ' +
+               'title="На складі є ' + stockHave(u.gid, u.color, u.size) + ' шт такого одягу">Взяти зі складу · ' + взяти + ' шт</button>'
+       : треба ? '<button type="button" class="dz-b dz-cloth-take" data-do="u-stock-take" data-u="' + esc(u.id) + '" disabled ' +
+               'title="На складі немає такої моделі, кольору й розміру">Взяти зі складу · немає на складі</button>' : '');
   }
   /* Виробничі карти погодженої версії: одна на кожне нанесення (перед,
      спина, два логотипи — окремі аркуші: оператор бачить одне місце й один
@@ -11042,13 +11073,15 @@
     's-save':'stitch', 's-test':'stitch', 's-done':'stitch',
     'qa-ok':'qc', 'qa-no':'qc', 'qa-save':'qc',
     'pack':'pack', 'ship':'pack',
+    /* Взяти зі складу в картці цеху (25.10) — лише з доступом до виробництва. */
+    'u-stock-take':'prod',
     'unbind':'bind', 'bind':'bind'
   };
   var CAN_SAY = {
     art:'Вантажити макети', approve:'Погоджувати макет',
     stitch:'Оцифровувати вишивку', qc:'Закривати контроль файлів',
     pack:'Збирати пакет у виробництво', bind:'Привʼязувати розмови',
-    new:'Створювати замовлення'
+    new:'Створювати замовлення', prod:'Працювати з виробництвом'
   };
   /* ЧИЯ ПАНЕЛЬ ПРАВОРУЧ, КОЛИ ВІДКРИЛИ РОЗМОВУ (14.10). Андрій: «у
      виробництва Instagram відкриває праву панель акаунтів, хоча повинна
@@ -11683,18 +11716,21 @@
       if(!host().buySave) return say('Збереження закупівлі недоступне');
       try{ await host().buySave(bc); }catch(e){ console.error(e); return say('Закупівля не збереглась'); }
       try{ await buyTrackSync(для); }catch(e){ console.warn(e); }
-      /* Закупівля НА СКЛАД (24.10): прийняте — приходом на склад. */
-      if(bc.toStock && (bc.rows || []).length){
+      /* Закупівля НА СКЛАД (24.10): прийняте — приходом на склад. Так само
+         рядки, переадресовані на склад, бо позицію взяли зі складу (25.10). */
+      var наСкладR = bc.toStock ? (bc.rows || []) : (bc.rows || []).filter(function(r){ return r && r.toStock; });
+      if(наСкладR.length){
         var stR = stockSt(), штR = 0;
-        for(var iR = 0; iR < bc.rows.length; iR++){
-          var rR = bc.rows[iR];
+        for(var iR = 0; iR < наСкладR.length; iR++){
+          var rR = наСкладR[iR];
           var resR = D.stockApply(stR, { kind:'in', gid: rR.gid, name: rR.name || '', color: rR.color, colorHex: rR.colorHex || '',
             size: rR.size, qty: Math.round(+rR.qty || 0), cost: unitCost(rR.gid) || null, by: хто2,
-            note: 'закупівля на склад №' + (bc.n || '') + (bc.note ? ' · ' + bc.note : '') });
+            note: (bc.toStock ? 'закупівля на склад №' + (bc.n || '') + (bc.note ? ' · ' + bc.note : '')
+                              : 'закупівля №' + (bc.n || '') + ' · ' + (rR.no || 'склад')) });
           if(!resR.ok){ say(resR.err); break; }
           stR = resR.st; штR += Math.round(+rR.qty || 0);
         }
-        if(штR) return stockCommit(stR, buyTitle(bc) + ' · отримано, на склад +' + штR + ' шт');
+        if(штR) return stockCommit(stR, buyTitle(bc) + ' · отримано' + (bc.toStock ? '' : ', позиції замовлень — у замовлення') + ', на склад +' + штR + ' шт');
       }
       say(what === 'buy-recv' ? buyTitle(bc) + ' · отримано, усе на місці'
                               : buyTitle(bc) + ' · прийнято, пропале повернулось у «Треба замовити»');
@@ -12457,6 +12493,65 @@
                                        ' без картинки чи коментаря — замовлення йде в роботу лише цілим'
                                      : 'Передавати нічого — усе вже в роботі');
       return save(job, o, 'Передано в роботу · ' + ho.sent + ' ' + (ho.sent === 1 ? 'позиція' : 'позицій'));
+    }
+    if(what === 'u-stock-take'){
+      var su = U.unitAt(job, data && data.u);
+      if(!su || !o) return;
+      var nT = stockTakeQty(o, su);
+      var gT = U.catItem(su.gid);
+      var щоT = [(gT && gT.name) || su.name || '', su.color || '', su.size || ''].filter(Boolean).join(' · ');
+      if(!nT) return say('На складі немає такого одягу: ' + щоT);
+      var noT = U.unitNo(job, su);
+      var allT = buys();
+      /* Рядки цієї позиції в закупівлях, що ще не отримані: свіжіші — першими. */
+      var їдуть = allT.filter(function(b){ return b && !b.stock && b.status !== 'got' && (b.rows || []).some(function(r){ return rowOfU(r, o, su); }); })
+        .sort(function(a, c){ return String(c.at || '').localeCompare(String(a.at || '')); });
+      var їде = їдуть.reduce(function(a, b){ return a + b.rows.reduce(function(x, r){ return x + (rowOfU(r, o, su) ? Math.round(+r.qty || 0) : 0); }, 0); }, 0);
+      var наСклад = Math.min(їде, nT);
+      var окT = true;
+      try{ окT = window.confirm('Взяти зі складу ' + nT + ' шт (' + щоT + ') для ' + noT + '?' +
+        (наСклад ? ' Замовлене для цієї позиції (' + наСклад + ' шт) приїде вже на склад.' : '')); }catch(e){}
+      if(!окT) return;
+      var хтоT = (host().me && host().me()) || '';
+      var stT2 = stockSt();
+      var рядT = { orderId: String(o.orderId), uid: su.id, no: noT, gid: su.gid, name: (gT && gT.name) || su.name || '',
+                   color: String(su.color || ''), colorHex: su.colorHex || '', size: String(su.size || ''), qty: nT };
+      var bsT = D.buyNew(buysAll(), хтоT, [рядT]);
+      bsT.stock = true; bsT.n = 0; bsT.sup = { id:'', name:'Склад' };
+      D.buySetStatus(bsT, 'got', хтоT);
+      var resT = D.stockApply(stT2, { kind:'out', gid: рядT.gid, name: рядT.name, color: рядT.color, size: рядT.size, qty: nT,
+        cost: unitCost(su.gid) || null, by: хтоT, orderId: String(o.orderId), buyId: bsT.id, note: 'під замовлення ' + noT });
+      if(!resT.ok) return say(resT.err + ' (' + щоT + ')');
+      resT.move.orderNo = noT;
+      stT2 = resT.st;
+      bsT.rows[0].cost = resT.move.cost;
+      /* Переадресація: взяте зі складу більше не чекає посилки — ця частина
+         посилки поїде на склад. */
+      var лишT = наСклад, змінT = [];
+      їдуть.forEach(function(b){
+        if(лишT <= 0) return;
+        var нові = [];
+        (b.rows || []).forEach(function(r){
+          if(лишT > 0 && rowOfU(r, o, su)){
+            var mT = Math.min(лишT, Math.round(+r.qty || 0));
+            if(mT > 0){
+              r.qty = Math.round(+r.qty || 0) - mT; лишT -= mT;
+              нові.push({ orderId:'', uid:'', no: 'склад · замість ' + noT, gid: r.gid, name: r.name || '', color: r.color || '',
+                          colorHex: r.colorHex || '', size: r.size || '', qty: mT, toStock: true,
+                          was: { orderId: String(o.orderId), uid: su.id, no: noT, at: new Date().toISOString(), by: хтоT } });
+            }
+          }
+        });
+        if(нові.length){
+          b.rows = (b.rows || []).filter(function(r){ return Math.round(+r.qty || 0) > 0; }).concat(нові);
+          b.hist = (b.hist || []).concat([{ at: new Date().toISOString(), by: хтоT, s: b.status,
+            note: нові.reduce(function(a, r){ return a + r.qty; }, 0) + ' шт ' + noT + ' — на склад (взяли зі складу)' }]).slice(-30);
+          змінT.push(b);
+        }
+      });
+      await stockCommit(stT2, '');
+      return buySaveAll([bsT].concat(змінT), 'Зі складу · ' + noT + ' · ' + nT + ' шт' +
+        (наСклад ? ' · ' + наСклад + ' шт із посилки приїдуть на склад' : ''));
     }
     if(what === 'u-cloth'){
       var cu = U.unitAt(job, data && data.u);

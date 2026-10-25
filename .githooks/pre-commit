@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/stock-take\.mjs)'; then
+  node tests/stock-take.mjs >/tmp/lq-stock-take.log 2>&1 || {
+    echo "✗ «Взяти зі складу» в картці цеху зламано (склад, переадресація посилки, доступ) — коміт зупинено. Подробиці: /tmp/lq-stock-take.log"
+    grep '✗' /tmp/lq-stock-take.log
+    exit 1
+  }
+  echo "✓ взяти зі складу: склад −, посилка — на склад"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|loomiq-mock\.js|index\.html|quiz/index\.html|offer-edit\.html|tests/bg-photoroom\.mjs)'; then
   node tests/bg-photoroom.mjs >/tmp/lq-bg-photoroom.log 2>&1 || {
     echo "✗ Фон знову прибирається не лише PhotoRoom або відмова мовчить — коміт зупинено. Подробиці: /tmp/lq-bg-photoroom.log"

@@ -5119,6 +5119,8 @@
   .dz-cloth.is-sent{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;}
   .dz-cloth.is-way{background:#FFFBEB;color:#B45309;border-color:#FDE68A;}
   .dz-cloth.is-got{background:#ECFDF5;color:#047857;border-color:#A7F3D0;}
+  /* Взяти зі складу — поруч зі станом одягу (25.10). */
+  .dz-cloth-take{margin-left:8px;padding:3px 10px;font-size:12px;}
   /* Цех (06.10): дії, передрук, вікно фото, перетягування */
   .dz-prod-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;}
   .dz-sort{margin-left:auto;display:inline-flex;align-items:center;gap:2px;}
@@ -8112,32 +8114,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9ce8ee7873"></script>
-<script src="loomiq-fingerprint.js?v=9ce8ee7873"></script>
-<script src="loomiq-pricing.js?v=9ce8ee7873"></script>
+<script src="loomiq-select.js?v=6a6ff47da1"></script>
+<script src="loomiq-fingerprint.js?v=6a6ff47da1"></script>
+<script src="loomiq-pricing.js?v=6a6ff47da1"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9ce8ee7873"></script>
+<script src="loomiq-money-core.js?v=6a6ff47da1"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9ce8ee7873"></script>
-<script src="loomiq-mock.js?v=9ce8ee7873"></script>
+<script src="loomiq-design.js?v=6a6ff47da1"></script>
+<script src="loomiq-mock.js?v=6a6ff47da1"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9ce8ee7873"></script>
+<script src="imagetracer.js?v=6a6ff47da1"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=9ce8ee7873"></script>
-<script src="loomiq-threads.js?v=9ce8ee7873"></script>
+<script src="loomiq-chat.js?v=6a6ff47da1"></script>
+<script src="loomiq-threads.js?v=6a6ff47da1"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9ce8ee7873"></script>
+<script src="loomiq-cards.js?v=6a6ff47da1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8182,7 +8184,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9ce8ee7873';
+var LQ_VER = '6a6ff47da1';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -31213,6 +31215,7 @@ function designHostInit(){
             : k === 'pack'   ? canPack()
             : k === 'bind'   ? canBindChat()
             : k === 'new'    ? canNewOrder()
+            : k === 'prod'   ? canProd()
             : true
   };
 }
@@ -32214,6 +32217,8 @@ function canApprove(){ return may('can', 'approve'); }
 function canStitch(){ return may('can', 'stitch'); }
 function canQc(){ return may('can', 'qc'); }
 function canPack(){ return may('can', 'pack'); }
+/* Доступ до виробництва — дошка «Виробництво» (25.10: «взяти зі складу» в картці цеху). */
+function canProd(){ return may('boards', 'prod'); }
 function canPricing(){ return may('can', 'pricing'); }
 function canCatalog(){ return may('can', 'catalog'); }
 function canReviews(){ return may('can', 'reviews'); }
