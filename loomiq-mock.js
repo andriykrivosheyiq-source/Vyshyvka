@@ -529,13 +529,8 @@
       if(p && works[p.work]) return p.work;
       return works.length ? works.length - 1 : -1;
     }
-    /* 1 — внутрішній (безкоштовно, у браузері), 2 — PhotoRoom (платний).
-       Андрій (07.10): спершу внутрішній, зовнішній — коли той не впорався. */
-    /* 23.10, Андрій: «для дизайнерів — платна підписка, бо внутрішній погано
-       прибирає». Першим — PhotoRoom; простий (у браузері, безкоштовно) —
-       запасний і сам підхоплює, коли PhotoRoom не відповів. */
-    var ФОН = [['none', 'Не прибирати'], ['photoroom', 'Прибрати фон · PhotoRoom'],
-               ['local', 'Простий (безкоштовно)']];
+    /* 25.10: лише два варіанти — внутрішнього («Простий») більше немає. */
+    var ФОН = [['none', 'Не прибирати'], ['photoroom', 'Прибрати фон · PhotoRoom']];
     function фонHtml(){
       var i = активна();
       if(i < 0 || opt.placeOnly) return '';
@@ -552,7 +547,6 @@
         /* PhotoRoom не відповів — кажемо прямо й чому; фон НЕ прибрано, простий
            спосіб — лише кнопкою (23.10, Андрій: «щоб писали, що не відповідає»). */
         (!w.bgBusy && w.bgErr ? '<i class="mko-bg-w is-err">' + esc(w.bgErr) + '</i>' : '') +
-        (!w.bgBusy && !w.bgErr && w.bg === 'local' ? '<i class="mko-bg-w">не чисто — натисніть «PhotoRoom»</i>' : '') +
       '</div>';
     }
     /* КОЛІР ПРИНТА (Андрій, 20.10): готовий дизайн білий, а треба чорний —
@@ -1146,9 +1140,9 @@
     function bgWhy(e){
       var m = String((e && e.message) || e || '');
       var st = (/api-(\d+)/.exec(m) || [])[1];
-      if(m === 'no-proxy') return 'PhotoRoom не відповідає: у налаштуваннях не вписана адреса воркера PhotoRoom — фон не прибрано';
-      if(st === '402') return 'PhotoRoom не відповідає: закінчились кредити — фон не прибрано';
-      if(st === '401' || st === '403') return 'PhotoRoom не відповідає: ключ не прийнято (воркер) — фон не прибрано';
+      if(m === 'no-proxy') return 'PhotoRoom не відповідає: у налаштуваннях не вписана адреса воркера PhotoRoom — фон не прибрано. Скажіть власнику';
+      if(st === '402') return 'PhotoRoom не відповідає: закінчились кредити (не оплачено) — фон не прибрано. Скажіть власнику';
+      if(st === '401' || st === '403') return 'PhotoRoom не відповідає: ключ не прийнято (воркер) — фон не прибрано. Скажіть власнику';
       if(st) return 'PhotoRoom не відповідає: помилка ' + st + ' — фон не прибрано';
       if(e && e.name === 'AbortError') return 'PhotoRoom не відповідає 25 с — фон не прибрано';
       return 'PhotoRoom не відповідає (мережа) — фон не прибрано';
@@ -1877,141 +1871,6 @@
       });
     });
   }
-  function removeBgLocal(dataUrl){
-    return loadImgEl(dataUrl).then(function(img){
-      var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
-      var canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-
-      var corners = [
-        ctx.getImageData(0,     0,     1, 1).data,
-        ctx.getImageData(W - 1, 0,     1, 1).data,
-        ctx.getImageData(0,     H - 1, 1, 1).data,
-        ctx.getImageData(W - 1, H - 1, 1, 1).data
-      ];
-      var cornersTransparent = corners.some(function(p){ return p[3] < 128; });
-
-      var imageData = ctx.getImageData(0, 0, W, H);
-      var px = imageData.data;
-      var THR = 220;            // поріг "майже білого"
-      var TOL = 40;             // допуск по каналах навколо кольору фону
-      var visited = new Uint8Array(W * H);
-      var NB = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-      // Чи прибирати білі просвіти всередині букв: тільки коли дизайн "темне-на-світлому".
-      // Для білого лого на темному/прозорому фоні білий — це сам логотип, його не чіпаємо.
-      var removeCounters = false;
-
-      // ── Заливка від країв (лише якщо є суцільний непрозорий фон) ──
-      if(!cornersTransparent){
-        // реальний колір фону з кутів (білий ТА сірий/кольоровий)
-        var br = 0, bgc = 0, bb = 0;
-        corners.forEach(function(c){ br += c[0]; bgc += c[1]; bb += c[2]; });
-        br /= 4; bgc /= 4; bb /= 4;
-        var bgAvg = (br + bgc + bb) / 3;
-        var bgMax = Math.max(br, bgc, bb);
-        var bgIsLight = bgAvg > 180;
-        removeCounters = bgIsLight;
-        var isWhiteBg = function(pos){
-          var i = pos * 4;
-          if(px[i + 3] < 10) return true;
-          var r = px[i], g = px[i + 1], b = px[i + 2];
-          // "майже білий = фон" лише на світлому фоні (інакше з'їдало б біле лого на темному)
-          if(bgIsLight && r > THR && g > THR && b > THR) return true;
-          return Math.abs(r - br) <= TOL && Math.abs(g - bgc) <= TOL && Math.abs(b - bb) <= TOL;
-        };
-        var seeds = [];
-        for(var x = 0; x < W; x++){
-          [0, H - 1].forEach(function(y){
-            var p = y * W + x;
-            if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
-          });
-        }
-        for(var y = 1; y < H - 1; y++){
-          [0, W - 1].forEach(function(x2){
-            var p = y * W + x2;
-            if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
-          });
-        }
-        var head = 0;
-        while(head < seeds.length){
-          var pos = seeds[head++];
-          var cx0 = pos % W, cy0 = (pos / W) | 0;
-          for(var k = 0; k < 4; k++){
-            var nx = cx0 + NB[k][0], ny = cy0 + NB[k][1];
-            if(nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-            var npos = ny * W + nx;
-            if(!visited[npos] && isWhiteBg(npos)){ visited[npos] = 1; seeds.push(npos); }
-          }
-        }
-        // Фаза 2: замкнені "кишені" сірого/кольорового фону (білий вміст захищений)
-        if(bgMax < 244){
-          var POCKET_TOL = 18;
-          for(var i2 = 0; i2 < W * H; i2++){
-            if(visited[i2]) continue;
-            var j = i2 * 4;
-            if(px[j + 3] < 10){ visited[i2] = 1; continue; }
-            var r2 = px[j], g2 = px[j + 1], b2 = px[j + 2];
-            var matchesBg = Math.abs(r2 - br) <= POCKET_TOL && Math.abs(g2 - bgc) <= POCKET_TOL && Math.abs(b2 - bb) <= POCKET_TOL;
-            var brighterThanBg = (r2 + g2 + b2) / 3 > bgAvg + 10;
-            if(matchesBg && !brighterThanBg) visited[i2] = 1;
-          }
-        }
-      } else {
-        // Прозорий фон: вирізати просвіти лише якщо вміст переважно ТЕМНИЙ (темне лого).
-        var bsum = 0, bcnt = 0;
-        for(var q = 0; q < W * H; q++){
-          if(px[q * 4 + 3] >= 10){ bsum += (px[q*4] + px[q*4+1] + px[q*4+2]) / 3; bcnt++; }
-        }
-        removeCounters = bcnt > 0 && (bsum / bcnt) < 140;
-      }
-
-      // ── Фаза 3: замкнені майже-білі просвіти всередині букв (О, В, А, Q…) —
-      // лише для "темне-на-світлому". Видаляємо замкнену (не до краю) майже-білу
-      // ділянку, оточену непрозорим вмістом. Прозорі сусіди не рахуються.
-      var isNearWhite = function(idx){
-        var jj = idx * 4;
-        return px[jj + 3] >= 10 && px[jj] > 200 && px[jj + 1] > 200 && px[jj + 2] > 200;
-      };
-      var OPAQUE_FRAC = 0.5;   // межа просвіту переважно з непрозорого вмісту → це дірка в букві
-      if(removeCounters){
-        var comp = new Int32Array(W * H); comp.fill(-1);
-        for(var s = 0; s < W * H; s++){
-          if(visited[s] || comp[s] !== -1 || !isNearWhite(s)) continue;
-          var stack = [s]; comp[s] = s;
-          var members = [s];
-          var opaqueBorder = 0, totalBorder = 0, touchesEdge = false, h2 = 0;
-          while(h2 < stack.length){
-            var pp = stack[h2++];
-            var xx = pp % W, yy = (pp / W) | 0;
-            if(xx === 0 || yy === 0 || xx === W - 1 || yy === H - 1) touchesEdge = true;
-            for(var kk = 0; kk < 4; kk++){
-              var nx2 = xx + NB[kk][0], ny2 = yy + NB[kk][1];
-              if(nx2 < 0 || nx2 >= W || ny2 < 0 || ny2 >= H) continue;
-              var np = ny2 * W + nx2;
-              if(isNearWhite(np)){
-                if(comp[np] === -1){ comp[np] = s; stack.push(np); members.push(np); }
-              } else {
-                totalBorder++;
-                if(px[np * 4 + 3] >= 10) opaqueBorder++;   // непрозорий сусід (= обведення букви)
-              }
-            }
-          }
-          // замкнений (не торкається краю) білий просвіт, оточений непрозорим вмістом → прибрати
-          if(!touchesEdge && totalBorder > 0 && opaqueBorder / totalBorder >= OPAQUE_FRAC){
-            members.forEach(function(m){ visited[m] = 1; });
-          }
-        }
-      }
-
-      for(var i3 = 0; i3 < W * H; i3++){
-        if(visited[i3]) px[i3 * 4 + 3] = 0;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      return canvas.toDataURL('image/png');
-    });
-  }
   function removeBgPhotoroom(dataUrl){
     var url = String((HOST.bgUrl && HOST.bgUrl()) || '').trim();
     /* Лише https (локальна адреса — для тестів). */
@@ -2038,28 +1897,13 @@
      скільки зекономив внутрішній. Рахує робоче місце (адмінка); там, де
      його немає (квіз, каталог), — мовчки нічого. */
   function bgCount(kind){ try{ if(HOST.bgCount) HOST.bgCount(kind); }catch(e){} }
-  /* Внутрішній: рівне тло — швидкий алгоритм; інакше — нейромережа в
-     браузері (loomiq-bg.js); вона не змогла — знову швидкий. */
-  function removeBgInternal(d, onNote){
-    var B = window.LQBg;
-    if(!B) return removeBgLocal(d).then(function(r){ bgCount('simple'); return r; });
-    return B.plain(d).catch(function(){ return true; }).then(function(рівне){
-      if(рівне) return removeBgLocal(d).then(function(r){ bgCount('simple'); return r; });
-      if(onNote && !B.ready()) onNote('перший раз — завантажую модель (~100 МБ)…');
-      return B.smart(d, onNote).then(function(r){ bgCount('smart'); return r; })
-        .catch(function(e){
-          console.warn('розумне прибирання фону', e);
-          return removeBgLocal(d).then(function(r){ bgCount('simple'); return r; });
-        });
-    });
-  }
-  /* mode: 'none' | 'local' (внутрішній) | 'photoroom'. Повертає data-URL або вихідну адресу. */
+  /* Фон прибирає лише PhotoRoom (25.10, Андрій: «везде фоторум… внутрішній
+     погано працює»). mode: 'none' — як є; 'photoroom' (і старе 'local',
+     яке лежить у збережених роботах) — PhotoRoom. Внутрішнього немає. */
   function removeBg(src, mode, onNote){
     if(mode !== 'local' && mode !== 'photoroom') return Promise.resolve(src);
     return toDataUrl(src).then(function(d){
-      return mode === 'photoroom'
-        ? removeBgPhotoroom(d).then(function(r){ bgCount('photoroom'); return r; })
-        : removeBgInternal(d, onNote);
+      return removeBgPhotoroom(d).then(function(r){ bgCount('photoroom'); return r; });
     });
   }
 

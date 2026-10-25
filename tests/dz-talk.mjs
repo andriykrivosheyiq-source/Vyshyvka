@@ -270,33 +270,37 @@ ok(ролі.двіСторони.join() === '1,2,false',
   'дві сторони: ' + ролі.двіСторони);
 
 console.log('');
-console.log('═══ 5. ФОН РОБОТИ ═══');
+console.log('═══ 5. ФОН РОБОТИ — ЛИШЕ PHOTOROOM ═══');
+/* 25.10, Андрій: «везде фоторум… внутрішній погано працює». Внутрішнього
+   прибирання немає: 'none' — як є, 'photoroom' (і старе 'local') — PhotoRoom. */
 const фон = await p.evaluate(async () => {
   const c = document.createElement('canvas'); c.width = 60; c.height = 60;
   const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 60, 60);
   x.fillStyle = '#000'; x.fillRect(20, 20, 20, 20);
   const src = c.toDataURL('image/png');
-  const out = await window.LQMock.removeBg(src, 'local');
-  const im = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = out; });
-  const c2 = document.createElement('canvas'); c2.width = 60; c2.height = 60;
-  const y = c2.getContext('2d'); y.drawImage(im, 0, 0);
-  const кут = y.getImageData(2, 2, 1, 1).data[3], центр = y.getImageData(30, 30, 1, 1).data[3];
+  window.LQMock.host = Object.assign({}, window.LQMock.host, { bgUrl: () => '' });
+  let безАдреси = '';
+  try{ await window.LQMock.removeBg(src, 'local'); безАдреси = 'прибрало без PhotoRoom'; }catch(e){ безАдреси = String(e && e.message); }
   const той = await window.LQMock.removeBg(src, 'none');
-  return { кут, центр, безЗмін: той === src, src };
+  return { безАдреси, безЗмін: той === src, src, модельЄ: !!window.LQBg };
 });
-console.log('  ' + JSON.stringify({ кут: фон.кут, центр: фон.центр, безЗмін: фон.безЗмін }));
-ok(фон.кут === 0 && фон.центр === 255, 'вбудований прибрав біле тло, а лого лишив', 'прозорість: ' + JSON.stringify(фон));
+console.log('  ' + JSON.stringify({ безАдреси: фон.безАдреси, безЗмін: фон.безЗмін, модельЄ: фон.модельЄ }));
+ok(фон.безАдреси === 'no-proxy' && !фон.модельЄ, 'внутрішнього немає: без адреси PhotoRoom фон не прибирається нічим', JSON.stringify(фон.безАдреси));
 ok(фон.безЗмін, '«Не прибирати» віддає файл як є', '«не прибирати» змінило файл');
 /* PhotoRoom — через Worker-проксі; тут він підмінений відповіддю-картинкою. */
-await p.route('https://bg.test/**', r => r.fulfill({ contentType:'image/png',
-  body: Buffer.from(фон.src.split(',')[1], 'base64') }));
+let прКлик = 0;
+await p.route('https://bg.test/**', r => { прКлик++; r.fulfill({ contentType:'image/png',
+  body: Buffer.from(фон.src.split(',')[1], 'base64') }); });
 const фр = await p.evaluate(async src => {
-  window.LQMock.host = Object.assign({}, window.LQMock.host, { bgUrl: () => 'https://bg.test/x' });
-  try{ const r = await window.LQMock.removeBg(src, 'photoroom'); return /^data:image\//.test(r); }
-  catch(e){ return 'збій: ' + e.message; }
+  const лічба = [];
+  window.LQMock.host = Object.assign({}, window.LQMock.host, { bgUrl: () => 'https://bg.test/x', bgCount: k => лічба.push(k) });
+  try{ const r = await window.LQMock.removeBg(src, 'photoroom'); const r2 = await window.LQMock.removeBg(src, 'local');
+       return { ok: /^data:image\//.test(r) && /^data:image\//.test(r2), лічба }; }
+  catch(e){ return { ok: 'збій: ' + e.message, лічба }; }
 }, фон.src);
-ok(фр === true, 'PhotoRoom іде через Worker і повертає картинку', 'PhotoRoom: ' + фр);
-/* Вікно здачі: вибір фону біля робіт, «Не прибирати» — за замовчуванням. */
+ok(фр.ok === true && прКлик === 2 && фр.лічба.join() === 'photoroom,photoroom',
+  'PhotoRoom іде через Worker; старе «local» теж іде в PhotoRoom; лічильник — лише PhotoRoom', JSON.stringify(фр) + ' викликів ' + прКлик);
+/* Вікно здачі: дві кнопки фону, «Не прибирати» — за замовчуванням. */
 const вікно = await p.evaluate(async src => {
   window.LQMock.openWork({ gid:'tee', size:'M', name:'Тест',
     sides:[{ key:'front', label:'Перед', url: src }], works:[{ name:'лого.png', url: src, hash:'h' }],
@@ -304,41 +308,13 @@ const вікно = await p.evaluate(async src => {
   await new Promise(r => setTimeout(r, 500));
   const кн = [...document.querySelectorAll('.mko-bg [data-mko-bg]')];
   const за = (кн.find(b => b.classList.contains('on')) || {}).textContent || '';
-  const loc = кн.find(b => b.getAttribute('data-mko-bg') === 'local');
-  if(loc) loc.click();
-  await new Promise(r => setTimeout(r, 900));
-  const після = (document.querySelector('.mko-bg .mko-bg-b.on') || {}).textContent || '';
   window.LQMock.close();
-  return { кнопок: кн.length, за, після };
+  return { кнопок: кн.map(b => b.getAttribute('data-mko-bg')).join(), за };
 }, фон.src);
 console.log('  ' + JSON.stringify(вікно));
-ok(вікно.кнопок === 3 && /Не прибирати/.test(вікно.за),
-  'у вікні здачі три варіанти фону, за замовчуванням — «Не прибирати»',
+ok(вікно.кнопок === 'none,photoroom' && /Не прибирати/.test(вікно.за),
+  'у вікні здачі два варіанти фону — «Не прибирати» і PhotoRoom; за замовчуванням — «Не прибирати»',
   'вибір фону: ' + JSON.stringify(вікно));
-ok(/Простий|Внутрішній/.test(вікно.після), 'обрали «Простий» (внутрішній) — робота перемалювалась без тла', 'після вибору: ' + вікно.після);
-
-/* 07.10: внутрішній сам вирішує — рівне тло швидким алгоритмом, складне —
-   нейромережею в браузері (тут підмінена); PhotoRoom і внутрішні рахуються. */
-const внутр = await p.evaluate(async () => {
-  const лічба = [];
-  window.LQMock.host = Object.assign({}, window.LQMock.host, { bgCount: k => лічба.push(k) });
-  let моделі = 0;
-  window.LQBgPipeline = async src => { моделі++; return src; };
-  const рівне = document.createElement('canvas'); рівне.width = 60; рівне.height = 60;
-  let x = рівне.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 60, 60); x.fillStyle = '#000'; x.fillRect(20, 20, 20, 20);
-  await window.LQMock.removeBg(рівне.toDataURL('image/png'), 'local');
-  const фото = document.createElement('canvas'); фото.width = 60; фото.height = 60;
-  x = фото.getContext('2d');
-  for(let i = 0; i < 60; i++) for(let j = 0; j < 60; j++){ x.fillStyle = 'rgb(' + (i * 4) + ',' + (j * 4) + ',' + ((i * j) % 255) + ')'; x.fillRect(i, j, 1, 1); }
-  await window.LQMock.removeBg(фото.toDataURL('image/png'), 'local');
-  await window.LQMock.removeBg(рівне.toDataURL('image/png'), 'photoroom');
-  delete window.LQBgPipeline;
-  return { моделі, лічба };
-});
-console.log('  ' + JSON.stringify(внутр));
-ok(внутр.моделі === 1 && внутр.лічба.join() === 'simple,smart,photoroom',
-  'рівне тло — простий алгоритм, фото — нейромережа; кожне прибирання рахується (простий, нейромережа, PhotoRoom)',
-  'внутрішній: ' + JSON.stringify(внутр));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

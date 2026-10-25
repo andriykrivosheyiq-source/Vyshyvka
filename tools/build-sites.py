@@ -55,7 +55,6 @@ CTOR_CHAT = 'loomiq-chat.js'
 # разом з рештою: розмітка виробу й підрахунок мусять їхати однією парою.
 CTOR_MOCK = 'loomiq-mock.js'
 # Внутрішнє прибирання фону (нейромережа в браузері) — разом із мокапом.
-CTOR_BG = 'loomiq-bg.js'
 # Двигун квізу й міні-сайту клієнта (каталог, розміщення, мокап, ціна)
 CTOR_KIT = 'loomiq-kit.js'
 # Підбір ниток до зображення (і бібліотека трасування під ним) — штампуємо
@@ -116,7 +115,6 @@ def absolutise_images(html):
     html = html.replace('src="loomiq-pricing.js', 'src="/loomiq-pricing.js')
     html = html.replace('src="loomiq-select.js', 'src="/loomiq-select.js')
     html = html.replace('src="loomiq-fingerprint.js', 'src="/loomiq-fingerprint.js')
-    html = html.replace('src="loomiq-bg.js', 'src="/loomiq-bg.js')
     return html
 
 
@@ -467,7 +465,7 @@ def main():
     design = open(os.path.join(ROOT, CTOR_DESIGN), encoding='utf-8').read()
     design += open(os.path.join(ROOT, CTOR_MONEY), encoding='utf-8').read()
     design += open(os.path.join(ROOT, CTOR_CHAT), encoding='utf-8').read()
-    mockjs = open(os.path.join(ROOT, CTOR_MOCK), encoding='utf-8').read() + open(os.path.join(ROOT, CTOR_BG), encoding='utf-8').read()
+    mockjs = open(os.path.join(ROOT, CTOR_MOCK), encoding='utf-8').read()
     mockjs += open(os.path.join(ROOT, CTOR_THREADS), encoding='utf-8').read()
     mockjs += open(os.path.join(ROOT, CTOR_KIT), encoding='utf-8').read()
     # НОМЕР ЗБІРКИ РАХУЄМО Й ЗІ СТОРІНОК ТЕЖ.
@@ -497,7 +495,7 @@ def main():
         txt = open(path, encoding='utf-8').read()
         new = txt
         for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
-                      CTOR_CARDS, CTOR_DESIGN, CTOR_MONEY, CTOR_CHAT, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER, CTOR_KIT, CTOR_BG):
+                      CTOR_CARDS, CTOR_DESIGN, CTOR_MONEY, CTOR_CHAT, CTOR_MOCK, CTOR_THREADS, CTOR_TRACER, CTOR_KIT):
             new = stamp(new, asset, ver)
         # Версія САМОЇ сторінки. Позначка в адресі рятує лише скрипти: у HTML
         # адреси немає, браузер тримає його стільки, скільки схоче, — і людина

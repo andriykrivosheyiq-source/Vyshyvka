@@ -74,7 +74,7 @@ const кн = await p.evaluate(() => ({ rot: document.querySelectorAll('[data-mko
   фон: [...document.querySelectorAll('[data-mko-bg]')].map(b => b.getAttribute('data-mko-bg')) }));
 console.log('  ' + JSON.stringify(кн));
 ok(кн.rot >= 4 && кн.clr, 'у вікні дизайнера є «↺ 90° / −15° / +15° / ↻ 90°» і «🎨 Змінити колір»', JSON.stringify(кн));
-ok(кн.фон.join() === 'none,photoroom,local', 'фон: першим — PhotoRoom, простий — запасний', кн.фон.join());
+ok(кн.фон.join() === 'none,photoroom', 'фон: лише «Не прибирати» і PhotoRoom — внутрішнього немає', кн.фон.join());
 
 console.log('═══ 2. ПОВОРОТ МІНЯЄ ФАЙЛ, КОЛІР ЙОГО НЕ СКАСОВУЄ ═══');
 await p.click('[data-mko-rot="90"]');

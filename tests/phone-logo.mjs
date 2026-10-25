@@ -45,7 +45,6 @@ async function відкрити(ua, viewport){
   await p.route('**://**', r => r.request().url().startsWith(HOST) ? r.continue() : r.abort());
   await p.goto(HOST + '/index.html', { waitUntil:'domcontentloaded' });
   await p.waitForTimeout(1200);
-  await p.addScriptTag({ url: HOST + '/loomiq-bg.js' });
   return { p, ctx };
 }
 /* «Фото з камери» 6000 × 4000 — JPEG із шумом, як справжній знімок. */
@@ -66,29 +65,25 @@ console.log('═══ 1. IPHONE ═══');
   const { p, ctx } = await відкрити(IPHONE, { width:390, height:844 });
   const фото = await камера(p);
   const стан = await p.evaluate(async d => {
-    let моделі = 0;
-    window.LQBgPipeline = async s => { моделі++; return s; };
     await window.__openProductModal('tee');
     await new Promise(r => setTimeout(r, 600));
     const менше = await window.__lqShrinkUpload(d);
-    const прибрано = await window.LQ_removeBg(менше);
-    return { low: window.__lqLowMem(), менше, jpeg: /^data:image\/jpeg/.test(менше), моделі, прибрано: /^data:image\/png/.test(прибрано) };
+    return { low: window.__lqLowMem(), менше, jpeg: /^data:image\/jpeg/.test(менше), модельЄ: !!window.LQBg };
   }, фото);
   const дим = await розмір(p, стан.менше);
-  console.log('  ' + JSON.stringify({ low: стан.low, дим, jpeg: стан.jpeg, моделі: стан.моделі, прибрано: стан.прибрано }));
+  console.log('  ' + JSON.stringify({ low: стан.low, дим, jpeg: стан.jpeg, модельЄ: стан.модельЄ }));
   ok(стан.low, 'iPhone розпізнано як телефон', 'не розпізнано');
   ok(дим && Math.max(...дим) === 2400 && Math.abs(дим[0] / дим[1] - 1.5) < 0.01 && стан.jpeg,
     'фото 6000 × 4000 одразу стає 2400 × 1600, пропорції ті самі, JPEG', 'розмір: ' + JSON.stringify(дим));
-  ok(стан.моделі === 0 && стан.прибрано, 'фон прибирається простим способом — нейромережа на телефоні не вантажиться',
-    'моделі: ' + стан.моделі);
-  /* Як Ганна: менеджер, файл із галереї телефона → вікно фону → «1 · Внутрішній». */
+  ok(!стан.модельЄ, 'нейромережі для фону на сторінці немає взагалі (25.10: лише PhotoRoom)', 'LQBg є');
+  /* Як Ганна: менеджер, файл із галереї телефона → вікно фону → «Не прибирати». */
   const файл = Buffer.from(фото.split(',')[1], 'base64');
   await p.evaluate(() => { window.__lqInline = true; });
   await p.setInputFiles('#pmFileInput', { name:'IMG_0001.jpg', mimeType:'image/jpeg', buffer: файл });
   await p.waitForTimeout(1500);
-  const вікно = await p.evaluate(() => ((document.querySelector('#pmBgAsk [data-bg="in"] small') || {}).textContent || ''));
-  ok(/телефоні/.test(вікно), 'у вікні фону на телефоні сказано: «на телефоні — простий»', 'підпис: ' + вікно);
-  await p.evaluate(() => document.querySelector('#pmBgAsk [data-bg="in"]').click());
+  const вікно = await p.evaluate(() => [...document.querySelectorAll('#pmBgAsk [data-bg]')].map(b => b.dataset.bg).join());
+  ok(вікно === 'x,pro,no', 'у вікні фону на телефоні — лише «Прибрати фон» (PhotoRoom) і «Не прибирати»', 'кнопки: ' + вікно);
+  await p.evaluate(() => document.querySelector('#pmBgAsk [data-bg="no"]').click());
   await p.waitForTimeout(2500);
   const шар = await p.evaluate(() => { const im = [...document.querySelectorAll('[data-layer-id] img')].slice(-1)[0]; return im ? im.src : null; });
   const дC = шар && await розмір(p, шар);
@@ -111,7 +106,7 @@ console.log('═══ 2. КОМПʼЮТЕР ═══');
              малийТой: (await window.__lqShrinkUpload(png)) === png, svgТой: (await window.__lqShrinkUpload(svg)) === svg };
   }, фото);
   const дим = await розмір(p, стан.менше);
-  ok(!стан.low, 'компʼютер — не телефон (нейромережа доступна, як і була)', 'компʼютер вважається телефоном');
+  ok(!стан.low, 'компʼютер — не телефон', 'компʼютер вважається телефоном');
   ok(дим && Math.max(...дим) === 2400, 'велике фото й тут зменшується до 2400 px', JSON.stringify(дим));
   ok(стан.малийТой && стан.svgТой, 'маленька картинка й SVG лишаються як є', JSON.stringify(стан));
   await ctx.close();
