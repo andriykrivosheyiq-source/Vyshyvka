@@ -588,6 +588,18 @@
         '<button type="button" class="mko-bg-b" data-mko-rot="90" title="Повернути на 90° за годинниковою">↻ 90°</button>' +
         (кут ? '<i class="mko-bg-w">' + кут + '°</i><button type="button" class="mko-bg-b" data-mko-rot="0">↩ Без повороту</button>' : '') +
       '</div>' +
+      /* Адаптована під нитки (25.10): колір лише ниткою й лише через «Під
+         нитки» — інакше картинка змінилась би, а коди ниток і SVG лишились
+         старими, і цех отримав би не ті нитки. */
+      (w.threads && !opt.onAdapt
+        ? '<div class="mko-clr"><span>Колір принта:</span><i class="mko-bg-w">🧵 ' + esc(w.threads.map(function(t){ return t.code; }).join(', ')) +
+            ' — колір ниткою змінює вишивальний дизайнер («Під нитки»)</i></div>'
+        : w.threads && opt.onAdapt
+        ? '<div class="mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
+            '<button type="button" class="mko-bg-b" data-mko-adapt="' + i + '" title="Відкриє «Під нитки» — оберіть нитку">🎨 Змінити колір ниткою</button>' +
+            '<i class="mko-bg-w">🧵 ' + esc(w.threads.map(function(t){ return t.code; }).join(', ')) + '</i>' +
+          '</div>'
+        :
       '<div class="mko-clr"><span>Колір принта' + (works.length > 1 ? ' ' + (i + 1) : '') + ':</span>' +
         '<button type="button" class="mko-bg-b' + (колірВідкр ? ' on' : '') + '" data-mko-clr>🎨 ' +
           esc(w.color ? w.color.name : 'Змінити колір') + '</button>' +
@@ -599,7 +611,7 @@
             return '<button type="button" class="mko-sw' + (w.color && w.color.hex === c[0] ? ' on' : '') + '" data-mko-sw="' + c[0] +
               '" style="background:' + c[0] + '" title="' + esc(c[1]) + '" aria-label="' + esc(c[1]) + '"></button>';
           }).join('') + '</span>' : '') +
-      '</div>';
+      '</div>');
     }
     /* КОЛІР І ПОВОРОТ — ЗАВЖДИ З ОРИГІНАЛУ (23.10). Обидва накладаються на
        той самий чистий файл (w.clrOrig): перефарбували після повороту чи
@@ -1093,8 +1105,11 @@
         var nw = null;
         try{ nw = await opt.onAdapt(works[ai]); }catch(e){ console.error(e); }
         if(!nw || !nw.url) return;
+        var кутА = +((works[ai] || {}).rot) || 0;
         works[ai] = nw;
         арт[ai] = await img(nw.url);
+        /* Поворот лишається (25.10): перефарбували ниткою — не з'їхало. */
+        if(кутА){ nw.rot = кутА; try{ await перебудуй(nw, ai); }catch(e){ console.warn('поворот після ниток', e); } }
         return малюй();
       }
       var bgb = t.closest && t.closest('[data-mko-bg]');

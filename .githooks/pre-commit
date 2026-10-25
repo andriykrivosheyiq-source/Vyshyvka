@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-threads\.js|loomiq-design\.js|loomiq-mock\.js|tests/threads\.mjs)'; then
+  node tests/threads.mjs >/tmp/lq-threads.log 2>&1 || {
+    echo "✗ «Під нитки» зламано (фон перед нитками, кількість ниток, колір ниткою) — коміт зупинено. Подробиці: /tmp/lq-threads.log"
+    grep '✗' /tmp/lq-threads.log
+    exit 1
+  }
+  echo "✓ під нитки: спершу фон, ниток — скільки є, колір ниткою"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/stock-take\.mjs)'; then
   node tests/stock-take.mjs >/tmp/lq-stock-take.log 2>&1 || {
     echo "✗ «Взяти зі складу» в картці цеху зламано (склад, переадресація посилки, доступ) — коміт зупинено. Подробиці: /tmp/lq-stock-take.log"
