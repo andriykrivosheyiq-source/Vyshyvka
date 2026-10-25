@@ -234,6 +234,16 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Швидкість, крок 2** (25.10): `fbDb.enablePersistence({synchronizeTabs:true})`
+  одразу після `firebase.firestore()` (`fbCacheOn`; `lq_nocache` у localStorage,
+  `?nocache=1`/`?cache=1`, `window.LQ_NO_CACHE`); `loadOrders()` = перший
+  знімок `watchOrders(onFirst)` (`ordersLoaded`, `ORDERS_FIRST_MS` 90 с запасний),
+  `snap.metadata.fromCache` → `perfNote('cache')`, свіжий → `perfNote('orders')`;
+  `init`: `subscribePhotos()` до `loadCloud()`; дошка «Завантажую картки…»
+  (`.empty-load`) поки `!ordersLoaded`; `archSeedOnce` бере замовлення з
+  памʼяті. Відкладено до кроку 3: `offers` і `an_tg` цілими колекціями.
+  Тест `start-light`; `archive` §3 робить «свіжий старт» через
+  `ordersWatching=false`.
 - **Швидкість, крок 1** (25.10): `calcSoloEarly()` в `init` перед
   `loadOrders` (IndexedDB `lq_handoff/kv/calc` → `ORDERS_COL.doc(targetId).get()`
   → `orders=[o]`, `ordersSaved` → `__adminSaveClientOrder` → `saveOrders`);

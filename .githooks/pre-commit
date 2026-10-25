@@ -172,6 +172,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-reci
   }
   echo "✓ отримувач — з переписки, ніколи не нік"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/start-light\.mjs)'; then
+  node tests/start-light.mjs >/tmp/lq-start-light.log 2>&1 || {
+    echo "✗ Старт знову тягне замовлення двічі, без кешу або команда не перша — коміт зупинено. Подробиці: /tmp/lq-start-light.log"
+    grep '✗' /tmp/lq-start-light.log
+    exit 1
+  }
+  echo "✓ старт легкий: одне завантаження, кеш, команда першою"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tests/calc-early\.mjs)'; then
   node tests/calc-early.mjs >/tmp/lq-calc-early.log 2>&1 || {
     echo "✗ Позиція з телефона знову чекає всіх карток або губиться — коміт зупинено. Подробиці: /tmp/lq-calc-early.log"

@@ -922,6 +922,8 @@
   .chl-unr{all:unset;cursor:pointer;flex:none;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;
     border:1px solid var(--line);color:var(--ink-soft);background:#fff;white-space:nowrap;}
   .chl-unr.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .empty-load{display:inline-block;color:var(--ink-soft);animation:lqPulse 1.2s ease-in-out infinite;}
+  @keyframes lqPulse{0%,100%{opacity:.45}50%{opacity:1}}
   .perf-t{border-collapse:collapse;margin-top:6px;font-size:12.5px;}
   .perf-t th,.perf-t td{padding:3px 10px 3px 0;text-align:left;border-bottom:1px solid var(--line);}
   .perf-t th{font-weight:600;color:var(--ink-soft);}
@@ -7044,7 +7046,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
            місце, якого на дошці й так мало. -->
       <div class="board-head">
         <h1>Замовлення</h1>
-        <div id="web-orders-state" class="wo-state">підключаюсь…</div>
+        <div id="web-orders-state" class="wo-state">завантажую картки…</div>
         <span class="bh-spacer"></span>
         <label class="bt-board" for="board-track"><span>Дошка</span>
           <select class="bt-sort" id="board-track" title="Яку дошку показувати"></select>
@@ -8110,33 +8112,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5b60e1d9c2"></script>
-<script src="loomiq-fingerprint.js?v=5b60e1d9c2"></script>
-<script src="loomiq-pricing.js?v=5b60e1d9c2"></script>
+<script src="loomiq-select.js?v=ab7a9b874f"></script>
+<script src="loomiq-fingerprint.js?v=ab7a9b874f"></script>
+<script src="loomiq-pricing.js?v=ab7a9b874f"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=5b60e1d9c2"></script>
+<script src="loomiq-money-core.js?v=ab7a9b874f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5b60e1d9c2"></script>
-<script src="loomiq-bg.js?v=5b60e1d9c2"></script>
-<script src="loomiq-mock.js?v=5b60e1d9c2"></script>
+<script src="loomiq-design.js?v=ab7a9b874f"></script>
+<script src="loomiq-bg.js?v=ab7a9b874f"></script>
+<script src="loomiq-mock.js?v=ab7a9b874f"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=5b60e1d9c2"></script>
+<script src="imagetracer.js?v=ab7a9b874f"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=5b60e1d9c2"></script>
-<script src="loomiq-threads.js?v=5b60e1d9c2"></script>
+<script src="loomiq-chat.js?v=ab7a9b874f"></script>
+<script src="loomiq-threads.js?v=ab7a9b874f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5b60e1d9c2"></script>
+<script src="loomiq-cards.js?v=ab7a9b874f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8181,7 +8183,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5b60e1d9c2';
+var LQ_VER = 'ab7a9b874f';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8364,6 +8366,22 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
+/* КЕШ БАЗИ НА ПРИСТРОЇ (25.10, крок 2 швидкості). Доти кожне відкриття
+   тягло всю базу заново; тепер картки, команда й налаштування лежать у
+   браузері (IndexedDB): наступний вхід показує їх одразу, а з бази
+   доїжджають лише зміни. Правило «не читали — не пишемо» лишається: перед
+   записом картки база питається про новішу версію (dbNewer), тож стара
+   копія з кешу новішу не затре. Вимкнути на пристрої: ?nocache=1
+   (памʼятається), повернути: ?cache=1. Тести: window.LQ_NO_CACHE. */
+let fbCacheOn = false;
+try{
+  if(/[?&]nocache=1\b/.test(location.search)) localStorage.setItem('lq_nocache', '1');
+  if(/[?&]cache=1\b/.test(location.search)) localStorage.removeItem('lq_nocache');
+  const безКешу = localStorage.getItem('lq_nocache') === '1' || (typeof window !== 'undefined' && window.LQ_NO_CACHE);
+  if(!безКешу) fbDb.enablePersistence({ synchronizeTabs: true })
+    .then(() => { fbCacheOn = true; })
+    .catch(e => { console.warn('кеш бази не ввімкнувся', e && e.code); });
+}catch(e){ console.warn('кеш бази', e); }
 const STATE_DOC = fbDb.collection('loomiq').doc('state');
 // Замовлення живуть окремими документами. Раніше весь Канбан лежав одним
 // документом, а Firestore відхиляє документ, більший за 1 МБ, ЦІЛКОМ — тому
@@ -8998,9 +9016,11 @@ async function archSeedOnce(){
   try{
     let n = 0;
     for(const col of [ORDERS_COL, DESIGN_COL]){
-      const snap = await col.get();
       const ids = [];
-      snap.forEach(d => { const v = d.data() || {}; if(v.arch === undefined && (col === ORDERS_COL || v.orderId || v.kind)) ids.push({ id: d.id, gone: !!v.gone }); });
+      /* Замовлення вже в памʼяті (25.10) — другий раз усю колекцію не тягнемо. */
+      if(col === ORDERS_COL) (orders || []).forEach(o => { if(o && o.id && o.arch === undefined) ids.push({ id: o.id, gone: false }); });
+      else { const snap = await col.get();
+        snap.forEach(d => { const v = d.data() || {}; if(v.arch === undefined && (v.orderId || v.kind)) ids.push({ id: d.id, gone: !!v.gone }); }); }
       for(let i = 0; i < ids.length; i += 400){
         const b = fbDb.batch();
         ids.slice(i, i + 400).forEach(x => { b.set(col.doc(x.id), { arch: !!x.gone }, { merge:true }); n++; });
@@ -9178,11 +9198,13 @@ function renderArch(){
 }
 // Жива синхронізація Канбану між вкладками й пристроями.
 let ordersWatching = false;
-function watchOrders(){
-  if(ordersWatching) return;
+function watchOrders(onFirst){
+  if(ordersWatching){ if(onFirst && ordersLoaded) onFirst(); return; }
   ordersWatching = true;
   liveOrdersQ().onSnapshot(function(snap){
     dbLinkOk('orders');
+    let зКешу = false;
+    try{ зКешу = !!(snap.metadata && snap.metadata.fromCache); }catch(e){}
     const list = [];
     const seen = new Map();
     /* ══════════ ЧУЖИЙ ЗНІМОК НЕ ЗНИЩУЄ НЕДОПИСАНОГО ══════════
@@ -9246,6 +9268,9 @@ function watchOrders(){
     });
     orders = ordersSortDesc(list);
     ordersSaved = seen;
+    if(!ordersLoaded){ ordersLoaded = true; perfNote(зКешу ? 'cache' : 'orders'); }
+    if(!зКешу) perfNote('orders');
+    if(onFirst){ const f = onFirst; onFirst = null; try{ f(); }catch(e){ console.warn(e); } }
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     if(спір.length) ordersClash(спір);
     try{ calcRestore(); }catch(e){ console.warn('прорахунок після перезавантаження', e); }
@@ -9328,17 +9353,21 @@ function webDupesFix(){
     renderBoard();
   }).catch(e => console.warn('дублі заявок', e));
 }
+/* ОДНЕ ЗАВАНТАЖЕННЯ ЗАМІСТЬ ДВОХ (25.10, крок 2). Доти старт робив get()
+   усієї колекції, а потім підписувався на неї ще раз — база віддавала всі
+   картки двічі. Тепер перший знімок підписки і є завантаженням. З кешем на
+   пристрої перший знімок приходить з браузера одразу, а свіже — слідом. */
+let ordersLoaded = false;
+const ORDERS_FIRST_MS = (typeof window !== 'undefined' && +window.LQ_ORDERS_FIRST_MS) || 90000;
 async function loadOrders(){
-  const snap = await liveOrdersQ().get();
-  const list = [];
-  ordersSaved = new Map();
-  snap.forEach(d=>{
-    const o = d.data() || {};
-    o.id = o.id || d.id;
-    list.push(o);
-    ordersSaved.set(o.id, JSON.stringify(o));
+  return new Promise(res => {
+    let done = false;
+    const f = () => { if(done) return; done = true; res(orders || []); };
+    watchOrders(f);
+    /* Знімок не прийшов (звʼязку немає) — старт іде далі з тим, що є;
+       підписка лишається й доставить картки, щойно зможе. */
+    setTimeout(f, ORDERS_FIRST_MS);
   });
-  return ordersSortDesc(list);
 }
 // Повертає список карток, які не вдалося зберегти (порожній — усе гаразд).
 async function saveOrders(opts){
@@ -20899,7 +20928,9 @@ function renderBoardRaw(){
          увімкнено пошук чи фільтр, порожня колонка означає зовсім інше —
          і сказати про це треба прямо, інакше здається, що картки зникли. */
       body.innerHTML = `<div class="empty-col">${
-        boardFiltersOn()
+        !ordersLoaded
+          ? '<span class="empty-load">Завантажую картки…</span>'
+          : boardFiltersOn()
           ? 'Нічого не знайшлось'
           : (st.key === firstStatusKey()
               ? 'Тут зʼявляться нові звернення —<br>із сайту, Telegram та Instagram'
@@ -29384,10 +29415,10 @@ async function paintPerfStats(){
     .filter(r => r.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 40);
   const сек = ms => (Math.round((+ms || 0) / 100) / 10).toFixed(1).replace('.', ',') + ' с';
   const DEV = { iphone:'iPhone', android:'Android', mac:'Mac', win:'Windows', other:'інше' };
-  box.innerHTML = '<div><b>Швидкість входу</b> <span style="color:var(--ink-soft)">останній вхід кожного · до заслони · до карток</span></div>' +
-    (rows.length ? '<table class="perf-t"><tr><th>Хто</th><th>Пристрій</th><th>Заслона</th><th>Картки</th><th>Карток</th><th>Коли</th></tr>' +
+  box.innerHTML = '<div><b>Швидкість входу</b> <span style="color:var(--ink-soft)">останній вхід кожного · до заслони · картки з кешу пристрою · свіжі картки з бази</span></div>' +
+    (rows.length ? '<table class="perf-t"><tr><th>Хто</th><th>Пристрій</th><th>Заслона</th><th>З кешу</th><th>Свіжі</th><th>Карток</th><th>Коли</th></tr>' +
       rows.map(r => '<tr><td>' + escapeHtml(personName(String(r.key || '').replace(/_/g, '.')) || r.key) + '</td><td>' + escapeHtml(DEV[r.dev] || r.dev || '') +
-        '</td><td>' + сек(r.gate) + '</td><td' + (+r.orders > 20000 ? ' class="is-slow"' : '') + '>' + сек(r.orders) + '</td><td>' + (+r.n || 0) +
+        '</td><td>' + сек(r.gate) + '</td><td>' + (+r.cache ? сек(r.cache) : '—') + '</td><td' + (+r.orders > 20000 ? ' class="is-slow"' : '') + '>' + сек(r.orders) + '</td><td>' + (+r.n || 0) +
         '</td><td>' + escapeHtml(String(r.at || '').slice(0, 16).replace('T', ' ')) + '</td></tr>').join('') + '</table>'
       : '<div>ще нічого не записано</div>');
 }
@@ -35963,7 +35994,7 @@ function uploadCloudinary(blob){
 const perfT0 = (typeof performance !== 'undefined' && performance.timeOrigin) ? performance.timeOrigin : Date.now();
 let contentFirstRes = null;
 const contentFirst = new Promise(r => { contentFirstRes = r; });
-const perfMark = { gate: 0, orders: 0, sent: false };
+const perfMark = { gate: 0, orders: 0, cache: 0, sent: false };
 function perfNote(k){
   if(perfMark[k]) return;
   perfMark[k] = Math.round(Date.now() - perfT0);
@@ -35974,20 +36005,21 @@ function perfNote(k){
     const key = aclKeyOf(mail);
     const ua = String(navigator.userAgent || '');
     const dev = /iPhone|iPad/.test(ua) ? 'iphone' : /Android/.test(ua) ? 'android' : /Macintosh/.test(ua) ? 'mac' : /Windows/.test(ua) ? 'win' : 'other';
+    /* cache — коли картки показались із кешу пристрою (крок 2), orders — коли приїхали свіжі з бази. */
     fbDb.collection('loomiq').doc('perf').set({ [key]: { at: new Date().toISOString(), gate: perfMark.gate, orders: perfMark.orders,
-      n: (orders || []).length, dev, ver: LQ_VER } }, { merge:true }).catch(() => {});
+      cache: perfMark.cache || 0, n: (orders || []).length, dev, ver: LQ_VER } }, { merge:true }).catch(() => {});
   }catch(e){}
 }
 async function init(){
   let photosUnsub = null;
+  /* КОМАНДА ПРИЇЖДЖАЄ ПЕРШОЮ (23.10; 25.10 — ще до документа налаштувань,
+     який важить до мегабайта: усе йде одним каналом, і великий документ
+     попереду затримував маленький, а заслона «Оновлення…» встигала
+     перезавантажити сторінку по колу). */
+  subscribePhotos();
   await loadCloud();
   settings = await storeGet('settings', structuredClone(DEFAULT_SETTINGS));
   garments = await storeGet('garments', structuredClone(DEFAULT_GARMENTS));
-  /* КОМАНДА ПРИЇЖДЖАЄ ПЕРШОЮ (23.10). Доти сторінка спершу тягнула ВСІ
-     замовлення (секунди на телефоні) і лише потім підписувалась на документ
-     команди, який знімає заслону «Оновлення…». Тепер заслона знімається,
-     щойно є доступи; дошка заповнюється, коли приїхали картки. */
-  subscribePhotos();
   /* Документ команди каже, чи база вже розмічена на живі/архів — від цього
      залежить, який запит робити за картками. Чекаємо його, але не довше
      8 с: без нього вантажимо все, як доти. */
@@ -35995,8 +36027,7 @@ async function init(){
   /* ПОЗИЦІЯ З ТЕЛЕФОНА — ОДНІЄЮ КАРТКОЮ, НЕ ЧЕКАЮЧИ ВСІХ (25.10, «товар не
      зберігся»): доти запис чекав повного завантаження всіх замовлень. */
   try{ await calcSoloEarly(); }catch(e){ console.warn('позиція з телефона (ранній запис)', e); }
-  orders   = await loadOrders();
-  perfNote('orders');
+  await loadOrders();
   // Перший запуск після оновлення: забираємо картки зі старого сховища
   if(!orders.length) await migrateOrdersToCollection();
   await backfillOrderIds();   // номер має бути в кожної картки, зокрема старої

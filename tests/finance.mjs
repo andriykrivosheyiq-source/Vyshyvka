@@ -151,7 +151,10 @@ const добір = await p.evaluate(async () => {
     return document.querySelectorAll('#fin-list .fin-row').length; };
   const надходжень = await one(()=>{ const s = document.getElementById('fin-kind');
     s.value = 'in'; s.dispatchEvent(new Event('change')); });
-  /* Рахунок — натиском на плитку: виписка цього рахунку під плитками. */
+  /* Рахунок — натиском на плитку: виписка цього рахунку під плитками.
+     Рухи в цьому тесті з вересня, а виписка за замовчуванням показує
+     30 днів — беремо «Уся історія», щоб тест не залежав від дати запуску. */
+  finHist.days = 0;
   document.querySelector('[data-fin-acc-open="mono1"]').click();
   await new Promise(r => setTimeout(r, 400));
   const наРахунку = document.querySelectorAll('#fin-hist .fin-hrow, #fin-hist .fin-row').length;
