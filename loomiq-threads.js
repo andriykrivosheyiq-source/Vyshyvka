@@ -477,6 +477,31 @@ function quantizePixels(px, W, H, maxColors = 12) {
   const photo = isPhotographic(px, W, H)
   if (photo) smooth(px, W, H)
 
+  // СКІЛЬКИ НИТОК НАСПРАВДІ (25.10, Андрій: «оптимізовувало під кількість
+  // ниток, яка реально є на зображенні»). Чорний напис давав 11 ниток: сірі
+  // пікселі згладжування по краях літер — помітна частка картинки, і кожен
+  // їхній відтінок купував собі нитку. У малюнку (не фото) колір роботи —
+  // це «стійкі» пікселі всередині форм: непрозорі й такі самі, як усі
+  // чотири сусіди. Лише вони голосують за нитки; краї потім просто
+  // лягають на найближчу обрану. Стійких майже немає (самі волосинки) — як
+  // доти, голосують усі.
+  let stable = null
+  if (!photo && W > 2 && H > 2) {
+    stable = new Uint8Array(total)
+    let ns = 0, ink = 0
+    const same = (a, b) => px[b + 3] >= 200 &&
+      Math.abs(px[a] - px[b]) + Math.abs(px[a + 1] - px[b + 1]) + Math.abs(px[a + 2] - px[b + 2]) <= 48
+    for (let y = 1; y < H - 1; y++) {
+      for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x, j = i * 4
+        if (px[j + 3] < 32) continue
+        ink++
+        if (px[j + 3] >= 200 && same(j, j - 4) && same(j, j + 4) && same(j, j - W * 4) && same(j, j + W * 4)) { stable[i] = 1; ns++ }
+      }
+    }
+    if (ns < Math.max(30, ink * 0.05)) stable = null
+  }
+
   // Colour census over every pixel — a stride sample missed small features
   // entirely (an eye is a few hundred pixels out of millions). The bin keeps a
   // running mean so its colour is the real one, not the corner of the bucket.
@@ -484,6 +509,7 @@ function quantizePixels(px, W, H, maxColors = 12) {
   for (let i = 0; i < total; i++) {
     const j = i * 4
     if (px[j + 3] < 32) continue
+    if (stable && !stable[i]) continue
     const key = ((px[j] >> 3) << 10) | ((px[j + 1] >> 3) << 5) | (px[j + 2] >> 3)
     const e = bins.get(key)
     if (e) { e.n++; e.r += px[j]; e.g += px[j + 1]; e.b += px[j + 2] }

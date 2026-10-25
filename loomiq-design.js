@@ -7105,30 +7105,91 @@
       if(t && t.code && !seen[t.code]){ seen[t.code] = 1; out.push(t); } }); });
     return out;
   }
+  /* ПОРЯДОК (25.10, Андрій: «спочатку видалити фон, потім адаптувати під
+     нитки, бо там вже будуть лишні нитки»): у вікні «Під нитки» спершу
+     PhotoRoom прибирає фон (якщо він є — прозоре не чіпаємо), і лише потім
+     підбір. PhotoRoom відмовив — причина червоним, підбір іде з оригіналу.
+     КОЛІР НИТКОЮ: «як в оригіналі» або одна нитка з нашої палітри — тоді
+     весь принт стає цією ниткою (картинка, коди й SVG — з того самого
+     підбору, тож не розходяться). */
+  function bgReason(e){
+    var m = String((e && e.message) || e || ''), st = (/api-(\d+)/.exec(m) || [])[1];
+    var tail = ' — фон не прибрано, нитки підібрано з оригіналу. Скажіть власнику.';
+    if(m === 'no-proxy') return 'PhotoRoom не відповідає: у налаштуваннях не вписана адреса воркера PhotoRoom' + tail;
+    if(st === '402') return 'PhotoRoom не відповідає: закінчились кредити (не оплачено)' + tail;
+    if(st === '401' || st === '403') return 'PhotoRoom не відповідає: ключ не прийнято (воркер)' + tail;
+    if(st) return 'PhotoRoom не відповідає: помилка ' + st + tail;
+    if(e && e.name === 'AbortError') return 'PhotoRoom не відповідає 25 с' + tail;
+    return 'PhotoRoom не відповідає (мережа)' + tail;
+  }
+  function blobImg(blob){
+    return new Promise(function(res){
+      var u = URL.createObjectURL(blob), im = new Image();
+      im.onload = function(){ URL.revokeObjectURL(u); res(im); };
+      im.onerror = function(){ URL.revokeObjectURL(u); res(null); };
+      im.src = u;
+    });
+  }
+  async function blobClear(blob){
+    var im = await blobImg(blob);
+    if(!im) return false;
+    var W = im.naturalWidth || 1, H = im.naturalHeight || 1, c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    return [[0, 0], [W - 1, 0], [0, H - 1], [W - 1, H - 1]].every(function(q){ return x.getImageData(q[0], q[1], 1, 1).data[3] < 10; });
+  }
+  function blobData(blob){
+    return new Promise(function(res, rej){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(blob); });
+  }
+  async function blobPaint(blob, rgb){
+    var im = await blobImg(blob);
+    if(!im) return blob;
+    var W = im.naturalWidth || 1, H = im.naturalHeight || 1, c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    var d = x.getImageData(0, 0, W, H), px = d.data;
+    for(var k = 0; k < px.length; k += 4){ if(px[k + 3] < 32){ px[k + 3] = 0; continue; } px[k] = rgb[0]; px[k + 1] = rgb[1]; px[k + 2] = rgb[2]; }
+    x.putImageData(d, 0, 0);
+    return await new Promise(function(res){ c.toBlob(function(b){ res(b || blob); }, 'image/png'); });
+  }
+  /* Очищене PhotoRoom — памʼятаємо на вкладку: перефарбувати ниткою ту саму
+     роботу ще раз не має коштувати ще один кредит. Ключ — адреса оригіналу. */
+  var BG_CLEAN = {};
   function threadAdapt(f){
     return new Promise(function(resolve){
       if(!window.LQThreads || !window.LQThreads.run){ say('Підбір ниток не завантажився'); return resolve(null); }
+      var T = window.LQThreads;
       var w = document.createElement('div');
       w.className = 'dz-pick dz-cf dz-th';
-      var st = { k: 12, busy: true, res: null, src: null, err: '' };
+      var st = { k: 12, busy: true, res: null, src: null, clean: null, err: '', bgErr: '', bgOk: false, color: null, note: '' };
       var close = function(v){ if(w.parentNode) w.parentNode.removeChild(w);
         if(st.res && st.res.pngUrl) URL.revokeObjectURL(st.res.pngUrl); resolve(v); };
       var paint = function(){
         var r = st.res;
         w.innerHTML = '<div class="dz-cf-b dz-th-b" role="dialog" aria-label="Під нитки">' +
           '<div class="dz-cf-h">Під нитки · ' + esc(f.name || 'робота') + '</div>' +
-          '<div class="dz-cl-hint">Робота зводиться до кольорів наших ниток. На мокап і далі в роботу піде саме ' +
-            'адаптована; оригінал збережеться поруч.</div>' +
+          '<div class="dz-cl-hint">Спершу PhotoRoom прибирає фон, потім робота зводиться до кольорів наших ниток — ' +
+            'стільки ниток, скільки кольорів справді є. На мокап і далі в роботу піде адаптована; оригінал збережеться поруч.</div>' +
+          (st.bgErr ? '<div class="dz-miss dz-th-bgerr">' + esc(st.bgErr) + '</div>' : '') +
           '<div class="dz-th-pair">' +
             '<figure><img src="' + esc(f.url) + '" alt=""><figcaption>оригінал</figcaption></figure>' +
             '<figure>' + (r && r.pngUrl ? '<img src="' + esc(r.pngUrl) + '" alt="">' :
-              '<div class="dz-th-wait">' + esc(st.err || 'Підбираю нитки…') + '</div>') +
-              '<figcaption>під нитки' + (r ? ' · ' + r.threads.length + ' ниток' : '') + '</figcaption></figure>' +
+              '<div class="dz-th-wait">' + esc(st.err || st.note || 'Підбираю нитки…') + '</div>') +
+              '<figcaption>під нитки' + (st.bgOk ? ' · фон прибрано' : '') +
+                (r ? ' · ' + r.threads.length + ' ' + (r.threads.length === 1 ? 'нитка' : r.threads.length < 5 ? 'нитки' : 'ниток') : '') + '</figcaption></figure>' +
           '</div>' +
           (r ? threadsHtml(r.threads.map(function(t){ return { code: t.code, hex: t.hex }; })) : '') +
-          '<label class="dz-th-k"><span>Ниток максимум</span>' +
+          '<div class="dz-th-clr"><span>Колір принта</span>' +
+            '<button type="button" class="dz-b' + (st.color ? '' : ' on') + '" data-thc=""' + (st.busy ? ' disabled' : '') + '>як в оригіналі</button>' +
+            '<span class="dz-th-sw">' + (T.THREAD_PALETTE || []).map(function(t){
+              return '<button type="button" class="dz-th-s' + (st.color && st.color.code === t.code ? ' on' : '') + '" data-thc="' + esc(t.code) + '" ' +
+                'style="background:' + esc(t.hex) + '" title="Нитка ' + esc(t.code) + '" aria-label="Нитка ' + esc(t.code) + '"' + (st.busy ? ' disabled' : '') + '></button>';
+            }).join('') + '</span>' +
+            (st.color ? '<b class="dz-th-cc">нитка ' + esc(st.color.code) + '</b>' : '') +
+          '</div>' +
+          (st.color ? '' : '<label class="dz-th-k"><span>Ниток не більше</span>' +
             '<input type="range" min="2" max="24" value="' + st.k + '" data-thk' + (st.busy ? ' disabled' : '') + '>' +
-            '<b>' + st.k + '</b></label>' +
+            '<b>' + st.k + '</b></label>') +
           '<div class="dz-cf-f">' +
             '<button type="button" class="dz-b" data-thno>Скасувати</button>' +
             '<button type="button" class="dz-b pri" data-thgo' + (r && !st.busy ? '' : ' disabled') + '>Взяти адаптоване</button>' +
@@ -7138,7 +7199,24 @@
         st.busy = true; st.err = ''; paint();
         try{
           if(!st.src){ var rr = await fetch(f.url, { mode:'cors', credentials:'omit' }); st.src = await rr.blob(); }
-          var out = await window.LQThreads.run(st.src, st.k);
+          /* 1. Фон — PhotoRoom, один раз на вікно. */
+          if(!st.clean && BG_CLEAN[f.url]){ st.clean = BG_CLEAN[f.url]; st.bgOk = true; }
+          if(!st.clean){
+            st.clean = st.src;
+            var прозора = false;
+            try{ прозора = await blobClear(st.src); }catch(e){}
+            if(!прозора && window.LQMock && window.LQMock.removeBg){
+              st.note = 'PhotoRoom прибирає фон…'; paint();
+              try{
+                var du = await window.LQMock.removeBg(await blobData(st.src), 'photoroom');
+                st.clean = await (await fetch(du)).blob(); st.bgOk = true; BG_CLEAN[f.url] = st.clean;
+              }catch(e){ console.warn('фон перед нитками', e); st.bgErr = bgReason(e); }
+              st.note = ''; paint();
+            }
+          }
+          /* 2. Нитки: обраний колір — увесь принт цією ниткою. */
+          var src = st.color ? await blobPaint(st.clean, st.color.rgb) : st.clean;
+          var out = await T.run(src, st.color ? 2 : st.k);
           if(st.res && st.res.pngUrl) URL.revokeObjectURL(st.res.pngUrl);
           st.res = out.threads.length ? { svg: out.svg, png: out.png, threads: out.threads,
                                           pngUrl: URL.createObjectURL(out.png) } : null;
@@ -7153,6 +7231,14 @@
         var b = w.querySelector('.dz-th-k b'); if(b) b.textContent = k.value; });
       w.addEventListener('click', async function(e){
         if(e.target === w || e.target.closest('[data-thno]')) return close(null);
+        var cb = e.target.closest('[data-thc]');
+        if(cb){
+          if(st.busy) return;
+          var code = cb.getAttribute('data-thc');
+          var t = code ? (T.THREAD_PALETTE || []).filter(function(x){ return x.code === code; })[0] : null;
+          st.color = t ? { code: t.code, hex: t.hex, rgb: t.rgb.slice() } : null;
+          return calc();
+        }
         if(!e.target.closest('[data-thgo]') || !st.res || st.busy) return;
         st.busy = true; paint();
         var base = String(f.name || 'робота').replace(/\.\w+$/, '');
@@ -7167,7 +7253,8 @@
           close({ name: base + '-нитки.png', url: url, hash: h || f.hash || '',
                   orig: { name: f.name || '', url: f.url },
                   svg: svgUrl ? { name: base + '-нитки.svg', url: svgUrl } : null,
-                  threads: st.res.threads.map(function(t){ return { code: t.code, hex: t.hex }; }) });
+                  threads: st.res.threads.map(function(t){ return { code: t.code, hex: t.hex }; }),
+                  threadColor: st.color ? st.color.code : '' });
         }catch(err){ console.error(err); st.busy = false; paint(); say('Не зберіглось — спробуйте ще раз'); }
       });
       document.body.appendChild(w);

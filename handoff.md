@@ -234,6 +234,16 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **«Під нитки» — фон, кількість, колір** (25.10): `loomiq-design.js` —
+  `bgReason`, `blobImg/blobClear/blobData/blobPaint`, `BG_CLEAN`; `threadAdapt`
+  стан `{clean, bgOk, bgErr, color}`: `calc` → PhotoRoom раз → `blobPaint`
+  (якщо `color`) → `LQThreads.run(src, color ? 2 : k)`; рядок `.dz-th-clr`
+  (`data-thc`), результат несе `threadColor`. `loomiq-threads.js`
+  `quantizePixels`: для не-фото `stable` (alpha ≥ 200 і 4 сусіди в межах 48
+  за сумою RGB), перепис кольорів лише за ними (менше 5 % стійких — як доти).
+  `loomiq-mock.js` `колірHtml`: `w.threads && onAdapt` → кнопка
+  `data-mko-adapt` «🎨 Змінити колір ниткою», без `onAdapt` — лише коди;
+  повторна адаптація зберігає поворот. Тест — `tests/threads.mjs` §6.
 - **Взяти зі складу в картці цеху** (25.10): `loomiq-design.js` — `rowOfU`,
   `stockTakeQty(o, u)` (потреба = `buyQty(u)` − отримане в документах `got`,
   обмежена `stockHave`), кнопка в `clothHtml` (активна / сіра disabled /
