@@ -234,6 +234,22 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Швидкість, крок 3: запис полями, живі пропозиції** (25.10): у `saveOrders`
+  наявна картка йде `update`-ом лише зі зміненими полями (`orderPatch(base,
+  mine)` → `docPatchWrite(ref, patch, whole)`; вилучені — `FieldValue.delete()`;
+  ключ із крапкою чи `window.LQ_WHOLE_WRITE===1` → `set` цілком; `not-found`
+  → `set`). Новіша в базі: `theirP = orderPatch(base, свіжа)`, без спільних
+  ключів (`patchClash`) — `patchApply(live, theirP)`, `touchedAt` = max(now,
+  їхній+1с), пишемо своє; інакше відхилення, як доти. `designPut` — те саме
+  з `designBase[id]` (JSON останньої версії з бази; ставиться там же, де
+  `designSeen`). Стуб: `Doc.update` зливає латку через `get` і кличе `set`
+  (`__via='update'`, `window.__UPDATES`), `FieldValue.delete()` → `{__del:1}`.
+  Пропозиції: `watchOffers` слухає `offers` де `updatedAt>=` і `clientAt>=`
+  за `OFFERS_DAYS` (60, тест `LQ_OFFERS_DAYS`), у памʼяті лише потрібні поля
+  (`offerKeep`), Аналітика → `offersLoadAll()`. Telegram: `an_tg` де
+  `lastAt>=` те саме вікно. Не зроблено: важке (макети, `art`, `crmMsgs`,
+  `photos`) окремою колекцією; фільтр архіву на старті лишається вимкненим,
+  доки не вийдуть старі вкладки. Тест `tests/field-write.mjs`.
 - **Вхід у localStorage, без Google-iframe** (25.10): блок `/* ▶ auth-ls … ◀ auth-ls */`
   перед `const fbAuth = firebase.auth()` — `IDBFactory.prototype.open` кидає
   для `firebaseLocalStorageDb` (SDK сам бере localStorage), `window.gapi`

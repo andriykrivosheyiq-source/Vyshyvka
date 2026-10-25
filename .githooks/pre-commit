@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/fbstub\.js|tests/field-write\.mjs)'; then
+  node tests/field-write.mjs >/tmp/lq-field-write.log 2>&1 || {
+    echo "✗ Картка знову пишеться цілком або злиття полями затирає чуже — коміт зупинено. Подробиці: /tmp/lq-field-write.log"
+    grep '✗' /tmp/lq-field-write.log
+    exit 1
+  }
+  echo "✓ запис полями: чуже не затирається"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/auth-keep\.mjs)'; then
   node tests/auth-keep.mjs >/tmp/lq-auth-keep.log 2>&1 || {
     echo "✗ Вхід знову може злетіти або зависнути (IndexedDB / Google-iframe / «Вхід…» без таймауту) — коміт зупинено. Подробиці: /tmp/lq-auth-keep.log"

@@ -301,7 +301,10 @@ await p.evaluate(() => { chatClose(); window.__db = {};
   try{ document.getElementById('view-design').style.display = 'block'; openDesign(); }catch(e){ console.warn(e); }
   const orig = ORDERS_COL.doc.bind(ORDERS_COL);
   ORDERS_COL.doc = id => { const d = orig(id); const set0 = d.set.bind(d);
-    d.set = (v, opt) => { window.__db[id] = (opt && opt.merge) ? Object.assign(window.__db[id] || {}, JSON.parse(JSON.stringify(v))) : JSON.parse(JSON.stringify(v)); return set0(v, opt); };
+    /* Картка пишеться полями (крок 3): латка через update лягає поверх того, що «в базі». */
+    d.set = (v, opt) => { const merge = (opt && opt.merge) || d.__via === 'update';
+      const base = window.__db[id] || JSON.parse(JSON.stringify(orders.find(x => x.id === id) || {}));
+      window.__db[id] = merge ? Object.assign(base, JSON.parse(JSON.stringify(v))) : JSON.parse(JSON.stringify(v)); return set0(v, opt); };
     return d; }; });
 const r8 = await p.evaluate(async () => {
   const stale = JSON.parse(JSON.stringify(orders.find(x => x.id === 'a')));
