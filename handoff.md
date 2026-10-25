@@ -234,6 +234,16 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Взяти зі складу в картці цеху** (25.10): `loomiq-design.js` — `rowOfU`,
+  `stockTakeQty(o, u)` (потреба = `buyQty(u)` − отримане в документах `got`,
+  обмежена `stockHave`), кнопка в `clothHtml` (активна / сіра disabled /
+  немає без `can('prod')`), дія `u-stock-take` (`ACT_CAN: 'prod'`, `CAN_SAY.prod`):
+  `stockApply out` (з `orderId`, «під замовлення #…»), `buyNew` з `stock:true`,
+  `got`; переадресація рядків у закупівлях `!stock && status!=='got'` (свіжіші
+  першими) — зменшує рядок і додає `{toStock:true, orderId:'', was:{…}}`,
+  `b.hist` з приміткою. `buy-recv`: на склад ідуть `bc.toStock` усі рядки або
+  `r.toStock` окремі. Адмінка: `canProd()` = `may('boards','prod')`,
+  `host.can('prod')`. Тест `tests/stock-take.mjs`.
 - **Фон — лише PhotoRoom** (25.10): `loomiq-bg.js` (нейромережа BiRefNet) і
   прості алгоритми (`removeBgLocal`, `removeBgInternal`) видалено з
   конструктора, мокапа, сторінок і збірки (`tools/build-sites.py` більше не
