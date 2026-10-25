@@ -5,6 +5,14 @@
   Doc.prototype.get=function(){ return Promise.resolve(new Snap('x', null)); };
   Doc.prototype.set=function(){ return Promise.resolve(); };
   Doc.prototype.update=function(){ return Promise.resolve(); };
+  /* Запис полями (крок 3): стуб зливає латку з тим, що віддає get() цього
+     документа, і кладе результат через set() — тести, що підміняють get і
+     set, бачать цілий документ, як і доти; вилучені поля (FieldValue.delete)
+     прибирає; наприкінці кличе «голий» update (тести підміняють і його). */
+  var upd0=Doc.prototype.update;
+  Doc.prototype.update=function(patch){ var self=this; (window.__UPDATES=window.__UPDATES||[]).push({ col:this.__col, id:this.__id, keys:Object.keys(patch||{}) });
+    return this.get().then(function(s){ var cur=(s&&s.exists&&s.data())||{}; var m=JSON.parse(JSON.stringify(cur)); Object.keys(patch||{}).forEach(function(k){ if(patch[k]&&patch[k].__del) delete m[k]; else m[k]=patch[k]; });
+      self.__via='update'; return self.set(m).then(function(){ delete self.__via; }, function(e){ delete self.__via; throw e; }); }).then(function(){ return upd0.call(self, patch); }); };
   Doc.prototype.delete=function(){ return Promise.resolve(); };
   Doc.prototype.onSnapshot=function(cb){ try{ cb(new Snap('x', null)); }catch(e){} return function(){}; };
   Doc.prototype.collection=function(){ return new Col(); };
@@ -29,6 +37,9 @@
     settings:function(){} }; };
   fs.FieldValue={ serverTimestamp:function(){ return new Date().toISOString(); },
     delete:function(){ return null; }, arrayUnion:function(){ return []; } };
+  /* Вилучення поля (крок 3): позначка-обʼєкт, як у справжній базі; update
+     стуба за нею прибирає ключ, color-move дивиться на __delete. */
+  fs.FieldValue.delete=function(){ return { __delete:true, __del:1 }; };
   fs.Timestamp={ now:function(){ return { toDate:function(){ return new Date(); } }; } };
   window.firebase={
     initializeApp:function(){ return {}; },
