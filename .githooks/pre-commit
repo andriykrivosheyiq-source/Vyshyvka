@@ -172,6 +172,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ship-reci
   }
   echo "✓ отримувач — з переписки, ніколи не нік"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tests/calc-early\.mjs)'; then
+  node tests/calc-early.mjs >/tmp/lq-calc-early.log 2>&1 || {
+    echo "✗ Позиція з телефона знову чекає всіх карток або губиться — коміт зупинено. Подробиці: /tmp/lq-calc-early.log"
+    grep '✗' /tmp/lq-calc-early.log
+    exit 1
+  }
+  echo "✓ позиція з телефона — одразу, не губиться"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|loomiq-design\.js|tests/bind-fast\.mjs)'; then
   node tests/bind-fast.mjs >/tmp/lq-bind-fast.log 2>&1 || {
     echo "✗ Привʼязка розмови за посиланням знову чекає Sitniks — коміт зупинено. Подробиці: /tmp/lq-bind-fast.log"
