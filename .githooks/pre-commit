@@ -188,6 +188,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|index\.html|tes
   }
   echo "✓ позиція з телефона — одразу, не губиться"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/reg-make\.mjs)'; then
+  node tests/reg-make.mjs >/tmp/lq-reg-make.log 2>&1 || {
+    echo "✗ Реєстр НП: у «Передано курʼєру» знову йде не те, що прийняла Нова пошта — коміт зупинено. Подробиці: /tmp/lq-reg-make.log"
+    grep '✗' /tmp/lq-reg-make.log
+    exit 1
+  }
+  echo "✓ реєстр: у «Передано курʼєру» — лише прийняте"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-threads\.js|loomiq-design\.js|loomiq-mock\.js|tests/threads\.mjs)'; then
   node tests/threads.mjs >/tmp/lq-threads.log 2>&1 || {
     echo "✗ «Під нитки» зламано (фон перед нитками, кількість ниток, колір ниткою) — коміт зупинено. Подробиці: /tmp/lq-threads.log"

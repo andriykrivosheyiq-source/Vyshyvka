@@ -323,8 +323,14 @@ export default {
         if (!refs.length) return json({ ok: false, error: 'Жодної накладної цього відправника не знайдено' }, 200, cors);
         const r = await np(env, 'ScanSheet', 'insertDocuments', { DocumentRefs: refs }, key);
         const x = r[0] || {};
+        /* 25.10: які накладні справді лягли в реєстр (success) і чому решта
+           — ні; адмінка переносить у «Передано курʼєру» лише прийняті. */
+        const errors = [].concat((x.Data && x.Data.Errors) || [], x.Errors || []);
+        const success = (x.Data && x.Data.Success) || [];
+        const why = errors.map(e => (e && (e.Error || e.Description)) || (typeof e === 'string' ? e : '')).filter(Boolean).join('; ');
         return json({ ok: !!x.Ref, ref: String(x.Ref || ''), number: String(x.Number || ''), date: String(x.Date || ''),
-                      notFound: Object.keys(треба), errors: (x.Data && x.Data.Errors) || [] }, 200, cors);
+                      notFound: Object.keys(треба), errors, success,
+                      error: x.Ref ? '' : (why || 'Нова пошта не створила реєстр') }, 200, cors);
       }
       /* PDF реєстру для друку. Адреса друку НП містить ключ, тож її віддавати
          в браузер не можна — тягнемо файл тут і віддаємо байти. */

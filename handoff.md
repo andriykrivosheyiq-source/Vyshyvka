@@ -234,6 +234,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Реєстр НП — лише прийняте** (25.10): `regMake` (`loomiq-design.js`) ставить
+  `o.reg` лише карткам, чия накладна в `r.success` (новий воркер) або не в
+  `r.notFound`/`r.errors` (старий); решта — у «Реєстр» з причиною в тості.
+  Воркер `novaposhta-proxy.js` (op `registry`) тепер віддає `success`,
+  `errors` (Data.Errors + Errors) і `error`; розгорнути вручну:
+  `npx wrangler deploy` воркера Нової пошти. Тест `tests/reg-make.mjs`.
 - **«Під нитки» — фон, кількість, колір** (25.10): `loomiq-design.js` —
   `bgReason`, `blobImg/blobClear/blobData/blobPaint`, `BG_CLEAN`; `threadAdapt`
   стан `{clean, bgOk, bgErr, color}`: `calc` → PhotoRoom раз → `blobPaint`

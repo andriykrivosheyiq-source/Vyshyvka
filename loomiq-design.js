@@ -9013,23 +9013,43 @@
       (Object.keys(групи).length > 1 ? ', ' + Object.keys(групи).length + ' відправники — у кожного свій' : '') + '?'); }catch(e){}
     if(!ок) return;
     say('Створюю реєстр…');
-    var me = (host().me && host().me()) || '', зроблено = 0, збій = '';
+    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = [], номери = [];
     for(var k in групи){
       var r;
       try{ r = await host().npRegistry(k, групи[k].map(function(p){ return { ttn: String(p.o.ttn || ''), ref: String(p.o.ttnRef || '') }; })); }
       catch(e){ r = { error: String((e && e.message) || e) }; }
       if(!r || !r.ref){ збій = (r && r.error) || 'Нова пошта відмовила'; continue; }
+      /* ЛИШЕ ТЕ, ЩО СПРАВДІ ЛЯГЛО В РЕЄСТР (25.10). Доти «Передано курʼєру»
+         отримували всі картки відправника — і ті, чию накладну Нова пошта
+         не знайшла чи відхилила: картка казала «передано», а в реєстрі її
+         не було. Тепер: є перелік прийнятих (success) — лише вони; немає
+         (старий воркер) — усі, крім ненайдених (notFound) і відхилених
+         (errors). Решта лишається в «Реєстр» з причиною. */
+      var чисто = function(v){ return String(v || '').replace(/\s+/g, ''); };
+      var прийняті = {}, погані = {}, чому = {};
+      (r.success || []).forEach(function(x){ [x && x.Ref, x && x.Number, x && x.ref, x && x.number].forEach(function(v){ if(v) прийняті[чисто(v)] = 1; }); });
+      (r.notFound || []).forEach(function(n){ погані[чисто(n)] = 1; чому[чисто(n)] = 'Нова пошта не знайшла накладну'; });
+      (r.errors || []).forEach(function(x){
+        var why = String((x && (x.Error || x.error || x.Description || x.message)) || (typeof x === 'string' ? x : '') || 'Нова пошта відхилила');
+        [x && x.Ref, x && x.Number, x && x.DocumentRef, x && x.IntDocNumber].forEach(function(v){ if(v){ погані[чисто(v)] = 1; чому[чисто(v)] = why; } });
+      });
+      var єПерелік = Object.keys(прийняті).length > 0;
       for(var i = 0; i < групи[k].length; i++){
         var p = групи[k][i];
+        var n = чисто(p.o.ttn), rf = чисто(p.o.ttnRef);
+        var увійшла = єПерелік ? !!(прийняті[n] || (rf && прийняті[rf])) : !(погані[n] || (rf && погані[rf]));
+        if(!увійшла){ не.push(U.jobNo(p.job) + ' (' + (чому[n] || (rf && чому[rf]) || 'не увійшла в реєстр') + ')'); continue; }
         p.o.reg = { ref: r.ref, no: String(r.number || ''), at: new Date().toISOString(), sender: k, by: me };
         p.o.shipCol = '';
         try{ if(host().save) await host().save(p.job, p.o); }catch(e){ console.warn(e); }
         зроблено++;
       }
+      if(r.number) номери.push('№' + r.number);
     }
     render(root || document.getElementById('dzRoot'));
-    say(збій ? ('Реєстр: ' + збій + (зроблено ? ' · ' + зроблено + ' посилок усе ж передано' : ''))
-             : ('Реєстр створено · ' + зроблено + ' посилок → «Передано курʼєру»'));
+    say((зроблено ? 'Реєстр ' + номери.join(', ') + ' створено · ' + зроблено + ' посилок → «Передано курʼєру»' : 'Реєстр не створено') +
+        (не.length ? ' · не увійшли й лишились у «Реєстр»: ' + не.join(', ') : '') +
+        (збій ? ' · ' + збій : ''));
   }
   function regList(){
     var regs = {};
