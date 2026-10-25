@@ -234,6 +234,31 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Дата відправки для цеху** (25.10): одна дата — `job.due` (кнопка
+  «📅 Відправити», раніше «Готово»; `U.dueHtml`). `workDays(v)` — робочі дні
+  від завтра до дати; `shipInfo(job, at)` → `{soon (≤3), late, txt, title}`,
+  для `SHIPPED` (реєстр і далі) — null. Плитка цеху — `c.ship` у стікері,
+  шапка картки цеху — `.dz-ship-due`, у менеджера в «Чекає погодження» —
+  `.dz-ship-set` з `U.dueHtml(job)`. Тест `tests/ship-date.mjs`.
+- **«Почати замовлення»** (25.10): `BUY_FIX = {at, keys}` (лише вкладка):
+  `buy-fix` data-on=1 фіксує ключі рядків потреби; `buyScreenHtml` показує
+  лише їх, нове — блоком `.dz-buy-new` зверху; `buy-make` бере лише
+  зафіксоване й знімає фіксацію; «Скасувати» — `buy-fix` data-on=0. Тест —
+  `tests/buy-units.mjs` §5.
+- **Закупівля й перевірка по штуках** (25.10): `BUY_QTY[ключ розміру]` —
+  поле «замовляю N з M» (`data-buyq`), `buy-make` розкладає N по рядках від
+  першого, решта лишається в потребі (`buyCovered`). Перевірка: `BUY_CHK[id][i]`
+  — скільки прийшло (галочка = увесь рядок, поле `data-bchq`), `ckGot`,
+  `ckSplit` → {got, left}. «Підтвердити» — лише без нестачі; `buy-part`
+  («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
+  лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
+  в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Реєстр НП — лише прийняте** (25.10): `regMake` (`loomiq-design.js`) ставить
+  `o.reg` лише карткам, чия накладна в `r.success` (новий воркер) або не в
+  `r.notFound`/`r.errors` (старий); решта — у «Реєстр» з причиною в тості.
+  Воркер `novaposhta-proxy.js` (op `registry`) тепер віддає `success`,
+  `errors` (Data.Errors + Errors) і `error`; розгорнути вручну:
+  `npx wrangler deploy` воркера Нової пошти. Тест `tests/reg-make.mjs`.
 - **«Під нитки» — фон, кількість, колір** (25.10): `loomiq-design.js` —
   `bgReason`, `blobImg/blobClear/blobData/blobPaint`, `BG_CLEAN`; `threadAdapt`
   стан `{clean, bgOk, bgErr, color}`: `calc` → PhotoRoom раз → `blobPaint`

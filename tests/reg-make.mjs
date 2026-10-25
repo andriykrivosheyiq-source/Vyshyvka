@@ -1,0 +1,178 @@
+/* РЕЄСТР НОВОЇ ПОШТИ → «ПЕРЕДАНО КУРʼЄРУ» (25.10).
+
+   Андрій: «передивись, що вона реально створюється і переноситься далі по
+   статусу». Кнопка «Створити реєстр» у колонці «Реєстр» дошки цеху:
+   1. Усі накладні прийняті — реєстр створено, усі картки «Передано курʼєру»,
+      у списку «Реєстри» — номер і кількість.
+   2. Нова пошта якусь накладну не знайшла (старий воркер: notFound) — ця
+      картка лишається в «Реєстр» з причиною, решта — «Передано курʼєру».
+   3. Новий воркер (success / errors) — переносимо лише прийняті.
+   4. Нова пошта відмовила зовсім — нічого не переноситься, причина словами.
+
+   Запуск:  node tests/reg-make.mjs      (з кореня репозиторію)  */
+import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import fs from 'node:fs';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const PORT = 9147;
+const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css',
+               '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
+               '.webp':'image/webp' };
+const srv = createServer(async (req, res) => {
+  const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, ''));
+  try{
+    const body = await readFile(f);
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
+    res.end(body);
+  }catch(e){ res.writeHead(404); res.end('no'); }
+});
+await new Promise(r => srv.listen(PORT, '127.0.0.1', r));
+const HOST = 'http://127.0.0.1:' + PORT;
+
+let bad = 0;
+const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong + ' ✗')); if(!c) bad++; };
+const errs = [];
+
+const CONTENT = {
+  team: [{ email:'test@loomiq', name:'Андрій', role:'owner' }],
+  b2c: { dzHours: 24 }
+};
+const ORDERS = [
+  { id:'1', orderId:'2000201', type:'client', dir:'b2c', name:'Асія', status:'prorahunok', site:'main',
+    payments:[], hist:[], createdAt:'2026-09-25T09:00:00.000Z', totalPrice: 1000, items:[] },
+  { id:'2', orderId:'2000202', type:'client', dir:'b2c', name:'Богдан', status:'prorahunok', site:'main',
+    payments:[], hist:[], createdAt:'2026-09-25T10:00:00.000Z', totalPrice: 1000, items:[] }
+];
+
+let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
+fbstub = fbstub.replace('window.firebase={',
+  'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n' +
+  '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
+fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
+  'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };');
+fbstub = fbstub.replace(
+  "Doc.prototype.onSnapshot=function(cb){ try{ cb(new Snap('x', null)); }catch(e){} return function(){}; };",
+  'Doc.prototype.onSnapshot=function(cb){ var d=null;\n' +
+  "    if(this.__col==='loomiq' && this.__id==='photos') d=window.__CONTENT;\n" +
+  "    try{ cb(new Snap(this.__id||'x', d)); }catch(e){ console.error(e); } return function(){}; };");
+fbstub = fbstub.replace('var fs=function(){ return { collection:function(){ return new Col(); },',
+  'function SeedCol(){}\n' +
+  '  SeedCol.prototype=Object.create(Col.prototype);\n' +
+  '  SeedCol.prototype.onSnapshot=function(cb){ try{ cb({\n' +
+  '    docs:window.__ORDERS.map(function(o){ return new Snap(o.id,o); }),\n' +
+  '    forEach:function(f){ window.__ORDERS.forEach(function(o){ f(new Snap(o.id,o)); }); },\n' +
+  '    empty:false }); }catch(e){ console.error(e); } return function(){}; };\n' +
+  '  var fs=function(){ return { collection:function(n){\n' +
+  "      if(n==='kanbanOrders') return new SeedCol();\n" +
+  '      var c=new Col(); c.__n=n; return c; },');
+
+const browser = await chromium.launch({
+  executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const ctx = await browser.newContext({ viewport:{ width:1500, height:940 }, acceptDownloads: true });
+const p = await ctx.newPage();
+p.on('pageerror', e => errs.push(e.message.slice(0, 180)));
+
+p.on('dialog', d => d.accept(''));
+await p.route('**://**', r => {
+  const u = r.request().url();
+  if(/gstatic\.com\/firebasejs/.test(u))
+    return r.fulfill({ contentType:'application/javascript', body:fbstub });
+  if(u.startsWith(HOST)) return r.continue();
+  return r.abort();
+});
+await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
+await p.waitForTimeout(4000);
+await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none'; });
+
+
+const seed = async (n0, з) => p.evaluate(async ([n0, з]) => {
+  const D = window.LQDesign, U = D.ui;
+  document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
+  document.getElementById('view-design').style.display = 'block';
+  openDesign();
+  const g = U.host.catalog().find(x => (x.colors || []).length && (x.sizes || []).length);
+  const ids = [];
+  for(let k = 0; k < 3; k++){
+    const no = String(n0 + k);
+    if(!orders.find(o => o.orderId === no)) orders.push({ id: 'r' + no, orderId: no, type:'client', dir:'b2c', name:'Клієнт ' + k, status:'prorahunok', site:'main', payments:[], hist:[], createdAt:'2026-10-20T10:00:00.000Z', totalPrice: 1000, items:[] });
+    const o = orders.find(x => x.orderId === no);
+    const j = designJobMake(no);
+    j.units = [Object.assign(U.unitNew(), { gid: g.id, name: g.name, color: (g.colors[0].name || g.colors[0].id), size: g.sizes[0], qty: 1, note:'Лого' })];
+    o.tracks = { qc:'ok' }; o.prodQc = { at:'2026-10-24T10:00:00.000Z' }; o.shipCol = 'reg';
+    o.ttn = '2045000000' + з + k; o.ttnRef = 'ref-' + з + k; o.ttnSender = 'yuk';
+    delete o.reg;
+    ids.push(no);
+  }
+  return ids;
+}, [n0, з]);
+const стан = ids => p.evaluate(ids => ids.map(id => { const pr = window.LQDesign.ui.pairOf(id); return window.LQDesign.prodAt(pr.job, pr.o); }), ids);
+const тиснути = async () => p.evaluate(async () => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  U.setTab('prod'); U.open(''); U.render(root);
+  await new Promise(r => setTimeout(r, 200));
+  const b = document.querySelector('[data-do="reg-make"]');
+  const є = !!b;
+  window.__toasts = [];
+  const t0 = U.host.toast; U.host.toast = m => { window.__toasts.push(String(m)); try{ t0 && t0(m); }catch(e){} };
+  if(b) b.click();
+  await new Promise(r => setTimeout(r, 900));
+  U.host.toast = t0;
+  return { є, toast: window.__toasts.slice(-1)[0] || '' };
+});
+
+console.log('═══ 1. УСІ ПРИЙНЯТІ ═══');
+const a = await seed(2000301, '1');
+await p.evaluate(() => { window.__calls = []; window.LQDesign.ui.host.npRegistry = async (k, docs) => { window.__calls.push({ k, docs }); return { ref:'R1', number:'105-0001', notFound:[], errors:[] }; }; });
+const до = await стан(a);
+const r1 = await тиснути();
+const після = await стан(a);
+const calls = await p.evaluate(() => window.__calls.map(c => c.k + ':' + c.docs.length));
+console.log('   ' + JSON.stringify({ до, після, r1, calls }));
+ok(до.every(x => x === 'reg') && r1.є, 'три посилки в колонці «Реєстр», є кнопка «Створити реєстр»', JSON.stringify({ до, r1 }));
+ok(calls.join() === 'yuk:3' && після.every(x => x === 'courier') && /Реєстр №105-0001 створено · 3 посилок → «Передано курʼєру»/.test(r1.toast),
+  'реєстр створено одним викликом на відправника — усі три «Передано курʼєру»', JSON.stringify({ після, r1, calls }));
+const список = await p.evaluate(async () => {
+  document.querySelector('[data-do="reg-list"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const t = (document.getElementById('dzRegPop') || {}).textContent || '';
+  const x = document.getElementById('dzRegPop'); if(x) x.remove();
+  return t.replace(/\s+/g, ' ');
+});
+ok(/№105-0001/.test(список) && /3 посил/.test(список), 'у «Реєстри» — №105-0001 · 3 посилки, з PDF', список.slice(0, 160));
+
+console.log('═══ 2. СТАРИЙ ВОРКЕР: ОДНУ НАКЛАДНУ НЕ ЗНАЙДЕНО ═══');
+const b = await seed(2000311, '2');
+await p.evaluate(() => { window.LQDesign.ui.host.npRegistry = async (k, docs) => ({ ref:'R2', number:'105-0002', notFound:['204500000022'], errors:[] }); });
+const r2 = await тиснути();
+const s2 = await стан(b);
+console.log('   ' + JSON.stringify({ s2, r2 }));
+ok(s2.join() === 'courier,courier,reg' && /не увійшли й лишились у «Реєстр»: .*не знайшла накладну/.test(r2.toast),
+  'ненайдена накладна лишилась у «Реєстр» з причиною, дві інші — «Передано курʼєру»', JSON.stringify({ s2, r2 }));
+
+console.log('═══ 3. НОВИЙ ВОРКЕР: ПРИЙНЯТІ Й ВІДХИЛЕНІ ═══');
+const c = await seed(2000321, '3');
+await p.evaluate(() => { window.LQDesign.ui.host.npRegistry = async (k, docs) => ({ ref:'R3', number:'105-0003', notFound:[],
+  success:[{ Ref:'ref-30', Number:'204500000030' }], errors:[{ Ref:'ref-31', Number:'204500000031', Error:'Документ уже в іншому реєстрі' }] }); });
+const r3 = await тиснути();
+const s3 = await стан(c);
+console.log('   ' + JSON.stringify({ s3, r3 }));
+ok(s3.join() === 'courier,reg,reg' && /Документ уже в іншому реєстрі/.test(r3.toast) && /1 посилок/.test(r3.toast),
+  'переносимо лише прийняту; відхилену — з причиною Нової пошти, і ту, якої немає в прийнятих', JSON.stringify({ s3, r3 }));
+
+console.log('═══ 4. НОВА ПОШТА ВІДМОВИЛА ЗОВСІМ ═══');
+const d = await seed(2000331, '4');
+await p.evaluate(() => { window.LQDesign.ui.host.npRegistry = async () => ({ error:'Немає секрета NP_KEY_yuk — ключ API Нової пошти цього відправника' }); });
+const r4 = await тиснути();
+const s4 = await стан(d);
+console.log('   ' + JSON.stringify({ s4, r4 }));
+ok(s4.every(x => x === 'reg') && /Реєстр не створено/.test(r4.toast) && /NP_KEY_yuk/.test(r4.toast),
+  'відмова Нової пошти — нічого не перенесено, сказано чому', JSON.stringify({ s4, r4 }));
+
+console.log('');
+ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
+console.log(bad ? 'розходжень: ' + bad : 'реєстр: створюється, у «Передано курʼєру» — лише прийняте Новою поштою');
+await browser.close(); srv.close();
+process.exit(bad ? 1 : 0);
