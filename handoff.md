@@ -234,6 +234,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **«Почати замовлення»** (25.10): `BUY_FIX = {at, keys}` (лише вкладка):
+  `buy-fix` data-on=1 фіксує ключі рядків потреби; `buyScreenHtml` показує
+  лише їх, нове — блоком `.dz-buy-new` зверху; `buy-make` бере лише
+  зафіксоване й знімає фіксацію; «Скасувати» — `buy-fix` data-on=0. Тест —
+  `tests/buy-units.mjs` §5.
 - **Закупівля й перевірка по штуках** (25.10): `BUY_QTY[ключ розміру]` —
   поле «замовляю N з M» (`data-buyq`), `buy-make` розкладає N по рядках від
   першого, решта лишається в потребі (`buyCovered`). Перевірка: `BUY_CHK[id][i]`

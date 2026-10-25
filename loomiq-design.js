@@ -9921,6 +9921,12 @@
   /* Скільки замовляємо з рядка розміру (25.10): «M × 2» — замовили 1, друга
      лишається в «Треба замовити». Ключ — той самий, що в галочки розміру. */
   var BUY_QTY = {};
+  /* «ПОЧАТИ ЗАМОВЛЕННЯ» (25.10, Андрій: «поки ми оформляємо пів години —
+     нові, які паралельно падають, вище, а в нас залишається це фіксоване»).
+     null — список живий; { at, keys } — зафіксований: показуємо лише ті
+     рядки, що були в мить натискання, нове — окремим блоком зверху. Знімає
+     «Оформити замовлення» або «Скасувати». Лише ця вкладка, у базу не йде. */
+  var BUY_FIX = null;
   var BUY_OPEN = {};         // розгорнуті рядки й закупівлі
   var BUY_ALL = false;       // показати всю історію
   /* ВИДАЛЕНІ ВЛАСНИКОМ (20.10): документ лишається (designJobs не
@@ -10438,7 +10444,25 @@
         '<i>' + штС + ' шт · ' + грнК(stockWorth(скл)) + '</i></button>' +
     '</div>';
     if(BUY_TAB === 'stock') return tabs + stockScreenHtml();
-    return tabs + '<div class="dz-buy">' + buyNeedHtml(sp.buy) + takeHtml(sp.take) + '</div>' +
+    /* Зафіксований список: що було — лишається на місці; нове — зверху. */
+    var фікс = '', спис = sp.buy;
+    if(BUY_FIX){
+      var нові = sp.buy.filter(function(r){ return !BUY_FIX.keys[r.key]; });
+      спис = sp.buy.filter(function(r){ return BUY_FIX.keys[r.key]; });
+      фікс = '<div class="dz-buy-fix">' +
+        '<div class="dz-buy-fixh"><b>📌 Список зафіксовано о ' + esc(String(BUY_FIX.at || '').slice(11, 16)) + '</b>' +
+          '<span>оформлюєте — нове не змішується з ним</span>' +
+          '<button type="button" class="dz-b" data-do="buy-fix" data-on="0">Скасувати</button></div>' +
+        (нові.length ? '<div class="dz-buy-new"><b>Нові, поки ви оформлювали · ' + нові.reduce(function(a, r){ return a + r.qty; }, 0) + ' шт</b>' +
+            нові.map(function(r){ return '<span>' + esc([r.no, r.name, r.color, r.size].filter(Boolean).join(' · ')) + ' × ' + r.qty + '</span>'; }).join('') +
+            '<i>зʼявляться в списку після «Оформити замовлення» чи «Скасувати»</i></div>'
+          : '') +
+      '</div>';
+    }
+    var почати = !BUY_FIX && sp.buy.length
+      ? '<div class="dz-buy-fix is-off"><button type="button" class="dz-b pri" data-do="buy-fix" data-on="1" ' +
+          'title="Зафіксувати список, поки оформлюєте: нове ляже окремо зверху">📌 Почати замовлення</button></div>' : '';
+    return tabs + почати + фікс + '<div class="dz-buy">' + buyNeedHtml(спис) + takeHtml(sp.take) + '</div>' +
       '<div class="dz-buy-hist">' +
         '<div class="dz-buy-h"><b>Замовлення закупівлі</b><span>' + (l.length || 'ще жодного') + '</span></div>' +
         днів.map(function(d){
@@ -11918,8 +11942,16 @@
     }
     /* ОФОРМИТИ: позначене розкладається по підрядниках — кожен везе своєю
        посилкою, тож і замовлення, і ТТН у кожного своє. Дата одна. */
+    if(what === 'buy-fix'){
+      if(String(data && data.on) === '1'){
+        var kk = {};
+        buySplitNow().buy.forEach(function(r){ kk[r.key] = 1; });
+        BUY_FIX = { at: new Date().toISOString(), keys: kk };
+      } else BUY_FIX = null;
+      return render(root);
+    }
     if(what === 'buy-make'){
-      var обр = buySplitNow().buy.filter(function(r){ return BUY_SEL[r.key]; });
+      var обр = buySplitNow().buy.filter(function(r){ return BUY_SEL[r.key] && (!BUY_FIX || BUY_FIX.keys[r.key]); });
       if(!обр.length) return say('Позначте галочками, що замовили');
       /* Частина розміру (25.10): «замовляю 1 з 2» — розкладаємо по рядках
          від першого; що не влізло — лишається в «Треба замовити». */
@@ -11951,7 +11983,7 @@
         bn.sup = gr.key ? { id: gr.key, name: gr.name } : null;
         вже.push(bn); нові.push(bn);
       });
-      BUY_SEL = {}; BUY_QTY = {};
+      BUY_SEL = {}; BUY_QTY = {}; BUY_FIX = null;
       return buySaveAll(нові, 'Оформлено · ' + нові.map(buyTitle).join(', '));
     }
     if(what === 'buy-del'){

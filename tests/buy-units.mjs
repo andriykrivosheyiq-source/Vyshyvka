@@ -9,6 +9,9 @@
    3. Доїхала не вся: «Не приїде — замовити знову» — нестача повертається в
       «Треба замовити» з позначкою, звідки не прийшла.
    4. Галочка — увесь рядок; «відмітити всі» — повні кількості.
+   5. «Почати замовлення»: список зафіксовано; нове, що прийшло, — окремим
+      блоком зверху, у список не змішується; «Оформити» знімає фіксацію,
+      і нове стає на своє місце.
 
    Запуск:  node tests/buy-units.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -166,6 +169,42 @@ ok(r.docsB === 'got:2:частина|sent:1' && r.stanB === 'sent' && !/2000202/
 ok(/Не приїде — замовити знову · 1 шт/.test(r.missTxt) && r.missB.st === 'got' && r.missB.missing === '1' && /2000202:1/.test(r.needB2) && /не прийшло з/.test(r.мітка),
   '«Не приїде — замовити знову»: 1 шт — у «Треба замовити» з позначкою «не прийшло з …»', JSON.stringify({ t: r.missTxt, m: r.missB, need: r.needB2, мітка: r.мітка }));
 ok(r.allOn, '«відмітити всі» — повні кількості, «Підтвердити отримання» активна', String(r.allOn));
+
+console.log('');
+console.log('═══ 5. «ПОЧАТИ ЗАМОВЛЕННЯ» — ЗАФІКСОВАНИЙ СПИСОК ═══');
+const ф = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, root = document.getElementById('dzRoot'), h = U.host;
+  const t = ms => new Promise(z => setTimeout(z, ms));
+  const g = h.catalog().find(x => (x.colors || []).length && (x.sizes || []).length >= 2);
+  const колір = g.colors[0].name || g.colors[0].id;
+  U.render(root); await t(100);
+  const рядки = () => [...document.querySelectorAll('.dz-buy .dz-buy-need [data-buys]')].length;
+  const до = рядки();
+  document.querySelector('[data-do="buy-fix"][data-on="1"]').click(); await t(150);
+  const зафікс = { плашка: !!document.querySelector('.dz-buy-fixh'), рядків: рядки() };
+  /* Поки оформлюють — приходить нове замовлення. */
+  orders.push({ id:'n3', orderId:'2000203', type:'client', dir:'b2c', name:'Нова', status:'prorahunok', site:'main', payments:[], hist:[], createdAt:'2026-10-25T10:00:00.000Z', totalPrice: 1000, items:[] });
+  const j = designJobMake('2000203');
+  const u = Object.assign(U.unitNew(), { gid: g.id, name: g.name, color: колір, size: g.sizes[1], qty: 4, note:'Лого', confirmed: true });
+  u.graphic = [Object.assign(D.dzNew(), { name:'ескіз', ok: { ver: 1, by:'t', at:'2026-10-25T10:00:00.000Z' } })];
+  j.units = [u];
+  U.render(root); await t(150);
+  const поки = { рядків: рядки(), нові: (document.querySelector('.dz-buy-new') || {}).textContent || '' };
+  /* Оформили зафіксоване — нове стає в список. */
+  const cb = document.querySelector('.dz-buy .dz-buy-need [data-buys]');
+  cb.checked = true; cb.dispatchEvent(new Event('change')); await t(150);
+  document.querySelector('[data-do="buy-make"]').click(); await t(700);
+  U.render(root); await t(150);
+  const після = { плашка: !!document.querySelector('.dz-buy-fixh'), нові: !!document.querySelector('.dz-buy-new'),
+    є2000203: [...document.querySelectorAll('.dz-buy .dz-buy-need [data-buys]')].some(x => x.closest('.dz-buy-s')) &&
+      D.buyNeed(U.pairsLive(), h.buys()).some(x => x.orderId === '2000203') };
+  return { до, зафікс, поки, після };
+});
+console.log('   ' + JSON.stringify(ф));
+ok(ф.зафікс.плашка && ф.зафікс.рядків === ф.до, '«📌 Почати замовлення» — список зафіксовано, рядки ті самі', JSON.stringify(ф.зафікс));
+ok(ф.поки.рядків === ф.до && /Нові, поки ви оформлювали · 4 шт/.test(ф.поки.нові),
+  'нове замовлення (4 шт) — окремим блоком зверху, у зафіксований список не змішалось', JSON.stringify(ф.поки));
+ok(!ф.після.плашка && !ф.після.нові && ф.після.є2000203, '«Оформити замовлення» знімає фіксацію — нове стало в список', JSON.stringify(ф.після));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
