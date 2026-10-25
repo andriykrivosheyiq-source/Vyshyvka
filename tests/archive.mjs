@@ -161,6 +161,8 @@ ok(прох.auto === 0, 'без явного archAuto автоматичний �
 console.log('');
 console.log('═══ 3. СТАРТ ТЯГНЕ ЛИШЕ ЖИВІ ═══');
 const старт = await p.evaluate(async () => {
+  /* 25.10: завантаження = перший знімок підписки; «свіжий старт» — нова підписка. */
+  orders = []; ordersSaved = new Map(); ordersWatching = false; ordersLoaded = false;
   const l = await loadOrders();
   return { n: l.length, nos: l.map(o => o.orderId).sort().join() };
 });

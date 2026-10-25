@@ -60,7 +60,7 @@ fbstub = fbstub.replace('window.firebase={',
 fbstub = fbstub.replace("runTransaction:function(f){ return Promise.resolve(); },",
   "runTransaction:function(f){ window.__TAKEN=window.__TAKEN||{}; window.__RES=window.__RES||[]; var t={ get:function(ref){ var no=ref.__id; var d=window.__TAKEN[no]; return Promise.resolve({ exists:!!d, data:function(){ return d; } }); }, set:function(ref,d){ window.__TAKEN[ref.__id]=d; window.__RES.push(ref.__id); } }; return Promise.resolve(f(t)); },")
   .replace("batch:function(){ return { set:function(){}, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },",
-  "batch:function(){ return { set:function(ref,d){ window.__TAKEN=window.__TAKEN||{}; window.__TAKEN[ref.__id]=d; (window.__SEED=window.__SEED||[]).push(ref.__id); }, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },");
+  "batch:function(){ return { set:function(ref,d){ if(ref.__col && ref.__col!=='orderNos') return; window.__TAKEN=window.__TAKEN||{}; window.__TAKEN[ref.__id]=d; (window.__SEED=window.__SEED||[]).push(ref.__id); }, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },");
 fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
   'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };')
   .replace('Doc.prototype.delete=function(){ return Promise.resolve(); };',
@@ -74,7 +74,7 @@ fbstub = fbstub.replace(
   "    try{ cb(new Snap(this.__id||'x', d)); }catch(e){ console.error(e); } return function(){}; };");
 fbstub = fbstub.replace('var fs=function(){ return { collection:function(){ return new Col(); },',
   'function SeedCol(){}\n' +
-  '  SeedCol.prototype=Object.create(Col.prototype);\n' +
+  '  SeedCol.prototype=Object.create(Col.prototype); SeedCol.prototype.__n="kanbanOrders";\n' +
   '  SeedCol.prototype.onSnapshot=function(cb){ try{ cb({\n' +
   '    docs:window.__ORDERS.map(function(o){ return new Snap(o.id,o); }),\n' +
   '    forEach:function(f){ window.__ORDERS.forEach(function(o){ f(new Snap(o.id,o)); }); },\n' +
