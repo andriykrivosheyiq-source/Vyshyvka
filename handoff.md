@@ -288,6 +288,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Аналітика не висне** (26.10): `load()` — спершу `renderAnAll` +
+  `renderFinAn` з памʼяті; `важка = AN.top === 'site' || 'b2b'`, інакше лише
+  `loadSpend`/`loadFixed` і вихід. `rangeAgg` — `Promise.all` пачками по 10;
+  `renderTg` — відвідувачі пачками по 10 (`vids`). Клік на вкладку
+  site/b2b → `load()` лише коли `AN.heavyKey` (період|сайт) змінився; «Оновити»
+  скидає. `__anMoney()` — лише грошові вкладки; `archLoad().then(__anMoney)`
+  замість повторного `__anOpen`. Тест `tests/an-fast.mjs` (9163).
 - **Позиції картки відділу зливаються по позиції й полю** (26.10, відео
   Паші «натискав три рази»): `PATCH_SUB.units = 'id'`, `arrIdDiff(a, b)` →
   шляхи `<id>` (додано/прибрано), `<id>.<поле>`, `@order`; `subOverlap` у

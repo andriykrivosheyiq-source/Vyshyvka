@@ -8272,32 +8272,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9648378f5a"></script>
-<script src="loomiq-fingerprint.js?v=9648378f5a"></script>
-<script src="loomiq-pricing.js?v=9648378f5a"></script>
+<script src="loomiq-select.js?v=adc543e9a3"></script>
+<script src="loomiq-fingerprint.js?v=adc543e9a3"></script>
+<script src="loomiq-pricing.js?v=adc543e9a3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9648378f5a"></script>
+<script src="loomiq-money-core.js?v=adc543e9a3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9648378f5a"></script>
-<script src="loomiq-mock.js?v=9648378f5a"></script>
+<script src="loomiq-design.js?v=adc543e9a3"></script>
+<script src="loomiq-mock.js?v=adc543e9a3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9648378f5a"></script>
+<script src="imagetracer.js?v=adc543e9a3"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=9648378f5a"></script>
-<script src="loomiq-threads.js?v=9648378f5a"></script>
+<script src="loomiq-chat.js?v=adc543e9a3"></script>
+<script src="loomiq-threads.js?v=adc543e9a3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9648378f5a"></script>
+<script src="loomiq-cards.js?v=adc543e9a3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8342,7 +8342,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9648378f5a';
+var LQ_VER = 'adc543e9a3';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10643,7 +10643,9 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
-    if(view==='analytics' && window.__anOpen){ window.__anOpen(); archLoad().then(n => { if(n && window.__anOpen) window.__anOpen(); }); }
+    /* Архів довантажується тихо; коли приїхав — перемальовуємо лише грошові
+       цифри (`__anMoney`), а не запускаємо весь розділ удруге (26.10). */
+    if(view==='analytics' && window.__anOpen){ window.__anOpen(); archLoad().then(n => { if(n && window.__anMoney) window.__anMoney(); }); }
     if(view==='dash'){ renderDash(); archLoad().then(n => { if(n) renderDash(); }); }
     if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='today') renderToday();
@@ -37492,18 +37494,26 @@ async function init(){
     }
     return sites;
   }
+  /* Дні — пачками по 10 паралельно (26.10): по черзі 60 запитів на
+     «30 днів + попередні 30» і тримали розділ хвилину. */
   async function rangeAgg(days){
     var perDay = {}, A = emptyAgg();
-    for(var i = 0; i < days.length; i++){
-      var sites = await dayData(days[i]);
+    var all = [];
+    for(var i = 0; i < days.length; i += 10){
+      var пачка = days.slice(i, i + 10);
+      var res = await Promise.all(пачка.map(function(d){ return dayData(d).catch(function(e){ console.warn('день', d, e); return {}; }); }));
+      all = all.concat(res);
+    }
+    days.forEach(function(day, i){
+      var sites = all[i];
       var d = emptyAgg();
       Object.keys(sites || {}).forEach(function(k){
         if(AN.site && k !== AN.site) return;
         mergeInto(d, sites[k]);
       });
-      perDay[days[i]] = d;
+      perDay[day] = d;
       mergeInto(A, d);
-    }
+    });
     return { A:A, perDay:perDay };
   }
 
@@ -38089,20 +38099,27 @@ async function init(){
       list.sort(function(a, b){ return String(b.at || '').localeCompare(String(a.at || '')); });
       list = list.slice(0, 60);
 
-      for(var i = 0; i < list.length; i++){
-        var t = list[i], ch = '—', src = '';
-        if(t.vid){
+      /* Відвідувач кожного діалогу — пачками по 10 паралельно (26.10): до 60
+         запитів по черзі тримали розділ. */
+      var vids = {};
+      for(var b0 = 0; b0 < list.length; b0 += 10){
+        await Promise.all(list.slice(b0, b0 + 10).map(async function(t){
+          if(!t.vid || vids[t.vid]) return;
           try{
             var vs = await fbDb.collection('an_sessions').where('vid', '==', t.vid).limit(10).get();
             var docs = [];
             vs.forEach(function(s){ docs.push(s.data() || {}); });
             docs.sort(function(x, y){ return String(x.startAt || '').localeCompare(String(y.startAt || '')); });
-            if(docs.length){
-              var s0 = docs[0].first || docs[0].src;
-              ch = CH_UA[channelOf(s0)] || channelOf(s0);
-              src = srcKey(s0);
-            }
-          }catch(e){ /* немає індексу або доступу — лишаємо прочерк */ }
+            vids[t.vid] = docs;
+          }catch(e){ vids[t.vid] = []; /* немає індексу або доступу — лишаємо прочерк */ }
+        }));
+      }
+      for(var i = 0; i < list.length; i++){
+        var t = list[i], ch = '—', src = '';
+        if(t.vid && (vids[t.vid] || []).length){
+          var s0 = vids[t.vid][0].first || vids[t.vid][0].src;
+          ch = CH_UA[channelOf(s0)] || channelOf(s0);
+          src = srcKey(s0);
         }
         var who = escapeHtml(String(t.name || 'Без імені').slice(0, 40));
         if(t.user) who += ' <span class="an-dim">@' + escapeHtml(String(t.user).slice(0, 32)) + '</span>';
@@ -38569,7 +38586,26 @@ async function init(){
     }, 60000);
     var days = AN.month ? monthDays(AN.month) : dayList(AN.days);
     var prevDays = AN.month ? monthDays(prevMonth(AN.month)) : dayList(AN.days, AN.days);
-    state('Рахуємо за ' + days.length + ' дн…');
+    /* ГРОШІ — ОДРАЗУ, З ПАМʼЯТІ (26.10, Андрій: «аналітика зависає, і потім
+       не розвисає»). «Загальна» й «B2C» рахуються з замовлень і платежів, що
+       вже в памʼяті, — їм не треба чекати ні відвідувань сайту за два
+       періоди, ні всіх КП, ні архіву. Малюємо їх першими, без жодного
+       запиту; відвідування, КП і Telegram тягнемо лише коли відкрита
+       вкладка «Аналітика сайту» чи «B2B». */
+    try{ renderAnAll(days, AN.month, spendIn(days)); }catch(e){ console.warn('загальна', e); }
+    try{ renderFinAn(days, AN.month); }catch(e){ console.warn('B2C', e); }
+    var важка = AN.top === 'site' || AN.top === 'b2b';
+    if(!важка){
+      state('Період: ' + days[0] + ' — ' + days[days.length - 1] + (AN.month ? '' : ' · ' + days.length + ' дн'));
+      /* Витрати на рекламу (один документ) — для «Загальної», тихо. */
+      try{ await loadSpend(); await loadFixed(); renderAnAll(days, AN.month, spendIn(days)); fxFill(); }catch(e){ console.warn('витрати', e); }
+      clearTimeout(stuck);
+      AN.busy = false;
+      if(AN.again){ AN.again = false; load(); return; }
+      anBusy(false);
+      return;
+    }
+    state('Рахуємо відвідування за ' + days.length + ' дн…');
     try{
       await loadSpend();
       await loadFixed();
@@ -38580,6 +38616,7 @@ async function init(){
       var prv = await rangeAgg(prevDays);
       var ords = periodOrders(days), prevOrds = periodOrders(prevDays);
       renderMain.perDay = cur.perDay;
+      AN.heavyKey = (AN.month || ('d' + AN.days)) + '|' + AN.site;
       AN.last = { A: cur.A, prev: prv.A, days: days, ords: ords, perDay: cur.perDay };
       renderMain(cur.A, prv.A, days, ords, prevOrds, prevDays);
       renderChannels(cur.A, days, ords);
@@ -38666,6 +38703,10 @@ async function init(){
     const mScroll = document.querySelector('main');
     if(mScroll) mScroll.scrollTop = 0;
     window.scrollTo({ top:0, behavior:'instant' });
+    /* Блок відкрили, а відвідування за цей період ще не рахували (26.10) —
+       довантажуємо тут же. */
+    var ключ = (AN.month || ('d' + AN.days)) + '|' + AN.site;
+    if(AN.heavyKey !== ключ){ AN.top = (AN.top === 'site' || AN.top === 'b2b') ? AN.top : 'b2b'; AN.heavyKey = ключ; showPanes(); load(); }
   }, false);
 
   /* ВКЛАДКИ: Загальна і B2C — по одній панелі; B2B і сайт мають свої блоки. */
@@ -38698,13 +38739,17 @@ async function init(){
       if(TOP_FIRST[AN.top] && (!blk || blk.dataset.top !== AN.top)) AN.block = TOP_FIRST[AN.top];
       showPanes();
       window.scrollTo({ top:0, behavior:'instant' });
+      /* Відвідування сайту, КП і Telegram — лише коли їх відкрили, і раз на
+         період: вдруге той самий період не перераховуємо. */
+      var ключ = (AN.month || ('d' + AN.days)) + '|' + AN.site;
+      if((AN.top === 'site' || AN.top === 'b2b') && AN.heavyKey !== ключ){ AN.heavyKey = ключ; load(); }
     });
   });
   showPanes();
 
   var rl = document.getElementById('an-reload');
   if(rl) rl.addEventListener('click', function(){
-    AN.cache = {}; AN.spend = null; AN.fixed = null; load(); });
+    AN.cache = {}; AN.spend = null; AN.fixed = null; AN.heavyKey = ''; load(); });
 
   /* Звіт живе на екрані, а розібратись у ньому часто треба не тут: переслати
      таргетологу, порівняти з минулим тижнем, показати комусь. Тому цифри
@@ -38912,6 +38957,12 @@ async function init(){
     if(fm && !fm.value) fm.value = today().slice(0, 7);
     AN.opened = true;
     load();
+  };
+  /* Лише грошові вкладки з памʼяті — без запитів (архів приїхав, платежі оновились). */
+  window.__anMoney = function(){
+    var days = AN.month ? monthDays(AN.month) : dayList(AN.days);
+    try{ renderAnAll(days, AN.month, spendIn(days)); }catch(e){ console.warn('загальна', e); }
+    try{ renderFinAn(days, AN.month); }catch(e){ console.warn('B2C', e); }
   };
 
   /* Канбану теж треба знати канал, щоб підписати картку «звідки цей клієнт».

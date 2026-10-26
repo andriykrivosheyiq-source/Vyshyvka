@@ -81,6 +81,10 @@ await p.route('**://**', r => {
 await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await p.waitForTimeout(5000);
 await p.click('[data-view="analytics"]');
+await p.waitForTimeout(800);
+/* Воронка — у «Аналітиці сайту»: з 26.10 відвідування тягнуться лише там
+   (на «Загальній» гроші показуються одразу, без них). */
+await p.click('#an-tabs [data-an-top="site"]');
 await p.waitForTimeout(2500);
 await p.click('#an-period [data-d="30"]');
 await p.waitForTimeout(3500);
