@@ -184,7 +184,7 @@ const c1 = await p.evaluate(() => {
   const рез = D.prodApprove(o, 'test@loomiq');
   return { без, рез, at: D.prodAt(designJobs['2000777'], o) };
 });
-ok(c1.без === 'no-ttn' && c1.рез === 'ok' && c1.at === 'ship', 'без ТТН і без «за кордон» — «no-ttn»; за кордон — погоджено, колонка «Можна відправляти»', JSON.stringify(c1));
+ok(c1.без === 'ok' && c1.рез === 'ok' && c1.at === 'ship', 'без ТТН погодити можна (26.10, «ТТН ще немає»); за кордон — погоджено, колонка «Можна відправляти»', JSON.stringify(c1));
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.render(document.getElementById('dzRoot')); U.open('2000777'); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(500);
 const c2 = await p.evaluate(() => {

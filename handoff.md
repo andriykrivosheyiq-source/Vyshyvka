@@ -234,6 +234,16 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   як і тексти), `qpPanelHtml`: папки, «＋» біля папки / «＋ Нова папка»
   (`shrinkImage` → `uploadCloudinary`), «Кому» (обом / B2C / B2B), ✕ — прибрати.
   Клік — `chatTake` (картинка в смужці відправки, як 📎). Тест `chat-extras` §3.
+- **Фото цеху й погодження** (26.10): `loomiq-design.js` — `orderApply(o, fn,
+  okFn)` → `host.orderApply(id, fn, okFn)` (адмінка: до 3 спроб fn → `touchOrder`
+  → `saveOrders({quiet})` → `okFn(JSON з ordersSaved)`); `prodModal` «done»:
+  `photoSmall` (2000 px, JPEG 0.85), `photoUp` (3 спроби), невдале — `is-err`
+  з `data-pm-retry`; «Надіслати» — `D.prodReady(x, me, urls, note, штамп)`
+  (ідемпотентне за `at`), вікно закривається лише після запису. `prodApprove`
+  більше не вимагає ТТН: `prodQc.ok.noTtn`, `D.shipNeedsTtn(o)`; кнопка
+  «✓ Погоджено менеджером» (`prod-ok` теж через `orderApply`); «ТТН ще немає»
+  — `.dz-no-ttn` у картці й `⚠` у підписі плитки; `regMake` без ТТН не бере.
+  Тест `tests/prod-photos.mjs`.
 - **Дата відправки для цеху** (25.10): одна дата — `job.due` (кнопка
   «📅 Відправити», раніше «Готово»; `U.dueHtml`). `workDays(v)` — робочі дні
   від завтра до дати; `shipInfo(job, at)` → `{soon (≤3), late, txt, title}`,

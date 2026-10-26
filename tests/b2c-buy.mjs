@@ -784,7 +784,8 @@ const цехПотік = await p.evaluate(async () => {
   out.погодж = D.prodAt(j, o); out.фото = ((o.prodQc || {}).photos || []).length;
   // акаунт: без ТТН «Погодити» неактивна; з ТТН — «Можна відправляти»
   U.setTab('acct'); U.open(o.orderId); U.render(document.getElementById('dzRoot'));
-  out.безТТН = !!document.querySelector('#dzPanel [data-do="prod-ok"][disabled]');
+  /* 26.10: погодити можна й без ТТН — кнопка активна, поруч «Створити ТТН». */
+  out.безТТН = !document.querySelector('#dzPanel [data-do="prod-ok"][disabled]') && !!document.querySelector('#dzPanel [data-do="ship"]');
   o.ttn = '20450000000001';
   U.render(document.getElementById('dzRoot'));
   document.querySelector('#dzPanel [data-do="prod-ok"]').click();
@@ -819,7 +820,7 @@ ok(цехПотік.тягнеться && цехПотік.підсвітка &&
 ok(цехПотік.телеграм && цехПотік.телеграм.n >= 1 && /Замовлення #\d/.test(цехПотік.телеграм.cap),
   'на станках — виробнича карта сама пішла в Telegram цеху', 'telegram: ' + JSON.stringify(цехПотік.телеграм));
 ok(цехПотік.погодж === 'appr' && цехПотік.фото === 2, '«Готово — фото» (2 фото) → «Чекає погодження»', JSON.stringify(цехПотік));
-ok(цехПотік.безТТН && цехПотік.можна === 'ship', 'без ТТН погодити не можна; з ТТН — «Можна відправляти»', JSON.stringify(цехПотік));
+ok(цехПотік.безТТН && цехПотік.можна === 'ship', '«✓ Погоджено менеджером» активна й без ТТН (поруч «Створити ТТН»); погодили — «Можна відправляти»', JSON.stringify(цехПотік));
 ok(цехПотік.передрук === 'redo' && цехПотік.запис && цехПотік.запис.blame === 'stitch' && цехПотік.запис.from === 'appr' &&
    цехПотік.редо === 1 && цехПотік.правки.length && цехПотік.правки.every(x => x === 'revision') &&
    !цехПотік.правкиГ.some(x => x === 'revision'),
@@ -898,7 +899,7 @@ const дост = await p.evaluate(async () => {
   pm.querySelector('[data-pm-go]').click(); await wait(500);
   out.переробка = D.prodAt(j, o); out.стара = o.shipOld; out.npСкинуто = !o.npSt && !o.reg;
   o.tracks.qc = 'check'; o.prodQc = { photos:['y'] };
-  out.стараТТН = D.prodApprove(o, 'test@loomiq');
+  out.стараТТН = D.prodApprove(o, 'test@loomiq') + (o.prodQc.ok && o.prodQc.ok.noTtn ? ':noTtn' : '');
   return out;
 });
 console.log('  ' + JSON.stringify(дост));
@@ -919,8 +920,8 @@ ok(дост.етапВідмова === 'Відмова · Не забрав з �
 ok(дост.відмова === 'refused' && /prod-redo/.test(дост.кнопки) && /loss-comp/.test(дост.кнопки) && /loss-full/.test(дост.кнопки),
   'на «Відмові» — Переробка, Компенсація, Повна відмова', дост.кнопки);
 ok(/comp:300/.test(дост.збитки) && /refuse:\d+/.test(дост.збитки), 'компенсація й повна відмова — у збитки', дост.збитки);
-ok(дост.безКольору && дост.переробка === 'redo' && дост.стара === '20450000000001' && дост.npСкинуто && дост.стараТТН === 'old-ttn',
-  'переробка після відмови → «Передрук»; стара доставка скинута, погодити зі старою ТТН не можна', JSON.stringify(дост));
+ok(дост.безКольору && дост.переробка === 'redo' && дост.стара === '20450000000001' && дост.npСкинуто && дост.стараТТН === 'ok:noTtn',
+  'переробка після відмови → «Передрук»; стара доставка скинута; погодити можна, але стара ТТН — «ТТН ще немає»', JSON.stringify(дост));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

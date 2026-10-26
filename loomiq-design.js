@@ -1560,21 +1560,31 @@
     return (r && r.open) ? r : null;
   }
   /* «Готово» на станках: фото й коментар → «Чекає погодження». */
-  function prodReady(o, by, photos, note){
+  function prodReady(o, by, photos, note, at){
     var ph = (photos || []).filter(Boolean).map(String);
     if(!o || !ph.length) return null;
-    o.prodQc = { photos: ph.slice(0, 40), note: String(note || '').slice(0, 2000), at: nowIso(), by: String(by || '') };
+    /* Той самий запис удруге (повтор після відхиленого запису) — не дублюємо. */
+    if(at && o.prodQc && o.prodQc.at === at) return o.prodQc;
+    o.prodQc = { photos: ph.slice(0, 40), note: String(note || '').slice(0, 2000), at: at || nowIso(), by: String(by || '') };
     prodTrack(o, 'prod', 'done', by);
     prodTrack(o, 'qc', 'check', by);
     return o.prodQc;
   }
-  /* Погодити може лише замовлення з ТТН: без накладної «можна відправляти»
-     — неправда (Володимир: «обовʼязково повинен створити ТТН»). */
+  /* ПОГОДЖЕНО МЕНЕДЖЕРОМ — І БЕЗ ТТН (26.10, Андрій: «не можемо нормально
+     функціонувати без погодження фото… додати кнопку менеджером погоджено»).
+     Доти без накладної погодити не давали (Володимир, 07.10) — і менеджер,
+     погодивши з клієнтом, не міг цього зафіксувати. Тепер погоджує одразу;
+     ТТН немає (чи вона стара, до переробки) — картка в «Можна відправляти»
+     з червоним «ТТН ще немає», а в реєстр без накладної вона не піде. */
+  function shipNeedsTtn(o){
+    if(!o) return true;
+    if(!shipKnown(o)) return true;
+    return !!(o.shipOld && String(o.ttn || '').trim() && String(o.ttn) === o.shipOld);
+  }
   function prodApprove(o, by){
     if(!o || !o.prodQc) return 'no-photos';
-    if(!shipKnown(o)) return 'no-ttn';
-    if(o.shipOld && String(o.ttn || '').trim() && String(o.ttn) === o.shipOld) return 'old-ttn';
     o.prodQc.ok = { at: nowIso(), by: String(by || '') };
+    if(shipNeedsTtn(o)) o.prodQc.ok.noTtn = true;
     prodTrack(o, 'qc', 'ok', by);
     return 'ok';
   }
@@ -2972,7 +2982,7 @@
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
-    PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove,
+    PROD: PROD, prodAt: prodAt, shipAbroad: shipAbroad, shipKnown: shipKnown, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
@@ -8916,9 +8926,9 @@
           ? '<div class="dz-ship-set">' + U.dueHtml(job) +
               '<i>цех побачить «виготовити й відправити» за 3 робочі дні</i></div>' +
             '<div class="dz-prod-acts">' +
-              (D.shipKnown(o) ? '' : '<div class="dz-miss">Без ТТН погодити не можна — спершу створіть накладну.</div>' +
-                '<button type="button" class="dz-b" data-do="ship">Створити ТТН</button>') +
-              '<button type="button" class="dz-b pri" data-do="prod-ok"' + (D.shipKnown(o) ? '' : ' disabled') + '>Погодити</button>' +
+              '<button type="button" class="dz-b pri" data-do="prod-ok">✓ Погоджено менеджером</button>' +
+              (D.shipNeedsTtn(o) ? '<button type="button" class="dz-b" data-do="ship">Створити ТТН</button>' +
+                '<div class="dz-miss is-calm">Погодити можна й без ТТН — цех побачить «ТТН ще немає», у реєстр без накладної посилка не піде.</div>' : '') +
               '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo" data-from="appr">Не погоджено — передрук</button></div>'
           : '<div class="dz-miss is-calm">Фото пішли акаунт-менеджеру на погодження.</div>');
     } else if(['ship', 'reg', 'courier', 'way', 'arrived', 'stuck', 'done', 'refused'].indexOf(at) >= 0){
@@ -8930,6 +8940,11 @@
             : 'ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>')) +
           (o.reg && o.reg.no ? ' · реєстр №' + esc(o.reg.no) : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
+        /* Погоджено без ТТН (26.10) — червоним, поки накладної немає. */
+        (at === 'ship' && !D.shipAbroad(o) && D.shipNeedsTtn(o)
+          ? '<div class="dz-miss dz-no-ttn">ТТН ще немає — створіть накладну' + (as === 'acct' ? '' : ' (менеджер)') + '</div>' +
+            (as === 'acct' ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="ship">Створити ТТН</button></div>' : '')
+          : '') +
         (at === 'ship' && as === 'prod' ? (D.shipAbroad(o) && !o.ttn
             ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-abroad-sent">✈ Відправлено за кордон</button></div>'
             : '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>') : '') +
@@ -8947,6 +8962,47 @@
     return U.zoneHtml('amber', at === 'redo' ? '🔁' : '⚙', head, '', body);
   }
   /* ── Вікно: «Готово» (фото + коментар) і «Передрук» ─────────────────── */
+  /* Зміна картки, яка МАЄ лягти (26.10): робоче місце повторює запис на
+     свіжій версії й каже, чи лягло. Без нього (тести) — як доти. */
+  async function orderApply(o, fn, okFn){
+    if(host().orderApply) return !!(await host().orderApply(o.id, fn, okFn));
+    fn(o);
+    try{ if(host().orderSave) await host().orderSave(o); }catch(e){ return false; }
+    return !!okFn(o);
+  }
+  /* ФОТО З ТЕЛЕФОНА (26.10): 12–48 Мп по 3–10 МБ на 4G не вкладались у
+     хвилину й мовчки зникали з вікна. Зменшуємо до 2000 px (JPEG 0.85) —
+     для погодження вистачає з запасом. Не вийшло зменшити — як є. */
+  function photoSmall(f){
+    return new Promise(function(res){
+      try{
+        var u = URL.createObjectURL(f), im = new Image();
+        im.onload = function(){
+          URL.revokeObjectURL(u);
+          var W = im.naturalWidth || 1, H = im.naturalHeight || 1, k = Math.min(1, 2000 / Math.max(W, H));
+          if(k >= 1 && (f.size || 0) < 1500000) return res(f);
+          var c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
+          c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+          c.toBlob(function(b){
+            c.width = c.height = 0;
+            if(!b) return res(f);
+            var name = String(f.name || 'фото').replace(/\.\w+$/, '') + '.jpg';
+            res(typeof File === 'function' ? new File([b], name, { type:'image/jpeg' }) : b);
+          }, 'image/jpeg', 0.85);
+        };
+        im.onerror = function(){ URL.revokeObjectURL(u); res(f); };
+        im.src = u;
+      }catch(e){ res(f); }
+    });
+  }
+  async function photoUp(f){
+    var small = await photoSmall(f), err = null;
+    for(var i = 0; i < 3; i++){
+      try{ var u = await host().upload(small); if(u) return u; }catch(e){ err = e; }
+      await new Promise(function(r){ setTimeout(r, 1500 * (i + 1)); });
+    }
+    throw err || new Error('не завантажилось');
+  }
   function prodModal(kind, job, o, from){
     var old = document.getElementById('dzProdModal');
     if(old) old.remove();
@@ -8983,17 +9039,22 @@
     var пік = m.querySelector('[data-pm-pics]');
     var малюй = function(){
       пік.innerHTML = ph.map(function(p, i){
-        return '<span class="dz-pic"><img src="' + esc(p.url || p.prev) + '" alt="">' +
-          (p.url ? '' : '<i class="dz-pm-w8">…</i>') +
+        return '<span class="dz-pic' + (p.err ? ' is-err' : '') + '"><img src="' + esc(p.url || p.prev) + '" alt="">' +
+          (p.url ? '' : p.err ? '<button type="button" class="dz-pm-retry" data-pm-retry="' + i + '" title="Не завантажилось — ще раз">↻ ще раз</button>'
+                              : '<i class="dz-pm-w8">…</i>') +
           '<button type="button" class="dz-pic-x" data-pm-del="' + i + '">×</button></span>'; }).join('');
+    };
+    /* Фото не зникає мовчки (26.10): не завантажилось — лишається з «↻ ще раз». */
+    var вантаж = function(it){
+      it.err = false; малюй();
+      photoUp(it.file).then(function(u){ it.url = u; малюй(); },
+        function(){ it.err = true; малюй(); say('Фото не завантажилось — натисніть «↻ ще раз» на ньому'); });
     };
     var додай = function(files){
       Array.prototype.forEach.call(files || [], function(f){
         if(!f || !/^image\//.test(f.type || '')) return;
-        var it = { prev: URL.createObjectURL(f), url: '' };
-        ph.push(it); малюй();
-        Promise.resolve(host().upload(f)).then(function(u){ it.url = u || ''; if(!u) ph.splice(ph.indexOf(it), 1); малюй(); },
-          function(){ ph.splice(ph.indexOf(it), 1); малюй(); say('Фото не завантажилось'); });
+        var it = { prev: URL.createObjectURL(f), url: '', file: f, err: false };
+        ph.push(it); вантаж(it);
       });
     };
     m.querySelector('[data-pm-file]').onchange = function(e){ додай(e.target.files); e.target.value = ''; };
@@ -9010,7 +9071,10 @@
       if(t.closest('[data-pm-x]') || t === m) return close();
       var del = t.closest('[data-pm-del]');
       if(del){ ph.splice(+del.dataset.pmDel, 1); return малюй(); }
+      var rt = t.closest('[data-pm-retry]');
+      if(rt){ var itR = ph[+rt.dataset.pmRetry]; if(itR) вантаж(itR); return; }
       if(!t.closest('[data-pm-go]')) return;
+      if(ph.some(function(p){ return p.err; })) return say('Є фото, що не завантажились — «↻ ще раз» або приберіть їх');
       if(ph.some(function(p){ return !p.url; })) return say('Зачекайте — фото ще завантажуються');
       var urls = ph.map(function(p){ return p.url; });
       var note = String(m.querySelector('[data-pm-note]').value || '').trim();
@@ -9027,9 +9091,21 @@
         return save(job, o, 'Передрук записано · одяг — у закупника з позначкою «передрук»');
       }
       if(!urls.length) return say('Додайте хоча б одне фото');
-      D.prodReady(o, me, urls, note);
+      /* Вікно не закриваємо, доки фото й статус справді не лягли в базу. */
+      var goB = m.querySelector('[data-pm-go]');
+      if(goB.disabled) return;
+      goB.disabled = true; goB.textContent = 'Надсилаю…';
+      var штамп = new Date().toISOString();
+      var лягло = await orderApply(o, function(x){ D.prodReady(x, me, urls, note, штамп); },
+        function(x){ return !!(x && x.prodQc && x.prodQc.at === штамп); });
+      if(!лягло){
+        goB.disabled = false; goB.textContent = 'Надіслати на погодження';
+        return say('Не надіслалось — перевірте інтернет і натисніть ще раз. Фото збережені у вікні');
+      }
       close();
-      return save(job, o, 'Надіслано на погодження акаунт-менеджеру');
+      render(document.getElementById('dzRoot'));
+      if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+      return say('Надіслано на погодження акаунт-менеджеру');
     });
   }
   /* ── Реєстри Нової пошти (07.10) ──────────────────────────────────────
@@ -9037,8 +9113,12 @@
      картки самі йдуть у «Передано курʼєру». Реєстр при замовленні (o.reg);
      окремого довідника немає — список збираємо із замовлень. */
   async function regMake(root){
-    var там = U.pairsLive().filter(function(p){ return D.prodAt(p.job, p.o) === 'reg'; });
-    if(!там.length) return say('У колонці «Реєстр» порожньо — перетягніть сюди посилки з ТТН');
+    var всіР = U.pairsLive().filter(function(p){ return D.prodAt(p.job, p.o) === 'reg'; });
+    /* Без ТТН (погоджено без накладної, 26.10) у реєстр не йде — кажемо, хто. */
+    var безТТН = всіР.filter(function(p){ return D.shipNeedsTtn(p.o) || !String(p.o.ttn || '').trim(); });
+    var там = всіР.filter(function(p){ return безТТН.indexOf(p) < 0; });
+    if(!там.length) return say(безТТН.length ? 'У «Реєстр» лише посилки без ТТН: ' + безТТН.map(function(p){ return U.jobNo(p.job); }).join(', ') + ' — спершу створіть накладні'
+                                             : 'У колонці «Реєстр» порожньо — перетягніть сюди посилки з ТТН');
     if(!host().npRegistry) return say('Реєстр Нової пошти недоступний');
     var групи = {};
     там.forEach(function(p){ var k = String(p.o.ttnSender || ''); (групи[k] = групи[k] || []).push(p); });
@@ -9047,7 +9127,7 @@
       (Object.keys(групи).length > 1 ? ', ' + Object.keys(групи).length + ' відправники — у кожного свій' : '') + '?'); }catch(e){}
     if(!ок) return;
     say('Створюю реєстр…');
-    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = [], номери = [];
+    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = безТТН.map(function(p){ return U.jobNo(p.job) + ' (немає ТТН)'; }), номери = [];
     for(var k in групи){
       var r;
       try{ r = await host().npRegistry(k, групи[k].map(function(p){ return { ttn: String(p.o.ttn || ''), ref: String(p.o.ttnRef || '') }; })); }
@@ -9331,6 +9411,7 @@
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: (D.reprintOpen(p.o) ? '🔁 передрук · ' : '') +
+              (крокП === 'ship' && !D.shipAbroad(p.o) && D.shipNeedsTtn(p.o) ? '⚠ ТТН ще немає · ' : '') +
               (r.foot || (r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || ''))) };
     });
   }
@@ -12189,11 +12270,14 @@
     if(what === 'prod-redo') return prodModal('redo', job, o,
       (data && data.from) === 'appr' ? 'appr' : (data && data.from) === 'after' ? 'after' : 'run');
     if(what === 'prod-ok'){
-      var рез = D.prodApprove(o, m);
-      if(рез === 'no-ttn') return say('Спершу створіть ТТН — без неї погодити не можна');
-      if(рез === 'old-ttn') return say('Це ТТН до переробки — створіть нову накладну');
-      if(рез !== 'ok') return say('Немає фото від цеху');
-      return save(job, o, 'Погоджено — цех бачить «Можна відправляти»');
+      if(!o.prodQc) return say('Немає фото від цеху');
+      var безТ = D.shipNeedsTtn(o) && !D.shipAbroad(o);
+      var штампП = new Date().toISOString();
+      var готовоП = await orderApply(o, function(x){ if(!(x.prodQc && x.prodQc.ok && x.prodQc.ok.at === штампП)){ D.prodApprove(x, m); x.prodQc.ok.at = штампП; } },
+        function(x){ return !!(x && x.prodQc && x.prodQc.ok && x.prodQc.ok.at === штампП); });
+      if(!готовоП) return say('Погодження не записалось — перевірте інтернет і натисніть ще раз');
+      render(root);
+      return say('Погоджено — цех бачить «Можна відправляти»' + (безТ ? ' · ТТН ще немає — створіть накладну' : ''));
     }
     if(what === 'prod-tg') return prodToTelegram(job, o, false);
     /* ── Відмова: компенсація чи повна відмова — у збитки (07.10) ── */

@@ -5140,6 +5140,11 @@
   /* Взяти зі складу — поруч зі станом одягу (25.10). */
   .dz-cloth-take{margin-left:8px;padding:3px 10px;font-size:12px;}
   /* Дата відправки (25.10): у шапці картки цеху і в «Чекає погодження». */
+  /* Фото цеху (26.10): не завантажилось — червона рамка й «↻ ще раз». */
+  .dz-pic.is-err img{outline:2px solid #DC2626;opacity:.6;}
+  .dz-pm-retry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:3px 8px;border-radius:999px;border:0;
+    background:#DC2626;color:#fff;font:600 11.5px/1.2 inherit;cursor:pointer;}
+  .dz-no-ttn{color:#B42318;border-color:#FECACA;background:#FEF2F2;font-weight:600;}
   .dz-ship-due{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;
     background:#F4F5F7;color:var(--ink-soft);border:1px solid var(--line);}
   .dz-ship-due.soon{background:#FFFBEB;color:#B45309;border-color:#FDE68A;}
@@ -8145,32 +8150,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=040c3e968f"></script>
-<script src="loomiq-fingerprint.js?v=040c3e968f"></script>
-<script src="loomiq-pricing.js?v=040c3e968f"></script>
+<script src="loomiq-select.js?v=0429c771be"></script>
+<script src="loomiq-fingerprint.js?v=0429c771be"></script>
+<script src="loomiq-pricing.js?v=0429c771be"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=040c3e968f"></script>
+<script src="loomiq-money-core.js?v=0429c771be"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=040c3e968f"></script>
-<script src="loomiq-mock.js?v=040c3e968f"></script>
+<script src="loomiq-design.js?v=0429c771be"></script>
+<script src="loomiq-mock.js?v=0429c771be"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=040c3e968f"></script>
+<script src="imagetracer.js?v=0429c771be"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=040c3e968f"></script>
-<script src="loomiq-threads.js?v=040c3e968f"></script>
+<script src="loomiq-chat.js?v=0429c771be"></script>
+<script src="loomiq-threads.js?v=0429c771be"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=040c3e968f"></script>
+<script src="loomiq-cards.js?v=0429c771be"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8215,7 +8220,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '040c3e968f';
+var LQ_VER = '0429c771be';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -30892,6 +30897,27 @@ function designHostInit(){
     /* Лише замовлення (24.10): трек одягу після дії закупника не має
        залежати від того, чи прийме база картку відділу. */
     orderSave: async o => { touchOrder(o); await storeSet('orders', orders); },
+    /* ЗМІНА КАРТКИ З ПЕРЕВІРКОЮ, ЩО ВОНА ЛЯГЛА (26.10, «фото з цеху не дійшли
+       до акаунтів»). Доти «Надіслати на погодження» писало картку й мовчки
+       ковтало відмову: її щойно змінили з іншого пристрою — запис
+       відхилено, у памʼять — свіжа версія без фото, а цех бачив «Надіслано».
+       Тепер: застосували зміну → saveOrders → дивимось, чи в записаному є
+       наша мітка (okFn). Немає — повторюємо на свіжій версії (до 3 разів).
+       Пишемо лише через saveOrders — правило «не в обхід» тримається. */
+    orderApply: async (id, fn, okFn) => {
+      for(let i = 0; i < 3; i++){
+        const o = (orders || []).find(x => x && x.id === id);
+        if(!o || dbLinkDead()) return false;
+        try{ fn(o); }catch(e){ console.warn('зміна картки', e); return false; }
+        touchOrder(o);
+        try{ await saveOrders({ quiet: true }); }catch(e){ console.warn('запис картки', e); }
+        let saved = null;
+        try{ saved = JSON.parse(ordersSaved.get(id) || 'null'); }catch(e){}
+        if(saved && okFn(saved)) return true;
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      return false;
+    },
     buySave: async b => {
       if(!b || !b.id) return;
       designBuys[b.id] = b;
