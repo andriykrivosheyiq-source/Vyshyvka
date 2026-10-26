@@ -288,6 +288,19 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Sitniks через кеш воркера** (26.10, Володимир: «Sitniks обмежив
+  запити»): `worker/sitniks-proxy.js` — `cachedGet`: `TTL` {chats 20, messages 5,
+  other 10} с, `inflight` (склейка однакових), `cachePut/cacheGet` (памʼять
+  `mem` ≤500 + `caches.default`), при 429/5xx копія до `STALE_S` 600 с з
+  `X-Loomiq-Stale: 1`/`X-Loomiq-Upstream`; `X-Loomiq-Fresh: 1` — повз кеш;
+  POST у `/messages` → `cacheDel` (усі `?page=`). CORS: allow `X-Loomiq-Fresh`,
+  expose `Retry-After, X-Loomiq-*`. Адмінка (`loomiq-chat.js`, LQ_CHAT=1):
+  `crmFreshUntil`/`crmFreshNow()` після вдалого POST (`CRM_FRESH_MS` 8 с) →
+  заголовок у `crmFetch` на GET; `crmChatsAll` сторінки 2–3 лише коли
+  `Date.now() - crmPagesAt ≥ CRM_PAGES_MS` (5 хв). Тести:
+  `tests/sitniks-cache.mjs` (node, без браузера), `chat-guard.mjs` §14.
+  **Перерозгорнути `loomiq-sitniks`** (Cloudflare → Edit code → вміст
+  `worker/sitniks-proxy.js` → Deploy; секрети не чіпати).
 - **Аналітика не висне** (26.10): `load()` — спершу `renderAnAll` +
   `renderFinAn` з памʼяті; `важка = AN.top === 'site' || 'b2b'`, інакше лише
   `loadSpend`/`loadFixed` і вихід. `rangeAgg` — `Promise.all` пачками по 10;

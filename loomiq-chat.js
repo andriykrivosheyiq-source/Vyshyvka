@@ -186,10 +186,22 @@ function crmBase(){
 let crmCoolUntil = 0, crmCoolWhy = '';
 function crmCooling(){ return crmCoolUntil > Date.now() ? crmCoolUntil - Date.now() : 0; }
 function crmCool(ms, why){ crmCoolUntil = Math.max(crmCoolUntil, Date.now() + ms); crmCoolWhy = why || ''; }
+/* КЕШ ВОРКЕРА (26.10, Володимир: «Sitniks обмежив запити»). Воркер віддає
+   читання з копії (стрічка — 5 с, список чатів — 20 с), тож скільки б
+   вкладок не питало, у Sitniks іде один запит. Після НАШОЇ відправки стрічку
+   треба бачити одразу, а не через 5 с: `CRM_FRESH_MS` після вдалого POST
+   кожне читання несе `X-Loomiq-Fresh: 1` — воркер іде в Sitniks і оновлює
+   копію. Відповідь із копією на час відмови Sitniks (`X-Loomiq-Stale: 1`)
+   беремо як є — це краще, ніж хвилина паузи. */
+const CRM_FRESH_MS = 8000;
+let crmFreshUntil = 0;
+function crmFreshNow(){ crmFreshUntil = Date.now() + CRM_FRESH_MS; }
 async function crmFetch(path, options){
   const base = crmBase();
   if(!base) throw new Error('Адресу воркера Sitniks не задано (Конструктор сайту → Sitniks CRM)');
   const opt = Object.assign({}, options || {});
+  const читання = !opt.method || opt.method === 'GET';
+  if(читання && crmFreshUntil > Date.now()) opt.headers = Object.assign({ 'X-Loomiq-Fresh': '1' }, opt.headers || {});
   /* Файл їде формою, і заголовок їй ставить САМ браузер: у ньому межа
      частин (`boundary=...`), якої ми не знаємо. Написавши тут свій
      `application/json`, ми б цю межу стерли — і вкладення перетворилось
@@ -1860,6 +1872,7 @@ async function crmSendPic(o, url, blob, local){
     }
     if(!ok) continue;
     crmPicLog.push(w.id + ' → ПРИЙНЯВ');
+    crmFreshNow();
     /* Не той, що перевірений, — у журнал, але НЕ запамʼятовуємо. */
     if(w.id !== known) console.warn('Sitniks: фото прийняв запасний спосіб ' + w.id + ' — перевірте, чи дійшло клієнту');
     /* Чим упізнати цю картинку в стрічці: відповідь тримає номер
@@ -1988,6 +2001,7 @@ async function crmSend(o, text, again){
     });
     x.state = 'sent'; x.sentAt = new Date().toISOString();
     crmSent.add(t);
+    crmFreshNow();               // найближчі читання — повз копію воркера
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
     /* Хто відповів і скільки клієнт чекав — до того, як кружечок згасне. */
     try{
@@ -2247,10 +2261,17 @@ function crmChatsPageQ(nx, n, got){
   return '/chats?' + q.join('&');
 }
 const crmRowId = r => String((r && (r.chatId || r.chat_id || r.id)) || '');
+/* Сторінки 2–3 списку — не щообходу (30 с), а раз на `CRM_PAGES_MS`: нові
+   розмови й так спливають на першій сторінці, а глибші сторінки — це ще два
+   запити в Sitniks кожні пів хвилини з кожної вкладки (26.10). */
+const CRM_PAGES_MS = 5 * 60000;
+let crmPagesAt = 0;
 async function crmChatsAll(){
   const rows = await crmChatsList();
   crmSweepPages = 1;
   if(rows.length < 10 || crmChatsNext === '-') return rows;
+  if(Date.now() - crmPagesAt < CRM_PAGES_MS) return rows;
+  crmPagesAt = Date.now();
   const ids = new Set(rows.map(crmRowId));
   const add = l => { let n = 0; l.forEach(r => { const id = crmRowId(r); if(id && !ids.has(id)){ ids.add(id); rows.push(r); n++; } }); return n; };
   const ways = crmChatsNext ? [crmChatsNext] : CRM_CHATS_NEXT;
