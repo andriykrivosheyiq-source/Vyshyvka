@@ -6167,6 +6167,85 @@
        замовлення в Канбані: один рівень на екран. */
     .dz-panel{width:100%;max-height:none;}
     .dz-col{flex:0 0 min(84vw,300px);width:min(84vw,300px);max-width:min(84vw,300px);}
+    /* Дошка гортається всередині себе, а не розпирає сторінку (26.10):
+       у стовпчику `align-items:flex-start` давав їй ширину всіх колонок, і
+       телефон зменшував усю сторінку до дрібного «компʼютерного» вигляду. */
+    .dz-wrap{align-items:stretch;}
+    .dz-boards{width:100%;max-width:100%;}
+  }
+  /* Вкладки колонок — лише на телефоні. */
+  .dz-ctabs{display:none;}
+  /* Вікно фото цеху (26.10): стан під фото, ✓ на завантаженому, крутилка. */
+  .dz-pm-adds{display:flex;gap:8px;flex-wrap:wrap;}
+  .dz-pm-adds .dz-pm-add{align-self:auto;}
+  .dz-pm-st{font-size:12px;font-weight:600;color:var(--ink-soft);min-height:0;}
+  .dz-pm-st.is-ok{color:#067647;} .dz-pm-st.is-w8{color:#B54708;} .dz-pm-st.is-err{color:#B42318;}
+  .dz-pm-ok{position:absolute;left:4px;bottom:4px;width:18px;height:18px;border-radius:9px;background:#12B76A;
+    color:#fff;font:700 11px/18px system-ui,sans-serif;font-style:normal;text-align:center;pointer-events:none;}
+  .dz-pm-spin{width:20px;height:20px;border-radius:50%;border:3px solid rgba(15,23,42,.18);border-top-color:#0F172A;
+    animation:dzspin .8s linear infinite;display:block;}
+  @keyframes dzspin{to{transform:rotate(360deg);}}
+  .dz-pm .dz-pic img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;}
+  /* Те, що лише для пальця (камера), і те, що лише для мишки (Ctrl+V). */
+  .dz-on-touch{display:none !important;}
+  @media (max-width:760px), (hover:none) and (pointer:coarse){
+    .dz-on-touch{display:inline-flex !important;}
+    span.dz-on-touch{display:inline !important;}
+    .dz-on-mouse{display:none !important;}
+  }
+  /* Закріплена дія цеху й «що шиємо» на плитці — лише на телефоні. */
+  .dz-mbar{display:none;}
+  .dz-card .dz-c-mwhat{display:none;}
+  /* ТЕЛЕФОН (26.10): одна колонка на екран, вкладки колонок зверху,
+     плитки на всю ширину. */
+  @media (max-width:760px){
+    .dz-top{flex-wrap:wrap;gap:8px;}
+    .dz-top .dz-seek{order:9;flex:1 1 100%;}
+    .dz-top .dz-seek input{font-size:16px;padding:10px 0;}
+    .dz-top .dz-as{margin-left:0;}
+    .dz-ctabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;margin:0 0 4px;
+      scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    .dz-ctabs::-webkit-scrollbar{display:none;}
+    .dz-ctab{flex:none;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13.5px;
+      font-weight:700;color:var(--ink-soft);background:#fff;border:1px solid var(--line);
+      border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap;}
+    .dz-ctab b{font-weight:800;color:var(--ink);background:var(--canvas);border-radius:999px;
+      padding:1px 7px;font-size:12px;}
+    .dz-ctab.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+    .dz-ctab.on b{background:rgba(255,255,255,.2);color:#fff;}
+    .dz-boards{overflow:visible;}
+    .dz-board{display:block;min-width:0;}
+    .dz-board > .dz-col{display:none;}
+    .dz-board > .dz-col.is-mcur{display:block;flex:none;width:100%;max-width:none;padding:0;}
+    .dz-col.is-mcur > .dz-col-b{max-height:none;overflow:visible;}
+    .dz-col.is-mcur .dz-card{padding:14px 15px;}
+    .dz-col.is-mcur .dz-card b{font-size:15.5px;}
+    .dz-col.is-mcur .dz-card span{font-size:13.5px;white-space:normal;}
+    .dz-card .dz-c-mwhat{display:block;font-weight:600;color:var(--ink);font-size:13.5px;margin-top:4px;}
+    /* Картка цеху: головна дія закріплена внизу, дублікати в зоні сховані. */
+    .dz-mbar{display:flex;gap:8px;position:sticky;bottom:-14px;z-index:5;margin:4px -12px -14px;
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;
+      border-top:1px solid var(--line);box-shadow:0 -6px 16px rgba(15,23,42,.06);}
+    .dz-mbar .dz-b{flex:1 1 0;min-height:50px;font-size:15.5px;font-weight:700;justify-content:center;text-align:center;}
+    .dz-mbar .dz-b.pri{flex:1.6 1 0;}
+    .dz-mb-dup{display:none !important;}
+    .dz-prod-acts .dz-b{min-height:44px;font-size:14.5px;}
+    /* Вікно фото — на весь екран, кнопки під палець, «Надіслати» внизу. */
+    .dz-pm{padding:0;align-items:stretch;}
+    .dz-pm-w{width:100%;max-height:none;height:100%;height:100dvh;border-radius:0;}
+    .dz-pm-h{padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));font-size:16px;}
+    .dz-pm-h .dz-x{width:40px;height:40px;font-size:24px;}
+    .dz-pm-b{flex:1;min-height:0;padding:14px;gap:10px;}
+    .dz-pm-b textarea{font-size:16px;}
+    .dz-pm-adds{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .dz-pm-adds .dz-b{min-height:60px;font-size:16px;font-weight:700;justify-content:center;text-align:center;
+      display:flex;align-items:center;border-radius:12px;}
+    .dz-pm .dz-pics{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+    .dz-pm .dz-pic-x{width:28px;height:28px;border-radius:14px;font-size:16px;top:-8px;right:-8px;}
+    .dz-pm-retry{font-size:13px;padding:6px 10px;}
+    .dz-pm-st{font-size:13.5px;}
+    .dz-pm-f{padding:10px 14px calc(10px + env(safe-area-inset-bottom));}
+    .dz-pm-f .dz-b{flex:1;min-height:52px;font-size:16px;font-weight:700;justify-content:center;}
   }
 </style>
 </head>
@@ -8150,32 +8229,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0429c771be"></script>
-<script src="loomiq-fingerprint.js?v=0429c771be"></script>
-<script src="loomiq-pricing.js?v=0429c771be"></script>
+<script src="loomiq-select.js?v=1a3fdaca46"></script>
+<script src="loomiq-fingerprint.js?v=1a3fdaca46"></script>
+<script src="loomiq-pricing.js?v=1a3fdaca46"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=0429c771be"></script>
+<script src="loomiq-money-core.js?v=1a3fdaca46"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=0429c771be"></script>
-<script src="loomiq-mock.js?v=0429c771be"></script>
+<script src="loomiq-design.js?v=1a3fdaca46"></script>
+<script src="loomiq-mock.js?v=1a3fdaca46"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=0429c771be"></script>
+<script src="imagetracer.js?v=1a3fdaca46"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=0429c771be"></script>
-<script src="loomiq-threads.js?v=0429c771be"></script>
+<script src="loomiq-chat.js?v=1a3fdaca46"></script>
+<script src="loomiq-threads.js?v=1a3fdaca46"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=0429c771be"></script>
+<script src="loomiq-cards.js?v=1a3fdaca46"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8220,7 +8299,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '0429c771be';
+var LQ_VER = '1a3fdaca46';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

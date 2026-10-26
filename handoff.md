@@ -244,6 +244,20 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   «✓ Погоджено менеджером» (`prod-ok` теж через `orderApply`); «ТТН ще немає»
   — `.dz-no-ttn` у картці й `⚠` у підписі плитки; `regMake` без ТТН не бере.
   Тест `tests/prod-photos.mjs`.
+- **Телефон: цех** (26.10, крок 1 з 3): `loomiqadmin.html` — при ≤900 px
+  `.dz-wrap{align-items:stretch}` + `.dz-boards{width:100%}` (доти дошка
+  розпирала сторінку); блок `@media (max-width:760px)`: `.dz-ctabs` (вкладки
+  колонок), видно лише `.dz-col.is-mcur`, `.dz-mbar` sticky внизу картки,
+  `.dz-mb-dup` сховані, `.dz-pm` на весь екран; `.dz-on-touch`/`.dz-on-mouse`
+  (≤760 px або `pointer:coarse`). `loomiq-design.js` —
+  `boardHtml(steps, cards, cur)` малює вкладки; `MCOL` (localStorage
+  `dzMcol`) + `mcolOf`/`mcolSet` у render: обирає лише людина (`data-ctab`),
+  без вибору — перша колонка з картками, запамʼятовується. `prodMbar(job,o)`
+  у `prodPanel`; `prodModal`: `[data-pm-cam]` з `capture="environment"`,
+  галерея `multiple`, `[data-pm-st]` «готово N · вантажиться N», `.dz-pm-ok`,
+  «📷 Ще фото», закриття з фото — `confirm`. На плитці з `c.chain` — `c.what`
+  як `.dz-c-mwhat` (окремо від `.dz-c-what`, бо на компʼютері плитка з етапами «що» не показує). Тест `tests/prod-mobile.mjs`. Далі: крок 2 (решта відділу
+  B2C на телефоні), крок 3 (інші розділи).
 - **Дата відправки для цеху** (25.10): одна дата — `job.due` (кнопка
   «📅 Відправити», раніше «Готово»; `U.dueHtml`). `workDays(v)` — робочі дні
   від завтра до дати; `shipInfo(job, at)` → `{soon (≤3), late, txt, title}`,
