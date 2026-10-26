@@ -271,7 +271,8 @@ const gate = await p2.evaluate(async () => {
   o.prodQc = { photos:['https://x/ph1.jpg'] };
   designJobs[o.orderId] = Object.assign(LQDesign.emptyJob(o.orderId),
     { graphic: { status:'work', assignee:'anna@lq', due:'', events:[] } });
-  const безТТН = LQDesign.prodApprove(o, 'test@loomiq');
+  const безТТН = LQDesign.prodApprove(o, 'test@loomiq') + (o.prodQc.ok && o.prodQc.ok.noTtn ? ':noTtn' : '');
+  o.tracks.qc = 'check'; o.prodQc = { photos:['https://x/ph1.jpg'] };
   const доПогодж = shipGate(o);
   await shipSetTtn(o, '20450000000001');
   const номер = o.ttn || '';
@@ -281,7 +282,7 @@ const gate = await p2.evaluate(async () => {
   return { безТТН, доПогодж: доПогодж.ok, номер, погодж, брак: брак.ok, чомуБрак: брак.why };
 });
 console.log('   ' + JSON.stringify(gate));
-ok(gate.безТТН === 'no-ttn', 'погодити фото без ТТН, як і було, не можна', JSON.stringify(gate));
+ok(gate.безТТН === 'ok:noTtn', 'погодити фото без ТТН можна (26.10) — з позначкою «ТТН ще немає»', JSON.stringify(gate));
 ok(gate.доПогодж && gate.номер === '20450000000001',
   'ТТН створюється ДО погодження фото — у відділі (B2C) більше немає кола «спершу ТТН» ↔ «ТТН ще рано»', JSON.stringify(gate));
 ok(gate.погодж === 'ok', 'з ТТН фото погоджується — ланцюг доходить до кінця', JSON.stringify(gate));
