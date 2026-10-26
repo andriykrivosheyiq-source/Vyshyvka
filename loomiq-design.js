@@ -3929,7 +3929,7 @@
     ((o && o.reprints) || []).forEach(function(r){
       out.push({ at: r.at, by: r.by, kind: 'no', що: 'передрук', де: '', текст: String(r.note || r.reason || '').slice(0, 90) });
     });
-    if(o && o.reg && o.reg.at) out.push({ at: o.reg.at, by: o.reg.by, kind: 'trk', що: 'реєстр Нової пошти', де: '', текст: o.reg.no ? '№ ' + o.reg.no : '' });
+    if(o && o.reg && o.reg.at) out.push({ at: o.reg.at, by: o.reg.by, kind: 'trk', що: o.reg.manual ? 'реєстр Нової пошти — вписано вручну' : 'реєстр Нової пошти', де: '', текст: o.reg.no ? '№ ' + o.reg.no : '' });
     /* Шпилька власника (23.10) — поставив / зняв. */
     ((job && job.pinHist) || []).forEach(function(h){
       if(!h || !h.at) return;
@@ -8975,6 +8975,14 @@
         (at === 'ship' && as === 'prod' ? (D.shipAbroad(o) && !o.ttn
             ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-abroad-sent">✈ Відправлено за кордон</button></div>'
             : '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>') : '') +
+        /* РЕЄСТР УЖЕ Є, А В КАРТЦІ ЙОГО НЕМАЄ (26.10, Володимир: «реєстр
+           роздрукований… злетіла з Передано курʼєру… перемістити не можу»):
+           реєстр у Новій пошті створили, а запис у картку не ліг — картка
+           висить у «Реєстр» і гальмує наступні реєстри. Цех чи власник
+           вписує його руками. */
+        (at === 'reg' && (as === 'prod' || (host().role && host().role() === 'owner'))
+            ? '<div class="dz-prod-acts"><button type="button" class="dz-b" data-do="reg-manual" title="Реєстр у Новій пошті вже створено, а картка в ньому не записалась">Уже в реєстрі → Передано курʼєру</button></div>'
+            : '') +
         reprintHtml(D.reprintOpen(o)) +
         ((o.losses || []).length ? '<div class="dz-redo">' + o.losses.map(function(l){
             return '<div>' + esc(l.kind === 'comp' ? 'Компенсація' : l.kind === 'refuse' ? 'Повна відмова' : 'Збиток') + ': <b>' + l.sum + ' ₴</b>' +
@@ -9181,7 +9189,7 @@
       (Object.keys(групи).length > 1 ? ', ' + Object.keys(групи).length + ' відправники — у кожного свій' : '') + '?'); }catch(e){}
     if(!ок) return;
     say('Створюю реєстр…');
-    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = безТТН.map(function(p){ return U.jobNo(p.job) + ' (немає ТТН)'; }), номери = [];
+    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = безТТН.map(function(p){ return U.jobNo(p.job) + ' (немає ТТН)'; }), номери = [], неЗапис = [];
     for(var k in групи){
       var r;
       try{ r = await host().npRegistry(k, групи[k].map(function(p){ return { ttn: String(p.o.ttn || ''), ref: String(p.o.ttnRef || '') }; })); }
@@ -9207,9 +9215,16 @@
         var n = чисто(p.o.ttn), rf = чисто(p.o.ttnRef);
         var увійшла = єПерелік ? !!(прийняті[n] || (rf && прийняті[rf])) : !(погані[n] || (rf && погані[rf]));
         if(!увійшла){ не.push(U.jobNo(p.job) + ' (' + (чому[n] || (rf && чому[rf]) || 'не увійшла в реєстр') + ')'); continue; }
-        p.o.reg = { ref: r.ref, no: String(r.number || ''), at: new Date().toISOString(), sender: k, by: me };
-        p.o.shipCol = '';
-        try{ if(host().save) await host().save(p.job, p.o); }catch(e){ console.warn(e); }
+        /* ЗАПИС МАЄ ЛЯГТИ (26.10, Володимир: «реєстр роздрукований… злетіла з
+           Передано курʼєру»). Доти картка писалась через картку відділу, і
+           відхилений запис (картку щойно змінили з іншого пристрою) ковтався
+           мовчки: реєстр у Новій пошті є, у картці — ні. Тепер — повтор на
+           свіжій версії й перевірка, що реєстр у базі; не ліг — кажемо, кому
+           натиснути «Уже в реєстрі». */
+        var регЗ = { ref: r.ref, no: String(r.number || ''), at: new Date().toISOString(), sender: k, by: me };
+        var леглоК = await orderApply(p.o, function(x){ x.reg = регЗ; x.shipCol = ''; },
+          function(x){ return !!(x && x.reg && x.reg.ref === r.ref); });
+        if(!леглоК){ неЗапис.push(U.jobNo(p.job)); continue; }
         зроблено++;
       }
       if(r.number) номери.push('№' + r.number);
@@ -9217,6 +9232,7 @@
     render(root || document.getElementById('dzRoot'));
     say((зроблено ? 'Реєстр ' + номери.join(', ') + ' створено · ' + зроблено + ' посилок → «Передано курʼєру»' : 'Реєстр не створено') +
         (не.length ? ' · не увійшли й лишились у «Реєстр»: ' + не.join(', ') : '') +
+        (неЗапис.length ? ' · УВАГА: реєстр ' + номери.join(', ') + ' створено, але в картки ' + неЗапис.join(', ') + ' не записався — відкрийте картку й натисніть «Уже в реєстрі → Передано курʼєру»' : '') +
         (збій ? ' · ' + збій : ''));
   }
   function regList(){
@@ -9224,7 +9240,7 @@
     U.pairsLive().forEach(function(p){
       var r = p.o && p.o.reg;
       if(!r || !r.ref) return;
-      var x = regs[r.ref] = regs[r.ref] || { ref: r.ref, no: r.no, at: r.at, sender: r.sender || '', n: 0, moved: 0 };
+      var x = regs[r.ref] = regs[r.ref] || { ref: r.ref, no: r.no, at: r.at, sender: r.sender || '', n: 0, moved: 0, manual: !!r.manual };
       x.n++;
       if(D.npStage(p.o)) x.moved++;
     });
@@ -9233,8 +9249,8 @@
     var наші = l.filter(function(x){ return x.moved < x.n; }), архів = l.filter(function(x){ return x.moved >= x.n; });
     var рядок = function(x){
       return '<div class="dz-reg-r"><b>№' + esc(x.no || '—') + '</b><span>' + esc(dt(x.at)) + ' · ' + x.n + ' посил.' +
-        (x.moved && x.moved < x.n ? ' · у дорозі ' + x.moved : '') + '</span>' +
-        '<button type="button" class="dz-b" data-do="reg-pdf" data-ref="' + esc(x.ref) + '" data-sender="' + esc(x.sender) + '">PDF</button></div>';
+        (x.moved && x.moved < x.n ? ' · у дорозі ' + x.moved : '') + (x.manual ? ' · вписано вручну' : '') + '</span>' +
+        (x.manual ? '' : '<button type="button" class="dz-b" data-do="reg-pdf" data-ref="' + esc(x.ref) + '" data-sender="' + esc(x.sender) + '">PDF</button>') + '</div>';
     };
     var old = document.getElementById('dzRegPop'); if(old) old.remove();
     var m = document.createElement('div');
@@ -12360,6 +12376,20 @@
       return say('Погоджено — цех бачить «Можна відправляти»' + (безТ ? ' · ТТН ще немає — створіть накладну' : ''));
     }
     if(what === 'prod-tg') return prodToTelegram(job, o, false);
+    if(what === 'reg-manual'){
+      if(D.prodAt(job, o) !== 'reg') return say('Картка вже не в «Реєстр»');
+      var номерР = window.prompt('Номер реєстру Нової пошти (можна лишити порожнім)', '');
+      if(номерР === null) return;
+      if(!window.confirm('Записати, що ' + U.jobNo(job) + ' уже в реєстрі? Картка піде в «Передано курʼєру», далі її веде статус Нової пошти.')) return;
+      var штампР = new Date().toISOString();
+      var леглоР = await orderApply(o, function(x){
+          x.reg = { ref: 'manual:' + штампР, no: String(номерР || '').trim().slice(0, 40), at: штампР, by: m, manual: true, sender: String(x.ttnSender || '') };
+          x.shipCol = '';
+        }, function(x){ return !!(x && x.reg && x.reg.ref === 'manual:' + штампР); });
+      if(!леглоР) return say('Не записалось — перевірте інтернет і натисніть ще раз');
+      render(root);
+      return say('Записано · ' + U.jobNo(job) + ' → «Передано курʼєру»');
+    }
     /* ── Відмова: компенсація чи повна відмова — у збитки (07.10) ── */
     if(what === 'loss-comp'){
       var сум = window.prompt('Компенсація клієнту, грн (повернули / знижка)');

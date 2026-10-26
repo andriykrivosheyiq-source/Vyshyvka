@@ -288,6 +288,15 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Реєстр лягає в картку надійно; «Уже в реєстрі»** (26.10): `regMake` →
+  `orderApply(p.o, x => { x.reg = …; x.shipCol = ''; }, x => x.reg.ref === r.ref)`
+  замість `host.save` (картка відділу не пишеться); `неЗапис` → «УВАГА… не
+  записався — натисніть «Уже в реєстрі»». `prodActsZone` при `at === 'reg'`
+  (цех або власник) — `data-do="reg-manual"`: prompt номера, confirm,
+  `o.reg = { ref:'manual:<час>', no, at, by, manual:true, sender }`,
+  `shipCol=''` → `prodAt` = `courier`. `regList`: рядок «вписано вручну» без
+  PDF; `histOrder`: «реєстр Нової пошти — вписано вручну». Тест
+  `tests/reg-make.mjs` §5–6.
 - **Реєстр НП — лише прийняте** (25.10): `regMake` (`loomiq-design.js`) ставить
   `o.reg` лише карткам, чия накладна в `r.success` (новий воркер) або не в
   `r.notFound`/`r.errors` (старий); решта — у «Реєстр» з причиною в тості.
