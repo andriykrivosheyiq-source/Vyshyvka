@@ -3337,6 +3337,10 @@
             (c.what && !c.chain ? '<span class="dz-c-what">' +
                (c.swatch ? '<b class="dz-sw" style="background:' + esc(c.swatch) + '"></b>' : '') +
                esc(c.what) + '</span>' : '') +
+            /* Телефон (26.10): цех бачить на плитці, що шиє, — модель, колір,
+               розміри, штуки; на компʼютері це в картці, як і було. */
+            (c.what && c.chain
+              ? '<span class="dz-c-what dz-on-phone">' + esc(c.what) + '</span>' : '') +
             /* Фраза стану — лише там, де немає грошей (дизайнер, цех):
                менеджеру те саме каже рядок етапів. */
             (c.foot && !c.sum ? '<i class="dz-c-state">' + esc(c.foot) + '</i>' : '') +
@@ -3364,10 +3368,20 @@
       '</button>' +
     '</div>';
   }
-  function boardHtml(steps, cards){
-    return '<div class="dz-board">' + steps.map(function(s){
+  /* ТЕЛЕФОН (26.10, Андрій: «виробництво хоче з телефону… щоб було
+     зручно»): колонки поруч на вузькому екрані розпирали сторінку в рази
+     ширше за екран. Там зверху вкладки колонок з числами, а видно одну —
+     `cur` (`.is-mcur`). На компʼютері вкладок не видно, дошка як була. */
+  function boardHtml(steps, cards, cur){
+    var числа = steps.map(function(s){
+      return s.n != null ? s.n : cards.filter(function(c){ return c.step === s.key; }).length; });
+    return '<div class="dz-ctabs" role="tablist">' + steps.map(function(s, i){
+        return '<button type="button" class="dz-ctab' + (s.key === cur ? ' on' : '') + '" data-ctab="' + esc(s.key) + '">' +
+          '<span class="dz-dot is-' + esc(s.color) + '"></span>' + esc(s.label) + '<b>' + числа[i] + '</b></button>';
+      }).join('') + '</div>' +
+      '<div class="dz-board">' + steps.map(function(s){
       var mine = cards.filter(function(c){ return c.step === s.key; });
-      return '<div class="dz-col' + (s.cls ? ' ' + esc(s.cls) : '') + '" data-col="' + esc(s.key) + '">' +
+      return '<div class="dz-col' + (s.cls ? ' ' + esc(s.cls) : '') + (s.key === cur ? ' is-mcur' : '') + '" data-col="' + esc(s.key) + '">' +
         '<div class="dz-col-h"><span class="dz-dot is-' + esc(s.color) + '"></span>' +
           esc(s.label) + '<i>' + (s.n != null ? s.n : mine.length) + '</i>' + (s.head || '') + '</div>' +
         '<div class="dz-col-b">' +
@@ -8877,7 +8891,20 @@
         U.zoneHtml('violet', '👕', 'Що шиємо', '', prodUnitsHtml(p)) +
         U.zoneHtml('blue', '📝', 'ТЗ', '', prodTzHtml(job, o)) +
         U.zoneHtml('green', '💬', 'Переписка з менеджером', '', prodChatHtml(job, 'prod')) +
+        prodMbar(job, o) +
       '</div>';
+  }
+  /* ТЕЛЕФОН (26.10): головна дія цеху — закріплена внизу картки, великими
+     кнопками під палець. На компʼютері її не видно (там ті самі кнопки в
+     зоні дій), а на телефоні в зоні ховаються дублікати (`dz-mb-dup`). */
+  function prodMbar(job, o){
+    var at = D.prodAt(job, o), b = [];
+    if(at === 'ready') b.push('<button type="button" class="dz-b pri" data-do="prod-move" data-to="run">На станки</button>');
+    else if(at === 'run' && D.jobTech(job) === 'dtf') b.push('<button type="button" class="dz-b pri" data-do="prod-print-done">✓ Надруковано</button>',
+      '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>');
+    else if(at === 'run') b.push('<button type="button" class="dz-b pri" data-do="prod-done">📷 Готово — фото</button>',
+      '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>');
+    return b.length ? '<div class="dz-mbar">' + b.join('') + '</div>' : '';
   }
   /* ДІЇ ЦЕХУ І ПОГОДЖЕННЯ (06.10) — зона над «Що шиємо». Що в ній, залежить
      від колонки: на станках — «Готово» з фото й «Передрук»; чекає
@@ -8908,17 +8935,17 @@
         (as === 'prod' ? '<div class="dz-miss is-calm">Коли буде одяг і правки — перетягніть картку в потрібну колонку.</div>' : '');
     } else if(at === 'ready' && as === 'prod'){
       head = 'Готово до роботи';
-      body = '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-move" data-to="run">На станки</button>' + tg + '</div>';
+      body = '<div class="dz-prod-acts"><button type="button" class="dz-b pri dz-mb-dup" data-do="prod-move" data-to="run">На станки</button>' + tg + '</div>';
     } else if(at === 'run' && as === 'prod' && D.jobTech(job) === 'dtf'){
       head = 'Друкується';
       body = '<div class="dz-prod-acts">' +
-        '<button type="button" class="dz-b pri" data-do="prod-print-done">✓ Надруковано — готово</button>' +
-        '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>' + tg + '</div>';
+        '<button type="button" class="dz-b pri dz-mb-dup" data-do="prod-print-done">✓ Надруковано — готово</button>' +
+        '<button type="button" class="dz-b dz-b-warn dz-mb-dup" data-do="prod-redo">🔁 Передрук</button>' + tg + '</div>';
     } else if(at === 'run' && as === 'prod'){
       head = 'На станках';
       body = '<div class="dz-prod-acts">' +
-        '<button type="button" class="dz-b pri" data-do="prod-done">✓ Готово — фото</button>' +
-        '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>' + tg + '</div>';
+        '<button type="button" class="dz-b pri dz-mb-dup" data-do="prod-done">✓ Готово — фото</button>' +
+        '<button type="button" class="dz-b dz-b-warn dz-mb-dup" data-do="prod-redo">🔁 Передрук</button>' + tg + '</div>';
     } else if(at === 'appr' && q){
       head = 'Чекає погодження';
       body = photosHtml(q.photos) + (q.note ? '<div class="dz-w-note"><i>Коментар цеху</i>' + esc(q.note) + '</div>' : '') +
@@ -9027,9 +9054,18 @@
           return '<label class="dz-pm-q"><span>' + esc([(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · ')) + '</span>' +
             '<input type="number" min="0" step="1" data-pmq="' + esc(u.id) + '" value="' + (us.length === 1 ? (Math.round(+u.qty || 0) || 1) : 0) + '"></label>'; }).join('')
         : '') +
-      '<div class="dz-pm-l">Фото — скільки завгодно (зняти, вибрати або вставити Ctrl+V)</div>' +
+      '<div class="dz-pm-l"><span class="dz-on-mouse">Фото — скільки завгодно (зняти, вибрати або вставити Ctrl+V)</span>' +
+        '<span class="dz-on-touch">Фото — скільки завгодно</span></div>' +
       '<div class="dz-pics" data-pm-pics></div>' +
-      '<label class="dz-b dz-pm-add">＋ Фото<input type="file" accept="image/*" multiple hidden data-pm-file></label>' +
+      /* ТЕЛЕФОН (26.10): «📷 Зняти» одразу відкриває задню камеру
+         (`capture`), «🖼 З галереї» — кілька готових. На компʼютері камери
+         немає — лише «＋ Фото». */
+      '<div class="dz-pm-adds">' +
+        '<label class="dz-b pri dz-pm-cam dz-on-touch"><span data-pm-camt>📷 Зняти</span><input type="file" accept="image/*" capture="environment" hidden data-pm-file data-pm-cam></label>' +
+        '<label class="dz-b dz-pm-add"><span class="dz-on-mouse">＋ Фото</span><span class="dz-on-touch">🖼 З галереї</span>' +
+          '<input type="file" accept="image/*" multiple hidden data-pm-file></label>' +
+      '</div>' +
+      '<div class="dz-pm-st" data-pm-st></div>' +
       '<div class="dz-pm-l">' + (redo ? 'Що не так і що виправити (обовʼязково)' : 'Коментар') + '</div>' +
       '<textarea rows="' + (redo ? 5 : 3) + '" data-pm-note placeholder="' +
         (redo ? 'Що саме не сподобалось клієнту / що зіпсовано, і як виправити' : 'Що варто знати акаунту') + '"></textarea>' +
@@ -9040,9 +9076,22 @@
     var малюй = function(){
       пік.innerHTML = ph.map(function(p, i){
         return '<span class="dz-pic' + (p.err ? ' is-err' : '') + '"><img src="' + esc(p.url || p.prev) + '" alt="">' +
-          (p.url ? '' : p.err ? '<button type="button" class="dz-pm-retry" data-pm-retry="' + i + '" title="Не завантажилось — ще раз">↻ ще раз</button>'
-                              : '<i class="dz-pm-w8">…</i>') +
+          (p.url ? '<i class="dz-pm-ok" title="Завантажено">✓</i>' : p.err ? '<button type="button" class="dz-pm-retry" data-pm-retry="' + i + '" title="Не завантажилось — ще раз">↻ ще раз</button>'
+                              : '<i class="dz-pm-w8"><b class="dz-pm-spin"></b></i>') +
           '<button type="button" class="dz-pic-x" data-pm-del="' + i + '">×</button></span>'; }).join('');
+      /* Під фото — скільки готово й скільки ще йде: з телефона на слабкому
+         звʼязку це видно одразу, а не по кнопці, що «не тисне». */
+      var готово = ph.filter(function(p){ return p.url; }).length,
+          іде = ph.filter(function(p){ return !p.url && !p.err; }).length,
+          збій = ph.filter(function(p){ return p.err; }).length;
+      var st = m.querySelector('[data-pm-st]');
+      if(st){
+        st.className = 'dz-pm-st' + (збій ? ' is-err' : іде ? ' is-w8' : готово ? ' is-ok' : '');
+        st.textContent = !ph.length ? '' : [готово ? 'готово ' + готово : '', іде ? 'вантажиться ' + іде : '',
+          збій ? 'не завантажилось ' + збій : ''].filter(Boolean).join(' · ');
+      }
+      var ct = m.querySelector('[data-pm-camt]');
+      if(ct) ct.textContent = ph.length ? '📷 Ще фото' : '📷 Зняти';
     };
     /* Фото не зникає мовчки (26.10): не завантажилось — лишається з «↻ ще раз». */
     var вантаж = function(it){
@@ -9057,7 +9106,8 @@
         ph.push(it); вантаж(it);
       });
     };
-    m.querySelector('[data-pm-file]').onchange = function(e){ додай(e.target.files); e.target.value = ''; };
+    m.querySelectorAll('[data-pm-file]').forEach(function(inp){
+      inp.onchange = function(e){ додай(e.target.files); e.target.value = ''; }; });
     var paste = function(e){
       var fs = [];
       Array.prototype.forEach.call((e.clipboardData && e.clipboardData.items) || [], function(it){
@@ -9068,7 +9118,11 @@
     var close = function(){ document.removeEventListener('paste', paste); m.remove(); };
     m.addEventListener('click', async function(e){
       var t = e.target;
-      if(t.closest('[data-pm-x]') || t === m) return close();
+      /* Знімали на телефоні — випадковий дотик повз вікно фото не губить. */
+      if(t.closest('[data-pm-x]') || t === m){
+        if(ph.length && !window.confirm('Закрити? Фото ще не надіслані.')) return;
+        return close();
+      }
       var del = t.closest('[data-pm-del]');
       if(del){ ph.splice(+del.dataset.pmDel, 1); return малюй(); }
       var rt = t.closest('[data-pm-retry]');
@@ -9774,6 +9828,23 @@
   }
   /* Де стояла дошка без відкритої картки — по кріслу (22.10). */
   var BOARD_AT = {}, BOARD_OPEN_X = {}, BOARD_MOVED = {};
+  /* Колонка, яку видно на телефоні, — на кожну дошку своя. Обирає її лише
+     людина (вкладка); поки не обрала — перша, де є картки, і вона
+     запамʼятовується, щойно картки є: фонове оновлення її не перемикає. */
+  var MCOL = {};
+  try{ MCOL = JSON.parse(localStorage.getItem('dzMcol') || '{}') || {}; }catch(e){ MCOL = {}; }
+  function mcolOf(seat, b){
+    var ключі = b.steps.map(function(s){ return s.key; });
+    if(MCOL[seat] && ключі.indexOf(MCOL[seat]) >= 0) return MCOL[seat];
+    var з = b.steps.filter(function(s){ return s.key !== 'deliv' &&
+      b.cards.some(function(c){ return c.step === s.key; }); })[0];
+    if(з) MCOL[seat] = з.key;
+    return з ? з.key : (ключі[0] || '');
+  }
+  function mcolSet(seat, key){
+    MCOL[seat] = key;
+    try{ localStorage.setItem('dzMcol', JSON.stringify(MCOL)); }catch(e){}
+  }
   function render(root){
     if(!root) return;
     if(SOLO && root === SOLO.root){
@@ -9906,7 +9977,7 @@
          замовлення й склад. Андрій: «канбана тут немає». */
       (seat === 'supply' ? buyScreenHtml() :
       '<div class="dz-wrap">' +
-        '<div class="dz-boards">' + U.boardHtml(b.steps, b.cards) + '</div>' +
+        '<div class="dz-boards">' + U.boardHtml(b.steps, b.cards, mcolOf(seat, b)) + '</div>' +
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
           (openId ? probBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
@@ -10757,6 +10828,15 @@
     root.querySelectorAll('[data-open]').forEach(function(b){
       b.onclick = function(){ U.open(b.dataset.open); render(root); };
     });
+    /* Вкладки колонок (телефон): перемикає лише людина. */
+    root.querySelectorAll('[data-ctab]').forEach(function(b){
+      b.onclick = function(){ mcolSet(U.tab(), b.dataset.ctab); render(root); };
+    });
+    var _ct = root.querySelector('.dz-ctab.on');
+    if(_ct && _ct.parentNode && _ct.parentNode.scrollWidth > _ct.parentNode.clientWidth){
+      var _cp = _ct.parentNode;
+      _cp.scrollLeft = Math.max(0, _ct.offsetLeft - _cp.offsetLeft - 12);
+    }
     /* Рядок етапів картки: поточний етап — на виду; стрілки гортають. */
     root.querySelectorAll('.dz-c-chr').forEach(function(r){
       var ch = r.querySelector('.dz-c-chain'); if(!ch) return;
