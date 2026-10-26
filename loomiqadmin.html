@@ -2242,8 +2242,10 @@
     .cw-head [data-cw-raw],.cw-head [data-cw-sniff]{display:none;}
     /* Смайлики на телефоні — з клавіатури: кнопка 😊 тут лише стискала б поле. */
     .cw-row [data-cw-emo],.cw-bar .cw-emo{display:none;}
-    .cw-oid{font-size:12px;padding:8px 10px;min-height:36px;display:flex;align-items:center;}
-    .cw-x{font-size:20px;padding:9px 11px;min-width:42px;text-align:center;}
+    .cw-oid{font-size:12px;padding:6px 9px;min-height:32px;display:flex;align-items:center;white-space:nowrap;}
+    /* Кнопки шапки — 44 px під палець, не ширше: імʼя клієнта в шапці
+       обрізалось до «А…» (26.10). */
+    .cw-x{font-size:20px;padding:8px 6px;min-width:32px;text-align:center;}
     /* ПОЛЕ ВВОДУ. 16 px — не про красу: менший кегль змушує Safari
        наблизити сторінку при дотику й лишити її такою. */
     .cw-inp{font-size:16px;padding:10px 13px;min-height:42px;}
@@ -3389,9 +3391,12 @@
        Головна вада була тут: у корпусі меню лежить на темному тлі оболонки й
        власного не має. На телефоні воно висить НАД вмістом — і крізь пункти
        просвічували картки. Читати було неможливо. */
+    /* Тінь — лише відкритому меню (26.10): закрите стоїть за лівим краєм, і
+       його тінь сірою смугою лежала на кожному екрані телефона. */
     .sidebar{background:var(--side);width:min(86vw,320px);
-      box-shadow:8px 0 40px rgba(0,0,0,.45);
+      box-shadow:none;
       padding-bottom:env(safe-area-inset-bottom);}
+    .sidebar.open{box-shadow:8px 0 40px rgba(0,0,0,.45);}
     .sidebar-inner{padding:18px 14px 24px;gap:20px;}
     .overlay{background:rgba(6,10,16,.6);backdrop-filter:blur(2px);}
     /* Сторінка під відкритим меню не має їхати: інакше закриваєш меню й
@@ -6193,6 +6198,44 @@
     span.dz-on-touch{display:inline !important;}
     .dz-on-mouse{display:none !important;}
   }
+  /* ТЕЛЕФОН — РЕШТА РОЗДІЛІВ (26.10, Андрій: «щоб усе було максимально
+     зручно… вони також з телефона працюють»). Сторінка не ширша за екран:
+     широкі таблиці гортаються всередині себе, рядки переносяться. */
+  @media (max-width:767px){
+    .an-t{display:block;overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
+    .al-row{flex-wrap:wrap;gap:2px 10px;}
+    .al-t,.al-w{width:auto;}
+    .al-x{flex-basis:100%;}
+    .b2c-ak-row input[data-ak-name]{min-width:0;}
+    /* Вкладки розділу (Аналітика, Фінанси) — гортаються рядком, не вилазять. */
+    .fin-top{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    .fin-top::-webkit-scrollbar{display:none;}
+    .fin-top-b{flex:none;white-space:nowrap;}
+    /* Чати: відкрита розмова — на весь екран, як у Direct; ✕ розмови
+       повертає до списку. Доти вона лягала під списком. */
+    .ch2-view:has(> .cw-inline.open){position:fixed;inset:0;z-index:150;border:0;border-radius:0;
+      min-height:0;height:100%;height:100dvh;}
+    .ch2-view > .cw-inline.open{height:100%;border-radius:0;}
+    .ch2-view > .cw-inline.open .cw{height:100%;border-radius:0;box-shadow:none;}
+    body:has(.ch2-view > .cw-inline.open){overflow:hidden;}
+    /* Фінанси: добір по два в рядок, пошук на всю ширину; кнопки рухів —
+       під палець; вікно руху — на весь екран. */
+    .fin-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .fin-bar > #fin-accs,.fin-bar > #fin-q{grid-column:1/-1;}
+    .fin-bar > *{min-width:0;width:100%;box-sizing:border-box;}
+    .fin-bar > .pc-btn{min-height:44px;justify-content:center;}
+    #fin-q{font-size:16px;min-height:44px;}
+    .fin-chip{font-size:13px;padding:9px 12px;}
+    .fin-modal:not(.pp-side){padding:0;align-items:stretch;}
+    .fin-modal:not(.pp-side) .fin-w{width:100%;max-height:none;height:100%;height:100dvh;border-radius:0;}
+    .fin-modal:not(.pp-side) .fin-h{padding-top:calc(12px + env(safe-area-inset-top));}
+    .fin-modal:not(.pp-side) .fin-h .dz-x{min-width:44px;min-height:44px;font-size:22px;}
+    /* Картка B2B: список у «плашці» етапу й менеджера стоїть усередині неї,
+       а не вилазить своєю рамкою на 48 px (inline min-width від вибору). */
+    .od-head .od-pill .lq-sel{flex:1 1 auto;min-width:0 !important;height:100%;border:0;
+      background:transparent;padding:0 4px;box-shadow:none;}
+    .od-head .od-pill-st::after,.od-head .od-pill-mgr::after{display:none;}
+  }
   /* Закріплена дія цеху й «що шиємо» на плитці — лише на телефоні. */
   .dz-mbar{display:none;}
   .dz-card .dz-c-mwhat{display:none;}
@@ -8229,32 +8272,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1a3fdaca46"></script>
-<script src="loomiq-fingerprint.js?v=1a3fdaca46"></script>
-<script src="loomiq-pricing.js?v=1a3fdaca46"></script>
+<script src="loomiq-select.js?v=831950733a"></script>
+<script src="loomiq-fingerprint.js?v=831950733a"></script>
+<script src="loomiq-pricing.js?v=831950733a"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=1a3fdaca46"></script>
+<script src="loomiq-money-core.js?v=831950733a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1a3fdaca46"></script>
-<script src="loomiq-mock.js?v=1a3fdaca46"></script>
+<script src="loomiq-design.js?v=831950733a"></script>
+<script src="loomiq-mock.js?v=831950733a"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=1a3fdaca46"></script>
+<script src="imagetracer.js?v=831950733a"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=1a3fdaca46"></script>
-<script src="loomiq-threads.js?v=1a3fdaca46"></script>
+<script src="loomiq-chat.js?v=831950733a"></script>
+<script src="loomiq-threads.js?v=831950733a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1a3fdaca46"></script>
+<script src="loomiq-cards.js?v=831950733a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8299,7 +8342,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1a3fdaca46';
+var LQ_VER = '831950733a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -13354,7 +13397,9 @@ function finOpen(id){
       </button>`).join('') : '<div class="fin-none">Нічого не знайшлось.</div>';
   });
   document.body.appendChild(d);
-  find.focus();
+  /* На телефоні клавіатура одразу накривала пів вікна з підказками (26.10):
+     там поле пошуку чекає дотику. */
+  if(!window.matchMedia('(max-width:767px)').matches) find.focus();
 }
 /* КАТЕГОРІЇ ВИТРАТ І ПРАВИЛА — налаштування (05.10). */
 function finCatsOpen(){

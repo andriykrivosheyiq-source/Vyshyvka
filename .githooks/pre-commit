@@ -204,6 +204,14 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
   }
   echo "✓ телефон: цех знімає й надсилає фото; компʼютер як був"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.js|tests/phone-all\.mjs)'; then
+  node tests/phone-all.mjs >/tmp/lq-phone-all.log 2>&1 || {
+    echo "✗ На телефоні щось знову вилазить за екран або розмова/вікно платежу не на весь екран — коміт зупинено. Подробиці: /tmp/lq-phone-all.log"
+    grep '✗' /tmp/lq-phone-all.log
+    exit 1
+  }
+  echo "✓ телефон: усі розділи в екрані; компʼютер як був"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/ship-date\.mjs)'; then
   node tests/ship-date.mjs >/tmp/lq-ship-date.log 2>&1 || {
     echo "✗ Дата відправки для цеху зламана (робочі дні, «виготовити й відправити») — коміт зупинено. Подробиці: /tmp/lq-ship-date.log"
