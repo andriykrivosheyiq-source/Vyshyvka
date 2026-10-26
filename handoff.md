@@ -288,6 +288,21 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Стан цеху не відкочується** (26.10): `loomiqadmin.html` —
+  `host.orderApply`: `fn` → `false` ⇒ `'stale'`; `PATCH_META.rev`,
+  `PATCH_SUB`, `subKeysDiff`, `orderPatch` → `{set, del, subs}`,
+  `patchClash` (підключі `tracks`, `trackHist` ніколи), `patchApply`
+  (підключі, `trackHistMerge`), `stateRollback(db, mine)` → перелік того, що
+  хотіли зняти, `stateKeep(db, live)`, `deviceShort()`, `dbNewer(ref, base,
+  field, out, baseRev)`, `revOfJson`; у `saveOrders` після звірки версії —
+  захист станів (`accLog('rollback', …)`), потім `rev = max(prevJson, база,
+  live)+1` і в патч. `loomiq-design.js` — `orderApply` віддає значення host
+  як є; `prodModal` done / `prod-ok` / `reg-manual` / `regMake` — у `fn`
+  спершу «наш же запис?» (повтор), потім `prodAt(job, x) !== очікуваний →
+  return false`; `'stale'` → `say('Картку вже рушили далі: «…»')` і render.
+  Тест `tests/prod-state.mjs` (§1 повтор фото, §2 повтор погодження, §3
+  годинник + захист, §3б rev, §4 одяг+погодження злиття, §5 передрук
+  дозволено).
 - **Реєстр лягає в картку надійно; «Уже в реєстрі»** (26.10): `regMake` →
   `orderApply(p.o, x => { x.reg = …; x.shipCol = ''; }, x => x.reg.ref === r.ref)`
   замість `host.save` (картка відділу не пишеться); `неЗапис` → «УВАГА… не

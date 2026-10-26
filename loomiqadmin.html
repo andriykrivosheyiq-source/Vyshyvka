@@ -8272,32 +8272,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=19af507908"></script>
-<script src="loomiq-fingerprint.js?v=19af507908"></script>
-<script src="loomiq-pricing.js?v=19af507908"></script>
+<script src="loomiq-select.js?v=914dfc8a34"></script>
+<script src="loomiq-fingerprint.js?v=914dfc8a34"></script>
+<script src="loomiq-pricing.js?v=914dfc8a34"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=19af507908"></script>
+<script src="loomiq-money-core.js?v=914dfc8a34"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=19af507908"></script>
-<script src="loomiq-mock.js?v=19af507908"></script>
+<script src="loomiq-design.js?v=914dfc8a34"></script>
+<script src="loomiq-mock.js?v=914dfc8a34"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=19af507908"></script>
+<script src="imagetracer.js?v=914dfc8a34"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=19af507908"></script>
-<script src="loomiq-threads.js?v=19af507908"></script>
+<script src="loomiq-chat.js?v=914dfc8a34"></script>
+<script src="loomiq-threads.js?v=914dfc8a34"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=19af507908"></script>
+<script src="loomiq-cards.js?v=914dfc8a34"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8342,7 +8342,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '19af507908';
+var LQ_VER = '914dfc8a34';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9196,27 +9196,100 @@ function dbLostBar(on){
    беремо їх у памʼять і пишемо свої (`patchMerge`); ті самі поля —
    відхиляємо, як і доти. Службові поля (touchedAt, arch, unarchAt) не
    рахуються за суперечку. Новий документ пишеться цілком, як і доти. */
-const PATCH_META = { touchedAt:1, updatedAt:1, arch:1, unarchAt:1, id:1 };   // службові: замовлення — touchedAt, картка відділу — updatedAt
+const PATCH_META = { touchedAt:1, updatedAt:1, arch:1, unarchAt:1, id:1, rev:1 };   // службові: замовлення — touchedAt і rev, картка відділу — updatedAt
+/* ЗЛИТТЯ ПІДКЛЮЧІВ (26.10): стан одягу, цеху й погодження лежать в одному
+   полі `tracks`, і закупник з менеджером відхиляли записи одне одного.
+   Патч памʼятає, які саме підключі змінились (`subs.tracks`); суперечка —
+   лише коли обидва змінили той самий. `trackHist` ніколи не суперечить —
+   зливається обʼєднанням. */
+const PATCH_SUB = { tracks:1 };
+function subKeysDiff(a, b){
+  a = (a && typeof a === 'object') ? a : {}; b = (b && typeof b === 'object') ? b : {};
+  const out = [];
+  new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k => { if(JSON.stringify(a[k]) !== JSON.stringify(b[k])) out.push(k); });
+  return out;
+}
 function orderPatch(base, mine){
-  const set = {}, del = [];
+  const set = {}, del = [], subs = {};
   const keys = new Set([...Object.keys(base || {}), ...Object.keys(mine || {})]);
   keys.forEach(k => {
     const a = base ? base[k] : undefined, b = mine ? mine[k] : undefined;
     if(b === undefined){ if(a !== undefined) del.push(k); return; }
-    if(a === undefined || JSON.stringify(a) !== JSON.stringify(b)) set[k] = b;
+    if(a === undefined || JSON.stringify(a) !== JSON.stringify(b)){
+      set[k] = b;
+      if(PATCH_SUB[k] && a && typeof a === 'object' && b && typeof b === 'object') subs[k] = subKeysDiff(a, b);
+    }
   });
-  return { set, del };
+  return { set, del, subs };
 }
 function patchKeys(p){ return Object.keys(p.set).concat(p.del).filter(k => !PATCH_META[k]); }
 function patchClash(mine, theirs){
   const t = new Set(patchKeys(theirs));
-  return patchKeys(mine).filter(k => t.has(k));
+  return patchKeys(mine).filter(k => {
+    if(!t.has(k)) return false;
+    if(k === 'trackHist') return false;
+    const sm = (mine.subs || {})[k], st = (theirs.subs || {})[k];
+    if(sm && st) return sm.some(x => st.indexOf(x) >= 0);
+    return true;
+  });
 }
-/* Чужі зміни — у живий обʼєкт (посилання з екрана лишаються дійсними). */
+/* Чужі зміни — у живий обʼєкт (посилання з екрана лишаються дійсними).
+   `tracks` — лише їхні підключі; `trackHist` — обʼєднання. */
 function patchApply(live, p){
-  Object.keys(p.set).forEach(k => { live[k] = p.set[k]; });
+  Object.keys(p.set).forEach(k => {
+    const sub = (p.subs || {})[k];
+    if(sub && live[k] && typeof live[k] === 'object' && p.set[k] && typeof p.set[k] === 'object'){
+      sub.forEach(s => { if(p.set[k][s] === undefined) delete live[k][s]; else live[k][s] = p.set[k][s]; });
+      return;
+    }
+    if(k === 'trackHist' && Array.isArray(live[k]) && Array.isArray(p.set[k])){
+      live[k] = trackHistMerge(live[k], p.set[k]); return;
+    }
+    live[k] = p.set[k];
+  });
   p.del.forEach(k => { delete live[k]; });
   return live;
+}
+function trackHistMerge(a, b){
+  const seen = new Set(), out = [];
+  (a || []).concat(b || []).forEach(h => { const j = JSON.stringify(h); if(seen.has(j)) return; seen.add(j); out.push(h); });
+  out.sort((x, y) => String((x || {}).at || '').localeCompare(String((y || {}).at || '')));
+  return out.slice(-60);
+}
+/* ЗАХИЩЕНІ СТАНИ ЦЕХУ (26.10, Володимир: «після оновлень переміщало назад,
+   хоча менеджери давали згоду»). Фото на погодженні, погоджено, у реєстрі
+   й самі фото цеху знімає лише явна дія людини — передрук (qc 'bad') або
+   перетягування з передруку (у базі qc 'bad'). Будь-який інший запис, що
+   їх зняв би (стара копія з іншого пристрою, годинник, що відстає), їх не
+   пише: беремо ці поля з бази, решту — свою. Повертає, що саме вберегли. */
+const QC_RANK = { '':0, check:1, ok:2 };
+function stateRollback(db, mine){
+  if(!db || !mine) return [];
+  const dq = String(((db.tracks || {}).qc) || ''), mq = String(((mine.tracks || {}).qc) || '');
+  if(dq === 'bad' || mq === 'bad') return [];                  // явний передрук або вихід із нього
+  const out = [];
+  if(QC_RANK[dq] > (QC_RANK[mq] || 0)) out.push(dq === 'ok' ? 'погоджено' : 'фото на погодженні');
+  const dp = String(((db.tracks || {}).prod) || ''), mp = String(((mine.tracks || {}).prod) || '');
+  if(dp === 'done' && mp !== 'done' && dq) out.push('готово — фото з цеху');
+  if(db.prodQc && db.prodQc.photos && db.prodQc.photos.length && !(mine.prodQc && mine.prodQc.photos && mine.prodQc.photos.length)) out.push('фото цеху');
+  if(db.prodQc && db.prodQc.ok && !(mine.prodQc && mine.prodQc.ok)) { if(out.indexOf('погоджено') < 0) out.push('погоджено'); }
+  if(db.reg && db.reg.ref && !(mine.reg && mine.reg.ref)) out.push('у реєстрі');
+  return out;
+}
+function stateKeep(db, live){
+  live.tracks = Object.assign({}, live.tracks || {});
+  ['prod', 'qc'].forEach(k => { if(db.tracks && db.tracks[k] !== undefined) live.tracks[k] = db.tracks[k]; });
+  if(db.prodQc) live.prodQc = JSON.parse(JSON.stringify(db.prodQc));
+  if(db.reg) live.reg = JSON.parse(JSON.stringify(db.reg));
+  if(db.shipCol !== undefined) live.shipCol = db.shipCol;
+  if(Array.isArray(db.trackHist)) live.trackHist = trackHistMerge(live.trackHist || [], db.trackHist);
+  return live;
+}
+function deviceShort(){
+  const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+  const os = /iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : '';
+  const br = /HeadlessChrome/.test(ua) ? 'HeadlessChrome' : /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : '';
+  return [os, br].filter(Boolean).join(' · ') || ua.slice(0, 40);
 }
 /* Запис полями: лише змінені ключі, вилучені — FieldValue.delete(). Ключ
    із крапкою Firestore читав би як шлях — тоді пишемо документ цілком. */
@@ -9234,7 +9307,9 @@ async function docPatchWrite(ref, p, whole){
     throw e;
   }
 }
-async function dbNewer(ref, base, field, out){
+/* `baseRev` — лічильник записів тієї версії, яку бачила вкладка (26.10):
+   у базі більший — там новіше, хай би що казав годинник пристрою. */
+async function dbNewer(ref, base, field, out, baseRev){
   let snap = null;
   try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); return null; }
   if(!snap || !snap.exists) return null;
@@ -9243,9 +9318,11 @@ async function dbNewer(ref, base, field, out){
   const v = String(d[field] || '');
   if(base === undefined) return d;                 // у базі є те, чого ми не читали
   if(v && v > String(base || '')) return d;
+  if(baseRev != null && +d.rev > +baseRev) return d;
   return null;
 }
 function touchedOfJson(json){ try{ return String((JSON.parse(json) || {}).touchedAt || ''); }catch(e){ return ''; } }
+function revOfJson(json){ try{ return +((JSON.parse(json) || {}).rev || 0) || 0; }catch(e){ return 0; } }
 /* ══════════ АРХІВ КАРТОК — ЖИВІ ЗАМІСТЬ УСІЄЇ БАЗИ (23.10) ══════════
 
    Андрій: «довго вантажить… висне… 30 користувачів». Сторінка тягнула всі
@@ -9729,9 +9806,11 @@ async function saveOrders(opts){
        затираємо: беремо свіжу в памʼять, правку просять повторити. */
     let prevJson = ordersSaved.has(id) ? ordersSaved.get(id) : null;   // що лежало в базі перед записом
     let patch = null;                                                 // що саме пишемо (наявна картка)
+    const вБазі = {};
     try{
       const base = ordersSaved.has(id) ? touchedOfJson(ordersSaved.get(id)) : undefined;
-      const свіжа = await dbNewer(ORDERS_COL.doc(id), base, 'touchedAt');
+      const baseRev = ordersSaved.has(id) ? revOfJson(ordersSaved.get(id)) : null;
+      const свіжа = await dbNewer(ORDERS_COL.doc(id), base, 'touchedAt', вБазі, baseRev);
       if(свіжа){
         свіжа.id = свіжа.id || id;
         const i = (orders || []).findIndex(x => x && x.id === id);
@@ -9745,9 +9824,10 @@ async function saveOrders(opts){
           patchApply(live, theirP);
           const t0 = String(свіжа.touchedAt || ''), t1 = new Date().toISOString();
           live.touchedAt = t1 > t0 ? t1 : new Date(Date.parse(t0) + 1000).toISOString();
-          mineP.set.touchedAt = live.touchedAt;
+          /* Патч — від того, що В БАЗІ, до злитого: підключі `tracks` і
+             обʼєднана історія пишуться саме такими, якими лягли в памʼять. */
           body = JSON.stringify(live); cur.set(id, body);
-          prevJson = JSON.stringify(свіжа); patch = mineP;
+          prevJson = JSON.stringify(свіжа); patch = orderPatch(свіжа, live);
           console.info('картка в базі новіша в інших полях — злито', id, Object.keys(theirP.set).join(','));
         }else{
           const json2 = JSON.stringify(свіжа);
@@ -9759,7 +9839,30 @@ async function saveOrders(opts){
         }
       }
     }catch(e){ console.warn('звірка версії картки', id, e); }
+    /* Захищені стани цеху (26.10): наш запис зняв би «погоджено», «фото на
+       погодженні», «у реєстрі» чи фото цеху, хоч явного передруку немає, —
+       це стара копія. Ці поля беремо з бази, своє пишемо. */
     try{
+      const liveR = (orders || []).find(x => x && x.id === id);
+      const відкат = вБазі.doc && liveR ? stateRollback(вБазі.doc, JSON.parse(body)) : [];
+      if(відкат.length){
+        stateKeep(вБазі.doc, liveR);
+        body = JSON.stringify(liveR); cur.set(id, body);
+        if(prevJson){ let b0 = null; try{ b0 = JSON.parse(prevJson); }catch(e){} patch = orderPatch(b0, liveR); }
+        console.warn('стара копія хотіла зняти стан цеху — не пустили', id, відкат.join(', '));
+        try{ accLog('rollback', 'картка #' + noOf(liveR.orderId || id) + ': стара копія хотіла зняти «' + відкат.join('», «') + '» — не пустили · ' + deviceShort()); }catch(e){}
+      }
+    }catch(e){ console.warn('захист стану цеху', id, e); }
+    try{
+      /* Лічильник записів (26.10): на одиницю більший за той, що в базі й
+         у версії, яку бачили. Годинник пристрою його не обдурить. */
+      const liveV = (orders || []).find(x => x && x.id === id);
+      if(liveV && !liveV.draft){
+        const r0 = Math.max(revOfJson(prevJson || ''), +((вБазі.doc || {}).rev || 0) || 0, +(liveV.rev || 0) || 0);
+        liveV.rev = r0 + 1;
+        body = JSON.stringify(liveV); cur.set(id, body);
+        if(patch) patch.set.rev = liveV.rev;
+      }
       if(prevJson) await histPut(ORDERS_COL, id, prevJson, 'save');
       if(prevJson){
         if(!patch){ let b0 = null; try{ b0 = JSON.parse(prevJson); }catch(e){} patch = orderPatch(b0, JSON.parse(body)); }
@@ -31028,11 +31131,16 @@ function designHostInit(){
        Тепер: застосували зміну → saveOrders → дивимось, чи в записаному є
        наша мітка (okFn). Немає — повторюємо на свіжій версії (до 3 разів).
        Пишемо лише через saveOrders — правило «не в обхід» тримається. */
+    /* fn повертає false — картку вже рушили далі (26.10, Володимир: «після
+       оновлень переміщало назад»): дія не застосовується, повертаємо 'stale',
+       у памʼяті — свіжа версія. На повторі після відхиленого запису fn
+       бачить уже свіжу картку — і сама вирішує, чи ще є що робити. */
     orderApply: async (id, fn, okFn) => {
       for(let i = 0; i < 3; i++){
         const o = (orders || []).find(x => x && x.id === id);
         if(!o || dbLinkDead()) return false;
-        try{ fn(o); }catch(e){ console.warn('зміна картки', e); return false; }
+        let r; try{ r = fn(o); }catch(e){ console.warn('зміна картки', e); return false; }
+        if(r === false) return 'stale';
         touchOrder(o);
         try{ await saveOrders({ quiet: true }); }catch(e){ console.warn('запис картки', e); }
         let saved = null;
