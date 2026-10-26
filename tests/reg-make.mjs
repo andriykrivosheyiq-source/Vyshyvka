@@ -171,6 +171,54 @@ console.log('   ' + JSON.stringify({ s4, r4 }));
 ok(s4.every(x => x === 'reg') && /Реєстр не створено/.test(r4.toast) && /NP_KEY_yuk/.test(r4.toast),
   'відмова Нової пошти — нічого не перенесено, сказано чому', JSON.stringify({ s4, r4 }));
 
+console.log('═══ 5. ЗАПИС У КАРТКУ НЕ ЛІГ — КАРТКА В «РЕЄСТР», СКАЗАНО КОМУ НАТИСНУТИ ═══');
+/* 26.10, Володимир: реєстр роздрукований, а картка злетіла з «Передано
+   курʼєру» — запис у картку відхилився мовчки. */
+const e5 = await seed(2000341, '5');
+await p.evaluate(() => { window.LQDesign.ui.host.npRegistry = async () => ({ ref:'R5', number:'105-0005', notFound:[], errors:[] });
+  window.__ap0 = window.LQDesign.ui.host.orderApply;
+  window.LQDesign.ui.host.orderApply = async (id, fn, okFn) => { if(id === 'r2000342') return false; return window.__ap0(id, fn, okFn); }; });
+const r5 = await тиснути();
+const s5 = await стан(e5);
+await p.evaluate(() => { window.LQDesign.ui.host.orderApply = window.__ap0; });
+console.log('   ' + JSON.stringify({ s5, r5 }));
+ok(s5.join() === 'courier,reg,courier' && /УВАГА: реєстр №105-0005 створено, але в картки #\d+ не записався/.test(r5.toast) && /Уже в реєстрі/.test(r5.toast),
+  'запис однієї картки не ліг — вона лишилась у «Реєстр», сказано натиснути «Уже в реєстрі»; решта — «Передано курʼєру»', JSON.stringify({ s5, r5 }));
+
+console.log('═══ 6. «УЖЕ В РЕЄСТРІ → ПЕРЕДАНО КУРʼЄРУ» ═══');
+const r6 = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  U.setTab('prod'); U.open('2000342'); U.render(root);
+  await new Promise(r => setTimeout(r, 200));
+  const b = root.querySelector('.dz-panel:not(.hide) [data-do="reg-manual"]');
+  const out = { кнопка: !!b, текст: b ? b.textContent : '' };
+  window.__toasts = []; const t0 = U.host.toast; U.host.toast = m => { window.__toasts.push(String(m)); };
+  const p0 = window.prompt; window.prompt = () => '105-0005';
+  if(b) b.click();
+  await new Promise(r => setTimeout(r, 900));
+  window.prompt = p0; U.host.toast = t0;
+  const pr = U.pairOf('2000342');
+  out.стан = window.LQDesign.prodAt(pr.job, pr.o);
+  out.reg = pr.o.reg && { no: pr.o.reg.no, manual: pr.o.reg.manual, by: pr.o.reg.by };
+  out.вБазі = (() => { try{ return JSON.parse(ordersSaved.get(pr.o.id)).reg.manual; }catch(e){ return false; } })();
+  out.toast = window.__toasts.slice(-1)[0] || '';
+  out.кнопкаПісля = !!root.querySelector('.dz-panel:not(.hide) [data-do="reg-manual"]');
+  U.setTab('acct'); U.open('2000342'); U.render(root); await new Promise(r => setTimeout(r, 200));
+  out.історія = U.histHtml(pr.job, pr.o).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  U.setTab('prod'); U.open(''); U.render(root); await new Promise(r => setTimeout(r, 200));
+  document.querySelector('[data-do="reg-list"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  out.список = ((document.getElementById('dzRegPop') || {}).textContent || '').replace(/\s+/g, ' ');
+  const x = document.getElementById('dzRegPop'); if(x) x.remove();
+  return out;
+});
+console.log('   ' + JSON.stringify(r6).slice(0, 600));
+ok(r6.кнопка && /Уже в реєстрі/.test(r6.текст), 'у картці в «Реєстр» є кнопка «Уже в реєстрі → Передано курʼєру»', JSON.stringify({ к: r6.кнопка, т: r6.текст }));
+ok(r6.стан === 'courier' && r6.reg && r6.reg.manual && r6.reg.no === '105-0005' && r6.вБазі && /Передано курʼєру/.test(r6.toast) && !r6.кнопкаПісля,
+  'натиснули → «Передано курʼєру», реєстр записано в базу з номером і «вручну»', JSON.stringify({ с: r6.стан, r: r6.reg, б: r6.вБазі, t: r6.toast }));
+ok(/вписано вручну/.test(r6.історія || '') && /105-0005/.test(r6.список) && /вписано вручну/.test(r6.список),
+  'в історії картки й у списку реєстрів — «вписано вручну»', JSON.stringify({ і: (r6.історія || '').slice(-300), с: r6.список.slice(0, 200) }));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'реєстр: створюється, у «Передано курʼєру» — лише прийняте Новою поштою');
