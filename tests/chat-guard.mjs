@@ -59,6 +59,7 @@ const sitniks = {
   postMode: 'ok',             // те саме на надсилання
   seq: 100,
   log: [],                    // усі запити: method path
+  q: [],                      // повний шлях + чи просили свіже (26.10)
   chats: {
     'c-a': [
       { id:'1', text:'Добрий день! Хочу худі з совою', createdAt: iso(now - 3600e3 * 5), sender:{ name:'Асія Дерещук' } },
@@ -121,6 +122,8 @@ await p.route('**://**', async r => {
   if(u.startsWith(SIT)){
     const url = new URL(u), pth = url.pathname;
     sitniks.log.push(m + ' ' + pth);
+    /* Повний запит і чи просили свіже повз кеш воркера (26.10). */
+    sitniks.q.push({ m, path: pth + url.search, fresh: (r.request().headers()['x-loomiq-fresh'] || '') === '1' });
     const mode = m === 'GET' ? sitniks.mode : sitniks.postMode;
     if(mode === '429') return r.fulfill({ status:429, contentType:'application/json', headers:{ 'Retry-After':'2' }, body: JSON.stringify({ message:'Too Many Requests' }) });
     if(mode === '500') return r.fulfill({ status:500, contentType:'application/json', body: JSON.stringify({ message:'Internal error' }) });
@@ -489,6 +492,48 @@ ok(пошук.all.length >= 2 && пошук.r1.length === 1 && /Богдан/.te
 ok(пошук.r2.length === 1 && /Асія/.test(пошук.r2[0]) && пошук.r3.length === 1 && /Богдан/.test(пошук.r3[0]), 'по ніку й по номеру картки — теж', JSON.stringify({ r2: пошук.r2, r3: пошук.r3 }));
 ok(/нічого немає/.test(пошук.порожньо) && пошук.після.value === 'нікого такого' && пошук.після.rows === 0 && пошук.назад === пошук.all.length,
   'нема збігу — «нічого немає»; перемальовування списку не стирає набране; очистив — усі', JSON.stringify(пошук));
+
+console.log('═══ 14. КЕШ ВОРКЕРА: ПІСЛЯ НАШОЇ ВІДПРАВКИ — СВІЖЕ, СТОРІНКИ СПИСКУ — РАЗ НА 5 ХВ (26.10) ═══');
+/* Воркер віддає читання з копії (стрічка 5 с). Щоб наша відправка не
+   «зависала» на 5 с, найближчі читання після вдалого POST несуть
+   `X-Loomiq-Fresh: 1`; без відправки заголовка немає. */
+sitniks.mode = 'ok'; sitniks.postMode = 'ok';
+await p.evaluate(() => { crmCoolUntil = 0; crmFreshUntil = 0; });
+await openChat('2000502');
+sitniks.q.length = 0;
+await p.waitForTimeout(4500);
+const без14 = sitniks.q.filter(x => x.m === 'GET' && /\/messages/.test(x.path));
+ok(без14.length >= 1 && без14.every(x => !x.fresh), 'без відправки читання стрічки йде без X-Loomiq-Fresh (' + без14.length + ')', JSON.stringify(без14.slice(0, 3)));
+sitniks.q.length = 0;
+await p.fill('#chatWin .cw-inp', 'Відправляємо завтра');
+await p.press('#chatWin .cw-inp', 'Control+Enter');
+await wait(() => { const r = [...document.querySelectorAll('#chatWin .od-crm-msg')].filter(x => /Відправляємо завтра/.test(x.textContent)).pop(); return r && /✓✓/.test(r.textContent) ? true : null; }, 40);
+const після14 = sitniks.q.filter(x => x.m === 'GET' && /\/messages/.test(x.path));
+const пост14 = sitniks.q.findIndex(x => x.m === 'POST');
+const свіжі14 = sitniks.q.filter((x, i) => i > пост14 && x.m === 'GET' && /\/messages/.test(x.path));
+ok(пост14 >= 0 && свіжі14.length >= 1 && свіжі14[0].fresh, 'після POST перше читання стрічки — з X-Loomiq-Fresh: 1', JSON.stringify({ пост14, свіжі14: свіжі14.slice(0, 3) }));
+await p.evaluate(() => { crmFreshUntil = 0; });
+sitniks.q.length = 0;
+await p.waitForTimeout(4500);
+const знову14 = sitniks.q.filter(x => x.m === 'GET' && /\/messages/.test(x.path));
+ok(знову14.length >= 1 && знову14.every(x => !x.fresh), 'минуло вікно свіжості — знову без заголовка', JSON.stringify(знову14.slice(0, 3)));
+/* Сторінки 2–3 списку розмов — не щообходу. */
+const стор14 = await p.evaluate(async () => {
+  const був = crmChatsList;
+  crmChatsList = async () => Array.from({ length: 12 }, (_, i) => ({ id: 'z' + i, lastMessage: { text: 'x' } }));
+  crmChatsNext = null; crmPagesAt = 0; crmCoolUntil = 0;
+  window.__q = [];
+  const f = crmFetch; crmFetch = async (path, o) => { window.__q.push(path); return { items: [] }; };
+  try{
+    await crmChatsAll(); const a = window.__q.filter(x => /page=2/.test(x)).length;
+    window.__q = []; crmChatsNext = null;
+    await crmChatsAll(); const b = window.__q.filter(x => /page=2/.test(x)).length;
+    crmPagesAt = 0; window.__q = []; crmChatsNext = null;
+    await crmChatsAll(); const c = window.__q.filter(x => /page=2/.test(x)).length;
+    return { a, b, c };
+  } finally { crmChatsList = був; crmFetch = f; crmChatsNext = null; crmPagesAt = 0; }
+});
+ok(стор14.a >= 1 && стор14.b === 0 && стор14.c >= 1, 'сторінка 2 списку: перший обхід — так, наступний за 30 с — ні, через 5 хв — знову', JSON.stringify(стор14));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

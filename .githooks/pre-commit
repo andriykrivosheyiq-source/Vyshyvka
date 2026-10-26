@@ -228,6 +228,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/an-fast\.
   }
   echo "✓ аналітика: гроші одразу, важке — лише на своїх вкладках"
 fi
+if git diff --cached --name-only | grep -qE '^(worker/sitniks-proxy\.js|tests/sitniks-cache\.mjs)'; then
+  node tests/sitniks-cache.mjs >/tmp/lq-sitniks-cache.log 2>&1 || {
+    echo "✗ Воркер Sitniks знову жене кожне читання в Sitniks (кеш, склейка, копія при 429) — коміт зупинено. Подробиці: /tmp/lq-sitniks-cache.log"
+    grep '✗' /tmp/lq-sitniks-cache.log
+    exit 1
+  }
+  echo "✓ воркер Sitniks: читання з кешу, у Sitniks — один запит"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/ship-date\.mjs)'; then
   node tests/ship-date.mjs >/tmp/lq-ship-date.log 2>&1 || {
     echo "✗ Дата відправки для цеху зламана (робочі дні, «виготовити й відправити») — коміт зупинено. Подробиці: /tmp/lq-ship-date.log"

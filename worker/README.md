@@ -389,6 +389,13 @@ https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://loomiq-tg.ВАШ
 Cloudflare → Workers & Pages → **Create** → назвати `loomiq-sitniks` → **Deploy**.
 Потім **Edit code** → замінити все вмістом `worker/sitniks-proxy.js` → **Deploy**.
 
+Воркер кешує читання (26.10): список чатів 20 с, стрічка чату 5 с; однакові
+одночасні запити склеює, при 429/5xx до 10 хв віддає копію з заголовком
+`X-Loomiq-Stale: 1`. Після оновлення коду в репозиторії — повторити
+**Edit code → Deploy**; секрети й змінні лишаються. Перевірити: відкрити
+один діалог у двох вкладках — у Sitniks має йти один запит (у відповіді
+другої вкладки `X-Loomiq-Cache: hit`).
+
 ### 2. Ключ
 
 Settings → Variables and Secrets:
