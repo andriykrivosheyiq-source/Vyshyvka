@@ -401,6 +401,35 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/order-res
   echo "✓ номер бронюється в базі"
 fi
 
+# ЗАМОРОЗКА ДІАЛОГУ (26.10). Андрій: «виокремо його в окрему гілку, щоб
+# чати ніяк не змінювалися… працює, ламається». loomiq-chat.js змінюється
+# лише окремою задачею по чатах — з LQ_CHAT=1 у середовищі коміту; тоді
+# проганяються УСІ тести чатів, і еталон справжніх записів Sitniks серед них.
+if git diff --cached --name-only | grep -qE '^loomiq-chat\.js$'; then
+  if [ "$LQ_CHAT" != "1" ]; then
+    echo "✗ loomiq-chat.js змінено, а це не задача по чатах (немає LQ_CHAT=1) — коміт зупинено."
+    echo "  Чати заморожено (26.10): правка діалогу — лише свідомо, окремим комітом: LQ_CHAT=1 git commit …"
+    exit 1
+  fi
+  for t in tests/chat-*.mjs tests/mobile-chat.mjs tests/crm-pics.mjs; do
+    [ -f "$t" ] || continue
+    node "$t" >/tmp/lq-chat-all.log 2>&1 || {
+      echo "✗ Чати: $t впав — коміт зупинено. Подробиці: /tmp/lq-chat-all.log"
+      grep '✗' /tmp/lq-chat-all.log
+      exit 1
+    }
+  done
+  echo "✓ чати: усі тести діалогу чисті (LQ_CHAT=1)"
+fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|tests/chat-sentby\.mjs)'; then
+  node tests/chat-sentby.mjs >/tmp/lq-chat-sentby.log 2>&1 || {
+    echo "✗ Бік повідомлення за sentBy Sitniks або памʼять «це наше» зламано — коміт зупинено. Подробиці: /tmp/lq-chat-sentby.log"
+    grep '✗' /tmp/lq-chat-sentby.log
+    exit 1
+  }
+  echo "✓ чати: бік за sentBy, після відповіді нуль, памʼять не губиться"
+fi
+
 # ДОГОВІР ДІАЛОГУ (23.10). Андрій: «діалог — в окрему зону». Нова залежність
 # між loomiq-chat.js і адмінкою в будь-який бік — лише свідомо, через договір.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|tests/chat-contract\.mjs)'; then

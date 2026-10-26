@@ -288,6 +288,20 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Чати: бік за `sentBy`, памʼять без конфліктів, заморозка** (26.10):
+  `loomiq-chat.js` — `crmSelfHere`/`crmSelfIds()`/`crmSelfLearn(id)` (у
+  `contentData.crmSelfIds`, `PHOTOS_DOC.set({crmSelfIds}, merge)` лише після
+  `contentLoaded`), `crmSentBy(m)` (`sentBy`/`sent_by`/`senderId`);
+  `crmIsMine`: спершу `managerName` (і вчимо `sentBy`), потім `sentBy` у
+  своїх, далі старий ланцюжок, перед памʼяттю вкладки — «свої відомі, а тут
+  інший → клієнт»; у `crmNormMsgs` `own` → `crmSelfLearn`. `CRM_OUT_KEEP`
+  300. Адмінка: `PATCH_UNION {trackHist, crmOut, crmPicsOut}` у `patchClash`,
+  `listUnion` у `patchApply`. Pre-commit: `loomiq-chat.js` лише з `LQ_CHAT=1`
+  + всі тести чатів; `tests/chat-sentby.mjs` на кожну зміну адмінки/діалогу.
+  Зразок Sitniks (26.10): `{id, attachmentUrl, storyLink, isStoryMention,
+  attachments, messageType:'text', messageScope:'standard', sentBy, text,
+  isViewedByUser, createdAt, updatedAt}` + `managerName` у надісланому з
+  Sitniks; список розмов: «спосіб: limit=50».
 - **Стан цеху не відкочується** (26.10): `loomiqadmin.html` —
   `host.orderApply`: `fn` → `false` ⇒ `'stale'`; `PATCH_META.rev`,
   `PATCH_SUB`, `subKeysDiff`, `orderPatch` → `{set, del, subs}`,

@@ -885,7 +885,7 @@ function crmPeerKeys(o){
    Тримаємо памʼять у самій картці, а не на час сеансу: до перезавантаження
    адмінки вона жила, після — зникала разом із вкладкою, і вчорашні власні
    листи знову опинялись не з того боку. Заразом памʼятаємо, ХТО писав. */
-const CRM_OUT_KEEP = 60;
+const CRM_OUT_KEEP = 300;
 function crmOutKey(t){ return String(t || '').replace(/\s+/g, ' ').trim().slice(0, 160); }
 /* Кожне надіслане запамʼятовуємо КІЛЬКОМА ключами: цілим текстом і окремо
    кожною адресою, яка в ньому була.
@@ -1087,7 +1087,39 @@ function crmOutFind(o, text, files){
 
    Останній рубіж — памʼять про те, що ми самі відправили з цієї картки. */
 const crmSent = new Set();
+/* ХТО НАДІСЛАВ — З ПОЛЯ SITNIKS, А НЕ З ДОГАДКИ (26.10, зразок «{ }»
+   Володимира). У кожному повідомленні є `sentBy`: у нашому — ідентифікатор
+   НАШОЇ Instagram-сторінки, у клієнтському — клієнта; у нашому, надісланому
+   з Sitniks руками, ще й `managerName`. Надіслане з Loomiq через API
+   `managerName` не має — і доти трималось лише на памʼяті про відправлене,
+   яка губилась. Свої `sentBy` вчимо один раз (з `managerName` або з
+   памʼяті) і тримаємо в документі команди — спільно для всіх вкладок. */
+let crmSelfHere = new Set();
+function crmSelfIds(){
+  const out = new Set(crmSelfHere);
+  try{ ((contentData || {}).crmSelfIds || []).forEach(x => { if(x) out.add(String(x)); }); }catch(e){}
+  return out;
+}
+let crmSelfSaveT = 0;
+function crmSelfLearn(id){
+  const s = (id == null) ? '' : String(id).trim();
+  if(!s || crmSelfIds().has(s)) return;
+  crmSelfHere.add(s);
+  clearTimeout(crmSelfSaveT);
+  crmSelfSaveT = setTimeout(async () => {
+    try{
+      if(typeof contentLoaded === 'undefined' || !contentLoaded) return;      // не читали — не пишемо
+      const list = [...new Set(((contentData || {}).crmSelfIds || []).map(String).concat([...crmSelfHere]))].slice(-20);
+      if(contentData) contentData.crmSelfIds = list;
+      if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC) await PHOTOS_DOC.set({ crmSelfIds: list }, { merge:true });
+    }catch(e){ console.warn('свої sentBy', e); }
+  }, 800);
+}
+function crmSentBy(m){ const v = m && (m.sentBy != null ? m.sentBy : (m.sent_by != null ? m.sent_by : m.senderId)); return (v == null || v === '') ? '' : String(v); }
 function crmIsMine(m, text, who, peer, files){
+  if(typeof m.managerName === 'string' && m.managerName.trim()){ crmSelfLearn(crmSentBy(m)); return true; }
+  const sb = crmSentBy(m);
+  if(sb && crmSelfIds().has(sb)) return true;
   if(m.isOutgoing || m.outgoing || m.fromManager || m.isManager || m.isMine || m.mine) return true;
   if(m.isIncoming === true || m.incoming === true || m.fromClient === true) return false;
   if(m.isIncoming === false || m.incoming === false) return true;
@@ -1101,6 +1133,8 @@ function crmIsMine(m, text, who, peer, files){
   const sign = [(who || {}).name, (who || {}).nick].map(crmKeyOf).filter(Boolean);
   if((peer || []).length && sign.length)
     return !sign.some(s => peer.some(pk => s === pk || s.indexOf(pk) >= 0 || pk.indexOf(s) >= 0));
+  /* Свій `sentBy` відомий, а тут інший — це клієнт, і памʼять уже не потрібна. */
+  if(sb && crmSelfIds().size && !crmSelfIds().has(sb)) return false;
   /* Без підпису й без напрямку (23.10): так Sitniks віддає і наше, і
      часом клієнтове (Марта, 23.09) — вгадувати за відсутністю підпису не
      можна. Лишається памʼять про відправлене (o.crmOut — у картці, тож
@@ -1304,6 +1338,7 @@ function crmNormMsgs(data, o){
        здогадуємось за підписом, якого в такому повідомленні немає. */
     const own = crmOutOwn(o, m, files, заЧасом) || crmOutFind(o, text, files);
     const mine = own ? true : crmIsMine(m, text, who, peer, files);
+    if(own) crmSelfLearn(crmSentBy(m));                 // памʼять каже «наше» — запамʼятовуємо нашу сторінку
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
        відправлене, його імʼям підписувати наше повідомлення не можна. */
@@ -2636,6 +2671,7 @@ function renderChats(dir){
       renderChats(dir);
     });
   }
+
   const qEl = root.querySelector('.chl-q');
   if(qEl && !qEl.__wired){
     qEl.__wired = true;
