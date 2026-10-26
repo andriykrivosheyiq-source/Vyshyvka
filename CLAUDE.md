@@ -415,11 +415,15 @@ IndexedDB «немає» (SDK сам бере localStorage), `gapi` — загл
 3. **Свіжість — ще й лічильником `o.rev`** (`dbNewer(…, baseRev)`,
    `PATCH_META.rev`): кожен запис `saveOrders` ставить `max(база, бачене)+1`;
    більший у базі — там новіше, хай би що казав годинник.
-4. **Злиття по підключах** (`PATCH_SUB.tracks`, `orderPatch.subs`,
-   `patchClash`, `patchApply`): одяг (`tracks.supply`) і погодження
-   (`tracks.qc/prod`) не відхиляють одне одного; `trackHist` — обʼєднання
-   (`trackHistMerge`); злитий патч — від версії в базі (`orderPatch(свіжа,
-   live)`).
+4. **Злиття по підключах** (`PATCH_SUB = {tracks:'obj', units:'id'}`,
+   `orderPatch.subs`, `patchClash`, `patchApply`): одяг (`tracks.supply`) і
+   погодження (`tracks.qc/prod`) не відхиляють одне одного; `trackHist`,
+   `crmOut`, `crmPicsOut` — обʼєднання (`PATCH_UNION`); **позиції картки
+   відділу (`units`) — по позиції й полю** (`arrIdDiff`: `<id>`, `<id>.<поле>`,
+   `@order`; 26.10, Паша тиснув «Підтвердити одяг» тричі, бо Оля в цю мить
+   слала фіксацію в `units[].graphic[].thread`); те саме поле тієї самої
+   позиції — відхиляється, як і доти. Злитий патч — від версії в базі
+   (`orderPatch(свіжа, live)`).
 Перевіряє `tests/prod-state.mjs` (у pre-commit). Новий спосіб повернути
 картку назад без явної дії — новий крок там.
 

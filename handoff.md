@@ -288,6 +288,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Позиції картки відділу зливаються по позиції й полю** (26.10, відео
+  Паші «натискав три рази»): `PATCH_SUB.units = 'id'`, `arrIdDiff(a, b)` →
+  шляхи `<id>` (додано/прибрано), `<id>.<поле>`, `@order`; `subOverlap` у
+  `patchClash`; `patchApply` для `'id'`-списків: upsert/видалення цілої
+  позиції, поле — по id, порядок — за їхнім. Працює і для `designPut`, і для
+  `saveOrders`. `ordersClash` показує `#noOf`. Тест `field-write.mjs` §6б–6г.
 - **Чати: бік за `sentBy`, памʼять без конфліктів, заморозка** (26.10):
   `loomiq-chat.js` — `crmSelfHere`/`crmSelfIds()`/`crmSelfLearn(id)` (у
   `contentData.crmSelfIds`, `PHOTOS_DOC.set({crmSelfIds}, merge)` лише після

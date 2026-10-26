@@ -159,6 +159,51 @@ ok(r.okk === true && !r.toasts.some(t => /повторіть правку/.test(
 ok(ju.length === 1 && ju[0].includes('brief') && !ju[0].includes('tasks'), 'у базу лише brief: ' + (ju[0] || []).join(', '), 'update: ' + JSON.stringify(ju));
 ok(r.mem.tasks === 1 && r.db.brief.text === 'мій ТЗ' && (r.db.tasks || []).length === 1, 'у памʼяті чуже доручення, у базі обидві зміни', 'памʼять: ' + JSON.stringify(r.mem) + ' база: ' + JSON.stringify({ b: r.db.brief, t: r.db.tasks }));
 
+console.log('6б. Позиції: фіксація з однієї вкладки й «Підтвердити одяг» з іншої — злиття, не «повторіть»');
+/* 26.10, відео Паші: «натискав три рази». Обидві вкладки пишуть у `units`,
+   але в різні поля однієї позиції. */
+await reset();
+r = await p.evaluate(async () => {
+  const id = '2000301';
+  const j = designJobs[id];
+  const db = window.__JOBS[id];
+  db.units[0].graphic = [{ id:'g1', thread:[{ at:'2026-10-26T18:33:00.000Z', by:'olia@loomiq', text:'Давайте зафіксуємо ваше замовлення' }] }];
+  db.updatedAt = '2099-02-01T00:00:00.000Z';
+  j.units[0].color = 'Рожевий'; j.units[0].size = 'M'; j.units[0].clothOk = { at:'2026-10-26T18:40:00.000Z', by:'pasha@loomiq' }; j.updatedAt = new Date().toISOString();
+  const okk = await designPut(j);
+  const d2 = window.__JOBS[id];
+  return { okk, toasts: window.__TOASTS, mem: { color: j.units[0].color, thread: ((j.units[0].graphic || [])[0] || {}).thread },
+           db: { color: d2.units[0].color, size: d2.units[0].size, clothOk: !!d2.units[0].clothOk, thread: ((d2.units[0].graphic || [])[0] || {}).thread } };
+});
+ok(r.okk === true && !r.toasts.some(t => /повторіть правку/.test(t)), 'одяг підтверджено з першого разу — без «повторіть правку»', 'okk=' + r.okk + ' тости: ' + JSON.stringify(r.toasts));
+ok(r.db.color === 'Рожевий' && r.db.size === 'M' && r.db.clothOk && (r.db.thread || []).length === 1 && (r.mem.thread || []).length === 1,
+  'у базі і підтверджений одяг, і повідомлення фіксації; у памʼяті чуже повідомлення теж', JSON.stringify(r));
+
+console.log('6в. Те саме поле позиції з двох вкладок — відхилено, як і доти');
+await reset();
+r = await p.evaluate(async () => {
+  const id = '2000301';
+  const j = designJobs[id];
+  const db = window.__JOBS[id]; db.units[0].color = 'Синій'; db.updatedAt = '2099-03-01T00:00:00.000Z';
+  j.units[0].color = 'Білий'; j.updatedAt = new Date().toISOString();
+  const okk = await designPut(j);
+  return { okk, toasts: window.__TOASTS, mem: designJobs[id].units[0].color, db: window.__JOBS[id].units[0].color };
+});
+ok(r.okk === false && r.db === 'Синій' && r.mem === 'Синій' && r.toasts.some(t => /повторіть правку/.test(t)), 'колір з обох вкладок — чуже лишилось, людині сказано', JSON.stringify(r));
+
+console.log('6г. Колега додав позицію, я правив свою — обидві на місці');
+await reset();
+r = await p.evaluate(async () => {
+  const id = '2000301';
+  const j = designJobs[id];
+  const db = window.__JOBS[id]; db.units.push({ id:'u1', name:'Футболка', qty:2, pics:[], graphic:[] }); db.updatedAt = '2099-04-01T00:00:00.000Z';
+  j.units[0].qty = 3; j.updatedAt = new Date().toISOString();
+  const okk = await designPut(j);
+  const d2 = window.__JOBS[id];
+  return { okk, toasts: window.__TOASTS, mem: j.units.map(u => u.id + ':' + u.qty), db: d2.units.map(u => u.id + ':' + u.qty) };
+});
+ok(r.okk === true && r.db.join() === 'u0:3,u1:2' && r.mem.join() === 'u0:3,u1:2' && !r.toasts.some(t => /повторіть/.test(t)), 'обидві позиції в базі й у памʼяті', JSON.stringify(r));
+
 console.log('7. На старті пропозиції й Telegram — лише з вікном за датою');
 r = await p.evaluate(() => (window.__WHERE || []).filter(w => w[0] === 'offers' || w[0] === 'an_tg').map(w => w[0] + ':' + w[1] + w[2]));
 ok(r.includes('offers:updatedAt>=') && r.includes('offers:clientAt>=') && r.includes('an_tg:lastAt>='), 'offers (updatedAt, clientAt) і an_tg (lastAt) з вікном', 'where: ' + JSON.stringify(r));
