@@ -6195,7 +6195,7 @@
   }
   /* Закріплена дія цеху й «що шиємо» на плитці — лише на телефоні. */
   .dz-mbar{display:none;}
-  .dz-c-what.dz-on-phone{display:none;}
+  .dz-card .dz-c-mwhat{display:none;}
   /* ТЕЛЕФОН (26.10): одна колонка на екран, вкладки колонок зверху,
      плитки на всю ширину. */
   @media (max-width:760px){
@@ -6221,7 +6221,7 @@
     .dz-col.is-mcur .dz-card{padding:14px 15px;}
     .dz-col.is-mcur .dz-card b{font-size:15.5px;}
     .dz-col.is-mcur .dz-card span{font-size:13.5px;white-space:normal;}
-    .dz-c-what.dz-on-phone{display:block;font-weight:600;color:var(--ink);}
+    .dz-card .dz-c-mwhat{display:block;font-weight:600;color:var(--ink);font-size:13.5px;margin-top:4px;}
     /* Картка цеху: головна дія закріплена внизу, дублікати в зоні сховані. */
     .dz-mbar{display:flex;gap:8px;position:sticky;bottom:-14px;z-index:5;margin:4px -12px -14px;
       padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;
@@ -8229,32 +8229,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=8f705262f3"></script>
-<script src="loomiq-fingerprint.js?v=8f705262f3"></script>
-<script src="loomiq-pricing.js?v=8f705262f3"></script>
+<script src="loomiq-select.js?v=1a3fdaca46"></script>
+<script src="loomiq-fingerprint.js?v=1a3fdaca46"></script>
+<script src="loomiq-pricing.js?v=1a3fdaca46"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=8f705262f3"></script>
+<script src="loomiq-money-core.js?v=1a3fdaca46"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=8f705262f3"></script>
-<script src="loomiq-mock.js?v=8f705262f3"></script>
+<script src="loomiq-design.js?v=1a3fdaca46"></script>
+<script src="loomiq-mock.js?v=1a3fdaca46"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=8f705262f3"></script>
+<script src="imagetracer.js?v=1a3fdaca46"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=8f705262f3"></script>
-<script src="loomiq-threads.js?v=8f705262f3"></script>
+<script src="loomiq-chat.js?v=1a3fdaca46"></script>
+<script src="loomiq-threads.js?v=1a3fdaca46"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=8f705262f3"></script>
+<script src="loomiq-cards.js?v=1a3fdaca46"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8299,7 +8299,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '8f705262f3';
+var LQ_VER = '1a3fdaca46';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

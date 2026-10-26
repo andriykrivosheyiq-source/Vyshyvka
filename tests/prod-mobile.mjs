@@ -127,8 +127,8 @@ const r = await p.evaluate(async () => {
   out.дошка = { ширина: document.documentElement.scrollWidth, екран: innerWidth,
     вкладки: [...root.querySelectorAll('.dz-ctab')].filter(vis).map(b => b.textContent.replace(/\s+/g, ' ').trim()),
     видно: cols.filter(vis).map(c => c.dataset.col),
-    плитка: ((root.querySelector('.dz-col.is-mcur .dz-card-w .dz-c-what') || {}).textContent || '') };
-  out.дошка.щоШиємо = vis(root.querySelector('.dz-col.is-mcur .dz-c-what'));
+    плитка: ((root.querySelector('.dz-col.is-mcur .dz-card-w .dz-c-mwhat') || {}).textContent || '') };
+  out.дошка.щоШиємо = vis(root.querySelector('.dz-col.is-mcur .dz-c-mwhat'));
   /* 2. Вкладка — лише людина. */
   const інша = [...root.querySelectorAll('.dz-ctab')].find(b => !b.classList.contains('on') && b.dataset.ctab === 'ready');
   інша.click(); await t(150);
@@ -197,7 +197,7 @@ const rp = await pc.evaluate(async () => {
   const root = document.getElementById('dzRoot'), U = LQDesign.ui;
   const out = { вкладки: [...root.querySelectorAll('.dz-ctab')].some(vis),
     колонок: [...root.querySelectorAll('.dz-board > .dz-col')].filter(vis).length,
-    щоШиємо: [...root.querySelectorAll('.dz-on-phone')].some(vis) };
+    щоШиємо: [...root.querySelectorAll('.dz-c-mwhat')].some(vis) };
   U.open('2000202'); U.render(root); await new Promise(z => setTimeout(z, 300));
   out.бар = [...root.querySelectorAll('.dz-mbar')].some(vis);
   out.кнопки = [...root.querySelectorAll('.dz-panel:not(.hide) .dz-prod-acts .dz-b')].filter(vis).map(b => b.textContent.trim());

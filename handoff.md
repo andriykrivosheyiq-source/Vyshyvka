@@ -249,14 +249,14 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   розпирала сторінку); блок `@media (max-width:760px)`: `.dz-ctabs` (вкладки
   колонок), видно лише `.dz-col.is-mcur`, `.dz-mbar` sticky внизу картки,
   `.dz-mb-dup` сховані, `.dz-pm` на весь екран; `.dz-on-touch`/`.dz-on-mouse`
-  (≤760 px або `pointer:coarse`), `.dz-on-phone`. `loomiq-design.js` —
+  (≤760 px або `pointer:coarse`). `loomiq-design.js` —
   `boardHtml(steps, cards, cur)` малює вкладки; `MCOL` (localStorage
   `dzMcol`) + `mcolOf`/`mcolSet` у render: обирає лише людина (`data-ctab`),
   без вибору — перша колонка з картками, запамʼятовується. `prodMbar(job,o)`
   у `prodPanel`; `prodModal`: `[data-pm-cam]` з `capture="environment"`,
   галерея `multiple`, `[data-pm-st]` «готово N · вантажиться N», `.dz-pm-ok`,
   «📷 Ще фото», закриття з фото — `confirm`. На плитці з `c.chain` — `c.what`
-  як `.dz-on-phone`. Тест `tests/prod-mobile.mjs`. Далі: крок 2 (решта відділу
+  як `.dz-c-mwhat` (окремо від `.dz-c-what`, бо на компʼютері плитка з етапами «що» не показує). Тест `tests/prod-mobile.mjs`. Далі: крок 2 (решта відділу
   B2C на телефоні), крок 3 (інші розділи).
 - **Дата відправки для цеху** (25.10): одна дата — `job.due` (кнопка
   «📅 Відправити», раніше «Готово»; `U.dueHtml`). `workDays(v)` — робочі дні
