@@ -8999,8 +8999,10 @@
   /* ── Вікно: «Готово» (фото + коментар) і «Передрук» ─────────────────── */
   /* Зміна картки, яка МАЄ лягти (26.10): робоче місце повторює запис на
      свіжій версії й каже, чи лягло. Без нього (тести) — як доти. */
+  /* Повертає true (лягло), false (не записалось) або 'stale' — fn
+     повернула false: картку вже рушили далі, дію не застосовано (26.10). */
   async function orderApply(o, fn, okFn){
-    if(host().orderApply) return !!(await host().orderApply(o.id, fn, okFn));
+    if(host().orderApply) return await host().orderApply(o.id, fn, okFn);
     fn(o);
     try{ if(host().orderSave) await host().orderSave(o); }catch(e){ return false; }
     return !!okFn(o);
@@ -9158,8 +9160,22 @@
       if(goB.disabled) return;
       goB.disabled = true; goB.textContent = 'Надсилаю…';
       var штамп = new Date().toISOString();
-      var лягло = await orderApply(o, function(x){ D.prodReady(x, me, urls, note, штамп); },
+      /* ЛИШЕ З «НА СТАНКАХ» (26.10, Володимир: «після оновлень переміщало
+         назад, хоча менеджери давали згоду»): на телефоні ще стара картина,
+         а менеджер уже погодив — повтор «Готово — фото» перезаписував
+         «погоджено» на «чекає погодження». Картка не там — дію не робимо. */
+      var лягло = await orderApply(o, function(x){
+          if(x.prodQc && x.prodQc.at === штамп) return;              // наш же запис — повтор
+          if(D.prodAt(job, x) !== 'run') return false;
+          D.prodReady(x, me, urls, note, штамп); },
         function(x){ return !!(x && x.prodQc && x.prodQc.at === штамп); });
+      if(лягло === 'stale'){
+        close();
+        var свіжаP = U.pairOf(o.orderId);
+        render(document.getElementById('dzRoot'));
+        if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+        return say('Картку ' + U.jobNo(job) + ' вже рушили далі: «' + D.stepLabel(D.PROD, D.prodAt(job, свіжаP ? свіжаP.o : o)) + '» — фото не потрібні, показано свіжу');
+      }
       if(!лягло){
         goB.disabled = false; goB.textContent = 'Надіслати на погодження';
         return say('Не надіслалось — перевірте інтернет і натисніть ще раз. Фото збережені у вікні');
@@ -9222,9 +9238,12 @@
            свіжій версії й перевірка, що реєстр у базі; не ліг — кажемо, кому
            натиснути «Уже в реєстрі». */
         var регЗ = { ref: r.ref, no: String(r.number || ''), at: new Date().toISOString(), sender: k, by: me };
-        var леглоК = await orderApply(p.o, function(x){ x.reg = регЗ; x.shipCol = ''; },
+        var леглоК = await orderApply(p.o, function(x){
+            if(x.reg && x.reg.ref === r.ref) return;
+            if(D.prodAt(p.job, x) !== 'reg') return false;
+            x.reg = регЗ; x.shipCol = ''; },
           function(x){ return !!(x && x.reg && x.reg.ref === r.ref); });
-        if(!леглоК){ неЗапис.push(U.jobNo(p.job)); continue; }
+        if(леглоК !== true){ неЗапис.push(U.jobNo(p.job)); continue; }
         зроблено++;
       }
       if(r.number) номери.push('№' + r.number);
@@ -12369,8 +12388,16 @@
       if(!o.prodQc) return say('Немає фото від цеху');
       var безТ = D.shipNeedsTtn(o) && !D.shipAbroad(o);
       var штампП = new Date().toISOString();
-      var готовоП = await orderApply(o, function(x){ if(!(x.prodQc && x.prodQc.ok && x.prodQc.ok.at === штампП)){ D.prodApprove(x, m); x.prodQc.ok.at = штампП; } },
+      var готовоП = await orderApply(o, function(x){
+          if(x.prodQc && x.prodQc.ok && x.prodQc.ok.at === штампП) return;   // наш же запис — повтор
+          if(D.prodAt(job, x) !== 'appr') return false;                     // уже погодили / передрук — не чіпаємо
+          D.prodApprove(x, m); x.prodQc.ok.at = штампП; },
         function(x){ return !!(x && x.prodQc && x.prodQc.ok && x.prodQc.ok.at === штампП); });
+      if(готовоП === 'stale'){
+        var свіжаA = U.pairOf(o.orderId);
+        render(root);
+        return say('Картку вже рушили далі: «' + D.stepLabel(D.PROD, D.prodAt(job, свіжаA ? свіжаA.o : o)) + '» — показано свіжу');
+      }
       if(!готовоП) return say('Погодження не записалось — перевірте інтернет і натисніть ще раз');
       render(root);
       return say('Погоджено — цех бачить «Можна відправляти»' + (безТ ? ' · ТТН ще немає — створіть накладну' : ''));
@@ -12383,9 +12410,12 @@
       if(!window.confirm('Записати, що ' + U.jobNo(job) + ' уже в реєстрі? Картка піде в «Передано курʼєру», далі її веде статус Нової пошти.')) return;
       var штампР = new Date().toISOString();
       var леглоР = await orderApply(o, function(x){
+          if(x.reg && x.reg.ref === 'manual:' + штампР) return;
+          if(D.prodAt(job, x) !== 'reg') return false;
           x.reg = { ref: 'manual:' + штампР, no: String(номерР || '').trim().slice(0, 40), at: штампР, by: m, manual: true, sender: String(x.ttnSender || '') };
           x.shipCol = '';
         }, function(x){ return !!(x && x.reg && x.reg.ref === 'manual:' + штампР); });
+      if(леглоР === 'stale'){ render(root); return say('Картку вже рушили далі — показано свіжу'); }
       if(!леглоР) return say('Не записалось — перевірте інтернет і натисніть ще раз');
       render(root);
       return say('Записано · ' + U.jobNo(job) + ' → «Передано курʼєру»');
