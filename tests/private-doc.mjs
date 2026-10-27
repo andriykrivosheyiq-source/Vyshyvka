@@ -86,6 +86,7 @@ const NP_ST = { '20450000000101': { Number:'20450000000101', StatusCode:'9', Sta
 const gets = [];
 const FAIL = {};
 const npKeys = [];
+const realFetch = globalThis.fetch;            // повертаємо перед емулятором: він вантажить правила через fetch
 globalThis.fetch = async (url, opt) => {
   url = String(url); opt = opt || {};
   const res = (body, status) => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status: status || 200 });
@@ -150,6 +151,7 @@ ok(!npKeys.length && before === after,
    'база впала — воркер не опитує НП запасним ключем і не пише рухи без рахунку',
    'ключі НП: ' + JSON.stringify(npKeys) + ' · відповідь: ' + JSON.stringify(p3).slice(0, 160));
 delete FAIL['loomiq/private'];
+globalThis.fetch = realFetch;
 
 /* ═══ 4. АДМІНКА ═══ */
 console.log('\n═══ 4. АДМІНКА: КУДИ ПИШЕ Й ЯК ПЕРЕНОСИТЬ ═══');
