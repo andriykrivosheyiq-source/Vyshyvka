@@ -306,6 +306,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `prod-back` у `loomiq-design.js`; `rbOrderSum.cex`. Тести:
   `prod-state.mjs` §6–7 (стуб: `__GET_FAIL`), `upd-gate.mjs` (9165),
   `prod-restore.mjs` (9167), `fresh-build.mjs` (заслона, час збірки).
+- **«Зебра»** (27.10): `worker/novaposhta-proxy.js` op `markingPdf`
+  (`ttns[]`, `sender`, `idToken`) → `https://my.novaposhta.ua/orders/printMarking100x100/orders[]/…/type/pdf/apiKey/…`;
+  адмінка `npZebra` (як `npRegistryPdf`), host `npZebra`; `loomiq-design.js`:
+  `ZEBRA_COLS`, `prodCards().zebra`, плитка `.dz-card-zb[data-do=zebra]`,
+  картка `[data-ship-zebra]`, реєстри `reg-zebra`; CSS `.dz-card-zb` в
+  адмінці. `tests/reg-make.mjs` §7. **Перерозгорнути `loomiq-np`**
+  (Cloudflare → Edit code → вміст `worker/novaposhta-proxy.js` → Deploy).
 - **НП веде колонку цеху** (27.10): `prodAt` → `npStage` одразу після
   `redo`; `prodNpPoll` — усі B2C з `ttn` за 60 днів (`межа`), не лише
   `reg.ref`; `tests/prod-state.mjs` §8.

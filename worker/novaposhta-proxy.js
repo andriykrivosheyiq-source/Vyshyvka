@@ -344,6 +344,19 @@ export default {
         return new Response(pdf.body, { status: 200, headers: { ...cors, 'Content-Type': 'application/pdf',
           'Content-Disposition': 'attachment; filename="reestr-' + ref.slice(0, 8) + '.pdf"' } });
       }
+      /* «ЗЕБРА» — маркування 100×100 для термопринтера (27.10, Андрій: «по
+         відкритій ТТН прямо на картці… і PDF зебри на весь реєстр»). PDF на
+         одну чи кілька накладних; адреса друку з ключем — лише тут. */
+      if (op === 'markingPdf') {
+        await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
+        const ttns = (Array.isArray(body.ttns) ? body.ttns : [body.ttn]).map(x => String(x || '').replace(/\D/g, '')).filter(x => x.length >= 10).slice(0, 100);
+        if (!ttns.length) return json({ ok: false, error: 'Немає номера накладної' }, 400, cors);
+        const key = keyFor(env, body.sender || '');
+        const pdf = await fetch('https://my.novaposhta.ua/orders/printMarking100x100/orders[]/' + ttns.join('/orders[]/') + '/type/pdf/apiKey/' + key);
+        if (!pdf.ok) return json({ ok: false, error: 'Нова пошта не віддала маркування (' + pdf.status + ')' }, 502, cors);
+        return new Response(pdf.body, { status: 200, headers: { ...cors, 'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment; filename="zebra-' + ttns[0] + (ttns.length > 1 ? '-x' + ttns.length : '') + '.pdf"' } });
+      }
       /* Статуси до 100 накладних за раз — для автоматичних колонок дошки. */
       if (op === 'trackMany') {
         const list = (Array.isArray(body.ttns) ? body.ttns : []).slice(0, 100)

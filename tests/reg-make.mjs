@@ -219,8 +219,51 @@ ok(r6.стан === 'courier' && r6.reg && r6.reg.manual && r6.reg.no === '105-00
 ok(/вписано вручну/.test(r6.історія || '') && /105-0005/.test(r6.список) && /вписано вручну/.test(r6.список),
   'в історії картки й у списку реєстрів — «вписано вручну»', JSON.stringify({ і: (r6.історія || '').slice(-300), с: r6.список.slice(0, 200) }));
 
+console.log('═══ 7. «ЗЕБРА»: З ПЛИТКИ, З КАРТКИ, НА ВЕСЬ РЕЄСТР (27.10) ═══');
+/* Андрій: «по відкритій ТТН прямо на картці — зебра… і скачати PDF зебри
+   на реєстр». Посилки з §1 — у «Передано курʼєру», реєстр R1. */
+const r7 = await p.evaluate(async (ids) => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  window.__zb = [];
+  U.host.npZebra = async (ttns, sender) => { window.__zb.push({ ttns: ttns.slice(), sender }); return true; };
+  U.setTab('prod'); U.open(''); U.render(root);
+  await new Promise(r => setTimeout(r, 200));
+  const tile = root.querySelector('.dz-boards [data-open="' + ids[0] + '"]');
+  const btn = tile && tile.querySelector('[data-do="zebra"]');
+  const o = orders.find(x => x.orderId === ids[0]);
+  const out = { плитка: !!btn, ttnНаПлитці: btn ? btn.dataset.ttn : '', ttn: o.ttn, sender: btn ? btn.dataset.sender : '', відкрито: '' };
+  if(btn){ btn.click(); await new Promise(r => setTimeout(r, 150)); }
+  out.відкрито = U.tabOpen ? U.tabOpen() : '';                          // клік по зебрі картку не відкриває
+  out.зПлитки = window.__zb.slice();
+  /* У картці — кнопка в блоці відправки. */
+  U.open(ids[0]); U.render(root);
+  await new Promise(r => setTimeout(r, 200));
+  const inCard = root.querySelector('.dz-panel [data-ship-zebra], .dz-panel .dz-ttn [data-do="zebra"]');
+  out.уКартці = !!inCard;
+  window.__zb = [];
+  if(inCard){ inCard.click(); await new Promise(r => setTimeout(r, 150)); }
+  out.зКартки = window.__zb.slice();
+  /* Список реєстрів — «PDF зебри» на всі накладні реєстру. */
+  U.open(''); U.render(root);
+  document.querySelector('[data-do="reg-list"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const pop = document.getElementById('dzRegPop');
+  const rz = pop && pop.querySelector('[data-do="reg-zebra"][data-ref="R1"]');
+  out.уРеєстрі = !!rz;
+  window.__zb = [];
+  if(rz){ rz.click(); await new Promise(r => setTimeout(r, 150)); }
+  out.зРеєстру = window.__zb.slice();
+  if(pop) pop.remove();
+  return out;
+}, a);
+console.log('   ' + JSON.stringify(r7));
+ok(r7.плитка && r7.ttnНаПлитці === r7.ttn && r7.sender === 'yuk' && r7.зПлитки.length === 1 && r7.зПлитки[0].ttns.join() === r7.ttn && r7.зПлитки[0].sender === 'yuk' && !r7.відкрито,
+  'на плитці в «Передано курʼєру» є «Зебра»: один клік — PDF цієї ТТН ключем її відправника, картка не відкривається', JSON.stringify(r7));
+ok(r7.уКартці && r7.зКартки.length === 1 && r7.зКартки[0].ttns.join() === r7.ttn, 'у картці в блоці відправки — така сама кнопка', JSON.stringify({ к: r7.уКартці, з: r7.зКартки }));
+ok(r7.уРеєстрі && r7.зРеєстру.length === 1 && r7.зРеєстру[0].ttns.length === 3 && r7.зРеєстру[0].sender === 'yuk', 'у списку реєстрів — «PDF зебри» на всі 3 накладні реєстру', JSON.stringify(r7.зРеєстру));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
-console.log(bad ? 'розходжень: ' + bad : 'реєстр: створюється, у «Передано курʼєру» — лише прийняте Новою поштою');
+console.log(bad ? 'розходжень: ' + bad : 'реєстр: створюється, у «Передано курʼєру» — лише прийняте Новою поштою; зебра з плитки, картки й реєстру');
 await browser.close(); srv.close();
 process.exit(bad ? 1 : 0);
