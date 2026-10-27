@@ -9595,6 +9595,19 @@
       return D.buyReady(u) || !!D.buyOf(всі, p.o.orderId, u.id); });
     return !!String(((p.o || {}).tracks || {}).supply || '');
   }
+  /* СТАТУСИ НОВОЇ ПОШТИ — ВИДНО, ЧИ ЖИВЕ ОПИТУВАННЯ (27.10, Андрій: «вчора
+     поїхали, а воно не в дорозі… чому не оновлюється»). Кнопка «⟳ Статуси
+     НП» питає Нову пошту зараз; відмова воркера — червоним тут, а не в
+     консолі. */
+  function npPollHtml(){
+    var i = null;
+    try{ i = host().npPollInfo ? host().npPollInfo() : null; }catch(e){}
+    if(!i) return '';
+    if(!i.on) return '<span class="dz-np-err" title="Налаштування → Відправка → адреса воркера">статуси НП: воркер не задано</span>';
+    var коли = i.okAt ? dt(i.okAt) : '';
+    return '<button type="button" class="dz-b dz-np-poll" data-do="np-poll" title="' + esc(коли ? 'Востаннє оновлено ' + коли + ' · карток ' + i.n : 'Ще не опитувалось у цій вкладці') + '">⟳ Статуси НП</button>' +
+      (i.err ? '<span class="dz-np-err" title="' + esc(i.errAt ? dt(i.errAt) : '') + '">статуси НП не оновлюються: ' + esc(i.err) + '</span>' : '');
+  }
   /* ФІЛЬТР «УКРАЇНА» / «ЗА КОРДОН» (27.10, Андрій: «два фільтри… таблетка
      за кордон»). Жоден або обидва — показати все. Памʼятає браузер. */
   var PROD_GEO = { ua: false, ab: false };
@@ -10156,7 +10169,7 @@
     /* «+ Нове замовлення» — лише на дошці акаунт-менеджера: дизайнери й цех
        беруть те, що їм дали, а не заводять своє. */
     /* Доставка після «Передано курʼєру» — сховані колонки (07.10). */
-    if(seat === 'prod') графік += '<button type="button" class="dz-b dz-deliv' + (PROD_DELIV ? ' on' : '') +
+    if(seat === 'prod') графік += npPollHtml() + '<button type="button" class="dz-b dz-deliv' + (PROD_DELIV ? ' on' : '') +
       '" data-do="prod-deliv" title="Показати / сховати колонки доставки">Доставка ' + (PROD_DELIV ? '▴' : '▾') + '</button>' +
       '<span class="dz-geo" title="Фільтр: жоден або обидва — усі посилки">' +
         '<button type="button" class="dz-b dz-geo-b' + (PROD_GEO.ua ? ' on' : '') + '" data-do="prod-geo" data-geo="ua">Україна</button>' +
@@ -12288,6 +12301,12 @@
     if(what === 'prod-deliv'){
       PROD_DELIV = !PROD_DELIV;
       try{ localStorage.setItem('dzProdDeliv', PROD_DELIV ? '1' : ''); }catch(e){}
+      return render(root);
+    }
+    if(what === 'np-poll'){
+      if(!host().npPollNow) return say('Опитування статусів недоступне');
+      say('Питаю Нову пошту…');
+      try{ await host().npPollNow(); }catch(e){ say('Статуси НП: ' + String((e && e.message) || e)); }
       return render(root);
     }
     if(what === 'prod-geo'){

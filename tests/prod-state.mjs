@@ -322,6 +322,35 @@ r = await p.evaluate(async () => {
 console.log('   ' + JSON.stringify(r));
 ok(r.q.join() === '20450000000111,20450000000222' && r.st4 === '5' && r.кол4 === 'way' && r.кол5 === 'way' && r.db4 === '5',
   'опитано і картку з реєстром, і без нього; обидві стали «В дорозі», статус записано в базу', JSON.stringify(r));
+/* Воркер відмовив (немає ключа) — не в консоль, а над дошкою цеху; «⟳ Статуси
+   НП» питає знову (27.10, Андрій: «вчора поїхали, а не в дорозі»). */
+r = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  const u0 = npUrl, c0 = npCall;
+  npUrl = () => 'https://np.test';
+  npCall = async () => { throw new Error('Немає ключа API Нової пошти (NP_KEY_<код> або NP_API_KEY)'); };
+  const out = {};
+  try{
+    window.__TOASTS = [];
+    await prodNpPoll(true);
+    out.err = npPoll.err; out.toast = window.__TOASTS.slice(-1)[0] || '';
+    U.setTab('prod'); U.open(''); U.render(root);
+    out.напис = ((root.querySelector('.dz-top .dz-np-err') || {}).textContent || '');
+    out.кнопка = !!root.querySelector('.dz-top [data-do="np-poll"]');
+    /* Ключ зʼявився — кнопка з дошки опитує знову, напис зникає. */
+    npCall = async (op, extra) => ({ list: (extra.ttns || []).map(t => ({ ttn: t.ttn, code:'5', status:'Відправлення прямує до міста' })) });
+    window.__TOASTS = [];
+    root.querySelector('.dz-top [data-do="np-poll"]').click();
+    await new Promise(z => setTimeout(z, 600));
+    out.після = { err: npPoll.err, okAt: !!npPoll.okAt, напис: ((root.querySelector('.dz-top .dz-np-err') || {}).textContent || ''), toast: window.__TOASTS.slice(-1)[0] || '' };
+  } finally { npUrl = u0; npCall = c0; }
+  return out;
+});
+console.log('   ' + JSON.stringify(r));
+ok(/Немає ключа API/.test(r.err) && /Статуси Нової пошти не оновились/.test(r.toast) && /не оновлюються: Немає ключа API/.test(r.напис) && r.кнопка,
+  'воркер відмовив — над дошкою цеху червоним «статуси НП не оновлюються: …» і кнопка «⟳ Статуси НП»', JSON.stringify(r));
+ok(!r.після.err && r.після.okAt && !r.після.напис && /оновлено/.test(r.після.toast),
+  '«⟳ Статуси НП» опитує знову — напис зник, «оновлено: опитано …»', JSON.stringify(r.після));
 
 console.log('═══ 9. ЗА КОРДОН: КОЛОНКУ СТАВИТЬ ЦЕХ РУКАМИ, ТАБЛЕТКА, ФІЛЬТР «УКРАЇНА / ЗА КОРДОН» (27.10) ═══');
 /* Андрій: «за кордон… вручну перетягнути в будь-який далі статус, бо вони ж

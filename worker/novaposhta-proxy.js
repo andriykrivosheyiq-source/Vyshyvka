@@ -271,7 +271,17 @@ export default {
       const op = String(body.op || '');
       /* Довідник і відстеження — будь-яким ключем: відправника, якого
          обрали, або першим наявним. */
-      const anyKey = () => keyFor(env, body.sender || '') ;
+      /* Статуси й довідники не залежать від відправника (27.10, Андрій:
+         «чому не оновлюється»): немає NP_API_KEY — беремо будь-який ключ
+         ФОПа NP_KEY_<код>; раніше тут була тиха відмова, і статуси стояли. */
+      const anyKey = () => {
+        try{ return keyFor(env, body.sender || ''); }
+        catch(e){
+          const k = Object.keys(env).filter(n => /^NP_KEY_/.test(n) && env[n]).sort()[0];
+          if (k) return env[k];
+          throw e;
+        }
+      };
       if (op === 'cities') {
         const d = await np(env, 'Address', 'searchSettlements',
           { CityName: String(body.q || ''), Limit: '20' }, anyKey());

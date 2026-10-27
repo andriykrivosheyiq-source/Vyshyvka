@@ -336,6 +336,10 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
 - **Пошук на телефоні**: `seekSoft(root)` (лише `.dz-boards`), `seekHit`
   без `#` і по цифрах, `boardHtml` → `.dz-board.is-seek`, `.dz-col.has-cards`;
   CSS у мобільному блоці адмінки. `tests/prod-mobile.mjs` (телефон, пошук).
+- **Статуси НП: відмова видна** (27.10, вечір): адмінка `npPoll`, host
+  `npPollInfo`/`npPollNow`; відділ `npPollHtml()` у шапці дошки цеху, дія
+  `np-poll`; CSS `.dz-np-err`; воркер `anyKey` → будь-який `NP_KEY_*`.
+  `tests/prod-state.mjs` §8. **Перерозгорнути `loomiq-np`.**
 - **НП веде колонку цеху** (27.10): `prodAt` → `npStage` одразу після
   `redo`; `prodNpPoll` — усі B2C з `ttn` за 60 днів (`межа`), не лише
   `reg.ref`; `tests/prod-state.mjs` §8.
