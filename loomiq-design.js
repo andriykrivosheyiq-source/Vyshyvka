@@ -976,6 +976,17 @@
     d.setHours(0, 0, 0, 0);
     return d;
   }
+  /* ПОЧАТОК НАСТУПНОГО ДНЯ — календарем, а не «+24 години» (27.10). Доба не
+     завжди 24 години: 25.10 (перехід на зимовий час) у Києві їх було 25, у
+     березні буде 23. «Початок дня + 24 год» тоді влучав у 23:00 того ж дня,
+     цикл годинника стояв на місці до стелі кроків, і строки етапів
+     зʼїжджали на добу й більше. Перевіряє `tests/dz-side.mjs` (строки
+     етапів через 25.10) і `tests/dst-hours.mjs`. */
+  function nextDayStart(t){
+    var d = dayStart(t);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }
   /* Додати `hours` РОБОЧИХ годин від мітки, пропускаючи вихідні цілком.
      Ідемо по днях, а не по хвилинах: днів тут щонайбільше кілька десятків,
      а хвилин — десятки тисяч, і різниця в тому, чи встигне сторінка
@@ -996,11 +1007,11 @@
     var кроків = 0;
     while(лишилось > 0 && кроків++ < OFF_MAX){
       if(offDay(who, t)){
-        t = dayStart(t.getTime() + 86400000);
+        t = nextDayStart(t);
         continue;
       }
       if(t.getTime() < dayFrom(t, night)) t = new Date(dayFrom(t, night));
-      var кінець = dayStart(t).getTime() + 86400000;
+      var кінець = nextDayStart(t).getTime();
       var вільно = кінець - t.getTime();
       if(вільно >= лишилось) return t.getTime() + лишилось;
       лишилось -= вільно;
@@ -1016,7 +1027,7 @@
     var t = new Date(from);
     var кроків = 0;
     while(t.getTime() < to && кроків++ < OFF_MAX){
-      var кінець = Math.min(dayStart(t).getTime() + 86400000, to);
+      var кінець = Math.min(nextDayStart(t).getTime(), to);
       var поч = Math.max(t.getTime(), dayFrom(t, night));
       if(!offDay(who, t) && кінець > поч) сума += кінець - поч;
       t = new Date(кінець);
