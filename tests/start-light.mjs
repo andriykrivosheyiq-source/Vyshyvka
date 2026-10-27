@@ -125,7 +125,7 @@ ok(s2.n >= 1 && s2.loaded && !s2.load, 'картки приїхали — нап
 ok(s2.gets === 0 && s2.snaps === 1, 'замовлення завантажено ОДИН раз (підпискою), без get() усієї колекції', 'get: ' + s2.gets + ', підписок: ' + s2.snaps);
 const iPhotos = s2.log.findIndex(x => /snap:loomiq\/photos/.test(x)), iState = s2.log.findIndex(x => /get:loomiq\/state/.test(x));
 ok(iPhotos >= 0 && iState >= 0 && iPhotos < iState, 'документ команди передплачено ДО документа налаштувань', JSON.stringify(s2.log));
-ok((await q1.evaluate(() => (window.__LOG || []).filter(x => /^persist:/.test(x)))).join() === 'persist:{"synchronizeTabs":false}', 'кеш бази на пристрої ввімкнено (одна вкладка, без синхронізації — 27.10)', 'persist не викликано або з synchronizeTabs');
+ok((await q1.evaluate(() => (window.__LOG || []).filter(x => /^persist:/.test(x)))).length === 0, 'кеш бази за замовчуванням ВИМКНЕНО (27.10, вечір: двічі ламав запис)', 'persist викликано без ?cache=1');
 await q1.close();
 
 console.log('═══ 2. З КЕШУ — ОДРАЗУ, СВІЖЕ — СЛІДОМ ═══');
@@ -139,18 +139,18 @@ const c2 = await q2.evaluate(() => ({ cache: perfMark.cache, orders: perfMark.or
 ok(c2.orders > c2.cache && c2.snaps === 1, 'свіжі приїхали тією самою підпискою (perf: orders після cache)', JSON.stringify(c2));
 await q2.close();
 
-console.log('═══ 3. ?nocache=1 — КЕШ ВИМКНЕНО Й ЗАПАМʼЯТОВАНО; ?cache=1 — ПОВЕРНУТО ═══');
+console.log('═══ 3. ?cache=1 — КЕШ УВІМКНЕНО Й ЗАПАМʼЯТОВАНО (ОДНА ВКЛАДКА); ?nocache=1 — ВИМКНЕНО ═══');
 const q3 = await page();
-await q3.goto(HOST + '/loomiqadmin.html?nocache=1', { waitUntil:'domcontentloaded' });
+await q3.goto(HOST + '/loomiqadmin.html?cache=1', { waitUntil:'domcontentloaded' });
 await q3.waitForTimeout(1200);
-const n1 = await q3.evaluate(() => ({ persist: (window.__LOG || []).some(x => /^persist:/.test(x)), ls: localStorage.getItem('lq_nocache') }));
+const n1 = await q3.evaluate(() => ({ persist: (window.__LOG || []).filter(x => /^persist:/.test(x)).join(), ls: localStorage.getItem('lq_cache') }));
 await q3.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await q3.waitForTimeout(1200);
 const n2 = await q3.evaluate(() => (window.__LOG || []).some(x => /^persist:/.test(x)));
-await q3.goto(HOST + '/loomiqadmin.html?cache=1', { waitUntil:'domcontentloaded' });
+await q3.goto(HOST + '/loomiqadmin.html?nocache=1', { waitUntil:'domcontentloaded' });
 await q3.waitForTimeout(1200);
-const n3 = await q3.evaluate(() => ({ persist: (window.__LOG || []).some(x => /^persist:/.test(x)), ls: localStorage.getItem('lq_nocache') }));
-ok(!n1.persist && n1.ls === '1' && !n2 && n3.persist && !n3.ls, '?nocache=1 вимикає кеш і памʼятає; ?cache=1 повертає', JSON.stringify({ n1, n2, n3 }));
+const n3 = await q3.evaluate(() => ({ persist: (window.__LOG || []).some(x => /^persist:/.test(x)), ls: localStorage.getItem('lq_cache') }));
+ok(n1.persist === 'persist:{"synchronizeTabs":false}' && n1.ls === '1' && n2 && !n3.persist && !n3.ls, '?cache=1 вмикає кеш (без синхронізації вкладок) і памʼятає; ?nocache=1 вимикає', JSON.stringify({ n1, n2, n3 }));
 await q3.close();
 
 ok(!errs.length, 'сторінки без помилок', 'помилки: ' + errs.join(' | '));

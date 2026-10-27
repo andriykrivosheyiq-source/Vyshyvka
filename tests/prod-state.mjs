@@ -288,8 +288,43 @@ ok(r.keys.indexOf('tracks.supply') >= 0 && r.keys.indexOf('tracks') < 0, 'одя
 ok(d.tracks.qc === 'ok' && d.tracks.prod === 'done' && d.tracks.supply === 'part', 'у базі «погоджено» й «готово» лишились, одяг оновлено', JSON.stringify(d.tracks));
 ok((d.trackHist || []).length === 3 && d.trackHist[0].t === 'prod', 'історія лише дописалась: старий рядок, якого вкладка не мала, не стерто', JSON.stringify((d.trackHist || []).map(h => h.t + ':' + h.s)));
 
+console.log('═══ 8. СТАТУС НОВОЇ ПОШТИ ГОЛОВНІШИЙ ЗА ГАЛОЧКИ ЦЕХУ; ОПИТУЮТЬСЯ ВСІ КАРТКИ З ТТН (27.10) ═══');
+/* Андрій: «в дорозі, прибуло, понад 3 дні у відділенні, виконано, відмова —
+   усе по статусу Нової пошти». Погодження затерли — посилка все одно їде. */
+r = await p.evaluate(() => {
+  const D = window.LQDesign, j = designJobs['2000403'];
+  const o = orders.find(x => x.id === 'o3');
+  const st = x => D.prodAt(j, Object.assign({}, o, { tracks:{ supply:'got', prod:'work' }, prodQc:null, reg:null, shipCol:'' }, x));
+  const now = new Date().toISOString(), давно = new Date(Date.now() - 4 * 864e5).toISOString();
+  return { створено: st({ npSt:{ code:'1' } }), дорога: st({ npSt:{ code:'5' } }), прибула: st({ npSt:{ code:'7', arrivedAt: now } }),
+    лежить: st({ npSt:{ code:'7', arrivedAt: давно } }), виконано: st({ npSt:{ code:'9' } }), відмова: st({ npSt:{ code:'103' } }),
+    передрук: st({ tracks:{ supply:'got', prod:'work', qc:'bad' }, npSt:{ code:'5' } }) };
+});
+console.log('   ' + JSON.stringify(r));
+ok(r.створено === 'run' && r.дорога === 'way' && r.прибула === 'arrived' && r.лежить === 'stuck' && r.виконано === 'done' && r.відмова === 'refused',
+  'без «погоджено» й реєстру: ТТН лише створено — «На станках»; далі НП веде: в дорозі → прибуло → понад 3 дні → виконано → відмова', JSON.stringify(r));
+ok(r.передрук === 'redo', 'явний передрук лишається передруком', r.передрук);
+/* Опитування бере всі картки з ТТН, не лише з реєстром. */
+r = await p.evaluate(async () => {
+  const o4 = orders.find(x => x.id === 'o4'), o5 = orders.find(x => x.id === 'o5'), o2 = orders.find(x => x.id === 'o2');
+  o4.ttn = '20450000000111'; o4.ttnAt = new Date().toISOString(); o4.reg = null; o4.npSt = null; o4.tracks = { supply:'got', prod:'work' }; o4.prodQc = null;
+  o5.ttn = '20450000000222'; o5.reg = { ref:'r5', at: new Date().toISOString() }; o5.npSt = null; o5.tracks = { supply:'got', prod:'done', qc:'ok' }; o5.reprints = [];
+  o2.ttn = ''; o2.npSt = null;
+  ['o2','o4','o5'].forEach(id => { const o = orders.find(x => x.id === id); ordersSaved.set(id, JSON.stringify(o)); const d = window.__ORDERS.find(x => x.id === id); Object.assign(d, JSON.parse(JSON.stringify(o))); });
+  window.__NPQ = [];
+  const u0 = npUrl, c0 = npCall;
+  npUrl = () => 'https://np.test'; npCall = async (op, extra) => { window.__NPQ = (extra.ttns || []).map(t => t.ttn); return { list: (extra.ttns || []).map(t => ({ ttn: t.ttn, code:'5', status:'Відправлення прямує до міста' })) }; };
+  npPollAt = 0;
+  try{ await prodNpPoll(true); } finally { npUrl = u0; npCall = c0; }
+  const D = window.LQDesign;
+  return { q: window.__NPQ.slice().sort(), st4: (o4.npSt || {}).code, кол4: D.prodAt(designJobs['2000404'], o4), кол5: D.prodAt(designJobs['2000405'], o5), db4: ((window.__ORDERS.find(x => x.id === 'o4') || {}).npSt || {}).code };
+});
+console.log('   ' + JSON.stringify(r));
+ok(r.q.join() === '20450000000111,20450000000222' && r.st4 === '5' && r.кол4 === 'way' && r.кол5 === 'way' && r.db4 === '5',
+  'опитано і картку з реєстром, і без нього; обидві стали «В дорозі», статус записано в базу', JSON.stringify(r));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
-console.log(bad ? 'розходжень: ' + bad : 'стан цеху не відкочується: повтор, годинник, одночасні записи, збій читання');
+console.log(bad ? 'розходжень: ' + bad : 'стан цеху не відкочується: повтор, годинник, одночасні записи, збій читання, НП веде колонку');
 await browser.close(); srv.close();
 process.exit(bad ? 1 : 0);

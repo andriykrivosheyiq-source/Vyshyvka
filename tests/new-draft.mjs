@@ -199,6 +199,36 @@ const s5 = await p.evaluate(async (id) => { const U = window.LQDesign.ui;
 ok(!s5.done && !s5.btn && s5.n === 1, 'відкрили знову — звичайне замовлення, ні кнопки, ні повторів', JSON.stringify(s5));
 
 console.log('');
+console.log('═══ 3б. КАРТКА ЗАМОВЛЕННЯ НЕ ЗАПИСАЛАСЬ — НІ КАРТКИ ВІДДІЛУ, НІ ПЛАТЕЖУ; ЧЕРНЕТКА ЛИШАЄТЬСЯ (27.10) ═══');
+/* Звірка показала девʼять «не дописалась» поспіль: запис картки впав, а
+   код ішов далі — писав картку відділу й привʼязував платіж. */
+await p.evaluate(() => { window.__ordW = []; window.__dzW = []; window.__TOASTS = []; const t0 = toast; toast = m => { window.__TOASTS.push(String(m)); try{ t0(m); }catch(e){} };
+  document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await ЖДИ(300);
+await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new3'; d.crmChatName = 'Третя'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
+await ЖДИ(300);
+await p.click('.pp-row[data-pp="p6"] .pp-ck'); await p.click('[data-pp-go]'); await ЖДИ(400);
+await p.evaluate(() => { const U = window.LQDesign.ui; const d = orders.find(o => o.draft); const job = designJobs[d.orderId];
+  job.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1, note:'Лого' })];
+  /* База не читається (телефон без звʼязку) — запис картки відкладається. */
+  const P = Object.getPrototypeOf(ORDERS_COL.doc('x')); window.__get0 = P.get;
+  P.get = function(){ if(this.__col === 'kanbanOrders' || !this.__col) return Promise.reject(new Error('Failed to get document because the client is offline.')); return window.__get0.apply(this, arguments); };
+  U.render(document.getElementById('dzRoot')); });
+await ЖДИ(200);
+await p.click('#dzRoot [data-do="order-create"]');
+await ЖДИ(800);
+const s3b = await p.evaluate(() => { const d = orders.find(o => o.draft) || null; const x = payments.find(q => q.id === 'p6');
+  const P = Object.getPrototypeOf(ORDERS_COL.doc('x')); P.get = window.__get0; clearTimeout(saveDeferT);
+  return { draft: !!d, drafts: orders.filter(o => o.draft).length, pays: d ? (d.draftPays || []).slice() : [], p6: x.orderId || '', ordW: window.__ordW.slice(), dzW: window.__dzW.slice(),
+    toasts: window.__TOASTS.filter(m => /не створилось/.test(m)), jobs: Object.keys(designJobs).filter(k => designJobs[k] && designJobs[k].draft).length }; });
+console.log('   ' + JSON.stringify(s3b));
+ok(s3b.draft && s3b.drafts === 1 && s3b.pays.join() === 'p6' && !s3b.p6, 'чернетка лишилась з обраним платежем, платіж не привʼязано', JSON.stringify(s3b));
+ok(!s3b.ordW.length && !s3b.dzW.length, 'у базу не пішло нічого — ні картка відділу, ні замовлення', JSON.stringify({ ordW: s3b.ordW, dzW: s3b.dzW }));
+ok(s3b.toasts.length === 1 && /не записалась у базу/.test(s3b.toasts[0]), 'людині сказано: «Замовлення не створилось: картка не записалась…»', JSON.stringify(s3b.toasts));
+await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
+
+console.log('');
 console.log('═══ 4. ЗАКРИЛИ ЧЕРНЕТКУ — ЇЇ НЕМАЄ, ПЛАТІЖ ВІЛЬНИЙ ═══');
 await p.evaluate(() => { window.__ordW = []; window.__dzW = []; document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);

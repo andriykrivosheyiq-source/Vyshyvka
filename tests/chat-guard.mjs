@@ -112,6 +112,14 @@ fbstub = fbstub.replace('var fs=function(){ return { collection:function(){ retu
 const browser = await chromium.launch(fs.existsSync(CHROME) ? { executablePath: CHROME } : {});
 const p = await browser.newPage({ viewport:{ width:1500, height:940 } });
 p.on('pageerror', e => errs.push(e.message.slice(0, 180)));
+/* СЛІД НАВІГАЦІЇ (27.10): у релізі тест двічі впав з «Execution context was
+   destroyed… navigation», а поодинці чистий. Кожна навігація сторінки — у
+   лог з часом і адресою, перед вивантаженням — стан заслон, щоб наступне
+   падіння назвало винуватця. */
+const T00 = Date.now();
+p.on('request', r => { if(r.isNavigationRequest() && r.frame() === p.mainFrame() && Date.now() - T00 > 3000) console.log('  [навігація +' + Math.round((Date.now() - T00) / 1000) + 'с] ' + r.url()); });
+await p.addInitScript(() => { window.addEventListener('beforeunload', () => { try{ console.log('[вивантаження] gate=' + !!document.getElementById('upd-gate') + ' acc=' + !!document.getElementById('acc-gate') + ' dblost=' + !!document.getElementById('db-lost') + ' content=' + (typeof contentLoaded !== 'undefined' && contentLoaded) + ' stale=' + (window.LQ_UPD_STALE || '')); }catch(e){} }); });
+p.on('console', m => { const x = m.text(); if(/^\[вивантаження\]/.test(x)) console.log('  ' + x); });
 p.on('dialog', d => d.accept('ok'));
 await p.route('**://**', async r => {
   const u = r.request().url(), m = r.request().method();

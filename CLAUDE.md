@@ -441,18 +441,34 @@ IndexedDB «немає» (SDK сам бере localStorage), `gapi` — загл
    стан цеху» / «Повернути всі» → `prodBackFrom`: ЛИШЕ `tracks.prod/qc`,
    `prodQc`, `reg`, `shipCol`, `trackHist` обʼєднанням, `o.prodBack`, через
    `saveOrders`, журнал `restore-prod`. Решту картки не чіпає.
-5. **Кеш бази — не на телефоні й без синхронізації вкладок** (27.10,
-   менеджерка з iPhone: «НЕ ЗБЕРЕЖЕНО: failed-precondition»). Спільний кеш
-   (`synchronizeTabs`) тримає «головну» вкладку, iOS її заморожує — записи
-   решти падають. `enablePersistence({ synchronizeTabs:false })` лише на
-   компʼютері; телефон (`iPhone|iPad|Android`) — без кешу (`LQ_CACHE_PHONE`
-   для тестів). `failed-precondition` на записі → `dbLinkStale(e)`:
-   `dbLink.stale`, `dbLinkDead()` істина до перезавантаження, плашка
-   `#db-lost` «Оновіть сторінку», журнал `dblost`; жодного «скриншот
-   розробнику». Не повертати `synchronizeTabs:true`.
+5. **Кеш бази в браузері вимкнено для всіх** (27.10). Менеджерка з iPhone:
+   «НЕ ЗБЕРЕЖЕНО: failed-precondition» (спільний кеш вкладок,
+   `synchronizeTabs`, тримає «головну» вкладку, iOS її заморожує — записи
+   решти падають); увечері на компʼютері Андрія з двома вкладками —
+   «Script error» і «завантажую рухи…» без кінця. `enablePersistence` лише
+   коли на пристрої свідомо ввімкнули `?cache=1` (`lq_cache`, `LQ_CACHE_ON`
+   у тестах), і тоді `{ synchronizeTabs:false }`; `?nocache=1` вимикає. Не
+   вмикати за замовчуванням і не повертати `synchronizeTabs:true`.
+   `failed-precondition` на записі → `dbLinkStale(e)`: `dbLink.stale`,
+   `dbLinkDead()` істина до перезавантаження, плашка `#db-lost` «Оновіть
+   сторінку», журнал `dblost`; жодного «скриншот розробнику».
+7. **Статус Нової пошти головніший за галочки цеху** (27.10, Андрій: «в
+   дорозі, прибуло, понад 3 дні у відділенні, виконано, відмова — по
+   статусу НП»). `prodAt`: після «передрук» — одразу `npStage(o)`
+   (way/arrived/stuck/done/refused), і лише потім «погоджено»/реєстр.
+   `prodNpPoll` опитує всі B2C-картки з ТТН за 60 днів (не лише з
+   реєстром), раз на 30 хв з відкритої вкладки або «Оновити статус».
+   Перевіряє `tests/prod-state.mjs` §8.
+6. **Створення B2C-замовлення зупиняється, якщо картка не записалась**
+   (27.10, Звірка: девʼять «не дописалась» поспіль, #2000337…345).
+   `draftCommit` і `designJobNew` дивляться на результат `saveOrders`
+   (перелік невдач, `*` від заслони/обриву, відкладений запис →
+   `ordersSaved` без картки): не записалось — чернетка лишається, картка
+   відділу не пишеться, платіж не привʼязується, напис «Замовлення не
+   створилось…». Перевіряє `tests/new-draft.mjs` §3б.
 Перевіряють `tests/prod-state.mjs` §6–7, `tests/upd-gate.mjs`,
-`tests/prod-restore.mjs`, `tests/fresh-build.mjs`, `tests/db-link.mjs` §6–7
-(усі в pre-commit).
+`tests/prod-restore.mjs`, `tests/fresh-build.mjs`, `tests/db-link.mjs` §6–7,
+`tests/start-light.mjs` §3 (усі в pre-commit).
 
 ## Стан цеху не відкочується (26.10.2026)
 

@@ -232,25 +232,26 @@ ok(стан.dead && стан.stale && /втратила звʼязок із ба
 ok(/НЕ ЗБЕРЕЖЕНО: ця вкладка втратила/.test(стан.alert) && !/скриншот/.test(стан.alert), 'людині сказано, що робити, а не «скриншот розробнику»', стан.alert);
 ok(стан.f2link && стан.sets2 === 0 && /оновіть сторінку/.test(стан.dz) && стан.log === 1, 'далі ні картка, ні картка відділу в базу не йдуть до оновлення; запис у журналі', JSON.stringify(стан));
 
-console.log('═══ 7. КЕШ БАЗИ: НА КОМПʼЮТЕРІ — БЕЗ СИНХРОНІЗАЦІЇ ВКЛАДОК, НА ТЕЛЕФОНІ — НЕМАЄ (27.10) ═══');
+console.log('═══ 7. КЕШ БАЗИ: ЗА ЗАМОВЧУВАННЯМ НЕМАЄ; ЛИШЕ ?cache=1 — І БЕЗ СИНХРОНІЗАЦІЇ ВКЛАДОК (27.10) ═══');
 {
   const stubP = fbstub.replace("enablePersistence:function(){ return Promise.resolve(); },", "enablePersistence:function(o){ (window.__PERSIST=window.__PERSIST||[]).push(o||{}); return Promise.resolve(); },");
-  const open = async ua => {
+  const open = async (ua, q) => {
     const ctx = await browser.newContext(Object.assign({ viewport:{ width:1200, height:800 } }, ua ? { userAgent: ua } : {}));
     const pg = await ctx.newPage();
     await pg.route('**://**', r => { const u = r.request().url();
       if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body: stubP });
       if(u.startsWith(HOST)) return r.continue(); return r.abort(); });
-    await pg.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
+    await pg.goto(HOST + '/loomiqadmin.html' + (q || ''), { waitUntil:'domcontentloaded' });
     await pg.waitForTimeout(1500);
     const r = await pg.evaluate(() => window.__PERSIST || []);
     await ctx.close(); return r;
   };
   const комп = await open('');
+  const явно = await open('', '?cache=1');
   const тел = await open('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
-  console.log('   ' + JSON.stringify({ комп, тел }));
-  ok(комп.length === 1 && комп[0].synchronizeTabs === false, 'компʼютер: кеш увімкнено без synchronizeTabs', JSON.stringify(комп));
-  ok(тел.length === 0, 'iPhone: кеш бази не вмикається', JSON.stringify(тел));
+  console.log('   ' + JSON.stringify({ комп, явно, тел }));
+  ok(комп.length === 0 && тел.length === 0, 'без ?cache=1 кеш бази не вмикається ні на компʼютері, ні на телефоні', JSON.stringify({ комп, тел }));
+  ok(явно.length === 1 && явно[0].synchronizeTabs === false, '?cache=1 — кеш лише в одній вкладці, без синхронізації', JSON.stringify(явно));
 }
 
 console.log('');

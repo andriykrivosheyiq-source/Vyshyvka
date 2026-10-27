@@ -306,9 +306,15 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `prod-back` у `loomiq-design.js`; `rbOrderSum.cex`. Тести:
   `prod-state.mjs` §6–7 (стуб: `__GET_FAIL`), `upd-gate.mjs` (9165),
   `prod-restore.mjs` (9167), `fresh-build.mjs` (заслона, час збірки).
-- **Кеш бази без синхронізації вкладок, на телефоні вимкнено; стан
-  `failed-precondition`** (27.10): `телефон` у блоці `enablePersistence`
-  (`LQ_CACHE_PHONE` вмикає в тестах), `synchronizeTabs:false`;
+- **НП веде колонку цеху** (27.10): `prodAt` → `npStage` одразу після
+  `redo`; `prodNpPoll` — усі B2C з `ttn` за 60 днів (`межа`), не лише
+  `reg.ref`; `tests/prod-state.mjs` §8.
+- **Кеш бази вимкнено для всіх; стан `failed-precondition`; створення B2C
+  зупиняється без запису** (27.10): `enablePersistence` лише при `lq_cache`
+  (`?cache=1`; `LQ_CACHE_ON` у тестах), `synchronizeTabs:false`;
+  `draftCommit`/`designJobNew` → `неЗаписано` (результат `saveOrders` або
+  `!ordersSaved.has`) → відкат чернетки; `tests/new-draft.mjs` §3б,
+  `start-light.mjs` §3;
   `dbLinkStale(e)` → `dbLink.stale`, `dbLostBar(on, text)`, перевірка в
   `saveOrders` (після `відкладені`) і `designPut` (навколо запису);
   `tests/db-link.mjs` §6–7.
