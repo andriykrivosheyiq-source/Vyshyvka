@@ -321,16 +321,23 @@ await p.evaluate(() => { chatClose(); window.__db = {};
       const base = window.__db[id] || JSON.parse(JSON.stringify(orders.find(x => x.id === id) || {}));
       window.__db[id] = merge ? Object.assign(base, JSON.parse(JSON.stringify(v))) : JSON.parse(JSON.stringify(v)); return set0(v, opt); };
     return d; }; });
-const r8 = await p.evaluate(async () => {
+/* Відправку запускаємо й опитуємо результат з тесту, а не чекаємо всередині
+   одного evaluate: довгий evaluate з мережею під навантаженням рвався
+   «Execution context was destroyed» без жодної навігації (27.10, реліз). */
+await p.evaluate(() => {
   const stale = JSON.parse(JSON.stringify(orders.find(x => x.id === 'a')));
-  const going = window.LQDesign.ui.host.tellPic(stale, 'https://res.test/sheet-1.png', 'Подивіться як гарно вийшло');
-  /* Знімок бази посеред відправки: масив замовлень — нові обʼєкти без нашого запису. */
-  await new Promise(r => setTimeout(r, 150));
-  orders = orders.map(o => JSON.parse(JSON.stringify(window.__db[o.id] || o)));
-  const ok = await going;
-  await new Promise(r => setTimeout(r, 1500));
+  window.__r8 = null;
+  window.LQDesign.ui.host.tellPic(stale, 'https://res.test/sheet-1.png', 'Подивіться як гарно вийшло')
+    .then(v => { window.__r8 = { ok: v }; }, e => { window.__r8 = { ok: false, err: String(e && e.message || e) }; });
+});
+/* Знімок бази посеред відправки: масив замовлень — нові обʼєкти без нашого запису. */
+await p.waitForTimeout(150);
+await p.evaluate(() => { orders = orders.map(o => JSON.parse(JSON.stringify(window.__db[o.id] || o))); });
+await wait(() => window.__r8 || null, 150);
+await p.waitForTimeout(1500);
+const r8 = await p.evaluate(() => {
   const live = orders.find(x => x.id === 'a');
-  return { ok, liveOut: (live.crmOut || []).length, dbOut: ((window.__db['a'] || {}).crmOut || []).length,
+  return { ok: !!(window.__r8 && window.__r8.ok), err: window.__r8 && window.__r8.err, liveOut: (live.crmOut || []).length, dbOut: ((window.__db['a'] || {}).crmOut || []).length,
            held: typeof crmHeldIds === 'function' && crmHeldIds().indexOf('a') >= 0 };
 });
 console.log('  ' + JSON.stringify(r8));
@@ -365,10 +372,13 @@ console.log('═══ 9. ФОТО КЛІЄНТА ОДРАЗУ ПІСЛЯ НАШ
    номера нашого повідомлення не дав — бік вирішувався часом, і її скріншот
    ставав праворуч. Тепер наша відправка забирає лише одне, найближче фото. */
 sitniks.noId = true;
-const r9 = await p.evaluate(async () => {
+await p.evaluate(() => {
   const o = orders.find(x => x.id === 'a');
-  return await window.LQDesign.ui.host.tellPic(o, 'https://res.test/sheet-2.png', '');
+  window.__r9 = null;
+  window.LQDesign.ui.host.tellPic(o, 'https://res.test/sheet-2.png', '').then(v => { window.__r9 = { ok: v }; }, e => { window.__r9 = { ok: false, err: String(e && e.message || e) }; });
 });
+await wait(() => window.__r9 || null, 150);
+const r9 = await p.evaluate(() => !!(window.__r9 && window.__r9.ok));
 sitniks.noId = false;
 sitniks.chats['c-a'].push({ id: 'cl-shot', text: '', createdAt: iso(Date.now() + 50e3), sender: { name: 'Асія Дерещук' },
   attachmentUrl: 'https://res.test/client-shot.png', attachments: [{ mediaType: 'image', mediaUrl: 'https://res.test/client-shot.png' }] });
