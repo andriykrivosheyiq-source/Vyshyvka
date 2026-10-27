@@ -38,7 +38,7 @@ jobs:
           bad=0
           for t in money-rules order-nos private-doc; do
             echo "▶ $t"
-            node tests/$t.mjs > /tmp/$t.log 2>&1; code=$?
+            code=0; node tests/$t.mjs > /tmp/$t.log 2>&1 || code=$?
             cat /tmp/$t.log
             if grep -q "пропущено: немає емулятора" /tmp/$t.log; then echo "::error title=$t::емулятор не підхопився"; bad=1; fi
             grep "✗" /tmp/$t.log | head -20 | while IFS= read -r l; do echo "::error title=$t::$l"; done
