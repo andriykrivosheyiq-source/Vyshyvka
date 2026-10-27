@@ -8289,32 +8289,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3d94ba52fb"></script>
-<script src="loomiq-fingerprint.js?v=3d94ba52fb"></script>
-<script src="loomiq-pricing.js?v=3d94ba52fb"></script>
+<script src="loomiq-select.js?v=9247dbc162"></script>
+<script src="loomiq-fingerprint.js?v=9247dbc162"></script>
+<script src="loomiq-pricing.js?v=9247dbc162"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=3d94ba52fb"></script>
+<script src="loomiq-money-core.js?v=9247dbc162"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3d94ba52fb"></script>
-<script src="loomiq-mock.js?v=3d94ba52fb"></script>
+<script src="loomiq-design.js?v=9247dbc162"></script>
+<script src="loomiq-mock.js?v=9247dbc162"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=3d94ba52fb"></script>
+<script src="imagetracer.js?v=9247dbc162"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=3d94ba52fb"></script>
-<script src="loomiq-threads.js?v=3d94ba52fb"></script>
+<script src="loomiq-chat.js?v=9247dbc162"></script>
+<script src="loomiq-threads.js?v=9247dbc162"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3d94ba52fb"></script>
+<script src="loomiq-cards.js?v=9247dbc162"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8359,8 +8359,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3d94ba52fb';
-var LQ_VER_AT = '2026-10-27T18:28:41Z';
+var LQ_VER = '9247dbc162';
+var LQ_VER_AT = '2026-10-27T21:37:24Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -8710,25 +8710,62 @@ function SITE_DOC(){ return fbDb.collection('loomiq').doc(lqSiteDef().doc); }
 const PRIVATE_DOC = fbDb.collection('loomiq').doc('private');
 const PRIVATE_KEYS = ['fin','payroll','team','acl','ownerEmail','teamBak','teamGone',
                       'roles','rolesSeed','profiles','accessLog','suppliers','ship','shifts','rootSigs'];
+const PRIVATE_WORKER_KEYS = ['fin','ship'];      // їх читає worker/money.js
+/* Карти, які пишуться по одному ключу (своє імʼя людини), — зливаються по
+   ключах, а не беруться цілком: інакше профілі, що ще лежать у старому
+   місці, зникли б з поля зору, щойно в закритому зʼявився перший. */
+const PRIVATE_MAP_KEYS = ['profiles'];
 let PRIV_OK = null;                              // null — ще не знаємо, false — правила не пускають
 function isPrivKey(k){ return PRIVATE_KEYS.indexOf(k) !== -1; }
 function cfgMerge(shared, priv){
   const out = {};
   Object.keys(shared || {}).forEach(k => { if(!isPrivKey(k) || !(priv && k in priv)) out[k] = shared[k]; });
-  Object.keys(priv || {}).forEach(k => { if(isPrivKey(k)) out[k] = priv[k]; });
+  Object.keys(priv || {}).forEach(k => {
+    if(!isPrivKey(k)) return;
+    if(PRIVATE_MAP_KEYS.indexOf(k) !== -1 && shared && shared[k] && typeof shared[k] === 'object')
+      out[k] = Object.assign({}, shared[k], priv[k] || {});
+    /* Журнал у двох місцях (до переїзду) — показуємо обʼєднаний: наступний
+       запис журналу пише ЦІЛИЙ масив, і без цього старі рядки зникли б. */
+    else if(k === 'accessLog' && shared && Array.isArray(shared[k])) out[k] = accLogUnion(priv[k], shared[k]);
+    else out[k] = priv[k];
+  });
   return out;
+}
+/* Куди писати закритий ключ.
+   - Закритий віддається (`PRIV_OK`): туди. Крім `fin`/`ship`, поки воркер
+     грошей не позначив себе (`moneyCfg`) — він ще читає їх зі старого місця.
+   - Не віддається: у старе місце, ЛИШЕ якщо ключ там ще лежить (правила
+     ще старі, переїзду не було). Інакше нікуди — щоб не повернути в
+     публічний документ те, що звідти вже прибрали. */
+function privTarget(k){
+  const raw = PHOTOS_DOC.raw || {};
+  if(PRIV_OK === true){
+    if(PRIVATE_WORKER_KEYS.indexOf(k) !== -1 && !(raw.priv && +(raw.priv.moneyCfg || 0) >= 2)) return 'shared';
+    return 'priv';
+  }
+  if(PRIV_OK === false) return (raw.shared && k in raw.shared) ? 'shared' : 'none';
+  return 'priv';
 }
 // Обгортка з тим самим інтерфейсом, що й раніше: .set(patch, opts)
 let PHOTOS_DOC = {
   raw: null,                                     // { shared, priv } — для перенесення
   set: function(patch, opts){
     const keys = Object.keys(patch || {});
-    const land = {}, share = {}, priv = {};
+    const land = {}, share = {}, priv = {}, lost = [];
     keys.forEach(k => {
       if(LANDING_KEYS.indexOf(k) !== -1) land[k] = patch[k];
-      else if(isPrivKey(k) && PRIV_OK !== false) priv[k] = patch[k];
+      else if(isPrivKey(k)){
+        const t = privTarget(k);
+        if(t === 'priv') priv[k] = patch[k]; else if(t === 'shared') share[k] = patch[k]; else lost.push(k);
+      }
       else share[k] = patch[k];
     });
+    if(lost.length){
+      const e = new Error('закритий документ недоступний — не записано: ' + lost.join(', '));
+      e.code = 'permission-denied';
+      if(!Object.keys(share).length && !Object.keys(land).length && !Object.keys(priv).length) return Promise.reject(e);
+      console.warn(e.message);
+    }
     const jobs = [];
     if(Object.keys(share).length) jobs.push(SHARED_DOC.set(share, opts || {merge:true}));
     if(Object.keys(land).length)  jobs.push(SITE_DOC().set(land, opts || {merge:true}));
@@ -8783,33 +8820,63 @@ let PHOTOS_DOC = {
     return ()=>{ try{u1();}catch(e){} if(u2){ try{u2();}catch(e){} } try{u3();}catch(e){} };
   }
 };
-/* Перенесення грошей і людей у закритий документ — один раз, вкладкою
-   власника. Не читали обидва — не рухаємо; не лягло в закритий — зі старого
-   не стираємо. Повторний виклик нешкідливий: уже перенесене пропускається,
-   а ключ, що зʼявився в старому місці знову (стара вкладка), прибирається —
-   закритий головніший. */
+/* Перенесення грошей і людей у закритий документ — вкладкою власника, однією
+   транзакцією над обома документами: свіже читання з сервера, запис у
+   закритий і стирання зі старого лягають разом або не лягають зовсім —
+   стара вкладка не впише нічого посередині.
+   - Ключа в закритому немає — переноситься як є.
+   - Є в обох: журнал — обʼєднанням (жоден рядок не губиться), профілі —
+     по людях; решта — закритий головніший, а старе значення, якщо воно інше,
+     лягає в `migrBak` (нічого не зникає мовчки).
+   - `migrated: true` — правила після цього не вважають порожній список
+     доступу «доступом для всіх».
+   Повторний виклик нешкідливий: ключ, що знову зʼявився в старому місці
+   (стара вкладка), прибирається тим самим шляхом. */
 let privMoving = false;
+function accLogUnion(a, b){
+  const seen = {}, out = [];
+  (Array.isArray(a) ? a : []).concat(Array.isArray(b) ? b : []).forEach(r => {
+    if(!r || typeof r !== 'object') return;
+    const id = [r.at, r.by, r.kind, r.text].join('|');
+    if(seen[id]) return; seen[id] = 1; out.push(r);
+  });
+  out.sort((x, y) => String(x.at || '') < String(y.at || '') ? -1 : String(x.at || '') > String(y.at || '') ? 1 : 0);
+  return out.slice(-ACC_LOG_MAX);
+}
+function privMovePlan(sh, pv){
+  if(+(pv.moneyCfg || 0) < 2) return null;            // воркер грошей ще не вміє читати звідси
+  const left = PRIVATE_KEYS.filter(k => k in sh);
+  if(!left.length) return null;
+  const move = { migrated: true }, bak = {};
+  left.forEach(k => {
+    if(!(k in pv)) move[k] = sh[k];
+    else if(k === 'accessLog') move[k] = accLogUnion(pv[k], sh[k]);
+    else if(PRIVATE_MAP_KEYS.indexOf(k) !== -1 && sh[k] && typeof sh[k] === 'object')
+      move[k] = Object.assign({}, sh[k], pv[k] || {});
+    else if(JSON.stringify(sh[k]) !== JSON.stringify(pv[k])) bak[k] = sh[k];
+  });
+  if(Object.keys(bak).length) move.migrBak = { at: new Date().toISOString(), by: (myEmail() || ''), keys: bak };
+  return { left, move };
+}
 async function privateMoveOnce(){
   if(privMoving || !contentLoaded || PRIV_OK !== true) return;
   if(typeof canSetup !== 'function' || !canSetup()) return;
   const raw = PHOTOS_DOC.raw || {};
-  const sh = raw.shared || {}, pv = raw.priv;
-  if(!pv || +(pv.moneyCfg || 0) < 2) return;     // воркер грошей ще не вміє читати звідси
-  const left = PRIVATE_KEYS.filter(k => k in sh);
-  if(!left.length) return;
+  if(!raw.priv || !privMovePlan(raw.shared || {}, raw.priv)) return;   // нічого переносити
   privMoving = true;
+  let moved = null;
   try{
-    const move = {};
-    left.forEach(k => { if(!(k in pv)) move[k] = sh[k]; });
-    if(Object.keys(move).length) await PRIVATE_DOC.set(move, { merge:true });
-    const chk = await PRIVATE_DOC.get({ source:'server' });
-    const got = (chk && chk.exists && chk.data()) || {};
-    const miss = left.filter(k => !(k in got));
-    if(miss.length){ console.warn('закритий документ: не лягло', miss); return; }
-    const del = {};
-    left.forEach(k => { del[k] = firebase.firestore.FieldValue.delete(); });
-    await SHARED_DOC.update(del);
-    try{ accLog('rights', 'перенесено в закритий документ: ' + left.join(', ')); }catch(e){}
+    await fbDb.runTransaction(async tx => {
+      const s = await tx.get(SHARED_DOC), p = await tx.get(PRIVATE_DOC);
+      const plan = privMovePlan((s.exists && s.data()) || {}, (p.exists && p.data()) || {});
+      if(!plan) return;
+      tx.set(PRIVATE_DOC, plan.move, { merge:true });
+      const del = {};
+      plan.left.forEach(k => { del[k] = firebase.firestore.FieldValue.delete(); });
+      tx.update(SHARED_DOC, del);
+      moved = plan.left;
+    });
+    if(moved){ try{ accLog('rights', 'перенесено в закритий документ: ' + moved.join(', ')); }catch(e){} }
   }catch(e){ console.warn('перенесення в закритий документ', e); }
   finally{ privMoving = false; }
 }
@@ -32607,6 +32674,11 @@ function myAccReal(){
      Доти, поки документ команди не приїхав, усіх вважали власником. Тепер
      — нікого, і екран стоїть за заслоною «Завантажую доступи…». */
   if(!contentLoaded) return ACC_NONE;
+  /* 27.10: команда живе в закритому документі. Він не віддається, а в
+     старому місці команди немає — це людина не з команди після переїзду
+     (або правила відкотили). «Порожній список = доступ повний» тут
+     означав би інтерфейс власника для будь-кого, хто увійшов. */
+  if(privLocked()) return ACC_NONE;
   if(!teamOn()) return presetOf('owner');      // список порожній — доступ повний
   const m = teamMember(myEmail());
   /* Кого немає в списку, той раніше ставав МЕНЕДЖЕРОМ: бачив дошку, клієнтів
@@ -32853,6 +32925,8 @@ function teamMember(email){
 /* Поки команду не завели, система працює як раніше — усе видно. Інакше
    перше ж збереження порожнього списку сховало б цифри від самого власника. */
 function teamOn(){ return (((contentData.team) || []).length > 0); }
+/* Закритий документ не віддається, а команди немає й у старому місці. */
+function privLocked(){ return PRIV_OK === false && !teamOn(); }
 /* ══════════ ДВІ ПОШТИ, ЯКІ НЕ МОЖНА ВТРАТИТИ ═══════════════════════════
    Власник налаштовував ролі, зберіг список без себе — і замкнувся у
    власній системі: розділ доступів теж за табличкою «вас ще не додали в
@@ -33048,9 +33122,33 @@ function knockAtDoor(){
   }catch(e){}
   /* Роль тут писати нема чого — людини немає в команді. */
   accLog('knock', 'спроба входу без доступу: ' + mail);
+  /* 27.10: журнал тепер у закритому документі, і людина не з команди туди
+     не пише. Тож свій слід вона лишає в `knocks/<ключ пошти>` — лише свій
+     рядок, прочитати його може лише той, хто налаштовує доступи. */
+  try{
+    const FV = firebase.firestore.FieldValue;
+    fbDb.collection('knocks').doc(aclKeyOf(mail)).set({ email: mail, at: new Date().toISOString(),
+      n: (FV && FV.increment) ? FV.increment(1) : 1 }, { merge:true }).catch(e => console.warn('стук', e));
+  }catch(e){ console.warn('стук', e); }
+}
+/* Стуки з окремого каналу — для того, хто налаштовує доступи. */
+let KNOCKS = {}, knocksLoaded = false;
+async function knocksLoad(){
+  if(knocksLoaded || typeof canSetup !== 'function' || !canSetup()) return;
+  knocksLoaded = true;
+  try{
+    const qs = await fbDb.collection('knocks').get();
+    const next = {};
+    (qs.docs || []).forEach(d => { const x = (d.data && d.data()) || {};
+      const e = String(x.email || '').trim().toLowerCase();
+      if(e) next[e] = { email: e, n: +x.n || 1, at: String(x.at || '') }; });
+    KNOCKS = next;
+    try{ if(document.getElementById('view-team') &&
+           document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
+  }catch(e){ knocksLoaded = false; console.warn('стуки', e); }
 }
 function applyNoAccess(){
-  const off = teamOn() && !teamMember(myEmail()) && !isOwnerEmail(myEmail());
+  const off = privLocked() || (teamOn() && !teamMember(myEmail()) && !isOwnerEmail(myEmail()));
   let el = document.getElementById('no-access');
   if(!off){ if(el) el.remove(); document.body.classList.remove('no-access'); return true; }
   try{ knockAtDoor(); }catch(e){}
@@ -33542,6 +33640,12 @@ function knockList(){
     const x = out[e] = out[e] || { email:e, n:0, at:'' };
     x.n++;
     if(String(r.at || '') > x.at) x.at = r.at || '';
+  });
+  Object.keys(KNOCKS).forEach(e => {
+    if(team[e]) return;
+    const k = KNOCKS[e], x = out[e] = out[e] || { email:e, n:0, at:'' };
+    x.n = Math.max(x.n, k.n);
+    if(k.at > x.at) x.at = k.at;
   });
   return Object.keys(out).map(k => out[k]).sort((a, b) => (a.at < b.at ? 1 : -1));
 }
@@ -37089,6 +37193,7 @@ async function init(){
            document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
     rolesSeedOnce();     // 20.10: ролі по напрямах — один раз
     privateMoveOnce();   // 27.10: гроші й люди — у закритий документ
+    knocksLoad();        // 27.10: стуки людей не з команди — окремим каналом
     applyRoleUi();
     qrSeedOnce();        // скрипти з картками доводимо й до налаштованого акаунта
     const bv = document.getElementById('view-board');

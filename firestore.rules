@@ -58,7 +58,10 @@ service cloud.firestore {
       return (request.auth != null && request.auth.token.email != null)
         ? request.auth.token.email.lower().replace('[^a-z0-9]', '_') : '';
     }
-    function aclOn() { return aclMap().keys().size() > 0; }
+    // Після переїзду в loomiq/private (`migrated`) порожня карта прав уже не
+    // означає «команду ще не заводили»: це збій або відкат, і тоді краще
+    // нікого, ніж усіх (27.10).
+    function aclOn() { return aclMap().keys().size() > 0 || pcfg().get('migrated', false) == true; }
     function may(k) {
       return request.auth != null
         && (!aclOn() || aclMap().get(aclKey(), {}).get(k, false) == true);
@@ -460,8 +463,24 @@ service cloud.firestore {
         && noSteal();
     }
 
+    // photos і private мають свої правила вище. Дозволи у Firestore
+    // додаються, тож без цього винятку загальне правило пустило б будь-кого
+    // з команди писати в private (собі setup, чужий IBAN) — 27.10, рев'ю.
     match /loomiq/{doc} {
-      allow read, write: if doc != 'photos' && known();
+      allow read, write: if !(doc in ['photos', 'private']) && known();
+    }
+
+    // Стуки (27.10): людина не з команди лишає слід, що намагалась увійти, —
+    // лише свій документ, лише свою пошту. Читає й прибирає той, хто
+    // налаштовує доступи.
+    match /knocks/{key} {
+      allow create, update: if request.auth != null && request.auth.token.email != null
+        && key == aclKey()
+        && request.resource.data.keys().hasOnly(['email', 'at', 'n'])
+        && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.at is string && request.resource.data.at.size() <= 40
+        && request.resource.data.n is int && request.resource.data.n <= 100000;
+      allow read, delete: if may('setup');
     }
   }
 }

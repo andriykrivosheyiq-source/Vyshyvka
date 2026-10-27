@@ -309,9 +309,37 @@ async function syncMark(env, rows) {
    коли її ще немає. Перевіряє `tests/private-doc.mjs`. */
 const MONEY_CFG = 2;
 let cfgMarked = false;
+/* Налаштування читаються один раз за запуск (`cfgMemo` скидається на
+   початку fetch/scheduled): accounts() і senders() кличуться в одному
+   запуску багато разів, а ліміт зовнішніх запитів — 50.
+   Помилка бази (не 404) — це помилка, а не «рахунків немає»: інакше рухи
+   НП переписались би без рахунку (рев'ю 27.10). */
+let cfgMemo = null;
+async function cfgDoc(env, path) {
+  const r = await fetch(docPath(env, path),
+    { headers: { Authorization: 'Bearer ' + await accessToken(env) } });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('Firestore ' + r.status + ' на ' + path);
+  const d = await r.json();
+  if (!d.fields) return null;
+  const out = {};
+  for (const k of Object.keys(d.fields)) {
+    const f = d.fields[k];
+    out[k] = f.stringValue !== undefined ? f.stringValue
+           : f.doubleValue !== undefined ? f.doubleValue
+           : f.integerValue !== undefined ? +f.integerValue
+           : f.booleanValue !== undefined ? f.booleanValue
+           : f.mapValue ? f.mapValue.fields
+           : f.arrayValue ? (f.arrayValue.values || [])
+           : null;
+  }
+  return out;
+}
 async function cfgKey(env, key) {
-  let pv = null;
-  try { pv = await fsGet(env, 'loomiq/private'); } catch (e) { pv = null; }
+  if (!cfgMemo) cfgMemo = {};
+  if (!cfgMemo.pv) cfgMemo.pv = cfgDoc(env, 'loomiq/private');
+  let pv;
+  try { pv = await cfgMemo.pv; } catch (e) { cfgMemo.pv = null; throw e; }
   if (!cfgMarked) {
     if (pv && +pv.moneyCfg >= MONEY_CFG) cfgMarked = true;
     else {
@@ -321,7 +349,8 @@ async function cfgKey(env, key) {
     }
   }
   if (pv && pv[key] != null) return pv;
-  return await fsGet(env, 'loomiq/photos');
+  if (!cfgMemo.ph) cfgMemo.ph = cfgDoc(env, 'loomiq/photos');
+  try { return await cfgMemo.ph; } catch (e) { cfgMemo.ph = null; throw e; }
 }
 /* Список рахунків — із самої адмінки. Заводити тут другий довідник означало б
    мати дві правди про те, скільки в нас ФОПів. */
@@ -895,8 +924,9 @@ function npControl(x) {
    би у Фінанси. Відправників ще не заведено — старий шлях одним ключем. */
 function senderCode(id) { return String(id || '').replace(/[^A-Za-z0-9_]/g, ''); }
 async function senders(env) {
-  let doc = null;
-  try { doc = await cfgKey(env, 'ship'); } catch (e) { doc = null; }
+  /* Помилка бази — не «відправників немає»: падаємо, а не опитуємо НП
+     запасним ключем і не кладемо рухи на чужий рахунок (27.10). */
+  const doc = await cfgKey(env, 'ship');
   const ship = doc && doc.ship;
   const raw = ship && ship.senders && (ship.senders.arrayValue ? ship.senders.arrayValue.values : ship.senders.values);
   const list = [];
@@ -1520,6 +1550,7 @@ export const _pure = { npAccFor, senderCode, md5hex, p24Row, novapayEnvelope, no
 /* ══════════════════════════════════════════════════════════════════════════ */
 export default {
   async fetch(request, env) {
+    cfgMemo = null;                       // налаштування — свіжі на кожен запуск
     const url = new URL(request.url);
     const parts = url.pathname.split('/').filter(Boolean);
     const секрет = url.searchParams.get('s') || '';
@@ -1620,6 +1651,7 @@ export default {
 
   /* Розклад. Приват і Нова пошта самі нічого не шлють, тож питаємо їх ми. */
   async scheduled(event, env, ctx) {
+    cfgMemo = null;
     const зНП = npDue(event && event.scheduledTime);
     ctx.waitUntil(poll(env, { np: зНП })
       .then(r => console.log('опитано', JSON.stringify(r)))
