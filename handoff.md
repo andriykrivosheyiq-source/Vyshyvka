@@ -306,6 +306,9 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `prod-back` у `loomiq-design.js`; `rbOrderSum.cex`. Тести:
   `prod-state.mjs` §6–7 (стуб: `__GET_FAIL`), `upd-gate.mjs` (9165),
   `prod-restore.mjs` (9167), `fresh-build.mjs` (заслона, час збірки).
+- **НП веде колонку цеху** (27.10): `prodAt` → `npStage` одразу після
+  `redo`; `prodNpPoll` — усі B2C з `ttn` за 60 днів (`межа`), не лише
+  `reg.ref`; `tests/prod-state.mjs` §8.
 - **Кеш бази вимкнено для всіх; стан `failed-precondition`; створення B2C
   зупиняється без запису** (27.10): `enablePersistence` лише при `lq_cache`
   (`?cache=1`; `LQ_CACHE_ON` у тестах), `synchronizeTabs:false`;
