@@ -272,7 +272,7 @@ const r7b = await p.evaluate(async (ids) => {
   const U = window.LQDesign.ui;
   U.host.npZebra = (ttns, sender) => npZebra(ttns, sender);
   contentData.bgApi = Object.assign({}, contentData.bgApi || {}, { npUrl: 'https://np.test/' });
-  fbAuth.currentUser = { getIdToken: async () => 'tok' };
+  fbAuth.currentUser = Object.assign({}, fbAuth.currentUser || {}, { getIdToken: async () => 'tok' });   // лишаємо пошту — роль власника далі потрібна
   window.__tabs = []; const open0 = window.open;
   window.open = (u, t) => { const w = { closed:false, document:{ title:'' }, location:{ href:'' }, close(){ this.closed = true; } }; window.__tabs.push({ u, t, w }); return w; };
   const o = orders.find(x => x.orderId === ids[0]);
@@ -285,6 +285,104 @@ const r7b = await p.evaluate(async (ids) => {
 console.log('   ' + JSON.stringify(r7b));
 ok(r7b.r1 === true && r7b.tabs.length === 1 && r7b.tabs[0].t === '_blank' && r7b.tabs[0].href === 'blob:' && !r7b.tabs[0].closed, 'PDF відкрився в новій вкладці (blob:), не скачався', JSON.stringify(r7b));
 ok(r7b.r2 !== true && r7b.tabs.length === 1, 'без номера — помилка словами, зайвої вкладки немає', JSON.stringify(r7b));
+
+console.log('═══ 8. НП НЕ ВЗЯЛА В РЕЄСТР: ПРИЧИНА НА ПЛИТЦІ, «ТТН УЖЕ N ДНІ», ОДНЕ ПОВІДОМЛЕННЯ, «ПЕРЕСТВОРИТИ ТТН» (27.10) ═══');
+/* Андрій (відео): 15 накладних, «It's forbidden to add to the register: the
+   document is older than 3 days and printed» ×15 у повідомленні, що зникає. */
+const g8 = await seed(2000331, '4');
+await p.evaluate(ids => {
+  const давно = new Date(Date.now() - 5 * 864e5).toISOString();
+  ids.forEach(id => { const o = orders.find(x => x.orderId === id); o.ttnAt = давно; o.touchedAt = '2026-10-20T10:00:00.000Z';
+    o.ship = { name:'Тест Тестовий', phone:'+380501234567', cityRef:'c1', cityName:'Київ', whRef:'w1', whName:'Відділення №1' }; });
+  window.LQDesign.ui.host.npRegistry = async (k, docs) => ({ ref:'', number:'', notFound:[],
+    errors: docs.map(d => ({ Ref: d.ref, Number: d.ttn, Error:"It's forbidden to add to the register: the document is older than 3 days and printed" })),
+    success:[], error:"It's forbidden to add to the register: the document is older than 3 days and printed" });
+}, g8);
+const nos8 = await p.evaluate(ids => ids.map(id => window.LQDesign.ui.jobNo(window.LQDesign.ui.pairOf(id).job)), g8);   // номери відділу (#…), не ключі
+const r8 = await тиснути();
+const s8 = await стан(g8);
+const t8 = await p.evaluate(ids => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  U.setTab('prod'); U.open(''); U.render(root);
+  const w = root.querySelector('.dz-boards [data-open="' + ids[0] + '"]');
+  const o = orders.find(x => x.orderId === ids[0]);
+  return { regFail: o.regFail && o.regFail.why, ttn: o.regFail && o.regFail.ttn, old: ((w && w.querySelector('.dz-c-ttnold')) || {}).textContent || '',
+           why: ((w && w.querySelector('.dz-c-regfail')) || {}).textContent || '' };
+}, g8);
+console.log('   ' + JSON.stringify({ s8, r8: r8.toast, t8 }));
+ok(s8.every(x => x === 'reg') && r8.toast.indexOf('3 посилки — накладній понад 3 дні і вона вже роздрукована: ' + nos8.join(', ')) >= 0 && (r8.toast.match(/понад 3 дні/g) || []).length === 1,
+  'усі три лишились у «Реєстр»; повідомлення одне на всіх: «3 посилки — накладній понад 3 дні…: #…»', JSON.stringify({ s8, r8 }));
+ok(/older than 3 days/.test(t8.regFail || '') && t8.ttn === '204500000040' && /ТТН уже 5 днів/.test(t8.old) && /НП не взяла в реєстр: накладній понад 3 дні/.test(t8.why),
+  'причина записана в картку (o.regFail з ТТН); на плитці «ТТН уже 5 днів» і «НП не взяла в реєстр: …»', JSON.stringify(t8));
+/* ↻ Перестворити ТТН — лише в картці, з підтвердженням: нова з тими самими
+   даними, стара в історію як замінена, скасування в НП; опис = номер картки. */
+const r8b = await p.evaluate(async ids => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  window.__NPC = [];
+  const u0 = npUrl, c0 = npCall;
+  npUrl = () => 'https://np.test';
+  npCall = async (op, extra) => { window.__NPC.push({ op, extra });
+    if(op === 'create') return { ok:true, ttn:'20450000000999', ref:'ref-999', est:'' };
+    if(op === 'ttnDelete') return { ok:true };
+    throw new Error('не та операція: ' + op); };
+  const out = {};
+  try{
+    U.setTab('acct'); U.open(ids[0]); U.render(root);
+    await new Promise(r => setTimeout(r, 250));
+    const tile = root.querySelector('.dz-boards [data-open="' + ids[0] + '"]');
+    out.наПлитці = !!(tile && tile.querySelector('[data-ship-ttn-re]'));
+    /* Блок «Відправка» складений — розгортаємо, як людина. */
+    const fold = root.querySelector('.dz-panel [data-fold="Відправка"]');
+    if(fold){ fold.click(); await new Promise(r => setTimeout(r, 250)); }
+    const b = root.querySelector('.dz-panel [data-ship-ttn-re]');
+    out.кнопка = !!b;
+    out.позначки = { old: ((root.querySelector('.dz-panel .dz-ship-l .dz-c-ttnold') || {}).textContent || ''), why: ((root.querySelector('.dz-panel .dz-regfail-s') || {}).textContent || '') };
+    if(b){ b.click(); await new Promise(r => setTimeout(r, 900)); }
+    const o = orders.find(x => x.orderId === ids[0]);
+    const pr = U.pairOf(ids[0]);
+    const h = (o.ttnHist || []).slice(-1)[0] || {};
+    out.ttn = o.ttn; out.ref = o.ttnRef; out.hist = { ttn: h.ttn, replaced: !!h.replaced, newTtn: h.newTtn, npDel: h.npDel };
+    out.стан = window.LQDesign.prodAt(pr.job, o); out.shipCol = o.shipCol; out.regFail = !!o.regFail; out.npSt = !!o.npSt;
+    out.ops = window.__NPC.map(c => c.op); out.опис = ((window.__NPC.find(c => c.op === 'create') || {}).extra || {}).order && window.__NPC.find(c => c.op === 'create').extra.order.description;
+    out.delRef = ((window.__NPC.find(c => c.op === 'ttnDelete') || {}).extra || {}).ref;
+    out.днів = window.LQDesign.ttnDays(o);
+  } finally { npUrl = u0; npCall = c0; }
+  return out;
+}, g8);
+console.log('   ' + JSON.stringify(r8b));
+ok(!r8b.наПлитці && r8b.кнопка && /ТТН уже 5 днів/.test(r8b.позначки.old) && /накладній понад 3 дні/.test(r8b.позначки.why),
+  'кнопки «Перестворити» на плитці немає; у картці біля ТТН — є, поруч «ТТН уже 5 днів» і причина відмови', JSON.stringify({ п: r8b.наПлитці, к: r8b.кнопка, з: r8b.позначки }));
+ok(r8b.ttn === '20450000000999' && r8b.ref === 'ref-999' && r8b.hist.ttn === '204500000040' && r8b.hist.replaced && r8b.hist.newTtn === '20450000000999' && r8b.hist.npDel === true,
+  'нова накладна стала головною; стара — в історії як замінена, скасована в НП', JSON.stringify({ t: r8b.ttn, h: r8b.hist }));
+ok(r8b.ops.join() === 'create,ttnDelete' && r8b.опис === nos8[0] && r8b.delRef === 'ref-40',
+  'воркеру: create з описом «' + nos8[0] + '» (номер картки, не ключ), потім ttnDelete старої за її Ref', JSON.stringify({ ops: r8b.ops, о: r8b.опис, d: r8b.delRef }));
+ok(r8b.стан === 'reg' && r8b.shipCol === 'reg' && !r8b.regFail && !r8b.npSt && r8b.днів === 0,
+  'картка лишилась у «Реєстр»; причина відмови й статус старої накладної зняті; накладній 0 днів', JSON.stringify({ с: r8b.стан, sc: r8b.shipCol, rf: r8b.regFail, np: r8b.npSt, д: r8b.днів }));
+
+console.log('═══ 9. ЗВЕДЕННЯ ПО НАКЛАДНИХ У ФІНАНСАХ (27.10) ═══');
+/* Андрій: «по цим ТТН — де наложені платежі є, де немає, яка сума». */
+const r9 = await p.evaluate(ids => {
+  const o = orders.find(x => x.orderId === ids[1]);
+  o.ttnCod = 1500; o.ttnPayer = 'recipient'; o.reg = { ref:'R9', no:'105-0009', at: new Date().toISOString() };
+  payLoaded = true; payments = [{ id:'np1', src:'np', ttn: o.ttn, amount: 1500, at:'2026-10-26T10:00:00.000Z', orderId: o.orderId, tag:'cod', acc:'np' }];
+  const o0 = orders.find(x => x.orderId === ids[0]);
+  const rows = ttnSumRows([o.ttn, o0.ttn, '204500000040', '20459999999999'].join('\n'));
+  tsum.rows = rows; tsum.text = 'x';
+  document.getElementById('view-fin') && (document.getElementById('view-fin').style.display = 'block');
+  renderTtnSum();
+  const box = document.getElementById('fin-ttnsum');
+  return { n: rows.length, r0: { no: rows[0].no, cod: rows[0].cod, got: rows[0].прийшло, reg: rows[0].reg, payer: rows[0].payer },
+           r1: { no: rows[1].no, cod: rows[1].cod, got: rows[1].прийшло, regFail: rows[1].regFail },
+           r2: { no: rows[2].no, замінена: rows[2].замінена, новаТтн: rows[2].новаТтн }, r3: { картки: !!rows[3].o },
+           html: box ? box.textContent.replace(/\s+/g, ' ').slice(0, 400) : '', hidden: box ? box.hidden : null };
+}, g8);
+console.log('   ' + JSON.stringify(r9));
+ok(r9.n === 4 && '#' + r9.r0.no === nos8[1] && r9.r0.cod === 1500 && r9.r0.got === 1500 && r9.r0.reg === '105-0009' && r9.r0.payer === 'recipient',
+  'рядок накладної: картка, реєстр, контроль оплати 1 500 ₴, прийшло 1 500 ₴ (з руху Фінансів за цією ТТН)', JSON.stringify(r9.r0));
+ok('#' + r9.r1.no === nos8[0] && r9.r1.got === 0 && !r9.r1.regFail && '#' + r9.r2.no === nos8[0] && r9.r2.замінена && r9.r2.новаТтн === '20450000000999' && !r9.r3.картки,
+  'нова накладна без грошей; стара знайдена через історію як замінена; чужий номер — «картки немає»', JSON.stringify({ r1: r9.r1, r2: r9.r2, r3: r9.r3 }));
+ok(r9.hidden === false && /Зведення по накладних/.test(r9.html) && /Накладних: 4/.test(r9.html) && /1 500 ₴/.test(r9.html),
+  'блок у Фінансах: заголовок, підсумок «Накладних: 4», суми', r9.html.slice(0, 200));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

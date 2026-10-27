@@ -323,6 +323,58 @@ console.log('   ' + JSON.stringify(r));
 ok(r.q.join() === '20450000000111,20450000000222' && r.st4 === '5' && r.кол4 === 'way' && r.кол5 === 'way' && r.db4 === '5',
   'опитано і картку з реєстром, і без нього; обидві стали «В дорозі», статус записано в базу', JSON.stringify(r));
 
+console.log('═══ 9. ЗА КОРДОН: КОЛОНКУ СТАВИТЬ ЦЕХ РУКАМИ, ТАБЛЕТКА, ФІЛЬТР «УКРАЇНА / ЗА КОРДОН» (27.10) ═══');
+/* Андрій: «за кордон… вручну перетягнути в будь-який далі статус, бо вони ж
+   не оновлюються; статус відмінено також можна». */
+r = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui, root = document.getElementById('dzRoot');
+  const j = designJobs['2000402'], o = orders.find(x => x.id === 'o2');
+  o.ttn = ''; o.npSt = null; o.reg = null; o.shipCol = ''; o.tracks = { supply:'got', prod:'done', qc:'ok' }; o.prodQc = { photos:[], at:'2026-10-24T10:00:00.000Z', ok:{ at:'2026-10-24T11:00:00.000Z', by:'m' } };
+  o.ship = { abroad: true, abroadTo: 'Польща, Варшава, вул. Тестова 1' };
+  const o4 = orders.find(x => x.id === 'o4');                                  // українська з ТТН, у «В дорозі» з §8
+  const o3 = orders.find(x => x.id === 'o3');                                  // українська без ТТН, «На станках» — видима колонка
+  const out = { старт: D.prodAt(j, o) };
+  out.можна = { courier: D.prodCanMove('ship', 'courier', o), refused: D.prodCanMove('ship', 'refused', o), done: D.prodCanMove('ship', 'done', o),
+                reg: D.prodCanMove('ship', 'reg', o), назадУРоботу: D.prodCanMove('ship', 'run', o), українська: D.prodCanMove('ship', 'courier', o4) };
+  out.кроки = [];
+  out.кроки.push(D.prodMove(j, o, 'courier', 'цех'));
+  out.кроки.push(D.prodMove(j, o, 'way', 'цех'));
+  out.кроки.push(D.prodMove(j, o, 'refused', 'цех'));
+  out.кроки.push(D.prodMove(j, o, 'done', 'цех'));
+  out.sentAt = !!o.ship.abroadSentAt;
+  out.кроки.push(D.prodMove(j, o, 'ship', 'цех'));
+  out.sentAt2 = !!o.ship.abroadSentAt;
+  out.col = o.ship.abroadCol;
+  D.prodMove(j, o, 'courier', 'цех');
+  /* Плитка й фільтри на дошці цеху. */
+  localStorage.removeItem('dzProdGeo');
+  U.setTab('prod'); U.open(''); U.render(root);
+  const tile = () => root.querySelector('.dz-boards [data-open="2000402"]');
+  const tile4 = () => root.querySelector('.dz-boards [data-open="2000403"]');
+  out.таблетка = ((tile() && tile().querySelector('.dz-c-ab')) || {}).textContent || '';
+  out.колонка = tile() ? tile().closest('.dz-col').dataset.col : '';
+  const btn = k => root.querySelector('[data-do="prod-geo"][data-geo="' + k + '"]');
+  out.фільтри = !!(btn('ua') && btn('ab'));
+  btn('ua').click();
+  out.лишеУкраїна = { своя: !!tile(), українська: !!tile4(), on: btn('ua').classList.contains('on') };
+  btn('ab').click();
+  out.обидва = { своя: !!tile(), українська: !!tile4() };
+  btn('ua').click();
+  out.лишеКордон = { своя: !!tile(), українська: !!tile4() };
+  btn('ab').click();
+  out.знову = { своя: !!tile(), українська: !!tile4(), збережено: localStorage.getItem('dzProdGeo') };
+  return out;
+});
+console.log('   ' + JSON.stringify(r));
+ok(r.старт === 'ship' && r.можна.courier && r.можна.refused && r.можна.done && r.можна.reg && !r.можна.назадУРоботу && !r.можна.українська,
+  'закордонна в «Можна відправляти»; тягнути можна в будь-яку наступну колонку й у «Відмова», назад у роботу — ні; українську з ТТН — як і доти, ні', JSON.stringify({ с: r.старт, м: r.можна }));
+ok(r.кроки.join() === 'courier,way,refused,done,ship' && r.sentAt && !r.sentAt2 && r.col === '',
+  'стоїть там, куди поставили: курʼєр → в дорозі → відмова → виконано (відправлено) → назад у «Можна відправляти» (відправку знято)', JSON.stringify({ к: r.кроки, s: r.sentAt, s2: r.sentAt2, c: r.col }));
+ok(/за кордон/.test(r.таблетка) && r.колонка === 'courier' && r.фільтри,
+  'на плитці «✈ за кордон», картка в «Передано курʼєру»; над дошкою фільтри «Україна» / «За кордон»', JSON.stringify({ т: r.таблетка, к: r.колонка, ф: r.фільтри }));
+ok(!r.лишеУкраїна.своя && r.лишеУкраїна.українська && r.лишеУкраїна.on && r.обидва.своя && r.обидва.українська && r.лишеКордон.своя && !r.лишеКордон.українська && r.знову.своя && r.знову.українська,
+  '«Україна» — лише українські; обидва — усі; лише «За кордон» — лише закордонні; жоден — усі; вибір памʼятає браузер', JSON.stringify({ u: r.лишеУкраїна, o: r.обидва, k: r.лишеКордон, z: r.знову }));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'стан цеху не відкочується: повтор, годинник, одночасні записи, збій читання, НП веде колонку');

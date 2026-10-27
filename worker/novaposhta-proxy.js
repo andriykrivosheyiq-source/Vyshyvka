@@ -300,6 +300,16 @@ export default {
         const r = await createTtn(env, body.order || {});
         return json({ ok: true, ...r }, 200, cors);
       }
+      /* Скасувати накладну (27.10, «Перестворити ТТН»): стару, замінену новою,
+         знімаємо в Новій пошті, щоб не висіла. Лише за внутрішнім Ref. */
+      if (op === 'ttnDelete') {
+        await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
+        const ref = String(body.ref || '').replace(/[^A-Za-z0-9-]/g, '');
+        if (!ref) return json({ ok: false, error: 'Немає Ref накладної' }, 400, cors);
+        const key = keyFor(env, body.sender || '');
+        await np(env, 'InternetDocument', 'delete', { DocumentRefs: ref }, key);
+        return json({ ok: true, ref }, 200, cors);
+      }
       /* ── РЕЄСТРИ Й СТАТУСИ ПАЧКОЮ (07.10, дошка цеху) ── */
       /* Реєстр із ТТН одного відправника. Нова пошта приймає внутрішні Ref
          накладних; номери без Ref (вписані руками) шукаємо в його накладних
