@@ -220,6 +220,22 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
   }
   echo "✓ стан цеху не відкочується"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tools/build-sites\.py|tests/upd-gate\.mjs)'; then
+  node tests/upd-gate.mjs >/tmp/lq-upd-gate.log 2>&1 || {
+    echo "✗ Заслона «Вийшло оновлення» не тримає стару вкладку або замикає свіжу — коміт зупинено. Подробиці: /tmp/lq-upd-gate.log"
+    grep '✗' /tmp/lq-upd-gate.log
+    exit 1
+  }
+  echo "✓ заслона оновлення: стара вкладка стоїть і не пише"
+fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/prod-restore\.mjs)'; then
+  node tests/prod-restore.mjs >/tmp/lq-prod-restore.log 2>&1 || {
+    echo "✗ Хроніка цеху чи «Відкотилось у цеху» зламались (затерте не видно або повертається не лише полями цеху) — коміт зупинено. Подробиці: /tmp/lq-prod-restore.log"
+    grep '✗' /tmp/lq-prod-restore.log
+    exit 1
+  }
+  echo "✓ хроніка цеху й повернення станів"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/an-fast\.mjs)'; then
   node tests/an-fast.mjs >/tmp/lq-an-fast.log 2>&1 || {
     echo "✗ Аналітика знову тягне відвідування/КП/архів на відкритті «Загальна» або рахує двічі — коміт зупинено. Подробиці: /tmp/lq-an-fast.log"

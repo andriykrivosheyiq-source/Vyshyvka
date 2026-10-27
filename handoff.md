@@ -288,6 +288,24 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   («Решта ще їде») — прийняте окремим документом `partOf`, `got`, нестача
   лишається в закупівлі; `buy-miss` («Не приїде — замовити знову») — нестача
   в `missing`. Прихід на склад — `buyStockIn(b, by)`. Тест `tests/buy-units.mjs`.
+- **Не прочитали — не пишемо; стани по полю; заслона оновлення; хроніка
+  цеху** (27.10, Андрій: «усе поламалось», #2000161): `dbNewer` → `out.fail`
+  на збої `get()`; `saveOrders` → `відкладені` + `saveDeferred`
+  (`SAVE_DEFER_MS` 8 с, напис раз на 30 с); `designPut` кидає помилку.
+  `orderPatch` → `{set, del, subs, add, baseLen}`; `docPatchWrite`: `tracks.<k>`
+  шляхами, `PATCH_UNION` через `FieldValue.arrayUnion` (`add`), цілком лише
+  при `baseLen > 400`. Збірка: `LQ_VER_AT`, `build.json {v, at}`
+  (`tools/build-sites.py`, час зберігається, поки номер той самий). Адмінка:
+  `lqUpdGate(нова, at)` → `#upd-gate`, `body.upd-wait`, `LQ_UPD_STALE`;
+  `buildStampSync()` у знімку `loomiq/photos` (читає `contentData.build`,
+  пише свою мітку раз на вкладку); правило `photos`: ключ `build` у
+  `hasOnly`. `histPut` `_v.dev`. `prodStateOf/prodStateText`, `orderVers`,
+  `orderVersLoad`, `prodChronicle(Html)`, `prodBackFrom(docId, v|ts, {silent})`,
+  `pb`, `prodBackCandidates`, `prodBackScan`, `renderProdBack`
+  (`#fin-prodback`, поруч із «Відкат карток»); host `prodBackFrom`, дія
+  `prod-back` у `loomiq-design.js`; `rbOrderSum.cex`. Тести:
+  `prod-state.mjs` §6–7 (стуб: `__GET_FAIL`), `upd-gate.mjs` (9165),
+  `prod-restore.mjs` (9167), `fresh-build.mjs` (заслона, час збірки).
 - **Sitniks через кеш воркера** (26.10, Володимир: «Sitniks обмежив
   запити»): `worker/sitniks-proxy.js` — `cachedGet`: `TTL` {chats 20, messages 5,
   other 10} с, `inflight` (склейка однакових), `cachePut/cacheGet` (памʼять

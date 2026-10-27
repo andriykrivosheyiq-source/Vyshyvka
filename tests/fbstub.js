@@ -11,7 +11,13 @@
      прибирає; наприкінці кличе «голий» update (тести підміняють і його). */
   var upd0=Doc.prototype.update;
   Doc.prototype.update=function(patch){ var self=this; (window.__UPDATES=window.__UPDATES||[]).push({ col:this.__col, id:this.__id, keys:Object.keys(patch||{}) });
-    return this.get().then(function(s){ var cur=(s&&s.exists&&s.data())||{}; var m=JSON.parse(JSON.stringify(cur)); Object.keys(patch||{}).forEach(function(k){ if(patch[k]&&patch[k].__del) delete m[k]; else m[k]=patch[k]; });
+    return this.get().then(function(s){ var cur=(s&&s.exists&&s.data())||{}; var m=JSON.parse(JSON.stringify(cur)); Object.keys(patch||{}).forEach(function(k){
+        /* Шлях з крапкою — вкладене поле (`tracks.prod`), як у справжній базі; arrayUnion — допис без повторів (27.10). */
+        var path=k.split('.'), o=m; for(var i=0;i<path.length-1;i++){ if(!o[path[i]]||typeof o[path[i]]!=='object') o[path[i]]={}; o=o[path[i]]; }
+        var last=path[path.length-1], val=patch[k];
+        if(val&&val.__del) delete o[last];
+        else if(val&&val.__union){ var cur2=Array.isArray(o[last])?o[last]:[]; var seen=cur2.map(function(x){ return JSON.stringify(x); }); val.__union.forEach(function(x){ if(seen.indexOf(JSON.stringify(x))<0){ cur2.push(x); seen.push(JSON.stringify(x)); } }); o[last]=cur2; }
+        else o[last]=val; });
       self.__via='update'; return self.set(m).then(function(){ delete self.__via; }, function(e){ delete self.__via; throw e; }); }).then(function(){ return upd0.call(self, patch); }); };
   Doc.prototype.delete=function(){ return Promise.resolve(); };
   Doc.prototype.onSnapshot=function(cb){ try{ cb(new Snap('x', null)); }catch(e){} return function(){}; };
@@ -36,7 +42,7 @@
     enablePersistence:function(){ return Promise.resolve(); },
     settings:function(){} }; };
   fs.FieldValue={ serverTimestamp:function(){ return new Date().toISOString(); },
-    delete:function(){ return null; }, arrayUnion:function(){ return []; } };
+    delete:function(){ return null; }, arrayUnion:function(){ return { __union: Array.prototype.slice.call(arguments) }; } };
   /* Вилучення поля (крок 3): позначка-обʼєкт, як у справжній базі; update
      стуба за нею прибирає ключ, color-move дивиться на __delete. */
   fs.FieldValue.delete=function(){ return { __delete:true, __del:1 }; };
