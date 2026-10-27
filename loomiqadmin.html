@@ -8284,32 +8284,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=16099ba34d"></script>
-<script src="loomiq-fingerprint.js?v=16099ba34d"></script>
-<script src="loomiq-pricing.js?v=16099ba34d"></script>
+<script src="loomiq-select.js?v=86fdebfb47"></script>
+<script src="loomiq-fingerprint.js?v=86fdebfb47"></script>
+<script src="loomiq-pricing.js?v=86fdebfb47"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=16099ba34d"></script>
+<script src="loomiq-money-core.js?v=86fdebfb47"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=16099ba34d"></script>
-<script src="loomiq-mock.js?v=16099ba34d"></script>
+<script src="loomiq-design.js?v=86fdebfb47"></script>
+<script src="loomiq-mock.js?v=86fdebfb47"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=16099ba34d"></script>
+<script src="imagetracer.js?v=86fdebfb47"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=16099ba34d"></script>
-<script src="loomiq-threads.js?v=16099ba34d"></script>
+<script src="loomiq-chat.js?v=86fdebfb47"></script>
+<script src="loomiq-threads.js?v=86fdebfb47"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=16099ba34d"></script>
+<script src="loomiq-cards.js?v=86fdebfb47"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8354,8 +8354,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '16099ba34d';
-var LQ_VER_AT = '2026-10-27T10:32:44Z';
+var LQ_VER = '86fdebfb47';
+var LQ_VER_AT = '2026-10-27T11:07:24Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -8595,8 +8595,16 @@ let fbCacheOn = false;
 try{
   if(/[?&]nocache=1\b/.test(location.search)) localStorage.setItem('lq_nocache', '1');
   if(/[?&]cache=1\b/.test(location.search)) localStorage.removeItem('lq_nocache');
-  const безКешу = localStorage.getItem('lq_nocache') === '1' || (typeof window !== 'undefined' && window.LQ_NO_CACHE);
-  if(!безКешу) fbDb.enablePersistence({ synchronizeTabs: true })
+  /* НЕ НА ТЕЛЕФОНІ Й БЕЗ СИНХРОНІЗАЦІЇ ВКЛАДОК (27.10, менеджерка з iPhone:
+     «НЕ ЗБЕРЕЖЕНО: failed-precondition», дві позиції лягли, третя — ні).
+     Спільний кеш кількох вкладок (`synchronizeTabs`) тримає «головну»
+     вкладку; iOS її заморожує, і записи решти вкладок стають у чергу або
+     падають з «the current tab is not in the required state». На телефоні
+     кешу немає зовсім, на компʼютері він лише в одній вкладці (решта
+     працює без кешу, як і доти). Вимкнути на пристрої: ?nocache=1. */
+  const телефон = /iPhone|iPad|iPod|Android/i.test(String(navigator.userAgent || '')) && !(typeof window !== 'undefined' && window.LQ_CACHE_PHONE);
+  const безКешу = localStorage.getItem('lq_nocache') === '1' || (typeof window !== 'undefined' && window.LQ_NO_CACHE) || телефон;
+  if(!безКешу) fbDb.enablePersistence({ synchronizeTabs: false })
     .then(() => { fbCacheOn = true; })
     .catch(e => { console.warn('кеш бази не ввімкнувся', e && e.code); });
 }catch(e){ console.warn('кеш бази', e); }
@@ -9189,15 +9197,29 @@ function dbLinkOk(which){
   L.lost = false; L.n = 0; clearTimeout(L.t);
   if(було && !dbLink.orders.lost && !dbLink.design.lost) dbLostBar(false);
 }
-function dbLinkDead(){ return dbLink.orders.lost || dbLink.design.lost; }
-function dbLostBar(on){
+/* Вкладка в неробочому стані для бази (27.10): `failed-precondition` на
+   записі («the current tab is not in the required state… refresh») —
+   кеш/оренда вкладки зламались, і далі ця вкладка лише читає. Лікує тільки
+   перезавантаження, тож запис вимкнено до нього, плашка каже прямо. */
+dbLink.stale = false;
+function dbLinkStale(e){
+  if(dbLink.stale) return;
+  dbLink.stale = true;
+  console.error('вкладка втратила стан бази', e);
+  dbLostBar(true, 'Вкладка втратила звʼязок із базою (так буває на телефоні або з кількома вкладками). ' +
+    'Запис вимкнено, щоб нічого не загубити. Оновіть сторінку — усе збережене на місці.');
+  try{ accLog('dblost', 'вкладка в неробочому стані для бази (failed-precondition) · ' + deviceShort()); }catch(e2){}
+}
+function dbLinkDead(){ return dbLink.orders.lost || dbLink.design.lost || dbLink.stale; }
+function dbLostBar(on, text){
   let el = document.getElementById('db-lost');
-  if(!on){ if(el) el.remove(); return; }
-  if(el) return;
+  if(!on){ if(el && !dbLink.stale) el.remove(); return; }
+  if(el){ if(text) el.querySelector('span').textContent = text; return; }
   el = document.createElement('div');
   el.id = 'db-lost';
   el.innerHTML = '<span><b>Звʼязок з базою втрачено.</b> Запис карток вимкнено, щоб стара копія не затерла чужу роботу. ' +
     'Відновлюю звʼязок сам; не вийде — оновіть сторінку.</span><button type="button">Оновити сторінку</button>';
+  if(text) el.querySelector('span').textContent = text;
   el.querySelector('button').onclick = () => location.reload();
   document.body.appendChild(el);
 }
@@ -10019,6 +10041,13 @@ async function saveOrders(opts){
     if(!quiet) toast('Картку #' + застарілі.join(', #') + ' уже змінили з іншого пристрою після того, як ви її відкрили. Показано свіжу версію — повторіть правку.');
   }
   if(відкладені.length) saveDeferred(відкладені, quiet);
+  const зламана = failed.find(x => x && x.e && /failed-precondition/i.test(String(x.e.code || x.e.message || '')));
+  if(зламана){
+    dbLinkStale(зламана.e);
+    if(!quiet) alert('НЕ ЗБЕРЕЖЕНО: ця вкладка втратила звʼязок із базою (так буває на телефоні або з кількома відкритими вкладками).\n\n' +
+      'Оновіть сторінку й повторіть дію — усе, що було збережено раніше, на місці.');
+    return failed;
+  }
   if(failed.length && !quiet){
     const f = failed[0];
     /* Якщо картка завелика — кажемо, ЩО САМЕ важке й що з цим робити.
@@ -30664,11 +30693,16 @@ async function designPut(job, opt){
   const body = JSON.stringify(job);
   const prev = було.doc ? JSON.stringify(було.doc) : '';
   if(prev && prev !== body) await histPut(DESIGN_COL, id, prev, opt && opt.why);
-  if(prev){
-    let p0 = null; try{ p0 = JSON.parse(prev); }catch(e){}
-    await docPatchWrite(DESIGN_COL.doc(id), orderPatch(p0, JSON.parse(body)), JSON.parse(body));
-  }else{
-    await DESIGN_COL.doc(id).set(JSON.parse(body));
+  try{
+    if(prev){
+      let p0 = null; try{ p0 = JSON.parse(prev); }catch(e){}
+      await docPatchWrite(DESIGN_COL.doc(id), orderPatch(p0, JSON.parse(body)), JSON.parse(body));
+    }else{
+      await DESIGN_COL.doc(id).set(JSON.parse(body));
+    }
+  }catch(e){
+    if(/failed-precondition/i.test(String((e && (e.code || e.message)) || ''))){ dbLinkStale(e); throw new Error('вкладка втратила звʼязок із базою — оновіть сторінку й повторіть'); }
+    throw e;
   }
   designSeen[id] = String(job.updatedAt || ''); designBase[id] = body;
   return true;

@@ -441,8 +441,18 @@ IndexedDB «немає» (SDK сам бере localStorage), `gapi` — загл
    стан цеху» / «Повернути всі» → `prodBackFrom`: ЛИШЕ `tracks.prod/qc`,
    `prodQc`, `reg`, `shipCol`, `trackHist` обʼєднанням, `o.prodBack`, через
    `saveOrders`, журнал `restore-prod`. Решту картки не чіпає.
+5. **Кеш бази — не на телефоні й без синхронізації вкладок** (27.10,
+   менеджерка з iPhone: «НЕ ЗБЕРЕЖЕНО: failed-precondition»). Спільний кеш
+   (`synchronizeTabs`) тримає «головну» вкладку, iOS її заморожує — записи
+   решти падають. `enablePersistence({ synchronizeTabs:false })` лише на
+   компʼютері; телефон (`iPhone|iPad|Android`) — без кешу (`LQ_CACHE_PHONE`
+   для тестів). `failed-precondition` на записі → `dbLinkStale(e)`:
+   `dbLink.stale`, `dbLinkDead()` істина до перезавантаження, плашка
+   `#db-lost` «Оновіть сторінку», журнал `dblost`; жодного «скриншот
+   розробнику». Не повертати `synchronizeTabs:true`.
 Перевіряють `tests/prod-state.mjs` §6–7, `tests/upd-gate.mjs`,
-`tests/prod-restore.mjs`, `tests/fresh-build.mjs` (усі в pre-commit).
+`tests/prod-restore.mjs`, `tests/fresh-build.mjs`, `tests/db-link.mjs` §6–7
+(усі в pre-commit).
 
 ## Стан цеху не відкочується (26.10.2026)
 

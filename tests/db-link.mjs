@@ -204,6 +204,55 @@ console.log('   ' + JSON.stringify(обривD));
 ok(обривD.lost && обривD.bar && /звʼязок з базою втрачено/i.test(обривD.err) && обривD.n1 === обривD.n0 + 1 && !обривD.lostAfter && !обривD.barAfter,
   'обрив підписки відділу: запис відхилено, плашка; перепідписка сама, плашка зникла', JSON.stringify(обривD));
 
+console.log('═══ 6. ВКЛАДКА В НЕРОБОЧОМУ СТАНІ (failed-precondition) — ЗАПИС ВИМКНЕНО ДО ОНОВЛЕННЯ (27.10) ═══');
+/* Менеджерка з iPhone: «НЕ ЗБЕРЕЖЕНО: failed-precondition» — кеш кількох
+   вкладок втратив «головну» вкладку. Лікує лише перезавантаження: запис
+   вимкнено, плашка каже прямо, не «скриншот розробнику». */
+const стан = await p.evaluate(async () => {
+  window.__SETS = []; window.__ALERTS = []; const a0 = window.alert; window.alert = m => window.__ALERTS.push(String(m));
+  const P = Object.getPrototypeOf(ORDERS_COL.doc('1'));
+  const upd0 = P.update, set0 = P.set;
+  P.update = function(){ return Promise.reject(Object.assign(new Error('The current tab is not in the required state to perform this operation. It might be necessary to refresh the browser tab.'), { code: 'failed-precondition' })); };
+  P.set = function(){ return Promise.reject(Object.assign(new Error('The current tab is not in the required state'), { code: 'failed-precondition' })); };
+  const o = orders.find(x => x.id === '1'); o.name = 'Асія-правка-3';
+  const f1 = await saveOrders({ quiet: false });
+  const bar = document.getElementById('db-lost');
+  const r = { dead: dbLinkDead(), stale: dbLink.stale, bar: bar ? bar.textContent : '', alert: window.__ALERTS.join(' | '), f1: f1.length };
+  P.update = upd0; P.set = set0; window.__SETS = [];
+  const o2 = orders.find(x => x.id === '1'); o2.name = 'Асія-правка-4';
+  const f2 = await saveOrders({ quiet: true });
+  r.f2link = !!(f2.length && f2[0].link); r.sets2 = window.__SETS.length;
+  let dz = ''; try{ await designPut({ orderId:'5000301', updatedAt: new Date().toISOString() }); }catch(e){ dz = String(e.message || e); }
+  r.dz = dz; r.log = accLogList().filter(x => x.kind === 'dblost').length;
+  window.alert = a0;
+  return r;
+});
+console.log('   ' + JSON.stringify(стан));
+ok(стан.dead && стан.stale && /втратила звʼязок із базою/.test(стан.bar) && /Оновіть сторінку/.test(стан.bar), 'запис вимкнено, плашка «Оновіть сторінку»', JSON.stringify(стан));
+ok(/НЕ ЗБЕРЕЖЕНО: ця вкладка втратила/.test(стан.alert) && !/скриншот/.test(стан.alert), 'людині сказано, що робити, а не «скриншот розробнику»', стан.alert);
+ok(стан.f2link && стан.sets2 === 0 && /оновіть сторінку/.test(стан.dz) && стан.log === 1, 'далі ні картка, ні картка відділу в базу не йдуть до оновлення; запис у журналі', JSON.stringify(стан));
+
+console.log('═══ 7. КЕШ БАЗИ: НА КОМПʼЮТЕРІ — БЕЗ СИНХРОНІЗАЦІЇ ВКЛАДОК, НА ТЕЛЕФОНІ — НЕМАЄ (27.10) ═══');
+{
+  const stubP = fbstub.replace("enablePersistence:function(){ return Promise.resolve(); },", "enablePersistence:function(o){ (window.__PERSIST=window.__PERSIST||[]).push(o||{}); return Promise.resolve(); },");
+  const open = async ua => {
+    const ctx = await browser.newContext(Object.assign({ viewport:{ width:1200, height:800 } }, ua ? { userAgent: ua } : {}));
+    const pg = await ctx.newPage();
+    await pg.route('**://**', r => { const u = r.request().url();
+      if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body: stubP });
+      if(u.startsWith(HOST)) return r.continue(); return r.abort(); });
+    await pg.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
+    await pg.waitForTimeout(1500);
+    const r = await pg.evaluate(() => window.__PERSIST || []);
+    await ctx.close(); return r;
+  };
+  const комп = await open('');
+  const тел = await open('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
+  console.log('   ' + JSON.stringify({ комп, тел }));
+  ok(комп.length === 1 && комп[0].synchronizeTabs === false, 'компʼютер: кеш увімкнено без synchronizeTabs', JSON.stringify(комп));
+  ok(тел.length === 0, 'iPhone: кеш бази не вмикається', JSON.stringify(тел));
+}
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();

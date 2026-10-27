@@ -306,6 +306,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `prod-back` у `loomiq-design.js`; `rbOrderSum.cex`. Тести:
   `prod-state.mjs` §6–7 (стуб: `__GET_FAIL`), `upd-gate.mjs` (9165),
   `prod-restore.mjs` (9167), `fresh-build.mjs` (заслона, час збірки).
+- **Кеш бази без синхронізації вкладок, на телефоні вимкнено; стан
+  `failed-precondition`** (27.10): `телефон` у блоці `enablePersistence`
+  (`LQ_CACHE_PHONE` вмикає в тестах), `synchronizeTabs:false`;
+  `dbLinkStale(e)` → `dbLink.stale`, `dbLostBar(on, text)`, перевірка в
+  `saveOrders` (після `відкладені`) і `designPut` (навколо запису);
+  `tests/db-link.mjs` §6–7.
 - **Sitniks через кеш воркера** (26.10, Володимир: «Sitniks обмежив
   запити»): `worker/sitniks-proxy.js` — `cachedGet`: `TTL` {chats 20, messages 5,
   other 10} с, `inflight` (склейка однакових), `cachePut/cacheGet` (памʼять
@@ -436,7 +442,7 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   в `init` → `accLog('auth-lost', …)`. Тест `tests/auth-keep.mjs` бере
   справжню збірку з `LQ_FB_DIR` або `/tmp/claude-0/emu/node_modules/firebase`
   (без неї кроки 1–6 «пропущено»), мережу Google підміняє. Див. BUGS 25.10.
-- **Швидкість, крок 2** (25.10): `fbDb.enablePersistence({synchronizeTabs:true})`
+- **Швидкість, крок 2** (25.10; з 27.10 — `synchronizeTabs:false`, на телефоні вимкнено): `fbDb.enablePersistence(…)`
   одразу після `firebase.firestore()` (`fbCacheOn`; `lq_nocache` у localStorage,
   `?nocache=1`/`?cache=1`, `window.LQ_NO_CACHE`); `loadOrders()` = перший
   знімок `watchOrders(onFirst)` (`ordersLoaded`, `ORDERS_FIRST_MS` 90 с запасний),
