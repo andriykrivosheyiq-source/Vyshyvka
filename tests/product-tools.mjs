@@ -62,7 +62,7 @@ fbstub = fbstub.replace('window.firebase={',
   'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n' +
   '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
 fbstub = fbstub.replace('Doc.prototype.set=function(){ return Promise.resolve(); };',
-  "Doc.prototype.set=function(d){ if(this.__col==='loomiq' && this.__id==='photos') (window.__PW=window.__PW||[]).push(JSON.parse(JSON.stringify(d, function(k,v){ return (v && v._methodName) ? '__DEL__' : v; }))); return Promise.resolve(); };");
+  "Doc.prototype.set=function(d){ if(this.__col==='loomiq' && (this.__id==='photos' || this.__id==='private')) (window.__PW=window.__PW||[]).push(JSON.parse(JSON.stringify(d, function(k,v){ return (v && v._methodName) ? '__DEL__' : v; }))); return Promise.resolve(); };");
 fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
   'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };');
 fbstub = fbstub.replace(
