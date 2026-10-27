@@ -3356,7 +3356,7 @@
            праворуч (06.10: «нормальна кнопка всередині картки внизу, як у B2B»). Усередині
            картки-кнопки — тож не <button>, а span з роллю кнопки. */
         (c.noTtn ? '<span class="dz-c-ttn" title="Ескіз узгоджено, а накладної ще немає">ТТН не створена</span>' : '') +
-        ((c.wait || c.fix || c.chat || c.qTxt || c.waitTxt)
+        ((c.wait || c.fix || c.chat || c.qTxt || c.waitTxt || c.zebra)
           ? '<span class="dz-c-foot">' +
             (c.chat ? '<span class="dz-card-ig is-in" role="button" tabindex="0" data-do="chat" data-id="' + esc(c.id) +
               '" title="Відкрити розмову з клієнтом">' + esc(c.chatTxt || 'Instagram') +
@@ -3367,7 +3367,11 @@
               (c.waitTxt ? '<b class="dz-m-need" title="Чого ще чекаємо від клієнта">' + esc(c.waitTxt) + '</b>' : '') +
               /* «чекають відповіді» прибрано (22.10, Андрій): непрочитане
                  й так видно лічильником, а табличка висіла на всіх етапах. */
-            '</span></span>'
+            '</span>' +
+            /* «Зебра» (27.10): маркування 100×100 цієї ТТН — одним дотиком з плитки. */
+            (c.zebra ? '<span class="dz-card-zb" role="button" tabindex="0" data-do="zebra" data-ttn="' + esc(c.zebra.ttn) + '" data-sender="' + esc(c.zebra.sender) +
+              '" title="Зебра — маркування 100×100 для термопринтера, ТТН ' + esc(c.zebra.ttn) + '">Зебра</span>' : '') +
+            '</span>'
           : '') +
       '</button>' +
     '</div>';
@@ -6617,6 +6621,7 @@
               (o.ttnStatus ? '<span>' + esc(o.ttnStatus) + '</span>' : '') +
               (o.ttnCity ? '<span>' + esc(o.ttnCity + (o.ttnWh ? ' · ' + o.ttnWh : '')) + '</span>' : '') + '</div>' +
               '<button class="dz-b" data-ship-track>Оновити статус</button>' +
+              (host.npZebra ? '<button class="dz-b" data-ship-zebra title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
               /* ✎ Змінити (23.10): помилкова чи замінена накладна — назад до
                  форми; стара лягає в o.ttnHist (гроші за неї знайдуть картку). */
               (host.ttnDrop ? '<button class="dz-b dz-quiet" data-ship-ttn-x>✎ Змінити</button>' : '') +
@@ -8970,6 +8975,8 @@
             ? '✈ За кордон: <span class="dz-ship-ab">' + esc(o.ship.abroadTo) + '</span>'
             : 'ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>')) +
           (o.reg && o.reg.no ? ' · реєстр №' + esc(o.reg.no) : '') +
+          /* «Зебра» (27.10): маркування 100×100 цієї ТТН — і в картці цеху. */
+          (o.ttn && ZEBRA_COLS.indexOf(at) >= 0 ? ' <button type="button" class="dz-b dz-zb" data-do="zebra" data-ttn="' + esc(o.ttn) + '" data-sender="' + esc(o.ttnSender || '') + '" title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
         /* Погоджено без ТТН (26.10) — червоним, поки накладної немає. */
         (at === 'ship' && !D.shipAbroad(o) && D.shipNeedsTtn(o)
@@ -9273,7 +9280,8 @@
     var рядок = function(x){
       return '<div class="dz-reg-r"><b>№' + esc(x.no || '—') + '</b><span>' + esc(dt(x.at)) + ' · ' + x.n + ' посил.' +
         (x.moved && x.moved < x.n ? ' · у дорозі ' + x.moved : '') + (x.manual ? ' · вписано вручну' : '') + '</span>' +
-        (x.manual ? '' : '<button type="button" class="dz-b" data-do="reg-pdf" data-ref="' + esc(x.ref) + '" data-sender="' + esc(x.sender) + '">PDF</button>') + '</div>';
+        (x.manual ? '' : '<button type="button" class="dz-b" data-do="reg-pdf" data-ref="' + esc(x.ref) + '" data-sender="' + esc(x.sender) + '">PDF реєстру</button>') +
+        '<button type="button" class="dz-b" data-do="reg-zebra" data-ref="' + esc(x.ref) + '" data-sender="' + esc(x.sender) + '" title="Маркування 100×100 на всі накладні реєстру">PDF зебри</button>' + '</div>';
     };
     var old = document.getElementById('dzRegPop'); if(old) old.remove();
     var m = document.createElement('div');
@@ -9287,6 +9295,8 @@
       if(e.target === m || e.target.closest('[data-pm-x]')) return m.remove();
       var b = e.target.closest('[data-do="reg-pdf"]');
       if(b) act('reg-pdf', document.getElementById('dzRoot'), b.dataset);
+      var z = e.target.closest('[data-do="reg-zebra"]');
+      if(z) act('reg-zebra', document.getElementById('dzRoot'), z.dataset);
     });
   }
   /* ── Виробнича карта в Telegram цеху ─────────────────────────────────── */
@@ -9491,7 +9501,9 @@
                  { label:'файл', ok: файл, title: файл ? 'Файл для машини є' : 'Файлу для машини ще немає' }];
       }
       var крокП = D.prodAt(p.job, p.o);
-      return { id: p.o.orderId, step: крокП, v2: true,
+      /* «Зебра» (27.10): від колонки «Реєстр» і далі, поки є ТТН. */
+      var зебра = (String(p.o.ttn || '').trim() && ZEBRA_COLS.indexOf(крокП) >= 0) ? { ttn: String(p.o.ttn).trim(), sender: String(p.o.ttnSender || '') } : null;
+      return { id: p.o.orderId, step: крокП, v2: true, zebra: зебра,
         pic: cardPic(p.job),
         chain: stageMarks(p.job, p.o, всі),
         what: whatOf(p.job, p.o, true),
@@ -9508,6 +9520,7 @@
               (r.foot || (r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || ''))) };
     });
   }
+  var ZEBRA_COLS = ['reg', 'courier', 'way', 'arrived', 'stuck'];
   function supplyCards(){
     var всі = buys();
     return U.pairsLive().filter(function(p){ return atSupply(p, всі); }).map(function(p){
@@ -11126,6 +11139,8 @@
       };
       var tr = root.querySelector('[data-ship-track]');
       if(tr && c && c.o && host().shipTrack) tr.onclick = function(){ host().shipTrack(c.o); };
+      var zb = root.querySelector('[data-ship-zebra]');
+      if(zb && c && c.o) zb.onclick = function(){ act('zebra', root, { ttn: String(c.o.ttn || ''), sender: String(c.o.ttnSender || '') }); };
     })();
     root.querySelectorAll('[data-sf]').forEach(function(el){
       el.onchange = function(){
@@ -12096,6 +12111,26 @@
     }
     if(what === 'reg-make') return regMake(root);
     if(what === 'reg-list') return regList();
+    /* «Зебра» (27.10): маркування 100×100 — одна ТТН (плитка, картка) або
+       всі накладні реєстру одним PDF. */
+    if(what === 'zebra'){
+      if(!host().npZebra) return say('Маркування недоступне — немає воркера Нової пошти');
+      var ttnZ = String((data && data.ttn) || '').replace(/\D/g, '');
+      if(!ttnZ) return say('Накладної ще немає');
+      say('Завантажую зебру…');
+      var прZ = await host().npZebra([ttnZ], String((data && data.sender) || ''));
+      return say(прZ === true ? 'Зебру завантажено · ТТН ' + ttnZ : ('Зебра: ' + (прZ || 'не вийшло')));
+    }
+    if(what === 'reg-zebra'){
+      if(!host().npZebra) return say('Маркування недоступне — немає воркера Нової пошти');
+      var refZ = String((data && data.ref) || '');
+      var ttnsZ = U.pairsLive().filter(function(p){ return p.o && p.o.reg && p.o.reg.ref === refZ && String(p.o.ttn || '').trim(); })
+        .map(function(p){ return String(p.o.ttn).trim(); });
+      if(!ttnsZ.length) return say('У цьому реєстрі немає накладних з номерами');
+      say('Завантажую зебри (' + ttnsZ.length + ')…');
+      var прR = await host().npZebra(ttnsZ, String((data && data.sender) || ''));
+      return say(прR === true ? 'Зебри завантажено: ' + ttnsZ.length : ('Зебра: ' + (прR || 'не вийшло')));
+    }
     if(what === 'reg-pdf'){
       if(!host().npPrint) return say('Друк реєстру недоступний');
       say('Завантажую реєстр…');

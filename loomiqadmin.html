@@ -4797,6 +4797,11 @@
      рядком зі стрілками; Instagram — маленька кнопка в куті. ── */
   .dz-card .dz-c-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:1px 0 0;}
   .dz-card .dz-c-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 0 0;}
+  /* «Зебра» на плитці (27.10): штрихкод-кнопка справа внизу від колонки «Реєстр». */
+  .dz-card-zb{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:3px 8px;border-radius:7px;
+    background:#111827;color:#fff;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
+  .dz-card-zb::before{content:'▥';font-size:12px;}
+  .dz-card-zb:hover{background:#1F2937;}
   .dz-card-w.is-v2 .dz-c-foot .dz-card-m{margin:0;min-width:0;}
   .dz-card .dz-c-foot .dz-card-m{margin-left:auto;text-align:right;}
   /* Кнопка каналу — як на картці B2B (.tc-ch-b.ch-ig): та сама форма й колір. */
@@ -8284,32 +8289,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f080e2c660"></script>
-<script src="loomiq-fingerprint.js?v=f080e2c660"></script>
-<script src="loomiq-pricing.js?v=f080e2c660"></script>
+<script src="loomiq-select.js?v=59df4ba716"></script>
+<script src="loomiq-fingerprint.js?v=59df4ba716"></script>
+<script src="loomiq-pricing.js?v=59df4ba716"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f080e2c660"></script>
+<script src="loomiq-money-core.js?v=59df4ba716"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f080e2c660"></script>
-<script src="loomiq-mock.js?v=f080e2c660"></script>
+<script src="loomiq-design.js?v=59df4ba716"></script>
+<script src="loomiq-mock.js?v=59df4ba716"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f080e2c660"></script>
+<script src="imagetracer.js?v=59df4ba716"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=f080e2c660"></script>
-<script src="loomiq-threads.js?v=f080e2c660"></script>
+<script src="loomiq-chat.js?v=59df4ba716"></script>
+<script src="loomiq-threads.js?v=59df4ba716"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f080e2c660"></script>
+<script src="loomiq-cards.js?v=59df4ba716"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8354,8 +8359,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f080e2c660';
-var LQ_VER_AT = '2026-10-27T11:52:44Z';
+var LQ_VER = '59df4ba716';
+var LQ_VER_AT = '2026-10-27T13:17:31Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -25500,6 +25505,31 @@ async function npRegistryPdf(ref, sender){
     return true;
   }catch(e){ return 'воркер не відповів'; }
 }
+/* «Зебра» (27.10): маркування 100×100 на одну чи кілька накладних — PDF
+   через воркер (адреса друку НП містить ключ). true — завантажено, інакше
+   текст причини. */
+async function npZebra(ttns, sender){
+  const u = npUrl();
+  if(!u) return 'адреса воркера Нової пошти не задана';
+  const list = (Array.isArray(ttns) ? ttns : [ttns]).map(x => String(x || '').replace(/\D/g, '')).filter(x => x.length >= 10);
+  if(!list.length) return 'немає номера накладної';
+  let idToken = '';
+  try{ idToken = await fbAuth.currentUser.getIdToken(); }catch(e){ return 'сесія застаріла — увійдіть ще раз'; }
+  try{
+    const r = await fetch(u, { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ op:'markingPdf', ttns: list, sender: sender || '', idToken }) });
+    if(!r.ok || !/pdf/i.test(r.headers.get('Content-Type') || '')){
+      const j = await r.json().catch(() => ({}));
+      return j.error || ('код ' + r.status + ' — оновіть воркер Нової пошти');
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'зебра-' + list[0] + (list.length > 1 ? '-x' + list.length : '') + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return true;
+  }catch(e){ return 'воркер не відповів'; }
+}
 /* Статуси посилок із реєстрів — щопівгодини й при відкритті відділу. Дошка
    цеху сама переставляє картки: в дорозі → прибуло → виконано / відмова. */
 const NP_FINAL = ['9','10','11','106','102','103','108','105','2'];
@@ -31631,6 +31661,7 @@ function designHostInit(){
     /* Реєстри НП і борг клієнта (для «повної відмови»). */
     npRegistry: (sender, docs) => npRegistry(sender, docs),
     npPrint: (ref, sender) => npRegistryPdf(ref, sender),
+    npZebra: (ttns, sender) => npZebra(ttns, sender),
     due: o => dueSum(o),
     /* Дані для накладної є (20.10): отримувач, телефон, місто й відділення. */
     shipDataOk: o => { try{ if(shipAbroad(o)) return true; const v = shipVals(o);
