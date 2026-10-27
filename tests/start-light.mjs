@@ -3,7 +3,8 @@
    1. Замовлення завантажуються ОДИН раз — першим знімком підписки, без
       окремого get() усієї колекції.
    2. Поки картки їдуть, дошка каже «Завантажую картки…», а не стоїть порожня.
-   3. Кеш бази на пристрої ввімкнено (enablePersistence, synchronizeTabs);
+   3. Кеш бази на пристрої ввімкнено (enablePersistence; з 27.10 — БЕЗ
+      synchronizeTabs і лише на компʼютері, див. tests/db-link.mjs §7);
       ?nocache=1 вимикає й памʼятає; перший знімок із кешу показує картки
       одразу, свіжий — слідом (perf: cache, orders).
    4. Документ команди (заслона) передплачується ДО документа налаштувань.
@@ -124,7 +125,7 @@ ok(s2.n >= 1 && s2.loaded && !s2.load, 'картки приїхали — нап
 ok(s2.gets === 0 && s2.snaps === 1, 'замовлення завантажено ОДИН раз (підпискою), без get() усієї колекції', 'get: ' + s2.gets + ', підписок: ' + s2.snaps);
 const iPhotos = s2.log.findIndex(x => /snap:loomiq\/photos/.test(x)), iState = s2.log.findIndex(x => /get:loomiq\/state/.test(x));
 ok(iPhotos >= 0 && iState >= 0 && iPhotos < iState, 'документ команди передплачено ДО документа налаштувань', JSON.stringify(s2.log));
-ok((await q1.evaluate(() => (window.__LOG || []).filter(x => /^persist:/.test(x)))).join() === 'persist:{"synchronizeTabs":true}', 'кеш бази на пристрої ввімкнено (для всіх вкладок)', 'persist не викликано');
+ok((await q1.evaluate(() => (window.__LOG || []).filter(x => /^persist:/.test(x)))).join() === 'persist:{"synchronizeTabs":false}', 'кеш бази на пристрої ввімкнено (одна вкладка, без синхронізації — 27.10)', 'persist не викликано або з synchronizeTabs');
 await q1.close();
 
 console.log('═══ 2. З КЕШУ — ОДРАЗУ, СВІЖЕ — СЛІДОМ ═══');
