@@ -186,6 +186,51 @@ ok(r.кнопка && /Погоджено менеджером/.test(r.кнопк
 ok(/ТТН ще немає/.test(r.червоне) && /ТТН ще немає/.test(r.плитка), 'червоним «ТТН ще немає» — і в картці, і на плитці цеху', JSON.stringify({ ч: r.червоне, п: r.плитка.slice(0, 120) }));
 ok(r.реєстр.стан === 'reg' && /без ТТН/.test(r.реєстр.toast), 'реєстр картку без ТТН не бере й каже про неї', JSON.stringify(r.реєстр));
 
+console.log('═══ 6. ФОТО НЕ ГУБЛЯТЬСЯ: ВІКНО ЗНИКЛО (ПЕРЕЗАВАНТАЖЕННЯ З КАМЕРИ) — ВІДКРИЛОСЬ ІЗ ЗНЯТИМИ (27.10) ═══');
+/* Андрій: «раз сфоткали, два сфоткали… щоб не вибивало». */
+const r6 = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, root = document.getElementById('dzRoot');
+  const t = ms => new Promise(z => setTimeout(z, ms));
+  const h = U.host;
+  h.upload = async f => 'https://cdn.test/' + encodeURIComponent(f.name);
+  const png = await new Promise(res => { const c = document.createElement('canvas'); c.width = 40; c.height = 40; c.getContext('2d').fillRect(5, 5, 20, 20); c.toBlob(res, 'image/png'); });
+  const o2 = orders.find(x => x.orderId === '2000202');
+  const j2 = designJobs['2000202'];
+  localStorage.removeItem('dzPmDraft:2000202');                                // чернетка з §3 (закрили «×») — не про це
+  const out = { стан: D.prodAt(j2, o2) };
+  U.setTab('prod'); U.open('2000202'); U.render(root); await t(150);
+  await U.act('prod-done', root); await t(100);
+  let m = document.getElementById('dzProdModal');
+  const inp = m.querySelector('[data-pm-cam]');
+  const dt = new DataTransfer(); dt.items.add(new File([png], 'cam1.png', { type:'image/png' }));
+  inp.files = dt.files; inp.dispatchEvent(new Event('change')); await t(500);
+  const dt2 = new DataTransfer(); dt2.items.add(new File([png], 'cam2.png', { type:'image/png' }));
+  inp.files = dt2.files; inp.dispatchEvent(new Event('change')); await t(500);
+  m.querySelector('[data-pm-note]').value = 'З двох боків'; m.querySelector('[data-pm-note]').dispatchEvent(new Event('input'));
+  out.доЗникнення = { фото: m.querySelectorAll('.dz-pic .dz-pm-ok').length, вікно: true, кнопка: m.querySelector('[data-pm-camt]').textContent };
+  out.памʼять = JSON.parse(localStorage.getItem('dzPmDraft:2000202') || 'null');
+  /* Сторінку перезавантажило — вікна немає. Відкриваємо знову. */
+  m.remove();
+  await U.act('prod-done', root); await t(200);
+  m = document.getElementById('dzProdModal');
+  out.після = { фото: m.querySelectorAll('.dz-pic .dz-pm-ok').length, src: [...m.querySelectorAll('.dz-pic img')].map(i => i.src), note: m.querySelector('[data-pm-note]').value,
+                кнопка: m.querySelector('[data-pm-camt]').textContent };
+  const dt3 = new DataTransfer(); dt3.items.add(new File([png], 'cam3.png', { type:'image/png' }));
+  inp.files = dt3.files; m.querySelector('[data-pm-cam]').files = dt3.files; m.querySelector('[data-pm-cam]').dispatchEvent(new Event('change')); await t(500);
+  out.третє = m.querySelectorAll('.dz-pic .dz-pm-ok').length;
+  m.querySelector('[data-pm-go]').click(); await t(1500);
+  const d = window.__ORDERS.find(x => x.orderId === '2000202');
+  out.надіслано = { вікно: !!document.getElementById('dzProdModal'), фото: ((d.prodQc || {}).photos || []).length, note: (d.prodQc || {}).note, памʼять: localStorage.getItem('dzPmDraft:2000202') };
+  return out;
+});
+console.log('   ' + JSON.stringify(r6));
+ok(r6.стан === 'run' && r6.доЗникнення.фото === 2 && /Ще фото/.test(r6.доЗникнення.кнопка) && r6.памʼять && r6.памʼять.urls.length === 2 && r6.памʼять.note === 'З двох боків',
+  'два знімки з камери підряд — обидва у вікні, браузер памʼятає їх і коментар', JSON.stringify({ д: r6.доЗникнення, п: r6.памʼять }));
+ok(r6.після.фото === 2 && r6.після.src.every(s => /cdn\.test/.test(s)) && r6.після.note === 'З двох боків' && /Ще фото/.test(r6.після.кнопка) && r6.третє === 3,
+  'вікно зникло й відкрилось знову — обидва фото й коментар на місці, третє знімається далі', JSON.stringify(r6.після));
+ok(!r6.надіслано.вікно && r6.надіслано.фото === 3 && r6.надіслано.note === 'З двох боків' && !r6.надіслано.памʼять,
+  '«Надіслати» одне на всі три — у базі три фото, памʼять чиста', JSON.stringify(r6.надіслано));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'фото цеху доходять; погоджено менеджером — і без ТТН');

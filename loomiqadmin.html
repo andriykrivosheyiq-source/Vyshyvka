@@ -4802,6 +4802,19 @@
     background:#111827;color:#fff;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;}
   .dz-card-zb::before{content:'▥';font-size:12px;}
   .dz-card-zb:hover{background:#1F2937;}
+  /* За кордон (27.10): таблетка на плитці й фільтр над дошкою цеху. */
+  .dz-c-ab{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-style:normal;font-size:10.5px;font-weight:700;
+    background:#EEF2FF;color:#3730A3;border:1px solid #C7D2FE;vertical-align:middle;white-space:nowrap;}
+  .dz-geo{display:inline-flex;margin-left:6px;}
+  .dz-geo .dz-b{border-radius:0;}
+  .dz-geo .dz-b:first-child{border-radius:8px 0 0 8px;}
+  .dz-geo .dz-b:last-child{border-radius:0 8px 8px 0;margin-left:-1px;}
+  .dz-geo .dz-b.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  /* Реєстр (27.10): «ТТН уже N дні» й причина відмови Нової пошти. */
+  .dz-card .dz-c-regfail{color:#B42318;font-style:normal;font-weight:600;white-space:normal;}
+  .dz-regfail-s{color:#B42318;font-weight:600;}
+  .dz-ship-l .dz-c-ttnold{margin-left:6px;font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#FDECEA;color:#B03A1A;}
+  .dz-ttn .dz-c-ttnold{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#FDECEA;color:#B03A1A;}
   .dz-card-w.is-v2 .dz-c-foot .dz-card-m{margin:0;min-width:0;}
   .dz-card .dz-c-foot .dz-card-m{margin-left:auto;text-align:right;}
   /* Кнопка каналу — як на картці B2B (.tc-ch-b.ch-ig): та сама форма й колір. */
@@ -5641,6 +5654,17 @@
   .fin-rb .rb-q button,.fin-rb .rb-go,.fin-rb .rb-back{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;}
   .fin-rb .rb-go{background:var(--ink);color:#fff;border-color:var(--ink);}
   .fin-rb .rb-i{border-top:1px solid var(--line);padding:10px 0;font-size:14px;line-height:1.45;}
+  /* Зведення по накладних (27.10). */
+  .fin-rb .ts-in{width:100%;max-width:640px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;resize:vertical;}
+  .fin-rb .ts-wrap{overflow:auto;max-width:100%;}
+  .fin-rb .ts-t{border-collapse:collapse;font-size:13px;min-width:900px;}
+  .fin-rb .ts-t th,.fin-rb .ts-t td{padding:6px 8px;border-top:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap;}
+  .fin-rb .ts-t th{font-size:11.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;}
+  .fin-rb .ts-t td i{color:var(--ink-soft);font-style:normal;font-size:12px;}
+  .fin-rb .ts-t tr.is-wait td{background:#FFFBEB;}
+  .fin-rb .ts-t tr.is-ok td{background:#F0FDF4;}
+  .fin-rb .ts-t .bad{color:#B42318;font-weight:600;}
+  .fin-rb .ts-open{all:unset;cursor:pointer;color:#2F5FA8;font-weight:700;}
   .fin-rb .rb-i.bad{color:#b91c1c;}
   .fin-rb .rb-i b{font-weight:700;}
   .fin-rb .rb-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0;}
@@ -6277,6 +6301,15 @@
     .dz-col.is-mcur .dz-card{padding:14px 15px;}
     .dz-col.is-mcur .dz-card b{font-size:15.5px;}
     .dz-col.is-mcur .dz-card span{font-size:13.5px;white-space:normal;}
+    /* Пошук на телефоні (27.10): видно всі колонки, де щось знайшлось, а не
+       лише відкриту вкладку. */
+    .dz-board.is-seek > .dz-col.has-cards{display:block;flex:none;width:100%;max-width:none;padding:0;margin-bottom:10px;}
+    .dz-board.is-seek > .dz-col.has-cards > .dz-col-b{max-height:none;overflow:visible;}
+    .dz-board.is-seek > .dz-col.has-cards .dz-card{padding:14px 15px;}
+    .dz-board.is-seek > .dz-col.has-cards .dz-card b{font-size:15.5px;}
+    .dz-board.is-seek > .dz-col.has-cards .dz-card span{font-size:13.5px;white-space:normal;}
+    .dz-board.is-seek:has(.has-cards) > .dz-col.is-mcur:not(.has-cards){display:none;}
+    .dz-geo{margin-left:0;}
     .dz-card .dz-c-mwhat{display:block;font-weight:600;color:var(--ink);font-size:13.5px;margin-top:4px;}
     /* Картка цеху: головна дія закріплена внизу, дублікати в зоні сховані. */
     .dz-mbar{display:flex;gap:8px;position:sticky;bottom:-14px;z-index:5;margin:4px -12px -14px;
@@ -6958,6 +6991,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
            мала «фото», «погоджено» чи «реєстр», а жива — ні; повернення лише
            полів цеху. -->
       <div class="card fin-rb" id="fin-prodback" hidden></div>
+      <!-- Зведення по накладних (27.10, Андрій: «по цим ТТН — де наложені
+           платежі є, де немає, яка сума»): список ТТН → картка, статус НП,
+           контроль оплати, що прийшло. -->
+      <div class="card fin-rb" id="fin-ttnsum" hidden></div>
       <div class="card">
         <div class="fin-accs-h">
           <span>Рахунки</span>
@@ -8289,32 +8326,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e35ef37ae2"></script>
-<script src="loomiq-fingerprint.js?v=e35ef37ae2"></script>
-<script src="loomiq-pricing.js?v=e35ef37ae2"></script>
+<script src="loomiq-select.js?v=b3c6e989b1"></script>
+<script src="loomiq-fingerprint.js?v=b3c6e989b1"></script>
+<script src="loomiq-pricing.js?v=b3c6e989b1"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=e35ef37ae2"></script>
+<script src="loomiq-money-core.js?v=b3c6e989b1"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e35ef37ae2"></script>
-<script src="loomiq-mock.js?v=e35ef37ae2"></script>
+<script src="loomiq-design.js?v=b3c6e989b1"></script>
+<script src="loomiq-mock.js?v=b3c6e989b1"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e35ef37ae2"></script>
+<script src="imagetracer.js?v=b3c6e989b1"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=e35ef37ae2"></script>
-<script src="loomiq-threads.js?v=e35ef37ae2"></script>
+<script src="loomiq-chat.js?v=b3c6e989b1"></script>
+<script src="loomiq-threads.js?v=b3c6e989b1"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e35ef37ae2"></script>
+<script src="loomiq-cards.js?v=b3c6e989b1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8359,8 +8396,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e35ef37ae2';
-var LQ_VER_AT = '2026-10-27T14:37:25Z';
+var LQ_VER = 'b3c6e989b1';
+var LQ_VER_AT = '2026-10-27T17:18:29Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -13419,6 +13456,7 @@ function renderFin(){
   try{ renderFinAudit(); }catch(e){ console.warn('звірка', e); }
   try{ renderRollback(); }catch(e){ console.warn('відкат', e); }
   try{ renderProdBack(); }catch(e){ console.warn('відкотилось у цеху', e); }
+  try{ renderTtnSum(); }catch(e){ console.warn('зведення по накладних', e); }
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
      дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
      мати два різні числа про той самий день. */
@@ -25464,7 +25502,7 @@ async function npCall(op, extra){
   /* Накладну й реквізити відправника воркер дає лише тому, хто увійшов в
      адмінку: його адреса лежить у публічних налаштуваннях сайту. */
   let idToken = '';
-  if(op === 'create' || op === 'sender' || op === 'registry'){
+  if(op === 'create' || op === 'sender' || op === 'registry' || op === 'ttnDelete'){
     try{ idToken = await fbAuth.currentUser.getIdToken(); }
     catch(e){ throw new Error('Сесія застаріла — увійдіть ще раз'); }
   }
@@ -25656,7 +25694,8 @@ function shipTtnDrop(o){
   touchOrder(o);
   return true;
 }
-async function shipSetTtn(o, ttn, extra){
+async function shipSetTtn(o, ttn, extra, opt){
+  opt = opt || {};
   const n = String(ttn || '').trim();
   if(!n) return;
   const gate = shipGate(o);
@@ -25666,11 +25705,14 @@ async function shipSetTtn(o, ttn, extra){
      А дві накладні з контролем оплати — це дві оплати з клієнта. */
   const стара = String(o.ttn || '').trim();
   if(стара && стара !== n){
-    if(+o.ttnCod > 0 && !confirm('У замовленні вже є ТТН ' + стара + ' з контролем оплати ' + fmt(o.ttnCod) +
+    if(+o.ttnCod > 0 && !opt.quiet && !confirm('У замовленні вже є ТТН ' + стара + ' з контролем оплати ' + fmt(o.ttnCod) +
         ' ₴.\nЯкщо її не видалено в кабінеті Нової пошти, клієнт може заплатити двічі.\nЗамінити на ' + n + '?')) return;
-    o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0,
-      at: o.ttnAt || '', by: myEmail() || '', till: new Date().toISOString() }]).slice(-10);
+    o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([Object.assign({ ttn: стара, cod: +o.ttnCod || 0,
+      at: o.ttnAt || '', by: myEmail() || '', till: new Date().toISOString() }, opt.replaced ? { replaced: true, newTtn: n } : {})]).slice(-10);
     o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
+    /* Статус Нової пошти й відмова реєстру — про стару накладну (27.10). */
+    if(o.npSt) delete o.npSt;
+    if(o.regFail) delete o.regFail;
     ['ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender'].forEach(k => { delete o[k]; });
   }
   o.ttn = n;
@@ -26072,23 +26114,62 @@ function wireShipForm(box, o, persist){
     make.disabled = true;
     toast('Створюю накладну…');
     try{
-      const d = await npCall('create', { order: {
-        sender: v.sender ? { id: v.sender.id, cityRef: v.sender.cityRef, warehouseRef: v.sender.whRef, phone: v.sender.phone || '' } : null,
-        name: v.name, phone: v.phone, qty: v.weight.qty,
-        weightKg: v.kg, dims: v.format ? { l: +v.format.l || 0, w: +v.format.w || 0, h: +v.format.h || 0 } : null,
-        cost: Math.max(v.left, +o.totalPrice || 0), cod: v.codOn ? v.cod : 0,
-        cityRef: v.cityRef, cityName: v.cityName, warehouseRef: v.whRef, warehouseNumber: v.whNumber,
-        description: 'Одяг з нанесенням, замовлення ' + (o.orderId || ''),
-        payer: v.payer } });
-      await shipSetTtn(o, d.ttn, { ttnRef: d.ref, ttnEst: d.est || '', ttnCity: v.cityName, ttnWh: v.whName,
-                                    ttnSender: v.sender ? v.sender.id : '', ttnCod: v.codOn ? v.cod : 0,
-                                    /* 22.10: що ще пішло в накладну — щоб картка це показувала. */
-                                    ttnPayer: v.payer, ttnDecl: Math.max(v.left, +o.totalPrice || 0),
-                                    ttnName: v.name || '', ttnPhone: v.phone || '' });
+      const d = await shipTtnCreate(o, v);
+      await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' створена');
     }catch(e){ console.error(e); toast(String(e.message || e)); make.disabled = false; }
   });
+}
+
+/* Що йде в накладну Нової пошти. Опис відправлення — лише номер картки
+   (27.10, Андрій: «призначення ТТН — пишемо номер замовлення і все»). */
+function shipTtnOrder(o, v){
+  return {
+    sender: v.sender ? { id: v.sender.id, cityRef: v.sender.cityRef, warehouseRef: v.sender.whRef, phone: v.sender.phone || '' } : null,
+    name: v.name, phone: v.phone, qty: v.weight.qty,
+    weightKg: v.kg, dims: v.format ? { l: +v.format.l || 0, w: +v.format.w || 0, h: +v.format.h || 0 } : null,
+    cost: Math.max(v.left, +o.totalPrice || 0), cod: v.codOn ? v.cod : 0,
+    cityRef: v.cityRef, cityName: v.cityName, warehouseRef: v.whRef, warehouseNumber: v.whNumber,
+    description: '#' + showNo(o),
+    payer: v.payer };
+}
+async function shipTtnCreate(o, v){ return npCall('create', { order: shipTtnOrder(o, v) }); }
+function shipTtnExtra(o, v, d){
+  return { ttnRef: d.ref, ttnEst: d.est || '', ttnCity: v.cityName, ttnWh: v.whName,
+           ttnSender: v.sender ? v.sender.id : '', ttnCod: v.codOn ? v.cod : 0,
+           /* 22.10: що ще пішло в накладну — щоб картка це показувала. */
+           ttnPayer: v.payer, ttnDecl: Math.max(v.left, +o.totalPrice || 0),
+           ttnName: v.name || '', ttnPhone: v.phone || '' };
+}
+/* ↻ ПЕРЕСТВОРИТИ ТТН (27.10, Андрій: «в один клік… вона замінювалась… ми цю
+   вважаємо бракованою»). Нова пошта не бере в реєстр роздруковану накладну,
+   старшу за 3 дні, — тож нова накладна з тими самими даними стає головною,
+   стара йде в o.ttnHist як замінена (гроші за нею знайдуть картку) і
+   скасовується в Новій пошті. Колонка цеху, реєстр і решта картки — як
+   були; причина відмови реєстру знімається. true — зроблено, інакше чому ні. */
+async function shipTtnRemake(o){
+  if(!o || !String(o.ttn || '').trim()) return 'накладної немає';
+  const v = shipVals(o), miss = shipMissing(v);
+  if(miss.length) return 'бракує: ' + miss.join(', ');
+  const стара = String(o.ttn).trim(), старийRef = String(o.ttnRef || ''), sender = String(o.ttnSender || (v.sender ? v.sender.id : '') || '');
+  let d;
+  try{ d = await shipTtnCreate(o, v); }catch(e){ return String((e && e.message) || e); }
+  if(!d || !d.ttn) return 'Нова пошта не дала номера накладної';
+  await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d), { quiet: true, replaced: true });
+  if(String(o.ttn || '').trim() !== String(d.ttn).trim()) return 'нову накладну ' + d.ttn + ' створено, але в картку не записалось';
+  /* Стару скасовуємо в Новій пошті, щоб не висіла. Не вийшло — картка не
+     страждає, кажемо людині. */
+  let скас = '';
+  if(старийRef){ try{ await npCall('ttnDelete', { ref: старийRef, sender }); }catch(e){ скас = String((e && e.message) || e); } }
+  else скас = 'у картці немає Ref старої накладної — скасуйте її в кабінеті Нової пошти';
+  const h = Array.isArray(o.ttnHist) ? o.ttnHist : [];
+  const last = h.filter(x => x && String(x.ttn) === стара).pop();
+  if(last){ last.npDel = !скас; if(скас) last.npDelWhy = скас.slice(0, 200); }
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }catch(e){ console.warn('історія накладних', e); }
+  if(скас) toast('Нова накладна ' + d.ttn + '. Стару ' + стара + ' в Новій пошті скасувати не вдалось: ' + скас);
+  return true;
 }
 
 /* ── Налаштування → Відправка ─────────────────────────────────────── */
@@ -30634,6 +30715,117 @@ async function prodBackScan(){
   pb.rows = rows; pb.busy = false;
   renderProdBack();
 }
+/* ══ ЗВЕДЕННЯ ПО НАКЛАДНИХ (27.10) ══
+   Андрій: «по цим ТТН створити такий аля реєстр — де наложені платежі є, де
+   немає, яка сума». Список номерів → рядок на накладну: картка (поточна чи
+   замінена — з o.ttnHist), створено / скільки днів, реєстр, статус Нової
+   пошти (з картки; «Оновити з НП» — питає воркер), контроль оплати з
+   накладної, гроші за цією ТТН з рухів Фінансів (src np, та сама ТТН) і
+   причина, чому не взяли в реєстр. Жодного свого підрахунку оплати: суми —
+   з рухів, як і всюди. */
+const tsum = { text: '', rows: null, busy: false, err: '' };
+function ttnSumRows(text){
+  const ttns = String(text || '').split(/[^0-9]+/).map(s => s.trim()).filter(s => s.length >= 8);
+  const seen = {};
+  const out = [];
+  const pays = payPays() || [];
+  const digits = v => String(v || '').replace(/\D/g, '');
+  ttns.forEach(t => {
+    if(seen[t]) return; seen[t] = 1;
+    const o = (orders || []).find(x => x && !x.draft && (digits(x.ttn) === t || (x.ttnHist || []).some(h => h && digits(h.ttn) === t))) || null;
+    const тепер = !!(o && digits(o.ttn) === t);
+    const hist = o && !тепер ? (o.ttnHist || []).filter(h => h && digits(h.ttn) === t).pop() : null;
+    const рухи = pays.filter(p => p && digits(p.ttn) === t && (+p.amount || 0) > 0);
+    const прийшло = рухи.reduce((a, p) => a + (+p.amount || 0), 0);
+    const колиП = рухи.map(p => String(p.at || '')).sort().pop() || '';
+    const cod = o ? (тепер ? (+o.ttnCod || 0) : (+(hist && hist.cod) || 0)) : 0;
+    const at = o ? (тепер ? (o.ttnAt || '') : ((hist && hist.at) || '')) : '';
+    const дні = at ? Math.floor((Date.now() - Date.parse(at)) / 864e5) : null;
+    out.push({ ttn: t, o, no: o ? showNo(o) : '', name: o ? (o.ttnName || (o.ship && o.ship.name) || o.name || '') : '',
+      тепер, замінена: !!hist, новаТтн: hist ? (hist.newTtn || '') : '',
+      at, дні, reg: o && тепер && o.reg ? (o.reg.no || (o.reg.manual ? 'руками' : 'є')) : '',
+      status: o && тепер ? ((o.npSt && o.npSt.status) || o.ttnStatus || '') : '', statusAt: o && тепер ? ((o.npSt && o.npSt.at) || o.ttnStatusAt || '') : '',
+      cod, codKnown: !!(o && (тепер ? (o.ttnCod != null && o.ttnCod !== '') : hist)), прийшло, колиП, рухів: рухи.length,
+      payer: o && тепер ? (o.ttnPayer || '') : '',
+      regFail: o && тепер && o.regFail && digits(o.regFail.ttn) === t ? (window.LQDesign && LQDesign.npWhyUa ? LQDesign.npWhyUa(o.regFail.why) : o.regFail.why) : '',
+      npLive: null });
+  });
+  return out;
+}
+async function ttnSumRefresh(){
+  if(!tsum.rows || tsum.busy) return;
+  if(!npUrl()){ tsum.err = 'Адресу воркера Нової пошти не задано'; return renderTtnSum(); }
+  tsum.busy = true; tsum.err = ''; renderTtnSum();
+  try{
+    for(let i = 0; i < tsum.rows.length; i += 100){
+      const part = tsum.rows.slice(i, i + 100);
+      const d = await npCall('trackMany', { ttns: part.map(r => ({ ttn: r.ttn, phone: (r.o && (r.o.ttnPhone || (r.o.ship && r.o.ship.phone) || r.o.phone)) || '' })) });
+      (d.list || []).forEach(x => {
+        const r = part.find(y => y.ttn === String(x.ttn || '').replace(/\D/g, ''));
+        if(r) r.npLive = { code: String(x.code || ''), status: String(x.status || ''), at: String(x.at || '') };
+      });
+    }
+    /* Контроль оплати й отримувача для тих, кого в картках немає, — по одній. */
+    for(const r of tsum.rows.filter(x => !x.o).slice(0, 40)){
+      try{ const d = await npCall('track', { ttn: r.ttn }); r.npLive = Object.assign(r.npLive || {}, { status: d.status || (r.npLive || {}).status || '', cod: +d.cod || 0, name: d.name || '', payer: d.payer || '' }); if(!r.codKnown && d.cod != null){ r.cod = +d.cod || 0; r.codKnown = true; } if(!r.name) r.name = d.name || ''; if(!r.payer) r.payer = d.payer || ''; }catch(e){}
+    }
+  }catch(e){ tsum.err = 'Нова пошта: ' + String((e && e.message) || e); }
+  tsum.busy = false; renderTtnSum();
+}
+function renderTtnSum(){
+  const box = document.getElementById('fin-ttnsum');
+  if(!box) return;
+  if(!canSetup()){ box.hidden = true; return; }
+  box.hidden = false;
+  const E = escapeHtml, rows = tsum.rows || [];
+  const грн = n => fmt(n) + ' ₴';
+  const д = s => { const x = new Date(s); return s && !isNaN(x) ? x.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' }) : ''; };
+  const разом = rows.reduce((a, r) => ({ cod: a.cod + (r.cod || 0), got: a.got + (r.прийшло || 0), n: a.n + 1, без: a.без + (r.cod > 0 && r.прийшло <= 0 ? 1 : 0) }), { cod: 0, got: 0, n: 0, без: 0 });
+  box.innerHTML = `<div class="fa-h"><b>Зведення по накладних</b><span>список ТТН → картка, статус Нової пошти, контроль оплати, що прийшло</span></div>
+    <div class="rb-f"><textarea class="ts-in" data-ts-text rows="3" placeholder="Номери накладних — по одному в рядку або через кому">${E(tsum.text)}</textarea></div>
+    <div class="rb-f"><button type="button" class="rb-go" data-ts-go>Зібрати</button>
+      <button type="button" class="rb-back" data-ts-reg title="Усі картки B2C з накладною, що стоять у колонці «Реєстр»">Узяти з колонки «Реєстр»</button>
+      ${rows.length ? `<button type="button" class="rb-back" data-ts-np ${tsum.busy ? 'disabled' : ''}>${tsum.busy ? 'Питаю Нову пошту…' : 'Оновити статуси з НП'}</button>` : ''}</div>
+    ${tsum.err ? `<div class="rb-i bad">${E(tsum.err)}</div>` : ''}
+    ${rows.length ? `<div class="rb-note">Накладних: ${разом.n} · контроль оплати разом: ${E(грн(разом.cod))} · прийшло за ними: ${E(грн(разом.got))}${разом.без ? ' · з контролем, але грошей ще немає: ' + разом.без : ''} · чек: видати ${rows.filter(r => r.прийшло > 0).length}, чекати ${разом.без}, без наложки ${rows.filter(r => r.codKnown && !(r.cod > 0)).length}</div>
+    <div class="ts-wrap"><table class="ts-t"><thead><tr><th>ТТН</th><th>Картка</th><th>Отримувач</th><th>Створено</th><th>Реєстр</th><th>Статус НП</th><th>Контроль оплати</th><th>Прийшло</th><th>Чек</th><th>Доставку платить</th><th>Примітка</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="${r.cod > 0 && r.прийшло <= 0 ? 'is-wait' : r.прийшло > 0 ? 'is-ok' : ''}">
+      <td><code>${E(r.ttn)}</code></td>
+      <td>${r.o ? `<button type="button" class="ts-open" data-ts-open="${E(r.o.orderId)}">#${E(r.no)}</button>${r.замінена ? ' <i>замінена' + (r.новаТтн ? ' на ' + E(r.новаТтн) : '') + '</i>' : ''}` : '<i>картки немає</i>'}</td>
+      <td>${E(r.name || (r.npLive && r.npLive.name) || '')}</td>
+      <td>${r.at ? E(д(r.at)) + (r.дні != null ? ' <i>' + r.дні + ' дн' + (r.дні >= 3 ? ' ⚠' : '') + '</i>' : '') : ''}</td>
+      <td>${E(r.reg || '')}</td>
+      <td>${E((r.npLive && r.npLive.status) || r.status || '')}${(r.npLive && r.npLive.at) ? ' <i>' + E(д(r.npLive.at)) + '</i>' : r.statusAt ? ' <i>' + E(д(r.statusAt)) + '</i>' : ''}</td>
+      <td>${r.codKnown ? (r.cod > 0 ? E(грн(r.cod)) : 'без контролю') : '<i>невідомо</i>'}</td>
+      <td>${r.прийшло > 0 ? '<b>' + E(грн(r.прийшло)) + '</b>' + (r.колиП ? ' <i>' + E(д(r.колиП)) + '</i>' : '') : (r.cod > 0 ? '<span class="bad">ще немає</span>' : '—')}</td>
+      <td>${r.прийшло > 0 ? '<b class="ok">видати на ' + E(грн(r.прийшло)) + '</b>' : r.cod > 0 ? 'чекати гроші (' + E(грн(r.cod)) + ')' : r.codKnown ? '<i>без наложки — не з цієї накладної</i>' : ''}</td>
+      <td>${E(r.payer === 'sender' || r.payer === 'Sender' ? 'ми' : (r.payer ? 'отримувач' : ''))}</td>
+      <td>${r.regFail ? '<span class="bad">НП не взяла в реєстр: ' + E(r.regFail) + '</span>' : ''}</td></tr>`).join('')}
+    </tbody></table></div>` : ''}`;
+  box.onclick = e => {
+    if(e.target.closest('[data-ts-go]')){
+      tsum.text = String((box.querySelector('[data-ts-text]') || {}).value || '');
+      tsum.rows = ttnSumRows(tsum.text); tsum.err = '';
+      return renderTtnSum();
+    }
+    if(e.target.closest('[data-ts-reg]')){
+      let list = [];
+      try{
+        const D = window.LQDesign;
+        list = (orders || []).filter(o => o && !o.draft && orderDir(o) === 'b2c' && String(o.ttn || '').trim() && !(o.reg && o.reg.ref) &&
+          (!D || !designJobs || !designJobs[o.orderId] || D.prodAt(designJobs[o.orderId], o) === 'reg')).map(o => String(o.ttn).trim());
+      }catch(err){ console.warn(err); }
+      tsum.text = list.join('\n');
+      tsum.rows = ttnSumRows(tsum.text); tsum.err = list.length ? '' : 'У колонці «Реєстр» немає карток з накладною';
+      return renderTtnSum();
+    }
+    if(e.target.closest('[data-ts-np]')) return ttnSumRefresh();
+    const op = e.target.closest('[data-ts-open]');
+    if(op && op.dataset.tsOpen) openByNo(op.dataset.tsOpen);
+  };
+  const ta = box.querySelector('[data-ts-text]');
+  if(ta) ta.oninput = () => { tsum.text = ta.value; };
+}
 function renderProdBack(){
   const box = document.getElementById('fin-prodback');
   if(!box) return;
@@ -31628,6 +31820,7 @@ function designHostInit(){
     shipForm: o => ((npUrl() || shipAbroad(o) || (o && o.ship && o.ship.abroad)) && !(o && o.ttn)) ? shipFormHtml(o) : '',
     shipAbroad: o => shipAbroad(o),
     ttnDrop: o => shipTtnDrop(o),
+    ttnRemake: o => shipTtnRemake(o),
     shipWire: (el, o, persist) => wireShipForm(el, o, persist),
     shipTrack: o => shipTrack(o),
     ttnInfo: o => ttnInfo(o),

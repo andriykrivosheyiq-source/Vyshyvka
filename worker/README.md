@@ -551,7 +551,9 @@ HTTP 400 ["each_attachment_must_be_a_valid_url"]
 
 Cloudflare → Workers & Pages → **Create** → назвати `loomiq-np` → **Deploy**.
 Операції воркера: довідники (`cities`, `warehouses`), `sender`, `create`
-(накладна), `registry` / `registryPdf` (реєстр і його PDF), `markingPdf`
+(накладна; опис відправлення — номер картки), `ttnDelete` (скасувати
+замінену накладну — «Перестворити ТТН», 27.10), `registry` / `registryPdf`
+(реєстр і його PDF), `markingPdf`
 («зебра» — маркування 100×100 на одну чи кілька накладних, 27.10),
 `track` / `trackMany` (статуси). Після оновлення коду в репозиторії —
 повторити Edit code → Deploy.

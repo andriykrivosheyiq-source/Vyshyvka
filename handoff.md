@@ -313,6 +313,29 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   картка `[data-ship-zebra]`, реєстри `reg-zebra`; CSS `.dz-card-zb` в
   адмінці. `tests/reg-make.mjs` §7. **Перерозгорнути `loomiq-np`**
   (Cloudflare → Edit code → вміст `worker/novaposhta-proxy.js` → Deploy).
+- **Реєстр: причина відмови, «ТТН уже N дні», «Перестворити ТТН», зведення**
+  (27.10, відео Андрія: 15 накладних, «older than 3 days and printed» ×15).
+  `loomiq-design.js`: `PROD_IDX`, `npWhyUa`, `ttnDays`, `dniTxt`, `regFailOf`,
+  `abroadManual` (у D); `regMake` пише `o.regFail` через `orderApply` і групує
+  повідомлення; плитка `c.ttnOld`/`c.regFail` (`.dz-c-ttnold`, `.dz-c-regfail`);
+  картка `.dz-ttn` (`data-do="ttn-remake"`, дія в `act` після `ctx()`) і
+  блок «Відправка» (`[data-ship-ttn-re]`) → host `ttnRemake`; `seekSoft`
+  повертає фокус у поле (dz-side). Адмінка: `shipTtnOrder`/`shipTtnCreate`/`shipTtnExtra`
+  (опис = `#showNo`), `shipTtnRemake`, `shipSetTtn(o, ttn, extra, opt)`
+  (`quiet`, `replaced`; знімає `npSt`/`regFail`), `npCall` з токеном і для
+  `ttnDelete`; Фінанси `#fin-ttnsum` (`tsum`, `ttnSumRows`, `ttnSumRefresh`,
+  `renderTtnSum`). Воркер: op `ttnDelete` (`InternetDocument.delete`).
+  CSS: `.dz-c-ab`, `.dz-geo`, `.dz-c-regfail`, `.ts-*`. Тести `reg-make.mjs`
+  §8–9. **Перерозгорнути `loomiq-np`.**
+- **За кордон** (27.10): `prodCanMove(from, to, o)`/`prodMove` →
+  `o.ship.abroadCol`; `prodAt`; `PROD_GEO`/`geoPass` у `prodCards`, кнопки
+  `data-do="prod-geo"`; DnD на дошці цеху передає картку в `можна`.
+  `tests/prod-state.mjs` §9.
+- **Фото цеху — чернетка в localStorage** (`dzPmDraft:<orderId>`, `памʼятай`/
+  `забудь` у `prodModal`). `tests/prod-photos.mjs` §6.
+- **Пошук на телефоні**: `seekSoft(root)` (лише `.dz-boards`), `seekHit`
+  без `#` і по цифрах, `boardHtml` → `.dz-board.is-seek`, `.dz-col.has-cards`;
+  CSS у мобільному блоці адмінки. `tests/prod-mobile.mjs` (телефон, пошук).
 - **НП веде колонку цеху** (27.10): `prodAt` → `npStage` одразу після
   `redo`; `prodNpPoll` — усі B2C з `ttn` за 60 днів (`межа`), не лише
   `reg.ref`; `tests/prod-state.mjs` §8.

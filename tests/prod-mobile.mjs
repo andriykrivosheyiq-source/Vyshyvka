@@ -190,6 +190,39 @@ ok(f.ок === 1 && /готово 1/.test(f.стан || '') && /Ще фото/.te
 const n = r.надіслано || {};
 ok(!n.вікно && n.фото === 1 && n.стан === 'appr', '«Надіслати на погодження» з телефона → фото в базі, «Чекає погодження»', JSON.stringify(n));
 
+/* ── Телефон: пошук по номеру (27.10, відео Андрія: клавіатура перескакує
+   на букви після кожної цифри; «150» на вкладці «Нове» — порожньо, бо
+   картка в іншій колонці; «#2000150» не знаходить) ── */
+const rs = await p.evaluate(async () => {
+  const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
+  const t = ms => new Promise(z => setTimeout(z, ms));
+  const U = LQDesign.ui, root = document.getElementById('dzRoot');
+  U.open(''); U.setTab('prod'); U.seekSet(''); U.render(root); await t(200);
+  root.querySelector('.dz-ctab[data-ctab="run"]').click(); await t(150);
+  const inp = root.querySelector('[data-seek]');
+  inp.focus();
+  const type = async v => { inp.value = v; inp.dispatchEvent(new Event('input', { bubbles:true })); await t(250); };
+  const out = {};
+  await type('#2');
+  await type('#20');
+  await type('#2000201');                                                   // картка 2000201 — у «Чекає погодження», вкладка — «На станках»
+  out.тойСамий = root.querySelector('[data-seek]') === inp;
+  out.фокус = document.activeElement === inp;
+  out.значення = inp.value;
+  out.видно = [...root.querySelectorAll('.dz-board > .dz-col')].filter(vis).map(c => c.dataset.col + ':' + c.querySelectorAll('.dz-card').length);
+  out.картка = vis(root.querySelector('.dz-boards [data-open="2000201"]'));
+  out.хрестик = !!root.querySelector('.dz-seek-x');
+  await type('201');
+  out.цифри = { тойСамий: root.querySelector('[data-seek]') === inp, картка: vis(root.querySelector('.dz-boards [data-open="2000201"]')) };
+  root.querySelector('[data-do="seek-off"]').click(); await t(200);
+  out.скинуто = { значення: (root.querySelector('[data-seek]') || {}).value, видно: [...root.querySelectorAll('.dz-board > .dz-col')].filter(vis).map(c => c.dataset.col) };
+  return out;
+});
+console.log('   ' + JSON.stringify(rs));
+ok(rs.тойСамий && rs.фокус && rs.значення === '#2000201' && rs.хрестик, 'поле пошуку під час набору — той самий елемент у фокусі (клавіатура не перескакує), «×» зʼявився', JSON.stringify(rs));
+ok(rs.картка && rs.видно.length === 1 && /^appr:1$/.test(rs.видно[0]), '«#2000201» з ґраткою знайшло картку в іншій колонці — видно саме її, не порожню вкладку', JSON.stringify({ к: rs.картка, в: rs.видно }));
+ok(rs.цифри.тойСамий && rs.цифри.картка && rs.скинуто.значення === '' && rs.скинуто.видно.join() === 'run', 'останні цифри «201» теж знаходять; «×» — знову одна вкладка «На станках»', JSON.stringify({ ц: rs.цифри, с: rs.скинуто }));
+
 /* ── Компʼютер: як було ── */
 const pc = await page({ viewport:{ width:1500, height:940 } });
 const rp = await pc.evaluate(async () => {
