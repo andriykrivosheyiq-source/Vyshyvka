@@ -261,6 +261,30 @@ ok(r7.плитка && r7.ttnНаПлитці === r7.ttn && r7.sender === 'yuk' &
   'на плитці в «Передано курʼєру» є «Зебра»: один клік — PDF цієї ТТН ключем її відправника, картка не відкривається', JSON.stringify(r7));
 ok(r7.уКартці && r7.зКартки.length === 1 && r7.зКартки[0].ttns.join() === r7.ttn, 'у картці в блоці відправки — така сама кнопка', JSON.stringify({ к: r7.уКартці, з: r7.зКартки }));
 ok(r7.уРеєстрі && r7.зРеєстру.length === 1 && r7.зРеєстру[0].ttns.length === 3 && r7.зРеєстру[0].sender === 'yuk', 'у списку реєстрів — «PDF зебри» на всі 3 накладні реєстру', JSON.stringify(r7.зРеєстру));
+/* 7б. PDF відкривається в НОВІЙ ВКЛАДЦІ одразу з кліку (Андрій: «щоб одразу
+   друкувати»), а не скачується; воркер відповів не PDF — вкладка закривається. */
+await p.route('https://np.test/**', r => {
+  let b = {}; try{ b = JSON.parse(r.request().postData() || '{}'); }catch(e){}
+  if(b.op === 'markingPdf' && (b.ttns || []).length) return r.fulfill({ contentType:'application/pdf', body: Buffer.from('%PDF-1.4 zebra ' + b.ttns.join(',')) });
+  return r.fulfill({ status: 400, contentType:'application/json', body: JSON.stringify({ ok:false, error:'Немає номера накладної' }) });
+});
+const r7b = await p.evaluate(async (ids) => {
+  const U = window.LQDesign.ui;
+  U.host.npZebra = (ttns, sender) => npZebra(ttns, sender);
+  contentData.bgApi = Object.assign({}, contentData.bgApi || {}, { npUrl: 'https://np.test/' });
+  fbAuth.currentUser = { getIdToken: async () => 'tok' };
+  window.__tabs = []; const open0 = window.open;
+  window.open = (u, t) => { const w = { closed:false, document:{ title:'' }, location:{ href:'' }, close(){ this.closed = true; } }; window.__tabs.push({ u, t, w }); return w; };
+  const o = orders.find(x => x.orderId === ids[0]);
+  const r1 = await npZebra([o.ttn], 'yuk');
+  await new Promise(r => setTimeout(r, 50));
+  const r2 = await npZebra(['1'], 'yuk');                                   // короткий номер — воркер відмовить
+  window.open = open0;
+  return { r1, r2, tabs: window.__tabs.map(x => ({ t: x.t, href: String(x.w.location.href).slice(0, 5), closed: x.w.closed })) };
+}, a);
+console.log('   ' + JSON.stringify(r7b));
+ok(r7b.r1 === true && r7b.tabs.length === 1 && r7b.tabs[0].t === '_blank' && r7b.tabs[0].href === 'blob:' && !r7b.tabs[0].closed, 'PDF відкрився в новій вкладці (blob:), не скачався', JSON.stringify(r7b));
+ok(r7b.r2 !== true && r7b.tabs.length === 1, 'без номера — помилка словами, зайвої вкладки немає', JSON.stringify(r7b));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
