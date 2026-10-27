@@ -85,6 +85,11 @@ ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderSeqC: 5000123 }, { merge: 
    await can(setDoc(doc(mgr, 'loomiq/photos'), { orderSeq: 1000200 }, { merge: true })),
   'лічильники B2B і B2C пише менеджер без права «налаштування»', 'лічильник не записався');
 ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderNosSeed: 1 }, { merge: true }))), 'а позначку «номери заброньовано» — лише власник', 'менеджер поставив позначку бронювання');
+/* Мітка збірки (27.10): перша свіжа вкладка будь-кого з команди кладе її,
+   щоб старі вкладки опустили заслону «Вийшло оновлення». Лише ключ `build`. */
+ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { build: { v: 'abc123', at: '2026-10-27T10:00:00Z', by: 'art@loomiq' } }, { merge: true })),
+  'мітку збірки пише менеджер без права «налаштування»', 'мітка збірки не записалась');
+ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { build: { v: 'abc124' }, archSeed: 1 }, { merge: true }))), 'а разом з іншим ключем — ні', 'менеджер записав чужий ключ під виглядом мітки');
 
 console.log('');
 console.log('═══ ВЕРСІЇ КАРТОК (23.10): СТВОРЮЄ КОЖЕН, НЕ ПРАВИТЬ НІХТО, ПРИБИРАЄ ВЛАСНИК ═══');

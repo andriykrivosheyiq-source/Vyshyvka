@@ -12542,6 +12542,12 @@
       U.FOLD['Історія'] = 1;
       return render(root);
     }
+    /* Хроніка цеху (27.10): повернути лише поля цеху з обраної версії. */
+    if(what === 'prod-back'){
+      if(host().prodBackFrom && o && o.id) await host().prodBackFrom(o.id, String((data && data.ts) || ''));
+      U.FOLD['Історія'] = 1;
+      return render(root);
+    }
     if(what === 'unbind'){
       try{ if(!window.confirm('Відвʼязати розмову від цієї картки? Потім можна вставити адресу іншої.')) return; }catch(e){}
       if(host().unbind) host().unbind(o);

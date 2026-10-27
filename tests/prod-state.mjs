@@ -61,6 +61,7 @@ stub = stub.replace('var fs=function(){ return { collection:function(){ return n
   '    if(this.__col==="kanbanOrders"){ var i=window.__ORDERS.findIndex(function(x){ return x.id===this.__id; }.bind(this)); var c=JSON.parse(JSON.stringify(v)); if(i>=0) window.__ORDERS[i]=c; else window.__ORDERS.push(c); }\n' +
   '    return set0.apply(this, arguments); };\n' +
   '  var get0=Doc.prototype.get; Doc.prototype.get=function(){ var id=this.__id;\n' +
+  '    if(this.__col==="kanbanOrders" && window.__GET_FAIL){ window.__GET_FAILS=(window.__GET_FAILS||0)+1; return Promise.reject(new Error("Failed to get document because the client is offline.")); }\n' +
   '    if(this.__col==="kanbanOrders"){ var o=window.__ORDERS.filter(function(x){ return x.id===id; })[0]; return Promise.resolve(new Snap(id, o?JSON.parse(JSON.stringify(o)):null)); }\n' +
   '    return get0.apply(this, arguments); };\n' +
   '  SeedCol.prototype.onSnapshot=function(cb){ setTimeout(function(){ try{ cb({\n' +
@@ -234,8 +235,61 @@ d = await db('o5'); ts = await toasts();
 console.log('   ' + JSON.stringify({ r, qc: d.tracks.qc, ts }));
 ok(!r.failed && d.tracks.qc === 'bad' && r.стан === 'redo' && r.журнал === 1, 'передрук записано — «погоджено» знято явною дією, у журналі нічого нового', JSON.stringify({ r, qc: d.tracks.qc }));
 
+console.log('═══ 6. БАЗУ НЕ ПРОЧИТАЛИ — НЕ ПИШЕМО; ПОВТОР САМ, КОЛИ ЗВʼЯЗОК Є (27.10, #2000161) ═══');
+/* Телефон цеху зі старою картиною (22.10: «готово до роботи») на мить без
+   звʼязку: читання перед записом падає. Доти це означало «новішої немає» —
+   і стара копія лягала поверх погодженої, стираючи «погоджено» й історію. */
+await setDb('o1', Object.assign({ touchedAt:'2026-10-26T12:00:00.000Z', rev: 7, trackHist:[{ t:'prod', s:'done', at:'2026-10-25T10:00:00.000Z', by:'цех@loomiq' }, { t:'qc', s:'ok', at:'2026-10-26T12:00:00.000Z', by:'м@loomiq' }], reg:{ ref:'r1', at:'2026-10-26T13:00:00.000Z', by:'м@loomiq' } }, JSON.parse(JSON.stringify(ПОГОДЖ))));
+r = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const o = orders.find(x => x.id === 'o1');
+  /* Стара картина на цьому пристрої: ні фото, ні погодження, ні реєстру. */
+  o.tracks = { supply:'got' }; delete o.prodQc; delete o.reg; o.trackHist = [{ t:'supply', s:'got', at:'2026-10-22T10:00:00.000Z', by:'з@loomiq' }]; o.touchedAt = '2026-10-22T10:00:00.000Z'; delete o.rev;
+  ordersSaved.set('o1', JSON.stringify(o));
+  window.__SETS = []; window.__UPDATES = []; window.__GET_FAIL = 1; window.__GET_FAILS = 0;
+  const pr = U.pairOf('2000401');
+  D.prodMove(pr.job, o, 'run', 'артем@loomiq');          // «На станках» зі старої картини
+  touchOrder(o); const f = await saveOrders();
+  return { failed: (f || []).length, fails: window.__GET_FAILS, writes: window.__SETS.filter(s => s.id === 'o1').length + window.__UPDATES.filter(u => u.id === 'o1').length, timer: !!saveDeferT };
+});
+d = await db('o1'); ts = await toasts();
+console.log('   ' + JSON.stringify({ r, qc: d.tracks.qc, hist: (d.trackHist || []).length, ts }));
+ok(r.fails >= 1 && r.writes === 0 && d.tracks.qc === 'ok' && d.reg && (d.trackHist || []).length === 2, 'читання впало — у базу нічого не пішло: «погоджено», реєстр і історія цілі', JSON.stringify({ r, qc: d.tracks.qc, reg: !!d.reg, hist: (d.trackHist || []).length }));
+ok(ts.some(x => /Немає звʼязку з базою/.test(x) && /#2000001/.test(x)) && r.timer, 'людині сказано, що не записано; повтор поставлено', JSON.stringify({ ts, timer: r.timer }));
+/* Звʼязок повернувся — повтор записує, але вже проти свіжої версії: трек
+   «на станках» суперечить «погоджено» в базі → відхилено, у памʼять свіжа. */
+r = await p.evaluate(async () => {
+  window.__GET_FAIL = 0; clearTimeout(saveDeferT);
+  const f = await saveOrders({ quiet:true });
+  const o = orders.find(x => x.id === 'o1');
+  return { failed: (f || []).length, qc: (o.tracks || {}).qc, hist: (o.trackHist || []).length, стан: window.LQDesign.prodAt(window.LQDesign.ui.pairOf('2000401').job, o) };
+});
+d = await db('o1');
+console.log('   ' + JSON.stringify({ r, dbQc: d.tracks.qc, dbHist: (d.trackHist || []).length }));
+ok(d.tracks.qc === 'ok' && (d.trackHist || []).length === 2 && r.qc === 'ok' && r.стан === 'courier', 'після повернення звʼязку стара картина відхилена, на екрані — свіжа «Передано курʼєру»', JSON.stringify({ r, dbQc: d.tracks.qc }));
+
+console.log('═══ 7. СТАНИ ЦЕХУ — ПО ПІДКЛЮЧУ, ІСТОРІЯ — ЛИШЕ ДОПИСОМ (27.10) ═══');
+await setDb('o2', Object.assign({ touchedAt:'2026-10-26T12:00:00.000Z', rev: 3, trackHist:[{ t:'prod', s:'done', at:'2026-10-25T10:00:00.000Z', by:'цех@loomiq' }, { t:'qc', s:'ok', at:'2026-10-26T12:00:00.000Z', by:'м@loomiq' }] }, JSON.parse(JSON.stringify(ПОГОДЖ))));
+r = await p.evaluate(async () => {
+  const o = orders.find(x => x.id === 'o2');
+  Object.assign(o, JSON.parse(JSON.stringify(window.__ORDERS.find(x => x.id === 'o2'))));
+  ordersSaved.set('o2', JSON.stringify(o));
+  window.__SETS = []; window.__UPDATES = [];
+  /* Одяг змінився й історія дописалась; старий рядок історії з памʼяті «загубився». */
+  o.tracks.supply = 'part';
+  o.trackHist = o.trackHist.slice(1).concat([{ t:'supply', s:'part', at:'2026-10-27T09:00:00.000Z', by:'з@loomiq' }]);
+  touchOrder(o); const f = await saveOrders();
+  const u = window.__UPDATES.filter(x => x.id === 'o2').map(x => x.keys);
+  return { failed: (f || []).length, keys: u.length ? u[u.length - 1] : [], sets: window.__SETS.filter(s => s.id === 'o2' && !s.via).length };
+});
+d = await db('o2');
+console.log('   ' + JSON.stringify({ r, tracks: d.tracks, hist: (d.trackHist || []).map(h => h.t + ':' + h.s) }));
+ok(r.keys.indexOf('tracks.supply') >= 0 && r.keys.indexOf('tracks') < 0, 'одяг пішов у базу шляхом «tracks.supply», не цілою картою', JSON.stringify(r.keys));
+ok(d.tracks.qc === 'ok' && d.tracks.prod === 'done' && d.tracks.supply === 'part', 'у базі «погоджено» й «готово» лишились, одяг оновлено', JSON.stringify(d.tracks));
+ok((d.trackHist || []).length === 3 && d.trackHist[0].t === 'prod', 'історія лише дописалась: старий рядок, якого вкладка не мала, не стерто', JSON.stringify((d.trackHist || []).map(h => h.t + ':' + h.s)));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
-console.log(bad ? 'розходжень: ' + bad : 'стан цеху не відкочується: повтор, годинник, одночасні записи');
+console.log(bad ? 'розходжень: ' + bad : 'стан цеху не відкочується: повтор, годинник, одночасні записи, збій читання');
 await browser.close(); srv.close();
 process.exit(bad ? 1 : 0);

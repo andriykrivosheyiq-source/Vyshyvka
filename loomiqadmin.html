@@ -4536,13 +4536,17 @@
   /* Смужка «вийшла нова версія». Унизу й спокійна: це не помилка, а
      новина, і перебивати нею роботу не можна — людина може саме зараз
      писати клієнту. */
-  #lq-newver{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:3000;
-    display:flex;align-items:center;gap:12px;max-width:min(680px,calc(100vw - 24px));
-    background:var(--ink);color:#fff;border-radius:12px;padding:11px 14px;
-    box-shadow:0 10px 30px rgba(15,32,52,.28);font-size:13px;line-height:1.4;}
-  #lq-newver button{all:unset;cursor:pointer;flex:none;background:#fff;color:var(--ink);
-    font-weight:700;font-size:13px;border-radius:9px;padding:7px 14px;}
-  #lq-newver button:hover{background:#EEF1F5;}
+  #upd-gate{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;
+    background:rgba(15,23,42,.62);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);}
+  #upd-gate .ug-box{max-width:380px;width:100%;background:#fff;color:var(--ink);border-radius:16px;padding:26px 22px 22px;text-align:center;
+    box-shadow:0 24px 60px rgba(15,32,52,.35);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  #upd-gate .ug-i{width:46px;height:46px;margin:0 auto 6px;border-radius:50%;background:#EEF2FF;color:#4F46E5;font-size:22px;line-height:46px;font-weight:700;}
+  #upd-gate b{display:block;font-size:17px;margin:8px 0 6px;}
+  #upd-gate p{margin:0;font-size:13.5px;color:#4B5563;line-height:1.5;}
+  #upd-gate button{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;margin-top:16px;background:var(--ink);color:#fff;
+    font-weight:700;font-size:15px;border-radius:11px;padding:12px 16px;text-align:center;}
+  #upd-gate button:hover{background:#1F2937;}
+  body.upd-wait{overflow:hidden;}
   /* Рядок версії в меню, коли сторінка стара. Його бачать щодня, і саме на
      нього дивляться, коли питають «а в мене свіже?». */
   #side-build.is-old{color:#fff;background:#E4572E;border-radius:8px;
@@ -5650,8 +5654,12 @@
   .dz-hv-h{font-weight:700;font-size:13px;margin-bottom:6px;}
   .dz-hv{display:flex;flex-direction:column;gap:8px;}
   .dz-hv-n{font-size:13px;opacity:.7;}
-  .dz-hv-r{border-top:1px dashed var(--line);padding-top:8px;font-size:13px;}
+  .dz-hv-r,.dz-hc-r{border-top:1px dashed var(--line);padding-top:8px;font-size:13px;}
   .dz-hv-s{opacity:.75;margin:2px 0 6px;}
+  .dz-hc-r.is-down{background:#FEF2F2;border-radius:8px;padding:8px;}
+  .dz-hv-down{color:#B91C1C;font-weight:700;}
+  .fin-rb .rb-i.is-done{opacity:.6;}
+  .fin-rb .rb-i .ok{color:#15803D;font-weight:700;}
   .fa-h b{font-weight:800;}
   .fa-ok{color:#1d7a3e;font-weight:700;}
   .fa-n{font-size:12px;font-weight:800;border-radius:20px;padding:2px 9px;}
@@ -6941,6 +6949,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <!-- Відкат карток на стан у минулому (власник, 23.10): читає базу «як
            було о …» (point-in-time recovery) і повертає картку відділу. -->
       <div class="card fin-rb" id="fin-rollback" hidden></div>
+      <!-- Відкотилось у цеху (власник, 27.10): картки, де збережена версія
+           мала «фото», «погоджено» чи «реєстр», а жива — ні; повернення лише
+           полів цеху. -->
+      <div class="card fin-rb" id="fin-prodback" hidden></div>
       <div class="card">
         <div class="fin-accs-h">
           <span>Рахунки</span>
@@ -8272,32 +8284,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9f948d52b4"></script>
-<script src="loomiq-fingerprint.js?v=9f948d52b4"></script>
-<script src="loomiq-pricing.js?v=9f948d52b4"></script>
+<script src="loomiq-select.js?v=16099ba34d"></script>
+<script src="loomiq-fingerprint.js?v=16099ba34d"></script>
+<script src="loomiq-pricing.js?v=16099ba34d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9f948d52b4"></script>
+<script src="loomiq-money-core.js?v=16099ba34d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9f948d52b4"></script>
-<script src="loomiq-mock.js?v=9f948d52b4"></script>
+<script src="loomiq-design.js?v=16099ba34d"></script>
+<script src="loomiq-mock.js?v=16099ba34d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9f948d52b4"></script>
+<script src="imagetracer.js?v=16099ba34d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=9f948d52b4"></script>
-<script src="loomiq-threads.js?v=9f948d52b4"></script>
+<script src="loomiq-chat.js?v=16099ba34d"></script>
+<script src="loomiq-threads.js?v=16099ba34d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9f948d52b4"></script>
+<script src="loomiq-cards.js?v=16099ba34d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8342,13 +8354,30 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9f948d52b4';
+var LQ_VER = '16099ba34d';
+var LQ_VER_AT = '2026-10-27T10:32:44Z';
+/* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
+   заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
+   старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
+   затирає чужу роботу (#2000161). Тому новішу збірку (за часом `at`, не
+   лише за номером — кешований старий build.json свіжу вкладку не замкне)
+   стара вкладка зустрічає заслоною на весь екран: лише «Оновити», запис у
+   базу вимкнено (`LQ_UPD_STALE` дивляться saveOrders і designPut). Мітку
+   нової збірки перша свіжа вкладка кладе в `loomiq/photos.build` — решта
+   дізнається миттєво, build.json лишається запасним шляхом. */
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
-  function показати(нова){
+  function новіша(нова, at){
+    if(!нова || нова === LQ_VER) return false;
+    if(at && LQ_VER_AT) return String(at) > String(LQ_VER_AT);
+    return true;
+  }
+  function показати(нова, at){
     if(сказано) return;
+    if(!новіша(нова, at)) return;
     сказано = true;
+    window.LQ_UPD_STALE = нова;
     /* СТАРА СТОРІНКА МАЄ СКАЗАТИ ПРО СЕБЕ ТАМ, КУДИ ДИВЛЯТЬСЯ.
 
        Смуга внизу екрана вже була — і її не помічали: вона лежить у кутку,
@@ -8368,27 +8397,31 @@ var LQ_VER = '9f948d52b4';
       }
     }catch(e){}
     var d = document.createElement('div');
-    d.id = 'lq-newver';
-    d.innerHTML = '<span>Є нова версія адмінки — оновіть, коли зручно.</span>' +
-      '<button type="button">Оновити</button>';
+    d.id = 'upd-gate';
+    d.innerHTML = '<div class="ug-box"><div class="ug-i">⬆</div><b>Вийшло оновлення адмінки</b>' +
+      '<p>Щоб ніхто не працював у старій версії, ця вкладка зупинена: у базу вона вже нічого не пише. ' +
+      'Натисніть «Оновити» — усе, що збережено, на місці.</p>' +
+      '<button type="button">Оновити</button></div>';
     d.querySelector('button').onclick = function(){
       /* Повз кеш: звичайне перезавантаження браузер часто віддає з нього ж,
          і кнопка виглядала б зламаною. */
       location.replace(location.pathname + '?v=' + нова + location.hash);
     };
-    document.body.appendChild(d);
+    (document.body || document.documentElement).appendChild(d);
+    try{ document.body.classList.add('upd-wait'); }catch(e){}
   }
+  window.lqUpdGate = показати;
   function спитати(){
     if(сказано || document.hidden) return;
     fetch('build.json?t=' + Date.now(), { cache:'no-store' })
       .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(j){ if(j && j.v && j.v !== LQ_VER) показати(j.v); })
+      .then(function(j){ if(j && j.v) показати(j.v, j.at); })
       .catch(function(){});
   }
-  /* Питаємо раз на пʼять хвилин і щоразу, коли повертаються на вкладку:
+  /* Питаємо раз на дві хвилини й щоразу, коли повертаються на вкладку:
      саме тоді людина й починає роботу заново. */
   setTimeout(спитати, 4000);
-  setInterval(спитати, 300000);
+  setInterval(спитати, 120000);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) спитати(); });
 })();
 </script>
@@ -8476,27 +8509,13 @@ window.addEventListener('error', function(e){
       .then(function(r){ return r.ok ? r.text() : null; })
       .then(function(t){ return t ? hash(t) : null; });
   }
+  /* Сторінка на сервері інша — це та сама новина, що й у build.json:
+     опускаємо заслону «Вийшло оновлення» (27.10), а не смужку з хрестиком. */
   function bar(){
-    if(document.getElementById('lq-newver')) return;
-    var d = document.createElement('div');
-    d.id = 'lq-newver';
-    d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:0;' +
-      'z-index:99998;background:#0f3d2e;color:#fff;padding:10px 14px;border-radius:0 0 12px 12px;' +
-      'font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
-      'box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;';
-    var t = document.createElement('span');
-    t.textContent = 'Є нова версія адмінки — оновіть, коли зручно.';
-    var go = document.createElement('button');
-    go.textContent = 'Оновити';
-    go.style.cssText = 'all:unset;cursor:pointer;background:#fff;color:#0f3d2e;font-weight:700;' +
-      'padding:5px 12px;border-radius:8px;';
-    go.onclick = function(){ location.reload(true); };
-    var x = document.createElement('button');
-    x.textContent = '×';
-    x.style.cssText = 'all:unset;cursor:pointer;opacity:.7;font-size:18px;line-height:1;padding:0 4px;';
-    x.onclick = function(){ d.remove(); };
-    d.appendChild(t); d.appendChild(go); d.appendChild(x);
-    (document.body || document.documentElement).appendChild(d);
+    fetch('build.json?t=' + Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){ if(j && j.v && window.lqUpdGate) window.lqUpdGate(j.v, j.at); })
+      .catch(function(){});
   }
   function check(){
     self().then(function(h){
@@ -9233,7 +9252,7 @@ function arrIdDiff(a, b){
 }
 function subOverlap(x, y){ return x === y || (y.indexOf(x + '.') === 0) || (x.indexOf(y + '.') === 0); }
 function orderPatch(base, mine){
-  const set = {}, del = [], subs = {};
+  const set = {}, del = [], subs = {}, add = {}, baseLen = {};
   const keys = new Set([...Object.keys(base || {}), ...Object.keys(mine || {})]);
   keys.forEach(k => {
     const a = base ? base[k] : undefined, b = mine ? mine[k] : undefined;
@@ -9242,9 +9261,15 @@ function orderPatch(base, mine){
       set[k] = b;
       if(PATCH_SUB[k] === 'id'){ const d = arrIdDiff(a, b); if(d) subs[k] = d; }
       else if(PATCH_SUB[k] && a && typeof a === 'object' && b && typeof b === 'object') subs[k] = subKeysDiff(a, b);
+      /* Обʼєднувані списки (історія, памʼять «це наше»): що саме дописано —
+         у базу йде лише це, дописом (27.10). */
+      if(PATCH_UNION[k] && Array.isArray(a) && Array.isArray(b)){
+        const seen = new Set(a.map(x => JSON.stringify(x)));
+        add[k] = b.filter(x => !seen.has(JSON.stringify(x))); baseLen[k] = a.length;
+      }
     }
   });
-  return { set, del, subs };
+  return { set, del, subs, add, baseLen };
 }
 function patchKeys(p){ return Object.keys(p.set).concat(p.del).filter(k => !PATCH_META[k]); }
 /* Памʼять розмови «це наше» (crmOut, crmPicsOut) — лише дописується: два
@@ -9350,8 +9375,28 @@ async function docPatchWrite(ref, p, whole){
   const keys = Object.keys(p.set).concat(p.del);
   if(!keys.length) return 'none';
   if(keys.some(k => /[.]/.test(k)) || window.LQ_WHOLE_WRITE === 1){ await ref.set(whole); return 'set'; }
-  const upd = Object.assign({}, p.set);
-  p.del.forEach(k => { upd[k] = firebase.firestore.FieldValue.delete(); });
+  const FV = firebase.firestore.FieldValue;
+  const upd = {};
+  /* СТАНИ ЦЕХУ — ПО ПІДКЛЮЧУ, ІСТОРІЯ — ЛИШЕ ДОПИСОМ (27.10, #2000161).
+     Доти `tracks` ішов у базу цілою картою: стара копія з «на станках» і без
+     «погоджено» стирала «погоджено» разом із собою, а її коротка історія
+     заміняла повну. Тепер змінений підключ пишеться шляхом `tracks.prod`, а
+     в історію йде лише дописане (arrayUnion) — стерти чуже вкладка не може. */
+  Object.keys(p.set).forEach(k => {
+    const sub = (p.subs || {})[k], v = p.set[k];
+    if(PATCH_SUB[k] === 'obj' && Array.isArray(sub) && sub.length && v && typeof v === 'object' && !Array.isArray(v) && !sub.some(s => /[.~*\/\[\]]/.test(s))){
+      sub.forEach(s => { upd[k + '.' + s] = v[s] === undefined ? FV.delete() : v[s]; });
+      return;
+    }
+    if(PATCH_UNION[k] && p.add && Array.isArray(p.add[k]) && Array.isArray(v)){
+      if((p.baseLen || {})[k] > 400){ upd[k] = v; return; }          // розрісся — раз підрізаємо цілком
+      if(p.add[k].length) upd[k] = FV.arrayUnion.apply(FV, p.add[k]);
+      return;                                                        // нічого не дописано — не чіпаємо
+    }
+    upd[k] = v;
+  });
+  p.del.forEach(k => { upd[k] = FV.delete(); });
+  if(!Object.keys(upd).length) return 'none';
   try{ await ref.update(upd); return 'update'; }
   catch(e){
     /* Документа вже немає (видалили з іншого пристрою) — як і доти, кладемо
@@ -9364,7 +9409,11 @@ async function docPatchWrite(ref, p, whole){
    у базі більший — там новіше, хай би що казав годинник пристрою. */
 async function dbNewer(ref, base, field, out, baseRev){
   let snap = null;
-  try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); return null; }
+  /* НЕ ПРОЧИТАЛИ — НЕ ПИШЕМО (27.10, #2000161). Доти збій цього читання
+     (телефон цеху без звʼязку на секунду) означав «новішої немає» — і стара
+     копія лягала поверх живої без жодної перевірки. Тепер збій — позначка
+     `out.fail`, і запис не йде. */
+  try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); if(out) out.fail = String((e && (e.code || e.message)) || e); return null; }
   if(!snap || !snap.exists) return null;
   const d = snap.data() || {};
   if(out) out.doc = d;                             // що лежить у базі зараз — для версій
@@ -9373,6 +9422,19 @@ async function dbNewer(ref, base, field, out, baseRev){
   if(v && v > String(base || '')) return d;
   if(baseRev != null && +d.rev > +baseRev) return d;
   return null;
+}
+/* Відкладений запис (27.10): базу не прочитали — картка лишається брудною
+   (`cur` ≠ `ordersSaved`), кажемо людині раз на пів хвилини й повторюємо
+   самі, доки не запишеться. */
+let saveDeferT = 0, saveDeferSaidAt = 0;
+const SAVE_DEFER_MS = (typeof window !== 'undefined' && +window.LQ_SAVE_DEFER_MS) || 8000;
+function saveDeferred(nos, quiet){
+  if(Date.now() - saveDeferSaidAt > 30000){
+    saveDeferSaidAt = Date.now();
+    toast('Немає звʼязку з базою — зміну в картці #' + nos.join(', #') + ' ще не записано. Повторю сам, щойно звʼязок повернеться.');
+  }
+  clearTimeout(saveDeferT);
+  saveDeferT = setTimeout(() => { saveOrders({ quiet:true }).catch(e => console.warn('повтор запису', e)); }, SAVE_DEFER_MS);
 }
 function touchedOfJson(json){ try{ return String((JSON.parse(json) || {}).touchedAt || ''); }catch(e){ return ''; } }
 function revOfJson(json){ try{ return +((JSON.parse(json) || {}).rev || 0) || 0; }catch(e){ return 0; } }
@@ -9798,8 +9860,14 @@ async function saveOrders(opts){
     if(!quiet) toast('Звʼязок з базою втрачено — картку не записано. Оновіть сторінку.');
     return [{ id:'*', e: new Error('звʼязок з базою втрачено'), link:true }];
   }
+  /* Вийшло оновлення (27.10): стара вкладка в базу більше не пише. */
+  if(window.LQ_UPD_STALE){
+    if(!quiet) toast('Вийшло оновлення адмінки — натисніть «Оновити», ця вкладка в базу вже не пише.');
+    return [{ id:'*', e: new Error('стара версія адмінки'), link:true }];
+  }
   const cur = new Map();
   const застарілі = [];
+  const відкладені = [];                                           // не прочитали базу — не пишемо, повторимо
   /* Чернетка нового B2C-замовлення (22.10) у базу не йде, поки її не
      створили кнопкою «Створити замовлення». */
   (orders || []).forEach(o=>{
@@ -9891,7 +9959,17 @@ async function saveOrders(opts){
           continue;
         }
       }
-    }catch(e){ console.warn('звірка версії картки', id, e); }
+    }catch(e){ console.warn('звірка версії картки', id, e); вБазі.fail = вБазі.fail || String((e && e.message) || e); }
+    /* НЕ ПРОЧИТАЛИ — НЕ ПИШЕМО (27.10). Без прочитаної версії не працює ні
+       лічильник, ні захист станів цеху, і стара копія лягла б поверх живої
+       (#2000161: телефон цеху без звʼязку на мить повернув погоджену картку
+       в «На станках» і стер історію). Картка лишається незаписаною в памʼяті,
+       повторимо самі. */
+    if(вБазі.fail){
+      відкладені.push(noOf((JSON.parse(body) || {}).orderId || id));
+      console.warn('базу не прочитали — картку не пишемо', id, вБазі.fail);
+      continue;
+    }
     /* Захищені стани цеху (26.10): наш запис зняв би «погоджено», «фото на
        погодженні», «у реєстрі» чи фото цеху, хоч явного передруку немає, —
        це стара копія. Ці поля беремо з бази, своє пишемо. */
@@ -9940,6 +10018,7 @@ async function saveOrders(opts){
     try{ repaintAfterOrders(); }catch(e){}
     if(!quiet) toast('Картку #' + застарілі.join(', #') + ' уже змінили з іншого пристрою після того, як ви її відкрили. Показано свіжу версію — повторіть правку.');
   }
+  if(відкладені.length) saveDeferred(відкладені, quiet);
   if(failed.length && !quiet){
     const f = failed[0];
     /* Якщо картка завелика — кажемо, ЩО САМЕ важке й що з цим робити.
@@ -13048,7 +13127,8 @@ function rbJobSum(j){
 function rbOrderSum(o){
   if(!o) return null;
   return { name: String(o.name || o.crmChatName || ''), status: String(o.status || ''), items: (o.items || []).length,
-           chat: !!(o.crmChatId || o.tgChatId), pays: (o.payments || []).length, at: String(o.touchedAt || ''), pics: (o.crmPicsOut || []).length };
+           chat: !!(o.crmChatId || o.tgChatId), pays: (o.payments || []).length, at: String(o.touchedAt || ''), pics: (o.crmPicsOut || []).length,
+           cex: prodStateText(o) };
 }
 const rbFmt = s => { const d = new Date(s || ''); return isNaN(d) ? '—' : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 function rbJobText(x){
@@ -13060,7 +13140,7 @@ function rbJobText(x){
 function rbOrderText(x){
   if(!x) return 'картки замовлення немає';
   return (x.name ? x.name + ' · ' : 'без імені · ') + 'статус ' + (x.status || '—') + (x.chat ? ' · діалог привʼязано' : ' · без діалогу') +
-    ' · позицій ' + x.items + ' · платежів у картці ' + x.pays + ' · змінено ' + rbFmt(x.at);
+    ' · позицій ' + x.items + ' · платежів у картці ' + x.pays + (x.cex ? ' · ' + x.cex : '') + ' · змінено ' + rbFmt(x.at);
 }
 async function rbLook(){
   if(rb.busy) return;
@@ -13299,6 +13379,7 @@ function renderFin(){
   try{ payAutoLinkTtn(); }catch(e){}
   try{ renderFinAudit(); }catch(e){ console.warn('звірка', e); }
   try{ renderRollback(); }catch(e){ console.warn('відкат', e); }
+  try{ renderProdBack(); }catch(e){ console.warn('відкотилось у цеху', e); }
   /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
      дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
      мати два різні числа про той самий день. */
@@ -29522,6 +29603,24 @@ function contentBanner(text){
   el.textContent = text;
 }
 function contentReadOk(){ contentBanner(''); }
+/* МІТКА ЗБІРКИ В БАЗІ (27.10). Свіжа вкладка кладе свою збірку в
+   `loomiq/photos.build` (раз на вкладку, лише коли там старіша); стара,
+   побачивши новішу, опускає заслону (`lqUpdGate`) — миттєво, не чекаючи
+   опитування build.json. */
+let buildStampWrote = false;
+function buildStampSync(){
+  if(typeof LQ_VER === 'undefined' || LQ_VER === 'dev' || !LQ_VER_AT) return;
+  const b = (contentData && contentData.build) || null;
+  if(b && b.v && b.v !== LQ_VER && String(b.at || '') > LQ_VER_AT){
+    if(window.lqUpdGate) window.lqUpdGate(b.v, b.at);
+    return;
+  }
+  if(buildStampWrote || !myEmail()) return;
+  if(b && (b.v === LQ_VER || String(b.at || '') >= LQ_VER_AT)) return;
+  buildStampWrote = true;
+  PHOTOS_DOC.set({ build: { v: LQ_VER, at: LQ_VER_AT, by: myEmail() || '', when: new Date().toISOString() } }, { merge:true })
+    .catch(e => { buildStampWrote = false; console.warn('мітка збірки не записалась', e); });
+}
 function contentReadFailed(e){
   try{ contentFirstRes && contentFirstRes(); }catch(e2){}
   console.warn('photos snapshot', e);
@@ -30279,7 +30378,7 @@ async function histPut(col, id, prevJson, why){
   if(!prev || typeof prev !== 'object') return false;
   const ts = new Date(now).toISOString();
   try{
-    prev._v = { at: ts, by: myEmail() || '', why: why || 'save' };
+    prev._v = { at: ts, by: myEmail() || '', why: why || 'save', dev: deviceShort() };
     await histRef(col, id).doc(ts.replace(/[:.]/g, '-')).set(prev);
     histAt[k] = now;
     return true;
@@ -30310,6 +30409,8 @@ async function versionsLoad(job){
   const id = String(job && job.orderId || ''); if(!id) return [];
   try{ designVers[id] = await histList(DESIGN_COL, id); }
   catch(e){ console.warn('версії картки відділу', e); designVers[id] = []; toast('Не вдалось прочитати версії: ' + ((e && e.message) || e)); }
+  /* Разом — хроніка цеху з версій картки замовлення (27.10). */
+  try{ const o = (orders || []).find(x => x && String(x.orderId) === id); if(o) await orderVersLoad(o); }catch(e){ console.warn('хроніка цеху', e); }
   return designVers[id];
 }
 function versionsHtml(job, o){
@@ -30318,11 +30419,176 @@ function versionsHtml(job, o){
   const E = escapeHtml;
   if(!l) return '<div class="dz-hv"><button type="button" class="dz-b" data-do="vers-load">Показати версії картки</button>' +
     '<div class="dz-hv-n">Перед кожним записом картки її попередня копія лишається в базі. Повернути можна будь-яку.</div></div>';
-  if(!l.length) return '<div class="dz-hv"><div class="dz-hv-n">Збережених версій ще немає' + (histOff ? ' — у базі не опубліковано правила для версій' : '') + '.</div></div>';
+  const хроніка = o ? prodChronicleHtml(o) : '';
+  if(!l.length) return '<div class="dz-hv"><div class="dz-hv-n">Збережених версій ще немає' + (histOff ? ' — у базі не опубліковано правила для версій' : '') + '.</div></div>' + хроніка;
   return '<div class="dz-hv">' + l.map(v => { const s = rbJobSum(v); const m = v._v || {};
     return '<div class="dz-hv-r"><b>' + E(rbFmt(m.at || v.__id)) + '</b> · ' + E(String(m.by || '').replace(/@.*/, '') || '—') +
       (m.why === 'restore' ? ' · перед поверненням' : '') + '<div class="dz-hv-s">' + E(rbJobText(s)) + '</div>' +
-      '<button type="button" class="dz-b dz-hv-b" data-do="vers-back" data-ts="' + E(v.__id) + '">Повернути цю версію</button></div>'; }).join('') + '</div>';
+      '<button type="button" class="dz-b dz-hv-b" data-do="vers-back" data-ts="' + E(v.__id) + '">Повернути цю версію</button></div>'; }).join('') + '</div>' + хроніка;
+}
+/* ══════════ ХРОНІКА ЦЕХУ Й ПОВЕРНЕННЯ СТАНІВ (27.10) ══════════
+
+   Андрій: «менеджери поузгоджували, а все одно поїхало… воно все
+   відновиться?» Саме по собі — ні: що стара копія затерла, у живій картці
+   немає. Але перед кожним записом попередня копія лягає у версії (hist), і
+   там «фото», «погоджено» й «реєстр» є. Хроніка показує їх словами по
+   кожній версії (хто, коли, з якого пристрою, стан цеху після неї, ↓ де
+   стан пішов назад); «Відкотилось у цеху» в Фінансах проходить усі живі
+   картки й повертає ЛИШЕ поля цеху (треки prod/qc, фото, реєстр, колонку
+   реєстру, історію обʼєднанням) — решту картки не чіпає. Запис іде через
+   saveOrders, з усіма захистами. */
+function prodStateOf(o){
+  o = o || {};
+  const tr = o.tracks || {}, q = String(tr.qc || ''), pr = String(tr.prod || '');
+  let r = 0, label = '';
+  if(pr === 'ready'){ r = 1; label = 'готово до роботи'; }
+  if(pr === 'work'){ r = 2; label = 'на станках'; }
+  if(pr === 'done'){ r = 3; label = 'готово — фото з цеху'; }
+  if(q === 'check'){ r = 4; label = 'фото на погодженні'; }
+  if(q === 'ok'){ r = 5; label = 'погоджено'; }
+  if(q === 'bad'){ r = -1; label = 'передрук'; }
+  if(r >= 5 && o.reg && o.reg.ref){ r = 6; label = o.reg.manual ? 'у реєстрі (вписано вручну)' : 'у реєстрі'; }
+  else if(r >= 5 && o.shipCol === 'reg') label = 'погоджено · колонка «Реєстр»';
+  return { r, label, photos: ((o.prodQc || {}).photos || []).length, ok: !!(o.prodQc && o.prodQc.ok), hist: (o.trackHist || []).length };
+}
+function prodStateText(o){
+  const s = prodStateOf(o);
+  return 'цех: ' + (s.label || '—') + (s.photos ? ' · фото ' + s.photos : '') + ' · історія ' + s.hist;
+}
+const orderVers = {};            // docId → версії картки замовлення (лише в памʼяті)
+async function orderVersLoad(o){
+  if(!o || !o.id) return [];
+  try{ orderVers[o.id] = await histList(ORDERS_COL, o.id); }
+  catch(e){ console.warn('версії картки замовлення', e); orderVers[o.id] = []; }
+  return orderVers[o.id];
+}
+/* Версії за часом (старіші першими), кожна — зі станом цеху й позначкою ↓,
+   коли стан нижчий за попередню версію. */
+function prodChronicle(o){
+  const l = (orderVers[o.id] || []).slice().sort((a, b) => String((a._v || {}).at || a.__id).localeCompare(String((b._v || {}).at || b.__id)));
+  let prev = null;
+  return l.map(v => { const s = prodStateOf(v); const row = { v, s, down: !!(prev && s.r < prev.r && s.r !== -1) }; prev = s; return row; });
+}
+function prodChronicleHtml(o){
+  const E = escapeHtml;
+  const l = orderVers[o.id];
+  if(!l) return '';
+  const rows = prodChronicle(o);
+  const live = prodStateOf(o);
+  if(!rows.length) return '<div class="dz-hv-w"><div class="dz-hv-h">🏭 Хроніка цеху</div><div class="dz-hv-n">Версій картки замовлення ще немає.</div></div>';
+  return '<div class="dz-hv-w"><div class="dz-hv-h">🏭 Хроніка цеху</div><div class="dz-hv-n">Зараз: ' + E(prodStateText(o)) + '. Кожен рядок — копія перед записом: хто писав, з якого пристрою, і який стан цеху в ній був.</div>' +
+    '<div class="dz-hv">' + rows.map(x => { const m = x.v._v || {};
+      return '<div class="dz-hc-r' + (x.down ? ' is-down' : '') + '"><b>' + E(rbFmt(m.at || x.v.__id)) + '</b> · ' + E(String(m.by || '').replace(/@.*/, '') || '—') +
+        (m.dev ? ' · ' + E(m.dev) : '') + (m.why === 'restore' ? ' · перед поверненням' : '') +
+        '<div class="dz-hv-s">' + (x.down ? '<span class="dz-hv-down">↓ стан пішов назад</span> ' : '') + E(prodStateText(x.v)) + '</div>' +
+        (x.s.r > live.r && x.s.r > 0 ? '<button type="button" class="dz-b dz-hv-b" data-do="prod-back" data-ts="' + E(x.v.__id) + '">Повернути стан цеху з цієї версії</button>' : '') +
+        '</div>'; }).join('') + '</div></div>';
+}
+/* Повернути лише поля цеху з версії `v` у живу картку `docId`. */
+async function prodBackFrom(docId, v, opt){
+  opt = opt || {};
+  const o = (orders || []).find(x => x && x.id === docId);
+  if(!o) { toast('Картки вже немає'); return false; }
+  if(typeof v === 'string') v = (orderVers[docId] || []).find(x => x.__id === v);
+  if(!v){ toast('Версію не знайдено — відкрийте список ще раз'); return false; }
+  const було = prodStateText(o), буде = prodStateText(v);
+  if(!opt.silent && !confirm('Повернути стан цеху картки #' + noOf(o.orderId) + ' з версії від ' + rbFmt((v._v || {}).at || v.__id) + '?\n\nЗараз: ' + було + '\nБуде: ' + буде + '\n\nРешта картки (позиції, гроші, діалог) не зміниться.')) return false;
+  o.tracks = Object.assign({}, o.tracks || {});
+  ['prod', 'qc'].forEach(k => { if(v.tracks && v.tracks[k] !== undefined && v.tracks[k] !== '') o.tracks[k] = v.tracks[k]; else delete o.tracks[k]; });
+  if(v.prodQc) o.prodQc = JSON.parse(JSON.stringify(v.prodQc));
+  if(v.reg) o.reg = JSON.parse(JSON.stringify(v.reg));
+  if(v.shipCol !== undefined) o.shipCol = v.shipCol;
+  o.trackHist = trackHistMerge(o.trackHist || [], v.trackHist || []);
+  o.prodBack = { from: (v._v || {}).at || v.__id, at: new Date().toISOString(), by: myEmail() || '', was: було };
+  touchOrder(o);
+  histAt['o:' + docId] = 0;
+  const f = await saveOrders({ quiet: !!opt.silent });
+  const погано = (f || []).some(x => x && (x.id === docId || x.id === '*'));
+  if(погано){ toast('Не записалось — повторіть'); return false; }
+  const тепер = (orders || []).find(x => x && x.id === docId);
+  if(prodStateOf(тепер).r < prodStateOf(v).r){ toast('Картку #' + noOf(o.orderId) + ' не вдалось повернути — спробуйте ще раз'); return false; }
+  try{ accLog('restore-prod', 'повернуто стан цеху картки #' + noOf(o.orderId) + ' з версії від ' + rbFmt((v._v || {}).at || v.__id) + ' (було: ' + було + '; стало: ' + prodStateText(тепер) + ')'); }catch(e){}
+  delete orderVers[docId];
+  try{ repaintAfterOrders(); }catch(e){}
+  if(!opt.silent) toast('Картку #' + noOf(o.orderId) + ' повернуто: ' + prodStateText(тепер));
+  return true;
+}
+/* ── «Відкотилось у цеху» (Фінанси, власник) ── */
+const pb = { busy:false, rows:null, err:'', n:0, skipped:0 };
+function prodBackCandidates(){
+  const межа = Date.now() - 45 * 864e5;
+  return (orders || []).filter(o => o && o.id && !o.draft && !o.gone && orderDir(o) === 'b2c' && o.status !== 'cancel' &&
+    (String(o.ttn || '').trim() || (o.tracks && (o.tracks.prod || o.tracks.qc)) || o.prodQc || Date.parse(o.touchedAt || o.createdAt || '') > межа));
+}
+async function prodBackScan(){
+  if(pb.busy) return;
+  pb.busy = true; pb.err = ''; pb.rows = null; pb.n = 0; pb.skipped = 0; renderProdBack();
+  const rows = [];
+  const list = prodBackCandidates();
+  try{
+    for(let i = 0; i < list.length; i += 8){
+      await Promise.all(list.slice(i, i + 8).map(async o => {
+        let vers; try{ vers = await histList(ORDERS_COL, o.id); }catch(e){ pb.skipped++; return; }
+        pb.n++;
+        orderVers[o.id] = vers;
+        const asc = vers.slice().sort((a, b) => String((a._v || {}).at || a.__id).localeCompare(String((b._v || {}).at || b.__id)));
+        const live = prodStateOf(o);
+        if(live.r === -1) return;                                   // зараз передрук — так і має бути
+        let best = null, bestS = null;
+        asc.forEach(v => { const s = prodStateOf(v); if(s.r > 0 && (!bestS || s.r >= bestS.r)){ best = v; bestS = s; } });
+        if(!best || bestS.r <= live.r) return;
+        const bestAt = String((best._v || {}).at || best.__id);
+        if(bestAt < '2026-10-07') return;                           // до фото-погодження — інша логіка
+        if((o.reprints || []).some(r => String(r.at || '') > bestAt)) return;   // далі був явний передрук
+        let затер = null;
+        asc.forEach(v => { if(затер) return; const at = String((v._v || {}).at || v.__id); if(at > bestAt && prodStateOf(v).r < bestS.r) затер = v._v || {}; });
+        rows.push({ id: o.id, no: noOf(o.orderId), live: prodStateText(o), best, bestAt, bestText: prodStateText(best),
+          by: затер ? { by: String(затер.by || '').replace(/@.*/, '') || '—', at: затер.at || '', dev: затер.dev || '' } : null, done: false });
+      }));
+      renderProdBack();
+    }
+  }catch(e){ pb.err = String((e && e.message) || e); }
+  rows.sort((a, b) => a.no.localeCompare(b.no));
+  pb.rows = rows; pb.busy = false;
+  renderProdBack();
+}
+function renderProdBack(){
+  const box = document.getElementById('fin-prodback');
+  if(!box) return;
+  if(!canSetup()){ box.hidden = true; return; }
+  box.hidden = false;
+  const E = escapeHtml;
+  const rows = pb.rows || [];
+  const відкриті = rows.filter(r => !r.done);
+  box.innerHTML = `<div class="fa-h"><b>Відкотилось у цеху</b><span>картки, де збережена версія мала фото, погодження чи реєстр, а жива — ні</span></div>
+    <div class="rb-f"><button type="button" class="rb-go" data-pb-scan ${pb.busy ? 'disabled' : ''}>${pb.busy ? 'Читаю… ' + pb.n : (pb.rows ? 'Перевірити ще раз' : 'Знайти')}</button>
+      ${відкриті.length > 1 ? `<button type="button" class="rb-back" data-pb-all>Повернути всі (${відкриті.length})</button>` : ''}</div>
+    ${pb.err ? `<div class="rb-i bad">${E(pb.err)}</div>` : ''}
+    ${pb.rows && !pb.busy ? `<div class="rb-note">Перевірено карток: ${pb.n}${pb.skipped ? ' · не прочитано: ' + pb.skipped : ''}${rows.length ? '' : ' — нічого не відкотилось.'}</div>` : ''}
+    ${rows.map((r, i) => `<div class="rb-i${r.done ? ' is-done' : ''}">
+      <b>#${E(r.no)}</b>${r.done ? ' · <span class="ok">повернуто</span>' : ''}
+      <div class="rb-cols">
+        <div class="rb-c"><div class="h">Зараз</div>${E(r.live)}</div>
+        <div class="rb-c"><div class="h">Було на ${E(rbFmt(r.bestAt))}</div>${E(r.bestText)}</div>
+      </div>
+      <div class="rb-note">${r.by ? 'Затерла копія: ' + E(r.by.by) + ' · ' + E(rbFmt(r.by.at)) + (r.by.dev ? ' · ' + E(r.by.dev) : '') : 'Хто затер — у версіях не видно (запис без збереженої копії).'}</div>
+      ${r.done ? '' : `<button type="button" class="rb-back" data-pb-back="${i}">Повернути стан цеху</button> `}
+      <button type="button" class="rb-back" data-rb-open="${E(orders.find(x => x.id === r.id) ? orders.find(x => x.id === r.id).orderId : '')}">Відкрити картку</button>
+    </div>`).join('')}`;
+  box.onclick = async e => {
+    if(e.target.closest('[data-pb-scan]')) return prodBackScan();
+    const b = e.target.closest('[data-pb-back]');
+    if(b){ const r = rows[+b.dataset.pbBack]; if(!r) return; b.disabled = true;
+      try{ if(await prodBackFrom(r.id, r.best)) r.done = true; }catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
+      return renderProdBack(); }
+    if(e.target.closest('[data-pb-all]')){
+      if(!confirm('Повернути стан цеху всім ' + відкриті.length + ' карткам зі списку? Решта полів карток не зміниться.')) return;
+      for(const r of відкриті){ try{ if(await prodBackFrom(r.id, r.best, { silent:true })) r.done = true; }catch(err){ console.error(err); } renderProdBack(); }
+      toast('Повернуто: ' + rows.filter(r => r.done).length + ' з ' + rows.length);
+      return renderProdBack(); }
+    const op = e.target.closest('[data-rb-open]');
+    if(op && op.dataset.rbOpen) openByNo(op.dataset.rbOpen);
+  };
 }
 async function versionRestore(job, ts){
   const id = String(job && job.orderId || '');
@@ -30365,8 +30631,11 @@ async function designPut(job, opt){
   const id = String(job && job.orderId || '');
   if(!id) return false;
   if(dbLinkDead()) throw new Error('звʼязок з базою втрачено — оновіть сторінку');
+  if(window.LQ_UPD_STALE) throw new Error('вийшло оновлення адмінки — натисніть «Оновити», ця вкладка в базу вже не пише');
   const було = {};
   const свіжа = await dbNewer(DESIGN_COL.doc(id), designSeen[id], 'updatedAt', було);
+  /* Не прочитали — не пишемо (27.10): без версії з бази стара копія затерла б чужу роботу. */
+  if(було.fail) throw new Error('немає звʼязку з базою — зміну не записано, повторіть за хвилину');
   if(свіжа){
     /* Новіша в базі, але в інших полях (крок 3): їхнє — в картку, своє — в
        базу. Базою для порівняння служить версія, яку ця вкладка бачила
@@ -31495,6 +31764,7 @@ function designHostInit(){
     versionsHtml: (job, o) => versionsHtml(job, o),
     versionsLoad: job => versionsLoad(job),
     versionRestore: (job, ts) => versionRestore(job, ts),
+    prodBackFrom: (docId, ts) => prodBackFrom(docId, ts),
     /* З відділу B2C — заготовки B2C (14.10); не з дошки акаунта — без
        картки акаунта праворуч, там уже своя панель дошки. */
     chat: (o, opt) => { try{ chatOpen(o, 'crm', { dir:'b2c', noDrawer: !!(opt && opt.seat && opt.seat !== 'acct') }); }
@@ -36617,6 +36887,7 @@ async function init(){
     contentData = snap.exists ? (snap.data() || {}) : {};
     contentLoaded = true;
     perfNote('gate');
+    try{ buildStampSync(); }catch(e){ console.warn('мітка збірки', e); }
     try{ contentFirstRes && contentFirstRes(); }catch(e){}
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки

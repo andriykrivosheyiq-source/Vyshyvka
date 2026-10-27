@@ -486,8 +486,24 @@ def main():
         t = open(pp, encoding='utf-8').read()
         t = re.sub(r'\?v=[A-Za-z0-9]+', '?v=', t)
         t = re.sub(r"LQ_VER\s*=\s*'[^']*'", "LQ_VER = ''", t)
+        t = re.sub(r"LQ_VER_AT\s*=\s*'[^']*'", "LQ_VER_AT = ''", t)
         pages_src += t
     ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards + design + mockjs + pages_src)
+    # ЧАС ЗБІРКИ (27.10). Номер каже лише «інша», а заслона «Вийшло
+    # оновлення» має знати, яка з двох новіша: інакше кешований старий
+    # build.json замкнув би щойно відкриту свіжу вкладку. Той самий номер —
+    # той самий час, щоб повторний прогін не оголошував нову версію.
+    ver_at = ''
+    try:
+        import json as _json
+        prev = _json.load(open(os.path.join(ROOT, 'build.json'), encoding='utf-8'))
+        if prev.get('v') == ver:
+            ver_at = str(prev.get('at') or '')
+    except Exception:
+        ver_at = ''
+    if not ver_at:
+        import datetime as _dt
+        ver_at = _dt.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
@@ -502,6 +518,7 @@ def main():
         # дивиться на вчорашню сторінку з новими скриптами. Найгірше, що зовні
         # це не відрізнити від «нічого не зробили».
         new = re.sub(r"LQ_VER\s*=\s*'[^']*'", "LQ_VER = '" + ver + "'", new)
+        new = re.sub(r"LQ_VER_AT\s*=\s*'[^']*'", "LQ_VER_AT = '" + ver_at + "'", new)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)
             print('[%s] версія конструктора → %s' % (name, ver))
@@ -509,7 +526,7 @@ def main():
     # Той самий номер окремим файлом — його і питає сторінка, щоб дізнатись,
     # чи не вийшла нова збірка. Файл крихітний, тож перевірка нічого не варта.
     open(os.path.join(ROOT, 'build.json'), 'w', encoding='utf-8').write(
-        '{"v":"%s"}\n' % ver)
+        '{"v":"%s","at":"%s"}\n' % (ver, ver_at))
 
     # Каталог знімків читає базовий перелік виробів із коду конструктора.
     # Збираємо його тут же: інакше після зміни в конструкторі каталог тихо

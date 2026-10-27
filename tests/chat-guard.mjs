@@ -304,6 +304,10 @@ await p.evaluate(() => { chatClose(); window.__db = {};
   try{ document.getElementById('view-design').style.display = 'block'; openDesign(); }catch(e){ console.warn(e); }
   const orig = ORDERS_COL.doc.bind(ORDERS_COL);
   ORDERS_COL.doc = id => { const d = orig(id); const set0 = d.set.bind(d);
+    /* Читання «з бази» — те, що лягло останнім (27.10: памʼять «це наше»
+       пишеться дописом, і стуб має знати, до чого дописувати). */
+    d.get = () => { const cur = window.__db[id] || orders.find(x => x.id === id) || null;
+      return Promise.resolve({ id, exists: !!cur, data: () => cur ? JSON.parse(JSON.stringify(cur)) : null }); };
     /* Картка пишеться полями (крок 3): латка через update лягає поверх того, що «в базі». */
     d.set = (v, opt) => { const merge = (opt && opt.merge) || d.__via === 'update';
       const base = window.__db[id] || JSON.parse(JSON.stringify(orders.find(x => x.id === id) || {}));
