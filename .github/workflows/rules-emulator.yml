@@ -35,9 +35,13 @@ jobs:
         env:
           LQ_EMU_DIR: /tmp/claude-0/emu
         run: |
-          set -o pipefail
+          bad=0
           for t in money-rules order-nos private-doc; do
             echo "▶ $t"
-            node tests/$t.mjs | tee /tmp/$t.log
-            if grep -q "пропущено: немає емулятора" /tmp/$t.log; then echo "✗ $t: емулятор не підхопився"; exit 1; fi
+            node tests/$t.mjs > /tmp/$t.log 2>&1; code=$?
+            cat /tmp/$t.log
+            if grep -q "пропущено: немає емулятора" /tmp/$t.log; then echo "::error title=$t::емулятор не підхопився"; bad=1; fi
+            grep "✗" /tmp/$t.log | head -20 | while IFS= read -r l; do echo "::error title=$t::$l"; done
+            if [ "$code" != "0" ]; then echo "::error title=$t::код виходу $code: $(tail -3 /tmp/$t.log | tr '\n' ' ' | cut -c1-300)"; bad=1; fi
           done
+          exit $bad
