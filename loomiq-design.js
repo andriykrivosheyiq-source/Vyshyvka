@@ -9044,6 +9044,9 @@
             : 'ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>')) +
           (o.reg && o.reg.no ? ' · реєстр №' + esc(o.reg.no) : '') +
           (at === 'reg' && D.ttnDays(o) >= 3 ? ' <em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні">ТТН уже ' + esc(D.dniTxt(D.ttnDays(o))) + '</em>' : '') +
+          /* ↻ Перестворити ТТН — і в картці цеху (27.10, Андрій: «ще в самому
+             виробництві»), поки посилка не поїхала: «Можна відправляти» й «Реєстр». */
+          (o.ttn && !D.shipAbroad(o) && (at === 'ship' || at === 'reg') && host().ttnRemake ? ' <button type="button" class="dz-b dz-quiet dz-ttn-re" data-do="ttn-remake" title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
           /* «Зебра» (27.10): маркування 100×100 цієї ТТН — і в картці цеху. */
           (o.ttn && ZEBRA_COLS.indexOf(at) >= 0 ? ' <button type="button" class="dz-b dz-zb" data-do="zebra" data-ttn="' + esc(o.ttn) + '" data-sender="' + esc(o.ttnSender || '') + '" title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
@@ -11032,7 +11035,9 @@
         /* ПОЛЕ ЛИШАЄТЬСЯ ТИМ САМИМ (27.10, телефон цеху: «пише цифри, а
            клавіатура перекидає на букви»). Перемальовуємо лише дошку й
            вкладки — саме поле не чіпаємо, тож фокус і клавіатура на місці. */
-        if(!seekSoft(root)){
+        if(seekSoft(root)){
+          if(document.activeElement !== seekEl){ try{ seekEl.focus(); seekEl.setSelectionRange(seekEl.value.length, seekEl.value.length); }catch(e){} }
+        } else {
           render(root);
           var n = root.querySelector('[data-seek]');
           if(n){ n.focus(); try{ n.setSelectionRange(n.value.length, n.value.length); }catch(e){} }
@@ -12624,6 +12629,19 @@
       return say('Погоджено — цех бачить «Можна відправляти»' + (безТ ? ' · ТТН ще немає — створіть накладну' : ''));
     }
     if(what === 'prod-tg') return prodToTelegram(job, o, false);
+    if(what === 'ttn-remake'){
+      if(!host().ttnRemake) return say('Перестворення накладної недоступне');
+      var стараТ = String(o.ttn || '').trim();
+      if(!стараТ) return say('Накладної ще немає');
+      var окТ = true;
+      try{ окТ = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
+      if(!окТ) return;
+      say('Створюю нову накладну…');
+      var rrT;
+      try{ rrT = await host().ttnRemake(o); }catch(e){ rrT = String((e && e.message) || e); }
+      if(rrT === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(o.ttn || '')); }
+      return say('Накладну не перестворено: ' + (rrT || 'Нова пошта відмовила'));
+    }
     if(what === 'reg-manual'){
       if(D.prodAt(job, o) !== 'reg') return say('Картка вже не в «Реєстр»');
       var номерР = window.prompt('Номер реєстру Нової пошти (можна лишити порожнім)', '');

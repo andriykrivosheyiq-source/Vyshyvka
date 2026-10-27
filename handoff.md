@@ -318,8 +318,9 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `loomiq-design.js`: `PROD_IDX`, `npWhyUa`, `ttnDays`, `dniTxt`, `regFailOf`,
   `abroadManual` (у D); `regMake` пише `o.regFail` через `orderApply` і групує
   повідомлення; плитка `c.ttnOld`/`c.regFail` (`.dz-c-ttnold`, `.dz-c-regfail`);
-  картка `.dz-ttn` і блок «Відправка» (`[data-ship-ttn-re]` → host
-  `ttnRemake`). Адмінка: `shipTtnOrder`/`shipTtnCreate`/`shipTtnExtra`
+  картка `.dz-ttn` (`data-do="ttn-remake"`, дія в `act` після `ctx()`) і
+  блок «Відправка» (`[data-ship-ttn-re]`) → host `ttnRemake`; `seekSoft`
+  повертає фокус у поле (dz-side). Адмінка: `shipTtnOrder`/`shipTtnCreate`/`shipTtnExtra`
   (опис = `#showNo`), `shipTtnRemake`, `shipSetTtn(o, ttn, extra, opt)`
   (`quiet`, `replaced`; знімає `npSt`/`regFail`), `npCall` з токеном і для
   `ttnDelete`; Фінанси `#fin-ttnsum` (`tsum`, `ttnSumRows`, `ttnSumRefresh`,

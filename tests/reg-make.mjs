@@ -331,6 +331,12 @@ const r8b = await p.evaluate(async ids => {
     await new Promise(r => setTimeout(r, 250));
     const tile = root.querySelector('.dz-boards [data-open="' + ids[0] + '"]');
     out.наПлитці = !!(tile && tile.querySelector('[data-ship-ttn-re]'));
+    /* І в картці цеху — біля номера ТТН (Андрій: «ще в самому виробництві»). */
+    U.setTab('prod'); U.open(ids[0]); U.render(root);
+    await new Promise(r => setTimeout(r, 250));
+    out.уЦеху = !!root.querySelector('.dz-panel .dz-ttn [data-do="ttn-remake"]');
+    U.setTab('acct'); U.open(ids[0]); U.render(root);
+    await new Promise(r => setTimeout(r, 250));
     /* Блок «Відправка» складений — розгортаємо, як людина. */
     const fold = root.querySelector('.dz-panel [data-fold="Відправка"]');
     if(fold){ fold.click(); await new Promise(r => setTimeout(r, 250)); }
@@ -350,8 +356,8 @@ const r8b = await p.evaluate(async ids => {
   return out;
 }, g8);
 console.log('   ' + JSON.stringify(r8b));
-ok(!r8b.наПлитці && r8b.кнопка && /ТТН уже 5 днів/.test(r8b.позначки.old) && /накладній понад 3 дні/.test(r8b.позначки.why),
-  'кнопки «Перестворити» на плитці немає; у картці біля ТТН — є, поруч «ТТН уже 5 днів» і причина відмови', JSON.stringify({ п: r8b.наПлитці, к: r8b.кнопка, з: r8b.позначки }));
+ok(!r8b.наПлитці && r8b.кнопка && r8b.уЦеху && /ТТН уже 5 днів/.test(r8b.позначки.old) && /накладній понад 3 дні/.test(r8b.позначки.why),
+  'кнопки «Перестворити» на плитці немає; у картці менеджера біля ТТН і в картці цеху — є, поруч «ТТН уже 5 днів» і причина відмови', JSON.stringify({ п: r8b.наПлитці, к: r8b.кнопка, ц: r8b.уЦеху, з: r8b.позначки }));
 ok(r8b.ttn === '20450000000999' && r8b.ref === 'ref-999' && r8b.hist.ttn === '204500000040' && r8b.hist.replaced && r8b.hist.newTtn === '20450000000999' && r8b.hist.npDel === true,
   'нова накладна стала головною; стара — в історії як замінена, скасована в НП', JSON.stringify({ t: r8b.ttn, h: r8b.hist }));
 ok(r8b.ops.join() === 'create,ttnDelete' && r8b.опис === nos8[0] && r8b.delRef === 'ref-40',
