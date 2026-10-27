@@ -491,4 +491,13 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ нікуди не вибиває"
 fi
+# ПЕРЕХІД ГОДИННИКА (27.10). Доба не завжди 24 години — строки етапів не зʼїжджають.
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/dst-hours\.mjs)'; then
+  node tests/dst-hours.mjs >/tmp/lq-dst.log 2>&1 || {
+    echo "✗ Строки зʼїжджають через перехід годинника — коміт зупинено. Подробиці: /tmp/lq-dst.log"
+    grep '✗' /tmp/lq-dst.log
+    exit 1
+  }
+  echo "✓ перехід годинника не зсуває строки"
+fi
 exit 0
