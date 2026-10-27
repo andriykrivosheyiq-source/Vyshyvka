@@ -299,10 +299,34 @@ async function syncMark(env, rows) {
   return true;
 }
 
+/* Налаштування адмінки (27.10): рахунки (`fin`) і відправники (`ship`)
+   переїжджають із публічного loomiq/photos у закритий loomiq/private.
+   Спершу питаємо закритий; ключа там ще немає — старий документ, як доти.
+   Після переїзду це той самий один запит, що й був.
+   Мітка `moneyCfg: 2` у закритому каже адмінці «воркер уже вміє читати
+   звідси» — лише після неї вона переносить `fin` і `ship` (інакше банки й
+   НП лишились би без рахунків). Пишеться раз на запуск ізоляту, і лише
+   коли її ще немає. Перевіряє `tests/private-doc.mjs`. */
+const MONEY_CFG = 2;
+let cfgMarked = false;
+async function cfgKey(env, key) {
+  let pv = null;
+  try { pv = await fsGet(env, 'loomiq/private'); } catch (e) { pv = null; }
+  if (!cfgMarked) {
+    if (pv && +pv.moneyCfg >= MONEY_CFG) cfgMarked = true;
+    else {
+      await fsWrite(env, 'loomiq/private', { moneyCfg: MONEY_CFG })
+        .then(() => { cfgMarked = true; })
+        .catch(e => console.warn('moneyCfg', e && e.message));
+    }
+  }
+  if (pv && pv[key] != null) return pv;
+  return await fsGet(env, 'loomiq/photos');
+}
 /* Список рахунків — із самої адмінки. Заводити тут другий довідник означало б
    мати дві правди про те, скільки в нас ФОПів. */
 async function accounts(env) {
-  const doc = await fsGet(env, 'loomiq/photos');
+  const doc = await cfgKey(env, 'fin');
   const fin = (doc && doc.fin) || null;
   const raw = (fin && fin.accounts && fin.accounts.arrayValue)
     ? fin.accounts.arrayValue.values : (fin && fin.accounts ? fin.accounts.values : null);
@@ -872,7 +896,7 @@ function npControl(x) {
 function senderCode(id) { return String(id || '').replace(/[^A-Za-z0-9_]/g, ''); }
 async function senders(env) {
   let doc = null;
-  try { doc = await fsGet(env, 'loomiq/photos'); } catch (e) { doc = null; }
+  try { doc = await cfgKey(env, 'ship'); } catch (e) { doc = null; }
   const ship = doc && doc.ship;
   const raw = ship && ship.senders && (ship.senders.arrayValue ? ship.senders.arrayValue.values : ship.senders.values);
   const list = [];

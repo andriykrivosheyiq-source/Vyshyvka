@@ -12,6 +12,9 @@
 //                Читає кожен відвідувач (інакше сайт порожній),
 //                змінює лише той, хто увійшов в адмінку.
 //
+//   loomiq/private  гроші й люди: рахунки, зарплати, команда, права, журнал.
+//                Читає лише команда (27.10).
+//
 //   webOrders/*  замовлення з сайту. Відвідувач може лише СТВОРИТИ замовлення
 //                (прочитати чи змінити чуже — ні). Адмінка забирає їх у Канбан
 //                і позначає обробленими.
@@ -28,7 +31,8 @@ service cloud.firestore {
     // всіх, хто увійшов. Тут закривається найчастіше — «випадково змінив
     // ціну» й «випадково перетягнув етап».
     //
-    // Права читаються з окремої карти `acl` у loomiq/photos. Саме карти, а
+    // Права читаються з окремої карти `acl` у loomiq/private (до переїзду —
+    // у loomiq/photos, див. pcfg). Саме карти, а
     // не списку `team`, яким користується адмінка: у мові правил список за
     // полем не шукається, а карта — так. Адмінка пише обидва разом, із того
     // самого списку галочок, тож розійтись вони не можуть.
@@ -41,7 +45,15 @@ service cloud.firestore {
     function cfg() {
       return get(/databases/$(database)/documents/loomiq/photos).data;
     }
-    function aclMap() { return cfg().get('acl', {}); }
+    // 27.10: команда й права переїжджають у закритий loomiq/private. Поки
+    // там карти `acl` немає (перехід), береться стара з loomiq/photos.
+    function pcfg() {
+      return exists(/databases/$(database)/documents/loomiq/private)
+        ? get(/databases/$(database)/documents/loomiq/private).data : {};
+    }
+    function aclMap() {
+      return ('acl' in pcfg()) ? pcfg().get('acl', {}) : cfg().get('acl', {});
+    }
     function aclKey() {
       return (request.auth != null && request.auth.token.email != null)
         ? request.auth.token.email.lower().replace('[^a-z0-9]', '_') : '';
@@ -111,6 +123,39 @@ service cloud.firestore {
         || request.resource.data.accessLog.size() >= resource.data.accessLog.size()
       );
       allow delete: if request.auth != null && may('setup');
+    }
+
+    // Гроші й люди (27.10): рахунки з IBAN, зарплати, команда й права,
+    // журнал доступу, постачальники, відправники НП. Читає лише команда —
+    // на відміну від loomiq/photos, який бачить кожен відвідувач сайту.
+    // Пишуть так само, як писали в loomiq/photos: усе — з правом
+    // налаштувань; журнал (лише дописом) і своє імʼя в `profiles` — будь-хто
+    // з команди. Воркер грошей пише свою мітку `moneyCfg` сервісним
+    // акаунтом, повз ці правила.
+    match /loomiq/private {
+      allow read: if known();
+      allow create: if known() && (
+           may('setup')
+        || request.resource.data.keys().hasOnly(['accessLog'])
+        || (
+             request.resource.data.keys().hasOnly(['profiles'])
+             && request.resource.data.profiles.keys().hasOnly([aclKey()])
+           )
+      );
+      allow update: if known() && (
+           may('setup')
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessLog'])
+        || (
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['profiles'])
+             && request.resource.data.profiles.diff(
+                  resource.data.get('profiles', {})).affectedKeys().hasOnly([aclKey()])
+           )
+      ) && (
+           !('accessLog' in request.resource.data)
+        || !('accessLog' in resource.data)
+        || request.resource.data.accessLog.size() >= resource.data.accessLog.size()
+      );
+      allow delete: if may('setup');
     }
 
     // Замовлення з сайту: клієнт лише створює, читає й обробляє тільки адмінка.

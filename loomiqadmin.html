@@ -8289,32 +8289,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=59df4ba716"></script>
-<script src="loomiq-fingerprint.js?v=59df4ba716"></script>
-<script src="loomiq-pricing.js?v=59df4ba716"></script>
+<script src="loomiq-select.js?v=3d94ba52fb"></script>
+<script src="loomiq-fingerprint.js?v=3d94ba52fb"></script>
+<script src="loomiq-pricing.js?v=3d94ba52fb"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=59df4ba716"></script>
+<script src="loomiq-money-core.js?v=3d94ba52fb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=59df4ba716"></script>
-<script src="loomiq-mock.js?v=59df4ba716"></script>
+<script src="loomiq-design.js?v=3d94ba52fb"></script>
+<script src="loomiq-mock.js?v=3d94ba52fb"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=59df4ba716"></script>
+<script src="imagetracer.js?v=3d94ba52fb"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=59df4ba716"></script>
-<script src="loomiq-threads.js?v=59df4ba716"></script>
+<script src="loomiq-chat.js?v=3d94ba52fb"></script>
+<script src="loomiq-threads.js?v=3d94ba52fb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=59df4ba716"></script>
+<script src="loomiq-cards.js?v=3d94ba52fb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8359,8 +8359,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '59df4ba716';
-var LQ_VER_AT = '2026-10-27T13:17:31Z';
+var LQ_VER = '3d94ba52fb';
+var LQ_VER_AT = '2026-10-27T18:28:41Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -8685,40 +8685,134 @@ function docForPatch(patch){
   return landing === keys.length && keys.length ? SITE_DOC() : SHARED_DOC;
 }
 function SITE_DOC(){ return fbDb.collection('loomiq').doc(lqSiteDef().doc); }
+/* ══════════ ЗАКРИТИЙ ДОКУМЕНТ: ГРОШІ Й ЛЮДИ (27.10.2026) ══════════
+
+   Андрій (аудит): «щоб нікуди дані не утекли». `loomiq/photos` читає
+   БУДЬ-ХТО без входу — з нього вантажиться сайт. А адмінка складала туди ж
+   рахунки з IBAN, зарплати, команду з поштами й правами, журнал доступу,
+   постачальників, відправників НП. Тепер ці ключі живуть у `loomiq/private`,
+   який правила віддають лише команді (`known()`).
+
+   Решта коду цього не помічає: обгортка нижче сама кладе ключ куди треба й
+   зливає обидва документи в один `contentData`.
+   - Поки ключ ще лежить у старому місці, а в закритому його немає, —
+     читається старий (перехід без дірки в даних).
+   - Закритий не віддається (правила ще старі, `permission-denied`) —
+     `PRIV_OK = false`, і запис іде по-старому в `photos`: викладка коду
+     раніше за правила нічого не ламає.
+   - Переносить дані вкладка власника (`privateMoveOnce`): копія → читання
+     з сервера → лише тоді стирання зі старого. `fin` і `ship` читає воркер
+     грошей, тож переносимо лише після того, як новий воркер позначив себе
+     (`moneyCfg >= 2` у закритому документі). Порядок викладки: правила →
+     воркер грошей → код.
+   Перевіряє `tests/private-doc.mjs`. Новий ключ із грошима чи людьми —
+   у PRIVATE_KEYS, а не в публічний документ. */
+const PRIVATE_DOC = fbDb.collection('loomiq').doc('private');
+const PRIVATE_KEYS = ['fin','payroll','team','acl','ownerEmail','teamBak','teamGone',
+                      'roles','rolesSeed','profiles','accessLog','suppliers','ship','shifts','rootSigs'];
+let PRIV_OK = null;                              // null — ще не знаємо, false — правила не пускають
+function isPrivKey(k){ return PRIVATE_KEYS.indexOf(k) !== -1; }
+function cfgMerge(shared, priv){
+  const out = {};
+  Object.keys(shared || {}).forEach(k => { if(!isPrivKey(k) || !(priv && k in priv)) out[k] = shared[k]; });
+  Object.keys(priv || {}).forEach(k => { if(isPrivKey(k)) out[k] = priv[k]; });
+  return out;
+}
 // Обгортка з тим самим інтерфейсом, що й раніше: .set(patch, opts)
 let PHOTOS_DOC = {
+  raw: null,                                     // { shared, priv } — для перенесення
   set: function(patch, opts){
     const keys = Object.keys(patch || {});
-    const land = {}, share = {};
-    keys.forEach(k => { (LANDING_KEYS.indexOf(k) !== -1 ? land : share)[k] = patch[k]; });
+    const land = {}, share = {}, priv = {};
+    keys.forEach(k => {
+      if(LANDING_KEYS.indexOf(k) !== -1) land[k] = patch[k];
+      else if(isPrivKey(k) && PRIV_OK !== false) priv[k] = patch[k];
+      else share[k] = patch[k];
+    });
     const jobs = [];
     if(Object.keys(share).length) jobs.push(SHARED_DOC.set(share, opts || {merge:true}));
     if(Object.keys(land).length)  jobs.push(SITE_DOC().set(land, opts || {merge:true}));
+    if(Object.keys(priv).length)  jobs.push(PRIVATE_DOC.set(priv, opts || {merge:true}));
     return Promise.all(jobs);
   },
-  get: function(){ return SHARED_DOC.get(); },
+  get: function(opts){
+    return Promise.all([
+      SHARED_DOC.get(opts),
+      PRIV_OK === false ? Promise.resolve(null) : PRIVATE_DOC.get(opts).catch(() => null)
+    ]).then(([s, p]) => {
+      const sd = (s && s.exists) ? (s.data() || {}) : {};
+      const pd = (p && p.exists) ? (p.data() || {}) : {};
+      const out = cfgMerge(sd, pd);
+      return { exists: !!(s && s.exists) || !!(p && p.exists), data: () => out };
+    });
+  },
   // читаємо обидва документи; посадкові ключі беремо з документа сайту,
-  // решту — зі спільного
+  // гроші й людей — із закритого, решту — зі спільного
   onSnapshot: function(cb, err){
-    let shared = {}, own = {}, gotShared = false, gotOwn = false;
+    let shared = {}, own = {}, priv = {}, gotShared = false, gotOwn = false, gotPriv = false;
     const siteDoc = lqSiteDef().doc;
     const emit = ()=>{
-      if(!gotShared) return;
+      if(!gotShared || !gotPriv) return;          // без команди не малюємо: порожня = «доступ усім»
       if(siteDoc !== 'photos' && !gotOwn) return;
+      PHOTOS_DOC.raw = { shared, priv: PRIV_OK === false ? null : priv };
       const out = {};
-      Object.keys(shared).forEach(k=>{ if(LANDING_KEYS.indexOf(k) === -1) out[k] = shared[k]; });
+      const base = cfgMerge(shared, PRIV_OK === false ? {} : priv);
+      Object.keys(base).forEach(k=>{ if(LANDING_KEYS.indexOf(k) === -1) out[k] = base[k]; });
       const src = siteDoc === 'photos' ? shared : own;
       Object.keys(src).forEach(k=>{ if(LANDING_KEYS.indexOf(k) !== -1) out[k] = src[k]; });
       cb({ exists:true, data:()=>out });
     };
+    const u3 = PRIVATE_DOC.onSnapshot(sn=>{
+      priv = sn.exists ? (sn.data()||{}) : {}; PRIV_OK = true; gotPriv = true; emit();
+    }, e=>{
+      /* Правила ще старі (або людина не з команди) — живемо по-старому.
+         Інша помилка після того, як документ уже приходив, — лишаємо
+         останню копію: зникла команда означала б «доступ усім». */
+      if(e && e.code === 'permission-denied' && !gotPriv){
+        PRIV_OK = false; priv = {}; gotPriv = true; emit();
+      } else {
+        console.warn('закритий документ', e);
+        if(err) err(e);
+      }
+    });
     const u1 = SHARED_DOC.onSnapshot(sn=>{ shared = sn.exists ? (sn.data()||{}) : {}; gotShared = true; emit(); }, err);
     let u2 = null;
     if(siteDoc !== 'photos'){
       u2 = fbDb.collection('loomiq').doc(siteDoc).onSnapshot(sn=>{ own = sn.exists ? (sn.data()||{}) : {}; gotOwn = true; emit(); }, err);
     }
-    return ()=>{ try{u1();}catch(e){} if(u2){ try{u2();}catch(e){} } };
+    return ()=>{ try{u1();}catch(e){} if(u2){ try{u2();}catch(e){} } try{u3();}catch(e){} };
   }
 };
+/* Перенесення грошей і людей у закритий документ — один раз, вкладкою
+   власника. Не читали обидва — не рухаємо; не лягло в закритий — зі старого
+   не стираємо. Повторний виклик нешкідливий: уже перенесене пропускається,
+   а ключ, що зʼявився в старому місці знову (стара вкладка), прибирається —
+   закритий головніший. */
+let privMoving = false;
+async function privateMoveOnce(){
+  if(privMoving || !contentLoaded || PRIV_OK !== true) return;
+  if(typeof canSetup !== 'function' || !canSetup()) return;
+  const raw = PHOTOS_DOC.raw || {};
+  const sh = raw.shared || {}, pv = raw.priv;
+  if(!pv || +(pv.moneyCfg || 0) < 2) return;     // воркер грошей ще не вміє читати звідси
+  const left = PRIVATE_KEYS.filter(k => k in sh);
+  if(!left.length) return;
+  privMoving = true;
+  try{
+    const move = {};
+    left.forEach(k => { if(!(k in pv)) move[k] = sh[k]; });
+    if(Object.keys(move).length) await PRIVATE_DOC.set(move, { merge:true });
+    const chk = await PRIVATE_DOC.get({ source:'server' });
+    const got = (chk && chk.exists && chk.data()) || {};
+    const miss = left.filter(k => !(k in got));
+    if(miss.length){ console.warn('закритий документ: не лягло', miss); return; }
+    const del = {};
+    left.forEach(k => { del[k] = firebase.firestore.FieldValue.delete(); });
+    await SHARED_DOC.update(del);
+    try{ accLog('rights', 'перенесено в закритий документ: ' + left.join(', ')); }catch(e){}
+  }catch(e){ console.warn('перенесення в закритий документ', e); }
+  finally{ privMoving = false; }
+}
 
 /* ══════════ ХТО ЩЕ СИДИТЬ У ЦІЙ КАРТЦІ ═══════════════════════════════
 
@@ -36994,6 +37088,7 @@ async function init(){
     try{ if(document.getElementById('view-team') &&
            document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
     rolesSeedOnce();     // 20.10: ролі по напрямах — один раз
+    privateMoveOnce();   // 27.10: гроші й люди — у закритий документ
     applyRoleUi();
     qrSeedOnce();        // скрипти з картками доводимо й до налаштованого акаунта
     const bv = document.getElementById('view-board');

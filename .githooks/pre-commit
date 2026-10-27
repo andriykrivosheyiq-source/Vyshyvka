@@ -491,4 +491,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ нікуди не вибиває"
 fi
+# ГРОШІ Й ЛЮДИ — У ЗАКРИТОМУ ДОКУМЕНТІ (27.10). Рахунки, зарплати, команда,
+# права, журнал не повертаються в публічний loomiq/photos.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|firestore\.rules|worker/money\.js|loomiq-design\.js|loomiq-chat\.js|index\.html|offer\.html|tests/private-doc\.mjs)'; then
+  node tests/private-doc.mjs >/tmp/lq-private-doc.log 2>&1 || {
+    echo "✗ Закриті дані потрапляють у публічний документ — коміт зупинено. Подробиці: /tmp/lq-private-doc.log"
+    grep '✗' /tmp/lq-private-doc.log
+    exit 1
+  }
+  echo "✓ гроші й люди — у закритому документі"
+fi
 exit 0
