@@ -8332,32 +8332,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ed993e29cf"></script>
-<script src="loomiq-fingerprint.js?v=ed993e29cf"></script>
-<script src="loomiq-pricing.js?v=ed993e29cf"></script>
+<script src="loomiq-select.js?v=90e63db125"></script>
+<script src="loomiq-fingerprint.js?v=90e63db125"></script>
+<script src="loomiq-pricing.js?v=90e63db125"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=ed993e29cf"></script>
+<script src="loomiq-money-core.js?v=90e63db125"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ed993e29cf"></script>
-<script src="loomiq-mock.js?v=ed993e29cf"></script>
+<script src="loomiq-design.js?v=90e63db125"></script>
+<script src="loomiq-mock.js?v=90e63db125"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=ed993e29cf"></script>
+<script src="imagetracer.js?v=90e63db125"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=ed993e29cf"></script>
-<script src="loomiq-threads.js?v=ed993e29cf"></script>
+<script src="loomiq-chat.js?v=90e63db125"></script>
+<script src="loomiq-threads.js?v=90e63db125"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ed993e29cf"></script>
+<script src="loomiq-cards.js?v=90e63db125"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8402,8 +8402,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ed993e29cf';
-var LQ_VER_AT = '2026-10-28T09:49:02Z';
+var LQ_VER = '90e63db125';
+var LQ_VER_AT = '2026-10-28T10:32:22Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -9482,13 +9482,39 @@ async function docPatchWrite(ref, p, whole){
 }
 /* `baseRev` — лічильник записів тієї версії, яку бачила вкладка (26.10):
    у базі більший — там новіше, хай би що казав годинник пристрою. */
+/* ЧИТАННЯ З МЕЖЕЮ ЧАСУ (28.10, відео з цеху: «Надсилаю…» висить хвилинами).
+   На телефоні після згортання вкладки потік Firestore буває мертвий: get()
+   не відповідає, доки SDK сам не перепідключиться (хвилини), і кнопка
+   висить без кінця. Чекаємо LQ_GET_MS (12 с), далі — «базу не прочитали»
+   (не прочитали — не пишемо: людині чесне «не надіслалось, натисніть ще
+   раз»), а звʼязок штовхаємо (disableNetwork → enableNetwork), щоб повтор
+   уже пройшов. */
+function getWithin(ref, ms){
+  ms = ms || +window.LQ_GET_MS || 12000;
+  return new Promise((res, rej) => {
+    let done = false;
+    const t = setTimeout(() => { if(done) return; done = true;
+      rej(Object.assign(new Error('база не відповіла за ' + Math.round(ms / 1000) + ' с'), { code: 'lq-timeout' })); dbKick(); }, ms);
+    Promise.resolve().then(() => ref.get()).then(s => { if(done) return; done = true; clearTimeout(t); res(s); },
+                                                e => { if(done) return; done = true; clearTimeout(t); rej(e); });
+  });
+}
+let dbKickAt = 0;
+function dbKick(){
+  if(Date.now() - dbKickAt < 15000) return;
+  dbKickAt = Date.now();
+  try{
+    if(fbDb && typeof fbDb.disableNetwork === 'function' && typeof fbDb.enableNetwork === 'function')
+      fbDb.disableNetwork().then(() => fbDb.enableNetwork()).catch(e => console.warn('перепідключення бази', e));
+  }catch(e){ console.warn('перепідключення бази', e); }
+}
 async function dbNewer(ref, base, field, out, baseRev){
   let snap = null;
   /* НЕ ПРОЧИТАЛИ — НЕ ПИШЕМО (27.10, #2000161). Доти збій цього читання
      (телефон цеху без звʼязку на секунду) означав «новішої немає» — і стара
      копія лягала поверх живої без жодної перевірки. Тепер збій — позначка
-     `out.fail`, і запис не йде. */
-  try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); if(out) out.fail = String((e && (e.code || e.message)) || e); return null; }
+     `out.fail`, і запис не йде. Читання — з межею часу (getWithin). */
+  try{ snap = await getWithin(ref); }catch(e){ console.warn('перевірка версії', e); if(out) out.fail = String((e && (e.code || e.message)) || e); return null; }
   if(!snap || !snap.exists) return null;
   return dbNewerOf(snap.data() || {}, base, field, out, baseRev);
 }
@@ -9949,7 +9975,8 @@ async function saveOrders(opts){
   const застарілі = [];
   const відкладені = [];                                           // не прочитали базу — не пишемо, повторимо
   /* Чернетка нового B2C-замовлення (22.10) у базу не йде, поки її не
-     створили кнопкою «Створити замовлення». */
+     створили кнопкою «Створити замовлення»; на пристрої — лишається (28.10). */
+  try{ draftPersist(); }catch(e){}
   (orders || []).forEach(o=>{
     if(!o || !o.id || o.draft) return;
     if(!ordersSaved.has(o.id) && o.arch === undefined) o.arch = false;   // нова — жива
@@ -12965,12 +12992,55 @@ function orphanB2cRows(){
     const коли = Date.parse(j.createdAt || '');
     if(!p.length && (!коли || Date.now() - коли > 7 * 864e5)) return;   // стара порожня — не наша історія
     if(!p.length && !jobHasWork(j)) return;   // порожня й без грошей — нема чого відновлювати
-    out.push({ kind:'orphan_job', sev:'red', orderId: String(k), toNo: String(k), no: String(j.no || ''),
+    /* Схоже, менеджер завів її заново (28.10): жива картка з діалогом, без
+       своїх грошей і накладної, з більшим номером, створена слідом. */
+    const tw = orphanTwins(k, j, p, плат);
+    out.push({ kind:'orphan_job', sev:'red', orderId: String(k), toNo: String(k), no: String(j.no || ''), twins: tw,
       text: 'Картка #' + (j.no || '') + ' не дописалась: є одяг і дизайн' +
             (p.length ? ' та ' + p.length + ' платіж(і) на ' + гр(p.reduce((a, x) => a + Math.round(+x.amount), 0)) : '') +
-            ', а самої картки замовлення немає. Натисніть «Відновити» — картка зʼявиться на дошці з тим самим номером.' });
+            ', а самої картки замовлення немає.' +
+            (tw.length ? ' Схоже, менеджер завів її заново: ' + tw.map(t => '#' + noOf(t.no) + (t.name ? ' (' + t.name + ')' : '') + ', ' + dmyOf(t.at)).join(' або ') +
+              '. «Обʼєднати в #' + noOf(tw[0].no) + '» — одяг, дизайн і платежі перейдуть туди, номер #' + (j.no || '') + ' вибуде.' : '') +
+            ' «Створити картку» — нова картка під #' + (j.no || '') + ' без діалогу (його привʼяжете самі).' });
   });
   return out;
+}
+/* Кандидати, у які можна влити сироту: живі B2C з діалогом чи імʼям, без
+   своїх платежів і накладної, з більшим номером, створені від години до
+   сироти й до доби після; перші — ті, чиє імʼя збігається з платником. */
+function orphanTwins(k, j, pays, плат){
+  const t0 = Date.parse((j && j.createdAt) || '') || 0;
+  const імена = (pays || []).map(p => String(p.counter || '').toLowerCase()).filter(Boolean);
+  const схоже = o => { const n = String(o.name || o.crmChatName || '').toLowerCase();
+    return !!n && імена.some(c => c.split(/[\s·,]+/).some(w => w.length > 3 && n.indexOf(w) >= 0)); };
+  const вчас = o => { const t = Date.parse(o.createdAt || '') || 0; return !t0 || (t >= t0 - 3600000 && t <= t0 + 864e5); };
+  return (orders || []).filter(x => x && !x.draft && !x.gone && x.arch !== true && orderDir(x) === 'b2c' && +x.orderId > +k && x.status !== 'cancel' &&
+      (x.crmChatId || x.tgChatId || String(x.name || '').trim()) && !x.ttn && !плат(x.orderId).length && вчас(x))
+    .sort((a, b) => ((схоже(b) ? 1 : 0) - (схоже(a) ? 1 : 0)) || (Math.abs((Date.parse(a.createdAt || '') || 0) - t0) - Math.abs((Date.parse(b.createdAt || '') || 0) - t0)))
+    .slice(0, 2).map(x => ({ no: String(x.orderId), id: x.id, name: x.name || x.crmChatName || '', at: x.createdAt || '', alike: схоже(x) }));
+}
+/* ОБʼЄДНАТИ СИРОТУ В ЖИВУ КАРТКУ (28.10, Андрій: «не потрібно робити
+   відновити… обʼєднати»). Платежі з-під ключа сироти переїжджають у #to
+   через ядро привʼязки, робота відділу (одяг, ТЗ, доручення) — у картку
+   відділу #to (jobMergeInto; під сиротою — надгробок), номер сироти —
+   «вибув». Саму картку #to не чіпаємо, лише слід у її історії. */
+async function orphanMergeInto(x, toNo){
+  const k = String(x.toNo), to = String(toNo || '');
+  const T = (orders || []).find(q => q && String(q.orderId) === to && !q.draft);
+  if(!T) throw new Error('картки #' + noOf(to) + ' уже немає');
+  const jF = (designJobs || {})[k];
+  if(!jF || jF.gone) throw new Error('картки відділу сироти вже немає');
+  const pays = (payments || []).filter(p => p && String(p.orderId || '') === k);
+  for(const p of pays){ await payLinkSet(p, to, p.tag || 'prepay', { move: true, by: myEmail() || '' }); }
+  await jobMergeInto(to, k);
+  await orderNoRetire(k, T.id);
+  const now = new Date().toISOString();
+  T.mergedFrom = k; T.mergedAt = now;
+  T.hist = (T.hist || []).concat([{ s: 'merge', at: now, from: k }]).slice(-40);
+  touchOrder(T);
+  await storeSet('orders', orders);
+  try{ accLog('renum', 'сироту #' + (x.no || k) + ' (ключ ' + k + ') обʼєднано в #' + noOf(to) + ': одяг, дизайн і ' + pays.length + ' платіж(і) тепер там, номер вибув'); }catch(e){}
+  try{ repaintAfterOrders(); }catch(e){}
 }
 async function orphanB2cRestore(x){
   if(x.kind === 'orphan_job'){
@@ -13417,7 +13487,8 @@ function renderFinAudit(){
           ${x.kind === 'cod_orphan' ? `<button data-fa-more>${finAudit.more[key] ? 'сховати' : 'показати'}</button>` : ''}
           ${x.kind === 'dup_no' ? (canSetup() ? '<button class="pri" data-fa-renum title="Новішій картці без платежів і накладної дати наступний вільний номер">Перенумерувати новішу</button>' : '<span class="fa-wait">перенумеровує власник</span>') : ''}
           ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Зʼєднати</button>' : '<span class="fa-wait">зʼєднує власник</span>') : ''}
-          ${x.kind === 'orphan_job' ? (canSetup() ? '<button class="pri" data-fa-restore>Відновити</button>' : '<span class="fa-wait">відновлює власник</span>') : ''}
+          ${x.kind === 'orphan_job' ? (canSetup() ? (x.twins || []).map(t => `<button class="pri" data-fa-merge="${E(t.no)}" title="Одяг, дизайн і платежі сироти перейдуть у цю картку; номер сироти вибуде">Обʼєднати в #${E(noOf(t.no))}</button>`).join('') +
+            `<button${(x.twins || []).length ? '' : ' class="pri"'} data-fa-restore title="Нова картка замовлення під номером сироти, без діалогу">Створити картку</button>` : '<span class="fa-wait">обʼєднує власник</span>') : ''}
           ${x.kind === 'twin_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Обʼєднати</button>' : '<span class="fa-wait">обʼєднує власник</span>') : ''}
           ${x.kind === 'wrong_join' ? (canSetup() ? '<button class="pri" data-fa-restore>Повернути</button>' : '<span class="fa-wait">повертає власник</span>') : ''}
           ${x.kind === 'restored_del' ? (canSetup() ? '<button class="pri" data-fa-restore>Прибрати</button>' : '<span class="fa-wait">прибирає власник</span>') : ''}
@@ -13432,6 +13503,12 @@ function renderFinAudit(){
     const o = x.orderId ? (orders || []).filter(q => String(q.orderId) === x.orderId)[0] : null;
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
+    const mg = e.target.closest('[data-fa-merge]');
+    if(mg){
+      try{ await orphanMergeInto(x, mg.dataset.faMerge); toast('Одяг, дизайн і платежі #' + x.no + ' тепер у #' + noOf(mg.dataset.faMerge) + '; номер #' + x.no + ' вибув'); }
+      catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
+      return renderFin();
+    }
     if(e.target.closest('[data-fa-restore]')){
       try{ await orphanB2cRestore(x); toast(x.kind === 'twin_b2c' ? 'Картка #' + x.no + ' одна: діалог, одяг і платежі разом' :
           x.kind === 'wrong_join' ? 'Картка #' + x.no + ' знову під своїм номером, порожню прибрано' :
@@ -31319,6 +31396,7 @@ function draftDrop(keepId){
   if(!geть.length) return 0;
   orders = (orders || []).filter(o => geть.indexOf(o) < 0);
   geть.forEach(o => { delete designJobs[o.orderId]; });
+  draftForget();
   return geть.length;
 }
 function draftPaySum(o){
@@ -31349,6 +31427,13 @@ async function draftCommit(o){
     toast('Платіж ' + зайняті.map(p => fmt(p.amount) + ' ₴').join(', ') + ' уже привʼязали до іншого замовлення — оберіть інший');
     return '';
   }
+  /* ТА САМА РОЗМОВА ВЖЕ МАЄ ЖИВЕ ЗАМОВЛЕННЯ (28.10, Андрій: «одна розмова,
+     одне живе замовлення»): менеджер заповнив усе заново замість відкрити
+     стару картку. Питаємо, не блокуємо — буває й друге замовлення тієї ж
+     людини. */
+  const дв = draftTwinOf(o);
+  if(дв && !confirm('У цієї розмови' + (дв.name || дв.crmChatName ? ' (' + (дв.name || дв.crmChatName) + ')' : '') +
+      ' уже є замовлення #' + showNo(дв) + ' (створено ' + dmyOf(дв.createdAt) + '). Якщо це те саме замовлення — відкрийте його, а чернетку закрийте.\n\nСтворити ще одне, нове?')) return '';
   const at = new Date().toISOString();
   const newId = makeOrderId('b2c');
   o.orderId = newId; delete o.draft; delete o.draftPays;
@@ -31356,32 +31441,187 @@ async function draftCommit(o){
   job.orderId = newId; delete job.draft; job.createdAt = job.createdAt || at;
   delete designJobs[oldId]; designJobs[newId] = job;
   if(!job.no) job.no = makeDesignNo();
+  let разом = '';   // ключ картки, коли все лягло однією транзакцією
   try{
-    /* КАРТКА ЗАМОВЛЕННЯ НЕ ЗАПИСАЛАСЬ — ДАЛІ НЕ ЙДЕМО (27.10, Звірка: девʼять
-       «не дописалась» поспіль, #2000337…345). saveOrders не кидає, а повертає
-       перелік невдач (і відкладає запис без прочитаної бази); доти це
-       ігнорувалось, і картка відділу з платежем лягали без самої картки. */
-    const bad = await storeSet('orders', orders) || [];
-    const неЗаписано = (Array.isArray(bad) && bad.some(f => f && (f.id === o.id || f.id === '*'))) || !ordersSaved.has(o.id);
-    if(неЗаписано) throw new Error('картка замовлення не записалась у базу — перевірте звʼязок і натисніть «Створити» ще раз');
-    await DESIGN_COL.doc(newId).set(JSON.parse(JSON.stringify(job)));
+    /* НЕПОДІЛЬНО (28.10): бронь номера, картка, картка відділу й платежі —
+       однією транзакцією; не лягло одне — не лягло нічого (orderCreateAtomic).
+       Транзакції немає (стуб) чи база ще не пускає — старий шлях нижче. */
+    разом = await orderCreateAtomic(o, job, pays);
+    if(!разом){
+      /* КАРТКА ЗАМОВЛЕННЯ НЕ ЗАПИСАЛАСЬ — ДАЛІ НЕ ЙДЕМО (27.10, Звірка: девʼять
+         «не дописалась» поспіль, #2000337…345). saveOrders не кидає, а повертає
+         перелік невдач (і відкладає запис без прочитаної бази); доти це
+         ігнорувалось, і картка відділу з платежем лягали без самої картки. */
+      const bad = await storeSet('orders', orders) || [];
+      const неЗаписано = (Array.isArray(bad) && bad.some(f => f && (f.id === o.id || f.id === '*'))) || !ordersSaved.has(o.id);
+      if(неЗаписано) throw new Error('картка замовлення не записалась у базу — перевірте звʼязок і натисніть «Створити» ще раз');
+      await DESIGN_COL.doc(String(o.orderId)).set(JSON.parse(JSON.stringify(designJobs[String(o.orderId)] || job)));
+    }
   }catch(e){
     console.error('створення замовлення', e);
+    delete designJobs[String(o.orderId)];
     o.orderId = oldId; o.draft = true; o.draftPays = ids;
-    job.orderId = oldId; job.draft = true; delete designJobs[newId]; designJobs[oldId] = job;
+    job.orderId = oldId; job.draft = true; designJobs[oldId] = job;
     toast('Замовлення не створилось: ' + ((e && e.message) || e));
     return '';
   }
-  /* Гроші — лише тепер і лише через ядро привʼязки. */
-  for(let i = 0; i < pays.length; i++){
-    try{ await payLinkSet(pays[i], newId, i ? 'final' : 'prepay'); }
+  const fin = String(o.orderId);   // бронь могла дати наступний номер
+  /* Гроші — лише через ядро привʼязки (неподільний шлях уже привʼязав). */
+  if(!разом) for(let i = 0; i < pays.length; i++){
+    try{ await payLinkSet(pays[i], fin, i ? 'final' : 'prepay'); }
     catch(e){ console.warn('привʼязка платежу при створенні', e); toast('Платіж не привʼязався: ' + ((e && e.message) || e) + ' — привʼяжіть у «Гроші»'); }
   }
-  DRAFT_JUST[newId] = 1;
-  try{ accLog('order-new', 'створив замовлення B2C #' + showNo(o)); }catch(e){}
+  draftForget();
+  DRAFT_JUST[fin] = 1;
+  try{ accLog('order-new', 'створив замовлення B2C #' + showNo(o) + (разом ? ' (неподільно)' : '')); }catch(e){}
   toast('Замовлення ' + showNo(o) + ' створено');
-  return newId;
+  return fin;
 }
+function dmyOf(s){ const d = new Date(s || ''); return isNaN(d) ? '—' : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0'); }
+/* Живе замовлення тієї ж розмови (Instagram чи Telegram), що й чернетка. */
+function draftTwinOf(o){
+  if(!o) return null;
+  const ig = String(o.crmChatId || ''), tg = String(o.tgChatId || '');
+  if(!ig && !tg) return null;
+  return (orders || []).filter(x => x && x !== o && !x.draft && !x.gone && x.arch !== true && x.status !== 'cancel' && orderDir(x) === 'b2c' &&
+      ((ig && String(x.crmChatId || '') === ig) || (tg && String(x.tgChatId || '') === tg)))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0] || null;
+}
+/* НЕПОДІЛЬНЕ СТВОРЕННЯ ЗАМОВЛЕННЯ (28.10, Андрій: «потрібно корінь лікувати»).
+   27.10 девʼять карток «не дописалась»: бронь номера, картка відділу й
+   платіж лягли, а сама картка — ні, і менеджер завів її заново під новим
+   номером. Тепер усе — однією транзакцією бази: бронь номера, картка
+   замовлення, картка відділу, привʼязка платежів; не лягло одне — не лягло
+   нічого. Правила бази пускають картку з бронню, створеною в тій самій
+   транзакції (existsAfter/getAfter). Номер зайнятий чужою бронню — наступний
+   і знову, нічого не записавши. Повертає ключ картки; null — транзакції
+   немає (стуб у тестах), база ще не пустила (правила не опубліковано —
+   кажемо власнику; далі на цій вкладці старий шлях) або вимкнено
+   `contentData.noAtomic`. Інша відмова (звʼязок, платіж уже зайняли) —
+   кидає: нічого не створено, чернетка лишається. У памʼять усе лягає лише
+   після вдалої транзакції. */
+let atomicOff = false;
+async function orderCreateAtomic(o, job, pays){
+  if(atomicOff || orderNosOff) return null;
+  if(!fbDb || typeof fbDb.runTransaction !== 'function') return null;
+  if(contentData && +contentData.noAtomic === 1) return null;
+  if(dbLinkDead()) throw new Error('звʼязок з базою втрачено — оновіть сторінку');
+  if(window.LQ_UPD_STALE) throw new Error('вийшло оновлення адмінки — натисніть «Оновити»');
+  const by = myEmail() || '', dir = orderDir(o);
+  pays = (pays || []).filter(Boolean);
+  for(let k = 0; k < 40; k++){
+    const no = String(o.orderId);
+    const at = new Date().toISOString();
+    let ran = false, taken = false;
+    const body = JSON.parse(JSON.stringify(o));
+    body.orderId = no; body.arch = false; body.rev = 1; body.touchedAt = at;
+    body.payments = Array.isArray(body.payments) ? body.payments : [];
+    const payDocs = pays.map((p, i) => {
+      const d = { orderId: no, tag: i ? 'final' : 'prepay', linkedBy: by, linkedAt: at,
+                  linkHist: (Array.isArray(p.linkHist) ? p.linkHist : []).concat([{ at, by, from: '', to: no }]).slice(-20) };
+      if(!body.payments.some(e => e && e.payId === p.id))
+        body.payments.push({ at: p.at || at, sum: Math.round(+p.amount || 0), kind: 'prepay', by, payId: p.id, acc: finAccName(p.acc), counter: p.counter || '' });
+      return { p, d };
+    });
+    const jobBody = JSON.parse(JSON.stringify(job));
+    jobBody.orderId = no; jobBody.arch = false; jobBody.updatedAt = at; delete jobBody.draft;
+    try{
+      await fbDb.runTransaction(async t => {
+        ran = true;
+        const nos = await t.get(ORDER_NOS.doc(no));
+        if(nos && nos.exists){ const d = nos.data() || {}; if(d.id !== o.id){ taken = true; return; } }
+        const own = await t.get(ORDERS_COL.doc(o.id));
+        if(own && own.exists) throw new Error('картка з таким ключем уже є в базі');
+        for(const x of payDocs){
+          const s = await t.get(PAY_COL.doc(x.p.id));
+          const d = (s && s.exists) ? (s.data() || {}) : null;
+          if(d && d.orderId) throw Object.assign(new Error('платіж ' + fmt(x.p.amount) + ' ₴ уже привʼязали до #' + noOf(d.orderId) + ' — оберіть інший'), { lqPay: x.p.id });
+        }
+        if(!(nos && nos.exists)) t.set(ORDER_NOS.doc(no), { id: o.id, by, at, dir });
+        t.set(ORDERS_COL.doc(o.id), body);
+        t.set(DESIGN_COL.doc(no), jobBody);
+        payDocs.forEach(x => t.set(PAY_COL.doc(x.p.id), x.d, { merge: true }));
+      });
+    }catch(e){
+      const code = String((e && (e.code || e.message)) || e);
+      if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)){
+        atomicOff = true;
+        console.warn('неподільне створення: база не пустила — старий шлях', e);
+        try{ if(canSetup()) toast('Неподільне створення замовлення ще не ввімкнене в базі — опублікуйте firestore.rules'); }catch(e2){}
+        return null;
+      }
+      if(e && e.lqPay) throw e;
+      if(/already|ALREADY|aborted|ABORTED/i.test(code)) taken = true;
+      else throw new Error('картка замовлення не записалась у базу — перевірте звʼязок і натисніть «Створити» ще раз (' + code + ')');
+    }
+    if(!ran) return null;                           // стуб без транзакції — старий шлях
+    if(taken){
+      const next = String(makeOrderId(dir));
+      delete designJobs[no]; designJobs[next] = job; job.orderId = next; o.orderId = next;
+      try{ accLog('renum', 'номер ' + no + ' був зайнятий — новій картці дано ' + next); }catch(e){}
+      continue;
+    }
+    /* Лягло — тепер і в памʼять, як прочитане з бази. */
+    o.arch = false; o.rev = 1; o.touchedAt = at; o.payments = body.payments;
+    ordersSaved.set(o.id, JSON.stringify(o));
+    job.orderId = no; job.arch = false; job.updatedAt = at; delete job.draft;
+    designJobs[no] = job; designSeen[no] = at; designBase[no] = JSON.stringify(job); delete designDirty[no];
+    payDocs.forEach(x => Object.assign(x.p, x.d));
+    return no;
+  }
+  throw new Error('не вдалось забронювати номер — спробуйте ще раз');
+}
+/* ЧЕРНЕТКА ЖИВЕ НА ПРИСТРОЇ (28.10). Менеджер заповнює чернетку довго
+   (діалог, платіж, одяг, ТЗ) і «Створити» тисне в кінці; перезавантаження
+   чи збій вкладки доти стирали все, і картку заводили заново. Чернетка
+   пишеться в localStorage (lq_draft:<пошта>) на кожну зміну; на дошці
+   акаунта — «↩ Продовжити чернетку», доки її не створили чи не закрили.
+   У базу чернетка, як і доти, не йде. */
+function draftKey(){ return 'lq_draft:' + String(myEmail() || '').trim().toLowerCase(); }
+let draftPersistLast = '';
+function draftPersist(){
+  const o = (orders || []).find(x => x && x.draft);
+  if(!o) return false;
+  let json = '';
+  try{ json = JSON.stringify({ at: new Date().toISOString(), o, job: designJobs[o.orderId] || null }); }catch(e){ return false; }
+  if(json.slice(40) === draftPersistLast.slice(40)) return false;   // без мітки часу — те саме
+  draftPersistLast = json;
+  try{ localStorage.setItem(draftKey(), json); }catch(e){}
+  return true;
+}
+function draftForget(){ draftPersistLast = ''; try{ localStorage.removeItem(draftKey()); }catch(e){} }
+function draftStored(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); }catch(e){}
+  if(!d || !d.o || !d.o.draft || !d.o.orderId) return null;
+  if(Date.now() - (Date.parse(d.at || '') || 0) > 3 * 864e5){ draftForget(); return null; }
+  return d;
+}
+/* Що лежить на пристрої — для кнопки на дошці (коли в памʼяті чернетки немає). */
+function draftSaved(){
+  const d = draftStored();
+  if(!d || (orders || []).some(x => x && x.draft)) return null;
+  const pays = (d.o.draftPays || []).map(id => (payments || []).find(p => p && p.id === id)).filter(p => p && !p.orderId);
+  return { at: d.at, name: d.o.crmChatName || d.o.name || '', sum: pays.reduce((a, p) => a + Math.round(+p.amount || 0), 0),
+           units: d.job ? (d.job.units || []).filter(u => u && u.gid).length : 0, chat: !!(d.o.crmChatId || d.o.tgChatId) };
+}
+function draftResume(){
+  const d = draftStored();
+  if(!d) return null;
+  draftDrop('');
+  const o = d.o; o.draft = true;
+  /* Платіж, який за цей час привʼязали деінде, з вибору випадає. */
+  o.draftPays = (o.draftPays || []).filter(id => { const p = (payments || []).find(x => x && x.id === id); return p && !p.orderId; });
+  orders.unshift(o);
+  const job = d.job || window.LQDesign.emptyJob(o.orderId);
+  job.draft = true; job.orderId = o.orderId;
+  designJobs[o.orderId] = job;
+  try{ window.LQDesign.ensure(job, o); }catch(e){}
+  draftPersistLast = '';
+  draftPersist();
+  return o;
+}
+setInterval(() => { try{ draftPersist(); }catch(e){} }, 4000);
 async function designJobNew(){
   const o = {
     id: cryptoId(), dir: 'b2c', type: 'client', status: B2C_STATUS,
@@ -31617,9 +31857,10 @@ function payNextTag(o){
 async function designSave(job, o){
   if(!job || !job.orderId) return;
   if(job.draft || (o && o.draft)){
-    /* Чернетка: усе лише в памʼяті, до «Створити замовлення». */
+    /* Чернетка: усе лише в памʼяті (і на пристрої), до «Створити замовлення». */
     designJobs[job.orderId] = job;
     try{ b2cSumWrite(job, o); }catch(e){}
+    try{ draftPersist(); }catch(e){}
     return;
   }
   try{ b2cSumWrite(job, o); }catch(e){ console.warn('сума B2C', e); }
@@ -31788,7 +32029,7 @@ function designHostInit(){
            читання йде в saveOrders як звірка версії (`pre`) — другого
            читання немає, пишеться лише ця картка (`only`): так швидше. */
         let snap = null;
-        try{ snap = await ORDERS_COL.doc(id).get(); }
+        try{ snap = await getWithin(ORDERS_COL.doc(id)); }   // з межею часу: висіти без кінця не можна (28.10)
         catch(e){ console.warn('картка перед дією', e); if(i < 2){ await new Promise(r => setTimeout(r, 400 * (i + 1))); continue; } return false; }
         let pre = null;
         if(snap && snap.exists){
@@ -32005,6 +32246,7 @@ function designHostInit(){
       if(o && o.draft){
         /* Чернетка: платіж лише обраний — привʼяжеться при «Створити замовлення». */
         o.draftPays = (o.draftPays || []).filter(id => id !== p.id).concat([p.id]);
+        try{ draftPersist(); }catch(e){}
         if(done) done({ amount: Math.round(+p.amount || 0), first: o.draftPays.length === 1, draft: true });
         return;
       }
@@ -32019,7 +32261,7 @@ function designHostInit(){
     payUnlink: id => {
       /* Платіж, лише обраний у чернетці, — просто прибираємо з вибору. */
       const чр = (orders || []).find(o => o && o.draft && (o.draftPays || []).indexOf(id) >= 0);
-      if(чр){ чр.draftPays = чр.draftPays.filter(x => x !== id); return Promise.resolve(); }
+      if(чр){ чр.draftPays = чр.draftPays.filter(x => x !== id); try{ draftPersist(); }catch(e){} return Promise.resolve(); }
       const p = (payments || []).filter(x => x.id === id)[0];
       return p ? payLinkSet(p, '', null) : PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }); },
     payTag: (id, tag) => PAY_COL.doc(id).set({ tag: tag || null }, { merge:true }),
@@ -32155,6 +32397,14 @@ function designHostInit(){
     },
     draftCommit: o => draftCommit(o),
     draftMissing: o => draftMissing(o),
+    /* Чернетка з пристрою (28.10): що лежить і повернути її в роботу. */
+    draftSaved: () => draftSaved(),
+    resumeDraft: async () => {
+      const o = draftResume();
+      if(!o){ toast('Чернетки на цьому пристрої немає'); return; }
+      try{ window.LQDesign.ui.setTab('acct'); window.LQDesign.ui.open(o.orderId); }catch(e){}
+      try{ openDesign(); }catch(e){}
+    },
     draftDrop: keep => draftDrop(keep),
     draftJust: id => !!DRAFT_JUST[id],
     draftJustOff: id => { delete DRAFT_JUST[id]; },

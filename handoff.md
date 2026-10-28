@@ -210,6 +210,24 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   картки — не сирота; `designDeleteOrder` ставить надгробок), `joinLogFrom`
   («(ключ N → T)») → `wrong_join` «Повернути» (жива картка назад під свій
   номер, даремно відновлена зникає), `restored_del` «Прибрати».
+- **Неподільне створення (28.10, крок 1 «аптеки»)**: `orderCreateAtomic(o,
+  job, pays)` у `draftCommit` — `fbDb.runTransaction`: get бронь/картка/
+  платежі → set `orderNos`, `kanbanOrders` (rev 1, arch false, `payments`
+  копії), `designJobs`, `payments` merge; `taken` → `makeOrderId` далі;
+  permission-denied → `atomicOff` + toast власнику → старий шлях; `ran`
+  false (стуб) → старий шлях; `lqPay` (платіж зайняли) — кидає. Правила:
+  `orderAlive(no)`, `payTo()`, `kanbanOrders` create через
+  `existsAfter`/`getAfter`, `designJobs` create `may('setup') ||
+  orderAlive`. Чернетка на пристрої: `draftKey`/`draftPersist`/
+  `draftForget`/`draftStored`/`draftSaved`/`draftResume`, host `draftSaved`,
+  `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.
+  `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
+  `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
+  `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото
+  цеху лічить секунди на «Надсилаю…». Стуб транзакції в `new-draft.mjs`
+  (справжні записи через set, `__TX`, `__TX_DENY`). **Опублікувати
+  `firestore.rules`** — без цього створення йде по-старому й каже про це
+  власнику. Крок 2 (домовлено): воркер `loomiq-api` для критичних дій.
 - **Відкат карток** (23.10, Фінанси, власник, `#fin-rollback`,
   `renderRollback`/`rbLook`/`rbRestore`): REST `documents:batchGet` з
   `readTime` (`fsReadAt`, `fsDecode`) — стан картки відділу й картки

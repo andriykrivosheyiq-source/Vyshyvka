@@ -92,6 +92,59 @@ ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { build: { v: 'abc123', at: '2026
 ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { build: { v: 'abc124' }, archSeed: 1 }, { merge: true }))), 'а разом з іншим ключем — ні', 'менеджер записав чужий ключ під виглядом мітки');
 
 console.log('');
+console.log('═══ НЕПОДІЛЬНЕ СТВОРЕННЯ (28.10): БРОНЬ, КАРТКА, КАРТКА ВІДДІЛУ Й ПЛАТІЖ — ОДНІЄЮ ТРАНЗАКЦІЄЮ ═══');
+/* 27.10: девʼять «не дописалась» — бронь, одяг і платіж лягли, картки немає.
+   Тепер усе чотири пишеться однією транзакцією (orderCreateAtomic), а правила
+   (existsAfter/getAfter) не пускають ні картку відділу, ні платіж до номера,
+   за бронню якого немає живої картки. */
+const { runTransaction } = req('firebase/firestore');
+await env.withSecurityRulesDisabled(async c => {
+  const db = c.firestore();
+  await setDoc(doc(db, 'loomiq/photos'), { acl: { dasha_loomiq: { edit: true, pay: true } } }, { merge: true });
+  await setDoc(doc(db, 'payments/mono_9'), { at: '2026-10-28T10:00:00Z', amount: 1560, acc: 'mono1', src: 'mono', counter: 'Олена' });
+  await setDoc(doc(db, 'payments/mono_10'), { at: '2026-10-28T10:05:00Z', amount: 900, acc: 'mono1', src: 'mono', counter: 'Іра' });
+});
+const sale = env.authenticatedContext('u4', { email: 'dasha@loomiq' }).firestore();   // «редагувати» + «оплата» — як менеджер B2C
+const карткаC = { dir: 'b2c', name: '', status: 'new', createdAt: '2026-10-28T10:00:00Z', arch: false };
+const разом = (db, no, id, opt) => runTransaction(db, async t => {
+  await t.get(doc(db, 'orderNos/' + no));
+  t.set(doc(db, 'orderNos/' + no), { id, by: 'dasha@loomiq', at: '2026-10-28T10:00:00Z', dir: 'b2c' });
+  if(!(opt && opt.noCard)) t.set(doc(db, 'kanbanOrders/' + id), { ...карткаC, orderId: no });
+  t.set(doc(db, 'designJobs/' + no), { orderId: no, state: 'new', units: [] });
+  if(opt && opt.pay) t.set(doc(db, 'payments/' + opt.pay), { orderId: no, tag: 'prepay', linkedBy: 'dasha@loomiq' }, { merge: true });
+});
+ok(await can(разом(sale, '5000401', 'C1', { pay: 'mono_9' })), 'менеджер («редагувати» + «оплата»): бронь, картка, картка відділу й платіж однією транзакцією — пройшло', 'неподільне створення не пройшло');
+let після = null;
+await env.withSecurityRulesDisabled(async c => { const db = c.firestore();
+  після = { card: (await getDoc(doc(db, 'kanbanOrders/C1'))).exists(), job: (await getDoc(doc(db, 'designJobs/5000401'))).exists(),
+            pay: ((await getDoc(doc(db, 'payments/mono_9'))).data() || {}).orderId || '' }; });
+ok(після.card && після.job && після.pay === '5000401', 'у базі всі чотири документи', JSON.stringify(після));
+ok(!(await can(разом(sale, '5000402', 'C2', { noCard: true, pay: 'mono_10' }))), 'та сама транзакція БЕЗ картки замовлення (як 27.10: бронь, одяг, платіж) — відмова цілком', 'сирота пройшла!');
+let сл = null;
+await env.withSecurityRulesDisabled(async c => { const db = c.firestore();
+  сл = { nos: (await getDoc(doc(db, 'orderNos/5000402'))).exists(), job: (await getDoc(doc(db, 'designJobs/5000402'))).exists(),
+         pay: ((await getDoc(doc(db, 'payments/mono_10'))).data() || {}).orderId || '' }; });
+ok(!сл.nos && !сл.job && !сл.pay, 'і нічого з неї не лягло: ні броні, ні картки відділу, ні привʼязки', JSON.stringify(сл));
+ok(!(await can(runTransaction(sale, async t => {
+  await t.get(doc(sale, 'orderNos/5000403'));
+  t.set(doc(sale, 'orderNos/5000403'), { id: 'C3', by: 'dasha@loomiq', at: '2026-10-28T10:00:00Z', dir: 'b2c' });
+  t.set(doc(sale, 'kanbanOrders/C3x'), { ...карткаC, orderId: '5000403' });
+}))), 'картка з ключем, на який бронь не вказує, — відмова й у транзакції', 'картка з чужою бронню пройшла');
+
+console.log('');
+console.log('═══ КАРТКА ВІДДІЛУ Й ПЛАТІЖ — ЛИШЕ ДО ЖИВОЇ КАРТКИ (28.10) ═══');
+ok(await can(setDoc(doc(mgr, 'orderNos/5000404'), { id: 'C4', by: 'art@loomiq', at: '2026-10-28T10:00:00Z', dir: 'b2c' })), 'бронь 5000404 на картку C4, якої в базі немає (як після збою)', 'бронь не створилась');
+ok(!(await can(setDoc(doc(mgr, 'designJobs/5000404'), { orderId: '5000404', state: 'new' }))), 'картка відділу під номером без живої картки — відмова (сирота не зʼявиться)', 'сирота-картка відділу записалась!');
+ok(await can(setDoc(doc(mgr, 'designJobs/5000405'), { orderId: '5000405', state: 'new' })), 'номер без броні (стара картка) — картка відділу пишеться, як доти', 'стару картку відділу не пустило');
+ok(await can(setDoc(doc(own, 'designJobs/5000404'), { orderId: '5000404', state: 'new' })), 'власник (ремонт у Звірці) — може й під номер без картки', 'власника не пустило');
+ok(await can(setDoc(doc(mgr, 'designJobs/5000404'), { state: 'design' }, { merge: true })), 'правка наявної картки відділу — як доти', 'правку не пустило');
+ok(!(await can(setDoc(doc(fin, 'payments/mono_10'), { orderId: '5000404', tag: 'prepay' }, { merge: true }))), 'платіж до номера, за бронню якого картки немає, — відмова', 'платіж пішов на мертвий номер!');
+ok(await can(setDoc(doc(fin, 'payments/mono_10'), { orderId: '5000401', tag: 'prepay' }, { merge: true })), 'до живої картки #5000401 — привʼязується', 'до живої не привʼязався');
+ok(await can(setDoc(doc(fin, 'payments/mono_10'), { tag: 'final' }, { merge: true })), 'підпис без зміни номера — як доти', 'тег не міняється');
+ok(await can(setDoc(doc(fin, 'payments/mono_10'), { orderId: null, tag: null }, { merge: true })) &&
+   await can(setDoc(doc(fin, 'payments/mono_10'), { orderId: '5000406', tag: 'prepay' }, { merge: true })), 'відвʼязали; номер без броні (стара картка) — привʼязується, як доти', 'до старої не привʼязався');
+
+console.log('');
 console.log('═══ ВЕРСІЇ КАРТОК (23.10): СТВОРЮЄ КОЖЕН, НЕ ПРАВИТЬ НІХТО, ПРИБИРАЄ ВЛАСНИК ═══');
 const версія = { orderId: '1000147', name: 'Денис', state: 'design', _v: { at: '2026-10-23T10:00:00Z', by: 'art@loomiq', why: 'save' } };
 ok(await can(setDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'), версія)), 'версію картки відділу пише менеджер', 'версія відділу не записалась');
@@ -104,5 +157,5 @@ ok(await can(deleteDoc(doc(own, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'))
 await env.cleanup();
 emu.kill();
 console.log('');
-console.log(bad ? 'розходжень: ' + bad : 'номер замовлення видається лише раз — це гарантує база');
+console.log(bad ? 'розходжень: ' + bad : 'номер замовлення видається лише раз, замовлення створюється неподільно — це гарантує база');
 process.exit(bad ? 1 : 0);
