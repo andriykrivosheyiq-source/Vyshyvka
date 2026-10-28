@@ -140,8 +140,26 @@ await p.waitForTimeout(900);
 const s3 = await де();
 ok(s3.col === 'ready', 'картка в «Готово до роботи»', JSON.stringify(s3));
 
+console.log('═══ 4. ЗВІРКА ГРОШЕЙ ПЕРЕМАЛЬОВУЄТЬСЯ ЗІ ЗНІМКОМ (28.10) ═══');
+/* Андрій: «опять пропали… частина «платіж привʼязаний до замовлення, якого
+   немає»» — після оновлення сторінки картки відділу доїжджали пізніше, а
+   Звірка не перемальовувалась. */
+const зв = await p.evaluate(async () => {
+  document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
+  const v = document.getElementById('view-fin'); v.style.display = 'block';
+  window.__FA = 0; const f0 = renderFinAudit; renderFinAudit = function(){ window.__FA++; return f0.apply(this, arguments); };
+  repaintAfterOrdersNow();
+  const a = window.__FA;
+  finAuditRefresh(); await new Promise(r => setTimeout(r, 700));
+  const b = window.__FA;
+  v.style.display = 'none'; finAuditRefresh(); await new Promise(r => setTimeout(r, 700));
+  renderFinAudit = f0;
+  return { a, b, c: window.__FA };
+});
+ok(зв.a === 1 && зв.b === 2 && зв.c === 2, 'знімок замовлень і знімок карток відділу перемальовують Звірку, коли відкриті Фінанси; закриті — ні', JSON.stringify(зв));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
-console.log(bad ? 'розходжень: ' + bad : 'дошка B2C у всіх однакова — знімок замовлень перемальовує і її');
+console.log(bad ? 'розходжень: ' + bad : 'дошка B2C у всіх однакова — знімок замовлень перемальовує і її; Звірка теж');
 process.exit(bad ? 1 : 0);

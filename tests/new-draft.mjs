@@ -230,6 +230,18 @@ await p.evaluate(() => { const U = window.LQDesign.ui; const d = orders.find(o =
   P.get = function(){ if(this.__col === 'kanbanOrders' || !this.__col) return Promise.reject(new Error('Failed to get document because the client is offline.')); return window.__get0.apply(this, arguments); };
   U.render(document.getElementById('dzRoot')); });
 await ЖДИ(200);
+/* З чернетки клієнту не шлемо (28.10): «Надіслати клієнту» — лише після «Створити замовлення». */
+const тел = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui; const o = orders.find(x => x.draft); const job = designJobs[o.orderId]; const u = job.units[0];
+  const d = D.dzNew(); d.who = 'p@loomiq'; u.graphic = [d];
+  D.dzVer(d, 'p@loomiq', [{ name:'мокап.png', url:'https://f/mock1.png', role:'mock' }], '', null, 'graphic');
+  window.__TOASTS = [];
+  try{ await U.act('dz-tell', document.getElementById('dzRoot'), { dz: u.id + '|graphic|0', v: 1 }); }catch(e){ window.__TOASTS.push('err:' + e.message); }
+  const sent = (d.vers || []).some(v => v.sentToClient);
+  u.graphic = [];
+  return { says: window.__TOASTS.slice(), sent };
+});
+ok(тел.says.some(m => /Спершу.*Створити замовлення/.test(m)) && !тел.sent, 'з чернетки «Надіслати клієнту» не йде: «Спершу натисніть «Створити замовлення»»', JSON.stringify(тел));
 await p.click('#dzRoot [data-do="order-create"]');
 await ЖДИ(800);
 const s3b = await p.evaluate(() => { const d = orders.find(o => o.draft) || null; const x = payments.find(q => q.id === 'p6');
@@ -240,12 +252,15 @@ console.log('   ' + JSON.stringify(s3b));
 ok(s3b.draft && s3b.drafts === 1 && s3b.pays.join() === 'p6' && !s3b.p6, 'чернетка лишилась з обраним платежем, платіж не привʼязано', JSON.stringify(s3b));
 ok(!s3b.ordW.length && !s3b.dzW.length, 'у базу не пішло нічого — ні картка відділу, ні замовлення', JSON.stringify({ ordW: s3b.ordW, dzW: s3b.dzW }));
 ok(s3b.toasts.length === 1 && /не записалась у базу/.test(s3b.toasts[0]), 'людині сказано: «Замовлення не створилось: картка не записалась…»', JSON.stringify(s3b.toasts));
+const s3err = await p.evaluate(() => { const bar = document.querySelector('#dzRoot .dz-panel .dz-write'); const e = bar && bar.querySelector('.dz-create-err'); const b = bar && bar.querySelector('[data-do="order-create"]');
+  return { err: e ? e.textContent : '', red: !!(b && b.classList.contains('is-err')), label: b ? b.textContent : '' }; });
+ok(/НЕ СТВОРЕНО: .*не записалась у базу/.test(s3err.err) && s3err.red && /ще раз/.test(s3err.label), 'у картці червоним «НЕ СТВОРЕНО: …», кнопка червона «Створити ще раз» (28.10)', JSON.stringify(s3err));
 await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
 
 console.log('');
 console.log('═══ 3в. БАЗА ЩЕ НЕ ПУСКАЄ ТРАНЗАКЦІЮ (правила не опубліковано) — СТАРИЙ ШЛЯХ, ВЛАСНИКУ СКАЗАНО (28.10) ═══');
 await p.evaluate(() => { window.__ordW = []; window.__dzW = []; window.__TX = []; window.__TOASTS = []; window.__TX_DENY = 1; atomicOff = false;
-  document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+  draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);
 await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new3v'; d.crmChatName = 'Третя-в'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
@@ -267,7 +282,7 @@ await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
 
 console.log('');
 console.log('═══ 4. ЗАКРИЛИ ЧЕРНЕТКУ — ЇЇ НЕМАЄ, ПЛАТІЖ ВІЛЬНИЙ ═══');
-await p.evaluate(() => { window.__ordW = []; window.__dzW = []; document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await p.evaluate(() => { window.__ordW = []; window.__dzW = []; draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);
 await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new2'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
@@ -280,7 +295,7 @@ ok(!s6.drafts && !s6.p2 && s6.free && !s6.ordW.length && !s6.dzW.length, 'зак
 
 console.log('');
 console.log('═══ 5. ПІШОВ В ІНШИЙ РОЗДІЛ — ЧЕРНЕТКИ НЕМАЄ; ОБРАНИЙ У ЧЕРНЕТЦІ ПЛАТІЖ НЕ ЗНИКАЄ МОВЧКИ (22.10) ═══');
-await p.evaluate(() => { document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await p.evaluate(() => { draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);
 await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new3'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
@@ -303,9 +318,14 @@ console.log('═══ 6. ЧЕРНЕТКА ЖИВЕ НА ПРИСТРОЇ: ПЕ�
    вкладки доти стирав усе, і картку заводили заново (двійники). */
 await p.evaluate(() => { document.querySelector('.nav button[data-view="design"]').click(); window.LQDesign.ui.setTab('acct'); window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await ЖДИ(300);
+/* Заповнену чернетку з §5 закрили переходом у Чати — вона лишилась на пристрої (28.10). */
+const з5 = await p.evaluate(() => ({ resume: !!document.querySelector('#dzRoot [data-do="order-resume"]'), ls: !!localStorage.getItem('lq_draft:test@loomiq') }));
+ok(з5.resume && з5.ls, 'заповнену чернетку закрили не «Створити» — вона на пристрої, на дошці «↩ Продовжити чернетку»', JSON.stringify(з5));
+await p.evaluate(() => { draftForget(); window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+await ЖДИ(200);
 const без = await p.evaluate(() => ({ resume: !!document.querySelector('#dzRoot [data-do="order-resume"]'), ls: localStorage.getItem('lq_draft:test@loomiq') }));
 ok(!без.resume && !без.ls, 'без чернетки — ні кнопки «Продовжити», ні запису на пристрої', JSON.stringify(без));
-await p.evaluate(() => { document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await p.evaluate(() => { draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);
 await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new6'; d.crmChatName = 'Шоста'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
@@ -335,13 +355,19 @@ const далі = await p.evaluate(() => { const U = window.LQDesign.ui; const d 
 ok(далі.draft && далі.open && далі.chat === 'c-new6' && (далі.pays || []).join() === 'p2' && далі.units === 1 && далі.btn, 'чернетка відкрита як була: діалог, платіж 2 400 ₴, одяг — «Створити замовлення» активна', JSON.stringify(далі));
 ok(!далі.resume && !далі.onBoard, 'кнопки «Продовжити» більше немає, на дошці чернетки немає', JSON.stringify(далі));
 await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
-const закр = await p.evaluate(() => ({ ls: localStorage.getItem('lq_draft:test@loomiq'), resume: !!document.querySelector('#dzRoot [data-do="order-resume"]'), drafts: orders.filter(o => o.draft).length }));
-ok(!закр.ls && !закр.resume && !закр.drafts, 'закрили чернетку — на пристрої її теж немає', JSON.stringify(закр));
+const закр = await p.evaluate(() => ({ ls: !!localStorage.getItem('lq_draft:test@loomiq'), resume: !!document.querySelector('#dzRoot [data-do="order-resume"]'), drafts: orders.filter(o => o.draft).length }));
+ok(закр.ls && закр.resume && !закр.drafts, 'закрили заповнену чернетку — з памʼяті зникла, на пристрої лишилась, «Продовжити» є', JSON.stringify(закр));
+/* Порожню (без діалогу, платежу й одягу) — забуваємо. */
+await p.evaluate(() => { draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await ЖДИ(300);
+await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
+const пор = await p.evaluate(() => ({ ls: !!localStorage.getItem('lq_draft:test@loomiq'), resume: !!document.querySelector('#dzRoot [data-do="order-resume"]') }));
+ok(!пор.ls && !пор.resume, 'порожню чернетку закрили — на пристрої її немає', JSON.stringify(пор));
 
 console.log('');
 console.log('═══ 7. У РОЗМОВИ ВЖЕ Є ЖИВЕ ЗАМОВЛЕННЯ — ПИТАЄМО, НЕ БЛОКУЄМО (28.10) ═══');
 await p.evaluate(() => { window.__TX = []; window.__CONFIRMS = []; window.__YES = 0; window.confirm = m => { window.__CONFIRMS.push(String(m)); return window.__YES === 1; };
-  document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+  draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);
 await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c1'; d.crmChatName = 'Мороз Євгенія'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
 await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });

@@ -2596,9 +2596,15 @@ function chatsRows(dir){
   const out = [];
   chatsOrders(dir).forEach(o => {
     if(!o.crmChatId && !tgChatOf(o)) return;
+    /* ІМʼЯ Й НІК (28.10, Андрій: «немає тут ніка»): імʼя з картки чи назви
+       розмови один раз (доти «Оля · Оля»), поруч «@нік», коли Sitniks його
+       дав і він не те саме слово. Нічого не відомо — номер картки. */
+    const нік = String(o.crmNick || o.ig || o.instagram || '').replace(/^@/, '').trim();
+    const імʼя = String(o.name || o.crmChatName || '').trim();
+    const хто = [імʼя && імʼя.toLowerCase() !== нік.toLowerCase() ? імʼя : '', нік ? '@' + нік : ''].filter(Boolean).join(' · ');
     out.push({
       o: o,
-      who: orderName(o) || o.crmChatName || ('замовлення ' + showNo(o)),
+      who: хто || імʼя || ('замовлення ' + showNo(o)),
       channel: tgChatOf(o) ? 'Telegram' : 'Instagram',
       at: orderActivityAt(o),
       text: String(o.crmLast || o.tgLast || '').replace(/\s+/g, ' ').slice(0, 90),

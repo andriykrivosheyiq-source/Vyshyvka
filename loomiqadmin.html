@@ -4959,6 +4959,9 @@
   .dz-create-n{font-style:normal;font-size:12px;color:#B42318;}
   .dz-create-b[disabled]{opacity:.5;cursor:not-allowed;}
   .dz-create.is-done{font-weight:700;color:#0E9F6E;font-size:13.5px;}
+  .dz-create-err{font-weight:700;max-width:100%;}
+  .dz-create-b.is-err{background:#B42318;border-color:#B42318;color:#fff;}
+  .dz-own-restore{color:#B42318;font-weight:600;}
   .dz-pay-draft{font-style:normal;color:#B45309;font-size:11.5px;}
   /* Заслона доступів (22.10): поки не приїхала команда, видно лише її. */
   #db-lost{position:fixed;left:16px;right:16px;bottom:16px;z-index:9500;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
@@ -8340,32 +8343,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=02478d1f22"></script>
-<script src="loomiq-fingerprint.js?v=02478d1f22"></script>
-<script src="loomiq-pricing.js?v=02478d1f22"></script>
+<script src="loomiq-select.js?v=de7b068c18"></script>
+<script src="loomiq-fingerprint.js?v=de7b068c18"></script>
+<script src="loomiq-pricing.js?v=de7b068c18"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=02478d1f22"></script>
+<script src="loomiq-money-core.js?v=de7b068c18"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=02478d1f22"></script>
-<script src="loomiq-mock.js?v=02478d1f22"></script>
+<script src="loomiq-design.js?v=de7b068c18"></script>
+<script src="loomiq-mock.js?v=de7b068c18"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=02478d1f22"></script>
+<script src="imagetracer.js?v=de7b068c18"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=02478d1f22"></script>
-<script src="loomiq-threads.js?v=02478d1f22"></script>
+<script src="loomiq-chat.js?v=de7b068c18"></script>
+<script src="loomiq-threads.js?v=de7b068c18"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=02478d1f22"></script>
+<script src="loomiq-cards.js?v=de7b068c18"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8410,8 +8413,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '02478d1f22';
-var LQ_VER_AT = '2026-10-28T14:14:59Z';
+var LQ_VER = 'de7b068c18';
+var LQ_VER_AT = '2026-10-28T18:26:28Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -9919,6 +9922,20 @@ function repaintAfterOrdersNow(){
   go('view-chatsc', () => renderChats('b2c'));
   go('view-problems', renderProblems);
   go('view-today', renderToday);
+  /* Звірка грошей (28.10, Андрій: «опять пропали… частина є, частина
+     «платіж привʼязаний до замовлення, якого немає»»): вона рахується з
+     карток, карток відділу й платежів, а перемальовувалась лише від
+     платежів. Після оновлення сторінки картки відділу доїжджали пізніше —
+     сироти «не дописалась» виглядали як «замовлення немає» без кнопок. */
+  go('view-fin', renderFinAudit);
+}
+let finAuditT = 0;
+function finAuditRefresh(){
+  clearTimeout(finAuditT);
+  finAuditT = setTimeout(() => {
+    const v = document.getElementById('view-fin');
+    if(v && v.style.display !== 'none'){ try{ renderFinAudit(); }catch(e){ console.warn('звірка', e); } }
+  }, 500);
 }
 /* ДУБЛІ ЗАЯВОК, ЩО ВЖЕ ЗАВЕЛИСЬ (08.10). Дві картки з тим самим webId —
    одна заявка, забрана двома адмінками до появи сталого id. Лишаємо ту, з
@@ -13087,6 +13104,24 @@ async function orphanMergeInto(x, toNo){
   try{ accLog('renum', 'сироту #' + (x.no || k) + ' (ключ ' + k + ') обʼєднано в #' + noOf(to) + ': одяг, дизайн і ' + pays.length + ' платіж(і) тепер там, номер вибув'); }catch(e){}
   try{ repaintAfterOrders(); }catch(e){}
 }
+/* Чия це розмова — для відновленої картки без діалогу (28.10, Андрій: «я ці
+   відновив… діалога немає… як узнати, який був платіж?»). Рахується і для
+   карток, відновлених до цієї збірки (`restoredAt` є, підказки нема). */
+function restoreHintOf(o, j){
+  if(!o) return '';
+  if(o.restoreHint) return o.restoreHint;
+  if(!o.restoredAt || o.crmChatId) return '';
+  j = j || (designJobs || {})[o.orderId] || {};
+  const pl = (payments || []).filter(p => p && String(p.orderId || '') === String(o.orderId))
+    .map(p => fmt(Math.round(+p.amount || 0)) + ' ₴ від ' + (String(p.counter || '').trim() || '—') + ' (' + dmyOf(p.at) + ')');
+  const sent = [];
+  (j.units || []).forEach(u => (u && u.graphic || []).forEach(d => (d && d.vers || []).forEach(v => { if(v && v.sentToClient) sent.push(v.sentToClient); })));
+  const коли = s => { const d = new Date(s); return isNaN(d) ? '' : dmyOf(s) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  return 'Картку відновлено зі Звірки (' + dmyOf(o.restoredAt) + '): розмова була на картці, яка не записалась.' +
+    (pl.length ? ' Платіж: ' + pl.join('; ') + '.' : ' Платежу при картці немає.') +
+    (sent.length ? ' Дизайн надсилали клієнту ' + sent.sort().map(коли).filter(Boolean).join(', ') + '.' : '') +
+    ' Знайдіть цю розмову в Sitniks (за платником чи за часом надсилання) і вставте її адресу тут.';
+}
 async function orphanB2cRestore(x){
   if(x.kind === 'orphan_job'){
     const j = (designJobs || {})[x.toNo];
@@ -13096,6 +13131,10 @@ async function orphanB2cRestore(x){
       name:'', phone:'', company:'', instagram:'', items:[], totalPrice:0, totalCost:0, margin:0, marginPct:0,
       createdAt: j.createdAt || now, touchedAt: now, hist:[{ s: B2C_STATUS, at: j.createdAt || now }],
       mgrEmail: (myEmail() || '').trim().toLowerCase(), restoredAt: now, restoredBy: myEmail() || '' };
+    /* ПІДКАЗКА, ЧИЯ ЦЕ РОЗМОВА (28.10, Андрій: «а який це Інстаграм? взагалі
+       не зрозуміло»): діалог був на картці, якої немає, — лишились платник з
+       банку й час, коли дизайн надсилали клієнту. */
+    try{ o.restoreHint = restoreHintOf(o, j); }catch(e){}
     orders.unshift(o);
     try{ await reserveOrderNo(o); }catch(e){ console.warn('бронь при відновленні', e); }
     await storeSet('orders', orders);
@@ -31473,6 +31512,15 @@ const B2C_STATUS = 'b2c-new';
    якого немає. Закрили картку — чернетка зникла, платіж лишився вільним. */
 const DRAFT_JUST = {};
 function draftNew(){
+  /* На пристрої лежить заповнена чернетка (28.10) — спершу запитати про неї,
+     а не класти нову поверх (за 4 с нова затерла б її на пристрої). */
+  try{
+    const d = draftSaved();
+    if(d && (d.chat || d.sum || d.units) &&
+       confirm('Є незавершена чернетка' + (d.name ? ' · ' + d.name : '') + ' (' + dmyOf(d.at) + '). Продовжити її?\n\n«Скасувати» — почати нову, ця чернетка зітреться.')){
+      const r = draftResume(); if(r) return r;
+    }
+  }catch(e){}
   const now = new Date().toISOString();
   const id = 'draft-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   draftDrop('');
@@ -31492,9 +31540,15 @@ function draftDrop(keepId){
   Object.keys(DRAFT_JUST).forEach(k => { if(k !== keepId) delete DRAFT_JUST[k]; });
   const geть = (orders || []).filter(o => o && o.draft && o.orderId !== keepId);
   if(!geть.length) return 0;
+  /* 28.10, Андрій: «щоб не втратилось». Заповнену чернетку (діалог, платіж
+     чи одяг) закрили не «Створити» — вона лишається на пристрої, на дошці
+     «↩ Продовжити чернетку». Порожню забуваємо. */
+  const заповнена = geть.some(o => o.crmChatId || o.tgChatId || (o.draftPays || []).length ||
+    (((designJobs[o.orderId] || {}).units || []).some(u => u && u.gid)));
+  if(заповнена){ try{ draftPersist(); }catch(e){} }
   orders = (orders || []).filter(o => geть.indexOf(o) < 0);
   geть.forEach(o => { delete designJobs[o.orderId]; });
-  draftForget();
+  if(!заповнена) draftForget(); else draftPersistLast = '';
   return geть.length;
 }
 function draftPaySum(o){
@@ -31511,17 +31565,23 @@ function draftMissing(o){
   if(!units.some(u => u && u.gid)) m.push('одяг');
   return m;
 }
+/* ПРИЧИНА НЕВДАЧІ — У КАРТЦІ (28.10, Андрій: «кнопка горить красним… пише
+   помилка і залишається на екрані»): toast зникає за дві секунди, а людина
+   має бачити, що замовлення НЕ створено й чому, доки не натисне ще раз. */
+let draftLastErr = '';
 async function draftCommit(o){
   if(!o || !o.draft) return '';
+  draftLastErr = '';
   const бракує = draftMissing(o);
-  if(бракує.length){ toast('Щоб створити, бракує: ' + бракує.join(', ')); return ''; }
+  if(бракує.length){ draftLastErr = 'бракує: ' + бракує.join(', '); toast('Щоб створити, бракує: ' + бракує.join(', ')); return ''; }
   const oldId = o.orderId, job = designJobs[oldId];
-  if(!job){ toast('Чернетку загублено — почніть «+ Нове замовлення» ще раз'); return ''; }
+  if(!job){ draftLastErr = 'чернетку загублено — почніть «+ Нове замовлення» ще раз'; toast('Чернетку загублено — почніть «+ Нове замовлення» ще раз'); return ''; }
   const ids = (o.draftPays || []).slice();
   const pays = ids.map(id => (payments || []).find(x => x.id === id)).filter(Boolean);
   const зайняті = pays.filter(p => p.orderId);
   if(зайняті.length){
     o.draftPays = ids.filter(id => !зайняті.some(p => p.id === id));
+    draftLastErr = 'платіж ' + зайняті.map(p => fmt(p.amount) + ' ₴').join(', ') + ' уже привʼязали до іншого замовлення — оберіть інший';
     toast('Платіж ' + зайняті.map(p => fmt(p.amount) + ' ₴').join(', ') + ' уже привʼязали до іншого замовлення — оберіть інший');
     return '';
   }
@@ -31560,7 +31620,8 @@ async function draftCommit(o){
     delete designJobs[String(o.orderId)];
     o.orderId = oldId; o.draft = true; o.draftPays = ids;
     job.orderId = oldId; job.draft = true; designJobs[oldId] = job;
-    toast('Замовлення не створилось: ' + ((e && e.message) || e));
+    draftLastErr = String((e && e.message) || e);
+    toast('Замовлення не створилось: ' + ((e && e.message) || e), 6000);
     return '';
   }
   const fin = String(o.orderId);   // бронь могла дати наступний номер
@@ -31816,6 +31877,7 @@ function watchDesign(){
     priceLockAll();         // 15.10: старі картки фіксують свої ціни
     if(document.getElementById('view-design') &&
        document.getElementById('view-design').style.display !== 'none') openDesign(true);
+    finAuditRefresh();      // 28.10: Звірка бачить картки відділу, щойно вони приїхали
   }, e => { designWatching = false; dbLinkLost('design', e); });
 }
 /* ЦІНИ В ІСНУЮЧИХ КАРТКАХ — ФІКСУЄМО ОДИН РАЗ (15.10). Андрій міняє ціни в
@@ -32498,6 +32560,8 @@ function designHostInit(){
     draftMissing: o => draftMissing(o),
     /* Чернетка з пристрою (28.10): що лежить і повернути її в роботу. */
     draftSaved: () => draftSaved(),
+    draftError: () => draftLastErr,
+    restoreHint: o => restoreHintOf(o),
     resumeDraft: async () => {
       const o = draftResume();
       if(!o){ toast('Чернетки на цьому пристрої немає'); return; }
