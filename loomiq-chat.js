@@ -1128,6 +1128,43 @@ function crmSelfLearn(id){
   }, 800);
 }
 function crmSentBy(m){ const v = m && (m.sentBy != null ? m.sentBy : (m.sent_by != null ? m.sent_by : m.senderId)); return (v == null || v === '') ? '' : String(v); }
+/* САМОЗЦІЛЕННЯ СПИСКУ «СВОЇХ» (28.10). У розмові щонайменше два sentBy —
+   наша сторінка й клієнт; коли ВСІ вони «свої», список отруєно (клієнтський
+   id вивчили з памʼяті за текстом). Напевно наші — з managerName або з
+   номера нашої відправки (#id); решту з цієї розмови зі списку знімаємо —
+   і тут, і в документі команди. */
+function crmSelfDrop(ids){
+  const bad = (ids || []).map(String).filter(Boolean);
+  if(!bad.length) return;
+  bad.forEach(x => crmSelfHere.delete(x));
+  try{
+    if(contentData && Array.isArray(contentData.crmSelfIds)){
+      const list = contentData.crmSelfIds.map(String).filter(x => bad.indexOf(x) < 0);
+      if(list.length !== contentData.crmSelfIds.length){
+        contentData.crmSelfIds = list;
+        if(typeof contentLoaded !== 'undefined' && contentLoaded && typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
+          PHOTOS_DOC.set({ crmSelfIds: list }, { merge:true }).catch(e => console.warn('свої sentBy', e));
+      }
+    }
+  }catch(e){ console.warn('свої sentBy', e); }
+  console.warn('sentBy клієнта був у «своїх» — знято:', bad.join(', '));
+}
+function crmSelfHeal(arr, o){
+  if(!Array.isArray(arr)) return;
+  const ids = {}, sure = {};
+  arr.forEach(m => {
+    if(!m || typeof m !== 'object') return;
+    const sb = crmSentBy(m); if(!sb) return;
+    ids[sb] = 1;
+    if(typeof m.managerName === 'string' && m.managerName.trim()) sure[sb] = 1;
+    else { const own = crmOutOwn(o, m, null, null); if(own && String(own.t || '').charAt(0) === '#') sure[sb] = 1; }
+  });
+  const all = Object.keys(ids);
+  if(all.length < 2) return;
+  const self = crmSelfIds();
+  if(!all.every(id => self.has(id))) return;
+  crmSelfDrop(all.filter(id => !sure[id]));
+}
 function crmIsMine(m, text, who, peer, files){
   if(typeof m.managerName === 'string' && m.managerName.trim()){ crmSelfLearn(crmSentBy(m)); return true; }
   const sb = crmSentBy(m);
@@ -1302,6 +1339,7 @@ function crmNormMsgs(data, o){
           : (Array.isArray(data && data.messages) ? data.messages
           : (Array.isArray(data && data.results) ? data.results : null))));
   if(!arr) return null;
+  try{ crmSelfHeal(arr, o); }catch(e){ console.warn('свої sentBy', e); }
   const заЧасом = crmOutTimePick(o, arr);
   const list = arr.map(m => {
     if(typeof m === 'string'){
@@ -1348,9 +1386,19 @@ function crmNormMsgs(data, o){
     const who = crmMsgWho(m);
     /* Своє надіслане впізнаємо першими: тут ми знаємо напевно, а не
        здогадуємось за підписом, якого в такому повідомленні немає. */
-    const own = crmOutOwn(o, m, files, заЧасом) || crmOutFind(o, text, files);
+    const own0 = crmOutOwn(o, m, files, заЧасом) || crmOutFind(o, text, files);
+    /* sentBy головніший за памʼять за текстом (28.10): свої сторінки відомі, а
+       тут інший sentBy — це клієнт, хай би він повторив наш текст слово в
+       слово. Памʼять за номером нашої відправки (#id) — напевно наше. */
+    const sbM = crmSentBy(m), selfM = crmSelfIds();
+    const own = (own0 && String(own0.t || '').charAt(0) !== '#' && sbM && selfM.size && !selfM.has(sbM)) ? null : own0;
     const mine = own ? true : crmIsMine(m, text, who, peer, files);
-    if(own) crmSelfLearn(crmSentBy(m));                 // памʼять каже «наше» — запамʼятовуємо нашу сторінку
+    /* Памʼять за текстом «наше» НЕ вчить сторінку (28.10, Львівська гуцулочка:
+       клієнт написав «Так» — такий самий текст ми колись слали з цієї картки,
+       памʼять сказала «наше», і клієнтський sentBy ліг у «свої» для всіх
+       вкладок — уся переписка клієнта стала праворуч). Напевно наше —
+       лише з managerName або з номера нашої відправки (#id). */
+    if(own && String(own.t || '').charAt(0) === '#') crmSelfLearn(crmSentBy(m));
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
        відправлене, його імʼям підписувати наше повідомлення не можна. */
@@ -2003,6 +2051,8 @@ async function crmSend(o, text, again){
     crmSent.add(t);
     crmFreshNow();               // найближчі читання — повз копію воркера
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
+    /* Sitniks повернув наше повідомлення — його sentBy і є наша сторінка (напевно). */
+    try{ const sbR = res && (res.sentBy != null ? res.sentBy : (res.message && res.message.sentBy)); if(sbR != null && sbR !== '') crmSelfLearn(String(sbR)); }catch(e){}
     /* Хто відповів і скільки клієнт чекав — до того, як кружечок згасне. */
     try{
       const чекав = (o.crmTheirs && o.crmInAt) ? (Date.now() - new Date(String(o.crmInAt).replace(' ', 'T')).getTime()) / 60000 : 0;

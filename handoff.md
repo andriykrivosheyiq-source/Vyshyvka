@@ -336,6 +336,10 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
 - **Пошук на телефоні**: `seekSoft(root)` (лише `.dz-boards`), `seekHit`
   без `#` і по цифрах, `boardHtml` → `.dz-board.is-seek`, `.dz-col.has-cards`;
   CSS у мобільному блоці адмінки. `tests/prod-mobile.mjs` (телефон, пошук).
+- **Чати: лікування «своїх» sentBy** (28.10, LQ_CHAT): `crmSelfLearn` лише
+  напевно (managerName, `own.t` з `#`, `res.sentBy` у `crmSend`),
+  `crmSelfDrop`/`crmSelfHeal` у `crmNormMsgs`, sentBy над памʼяттю за текстом
+  (`own0`→`own`). `tests/chat-sentby.mjs` §5.
 - **orderApply читає картку перед кожною спробою** (28.10): адмінка
   `orderApply` (get → reset `o` з бази → `ordersSaved` → fn → `saveOrders({quiet,
   only:id, pre:{id,doc}})`), `dbNewerOf` (звірка вже прочитаного), `saveOrders`
