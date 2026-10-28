@@ -5195,6 +5195,7 @@
   .dz-np-err{display:inline-flex;align-items:center;max-width:420px;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;
     color:#B42318;background:#FEF2F2;border:1px solid #FECACA;white-space:normal;line-height:1.3;}
   .dz-b.is-busy,.dz-card-w.is-busy,[role="button"].is-busy{opacity:.55;cursor:progress;pointer-events:none;}
+  .dz-card-w.is-fail{outline:2px solid #d33;outline-offset:2px;}
   .dz-np-err .dz-link,.dz-geo-note .dz-link{all:unset;cursor:pointer;color:#2F5FA8;font-weight:700;text-decoration:underline;margin-left:4px;}
   .dz-geo-note{color:#92400E;background:#FFFBEB;border-color:#FDE68A;}
   .dz-col.dz-deliv-col{flex:0 0 190px;width:190px;max-width:190px;}
@@ -8332,32 +8333,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4f9103ed9b"></script>
-<script src="loomiq-fingerprint.js?v=4f9103ed9b"></script>
-<script src="loomiq-pricing.js?v=4f9103ed9b"></script>
+<script src="loomiq-select.js?v=48b0f120fb"></script>
+<script src="loomiq-fingerprint.js?v=48b0f120fb"></script>
+<script src="loomiq-pricing.js?v=48b0f120fb"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=4f9103ed9b"></script>
+<script src="loomiq-money-core.js?v=48b0f120fb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4f9103ed9b"></script>
-<script src="loomiq-mock.js?v=4f9103ed9b"></script>
+<script src="loomiq-design.js?v=48b0f120fb"></script>
+<script src="loomiq-mock.js?v=48b0f120fb"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=4f9103ed9b"></script>
+<script src="imagetracer.js?v=48b0f120fb"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=4f9103ed9b"></script>
-<script src="loomiq-threads.js?v=4f9103ed9b"></script>
+<script src="loomiq-chat.js?v=48b0f120fb"></script>
+<script src="loomiq-threads.js?v=48b0f120fb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4f9103ed9b"></script>
+<script src="loomiq-cards.js?v=48b0f120fb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8402,8 +8403,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '4f9103ed9b';
-var LQ_VER_AT = '2026-10-28T11:50:59Z';
+var LQ_VER = '48b0f120fb';
+var LQ_VER_AT = '2026-10-28T12:22:52Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -9977,8 +9978,10 @@ async function saveOrders(opts){
   /* Чернетка нового B2C-замовлення (22.10) у базу не йде, поки її не
      створили кнопкою «Створити замовлення»; на пристрої — лишається (28.10). */
   try{ draftPersist(); }catch(e){}
+  const onlyId = (opts && opts.only) || '';
   (orders || []).forEach(o=>{
     if(!o || !o.id || o.draft) return;
+    if(onlyId && o.id !== onlyId) return;        // дія над однією карткою (28.10): не серіалізуємо решту — на телефоні це сотні мс
     if(!ordersSaved.has(o.id) && o.arch === undefined) o.arch = false;   // нова — жива
     let json = JSON.stringify(o);
     /* Архівну картку змінили — вона знову жива. */
@@ -9989,7 +9992,6 @@ async function saveOrders(opts){
     cur.set(o.id, json);
   });
   const failed = [];
-  const onlyId = (opts && opts.only) || '';
   const pre = (opts && opts.pre && opts.pre.doc) ? opts.pre : null;
   for(const [id, json] of cur){
     if(ordersSaved.get(id) === json) continue;
@@ -10120,7 +10122,7 @@ async function saveOrders(opts){
       })() });
     }
   }
-  for(const id of [...ordersSaved.keys()]){
+  for(const id of (onlyId ? [] : [...ordersSaved.keys()])){   // одна картка — решту не чіпаємо й не видаляємо
     if(cur.has(id)) continue;
     try{ await ORDERS_COL.doc(id).delete(); ordersSaved.delete(id); }
     catch(e){ console.error('order delete failed', id, e); failed.push({ id, e }); }
@@ -11216,11 +11218,13 @@ if(_openNO) _openNO.addEventListener('click', ()=> toggleNewOrder(true));
 const _closeNO = document.getElementById('close-new-order');
 if(_closeNO) _closeNO.addEventListener('click', ()=> toggleNewOrder(false));
 
-function toast(msg){
+let toastT = 0;
+function toast(msg, ms){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1800);
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>t.classList.remove('show'), +ms > 0 ? +ms : 1800);   // відмова — довше (28.10)
 }
 
 /* ============================================================
@@ -32032,7 +32036,7 @@ function designHostInit(){
        Ключ живе лише в секретах Worker. */
     bgUrl: () => ((contentData || {}).bgApi || {}).proxyUrl || '',
     bgCount: kind => bgCountAdd(kind),
-    toast: m => toast(m)
+    toast: (m, ms) => toast(m, ms)
   };
   /* Ядро рахує строки й мусить знати про вихідні. Але команди воно не
      бачить — тож питає гачком, а відповідає на нього робоче місце. */
@@ -32119,7 +32123,7 @@ function designHostInit(){
       await DESIGN_COL.doc('stock').set({ kind:'stock', items: JSON.parse(JSON.stringify(designStock)),
         moves: JSON.parse(JSON.stringify(designStockMoves || [])), at: new Date().toISOString(), by: myEmail() || '' });
     },
-    toast: m => toast(m),
+    toast: (m, ms) => toast(m, ms),
     upload: f => uploadCloudinaryAuto(f),
     /* Каталог для відділу: вироби, кольори й розміри — ті самі, що на
        сайті й у прорахунку. Свого довідника відділ не заводить навмисно:

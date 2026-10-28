@@ -3111,7 +3111,7 @@
      дизайнер і надсилає. Фото відшиву запасне: воно зʼявляється пізніше. */
   function verPic(v){ return (v && (v.wilcom || v.photo)) || ''; }
   function nameOf(e){ return (host.name && host.name(e)) || e || '—'; }
-  function say(m){ if(host.toast) host.toast(m); }
+  function say(m, ms){ if(host.toast) host.toast(m, ms); }
   function can(k){ return host.can ? !!host.can(k) : true; }
   /* ЧАС — КИЇВСЬКИЙ, А НЕ ТОЙ, ЩО НА ПРИСТРОЇ.
 
@@ -9628,10 +9628,15 @@
     if(r === 'stale'){
       render(root);
       var свіжа = U.pairOf(o.orderId);
-      return say('Так перенести не можна: картку ' + U.jobNo(job) + ' вже рушили — «' + D.stepLabel(D.PROD, D.prodAt(job, свіжа ? свіжа.o : o)) + '». Показано свіжу');
+      return say('Так перенести не можна: картку ' + U.jobNo(job) + ' вже рушили — «' + D.stepLabel(D.PROD, D.prodAt(job, свіжа ? свіжа.o : o)) + '». Показано свіжу', 5000);
     }
     render(root);
-    return say('Не записалось — перевірте інтернет і перетягніть ще раз');
+    /* Не лягло (28.10, оператори: «з третього разу повертається назад»):
+       плитка повертається, але червона, і напис тримається довше — щоб
+       було видно, що це база не відповіла, а не «само відкотилось». */
+    try{ var wF = root.querySelector('.dz-board [data-open="' + o.orderId + '"]'); var wW = wF && (wF.closest('.dz-card-w') || wF);
+         if(wW){ wW.classList.add('is-fail'); wW.title = 'Не записалось — перетягніть ще раз'; setTimeout(function(){ wW.classList.remove('is-fail'); }, 8000); } }catch(e){}
+    return say('Не записалось — база не відповіла. Перевірте інтернет і перетягніть ще раз', 6000);
   }
   /* СТАТУСИ НОВОЇ ПОШТИ — ВИДНО, ЧИ ЖИВЕ ОПИТУВАННЯ (27.10, Андрій: «вчора
      поїхали, а воно не в дорозі… чому не оновлюється»). Кнопка «⟳ Статуси
@@ -11295,14 +11300,15 @@
             return save(p.job, p.o, 'Поставлено вручну: «' + D.pinLabel(to) + '» · 📌');
           }
           if(!D.prodCanMove(from, to, p.o)) return say('Так перенести не можна');
+          /* Порядок у новій колонці — лише в памʼяті: окремий запис картки
+             відділу (читання + запис) робив кожен хід удвічі довшим на
+             телефоні (28.10, «тормозить»); ляже з наступним записом картки. */
           if(ord != null) p.job.boardOrd = ord;
           /* Плитка одразу переїжджає й світиться «зайнятою», поки база не підтвердить. */
           try{ var wM = root.querySelector('.dz-board [data-open="' + p.o.orderId + '"]'); var wW = wM && (wM.closest('.dz-card-w') || wM);
                if(wW){ wW.classList.add('is-busy'); var bodyK = k.querySelector('.dz-col-b'); if(bodyK) bodyK.insertBefore(wW, bodyK.firstChild); } }catch(e){}
           prodMoveApply(p.job, p.o, to, me0).then(function(r){
             if(r === true && to === 'run') prodToTelegram(p.job, p.o, true);
-            /* Порядок у колонці — у картці відділу; не ліг — не страшно. */
-            if(r === true && ord != null && host().save){ try{ Promise.resolve(host().save(p.job, null)).catch(function(){}); }catch(e){} }
             prodMoveSay(root, p.job, p.o, to, r);
           });
         };

@@ -418,10 +418,12 @@ r = await p.evaluate(async () => {
   U.setTab('prod'); U.open('2000403'); U.render(root);
   await new Promise(z => setTimeout(z, 150));
   const out = { до: D.prodAt(designJobs['2000403'], o) };
+  const n0 = (window.__UPDATES || []).length;
   await U.act('prod-move', root, { to:'run' });
   await new Promise(z => setTimeout(z, 300));
   const o2 = orders.find(x => x.id === 'o3');
   out.після = D.prodAt(designJobs['2000403'], o2); out.mgr = o2.mgrEmail; out.toast = window.__TOASTS.slice(-1)[0] || '';
+  out.записи = (window.__UPDATES || []).slice(n0).map(u => (u.col || '?') + ':' + u.id);
   /* Тим часом з іншого пристрою картку вже погодили — хід «на станки» запізнився. */
   const d = window.__ORDERS.find(x => x.id === 'o3');
   d.tracks = { supply:'got', prod:'done', qc:'check' }; d.prodQc = { photos:['x'], at:'2026-10-28T09:00:00.000Z' }; d.touchedAt = '2026-10-28T09:00:00.000Z'; d.rev = 9;
@@ -436,6 +438,7 @@ d = await db('o3');
 console.log('   ' + JSON.stringify({ r, db: { prod: (d.tracks || {}).prod, mgr: d.mgrEmail, qc: (d.tracks || {}).qc } }));
 ok(r.до === 'ready' && r.після === 'run' && r.mgr === 'менеджер@loomiq' && /На станках/.test(r.toast),
   'зі старої копії перетягнули на «На станках» — хід ліг на свіжу картку, правка менеджера ціла, картка не злетіла назад', JSON.stringify({ r: { до: r.до, після: r.після, mgr: r.mgr, toast: r.toast } }));
+ok(r.записи.length === 1 && /:o3$/.test(r.записи[0]), 'хід цеху — один запис, лише ця картка замовлення (картку відділу й решту карток не чіпає)', JSON.stringify(r.записи));
 ok(r.запізнився.стан === 'appr' && /вже рушили/.test(r.запізнився.toast) && d.tracks.qc === 'check',
   'картку тим часом погодили — хід не застосовано, показано свіжу «Чекає погодження»', JSON.stringify({ з: r.запізнився, dbQc: d.tracks.qc }));
 
