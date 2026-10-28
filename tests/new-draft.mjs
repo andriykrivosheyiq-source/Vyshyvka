@@ -230,6 +230,18 @@ await p.evaluate(() => { const U = window.LQDesign.ui; const d = orders.find(o =
   P.get = function(){ if(this.__col === 'kanbanOrders' || !this.__col) return Promise.reject(new Error('Failed to get document because the client is offline.')); return window.__get0.apply(this, arguments); };
   U.render(document.getElementById('dzRoot')); });
 await ЖДИ(200);
+/* З чернетки клієнту не шлемо (28.10): «Надіслати клієнту» — лише після «Створити замовлення». */
+const тел = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui; const o = orders.find(x => x.draft); const job = designJobs[o.orderId]; const u = job.units[0];
+  const d = D.dzNew(); d.who = 'p@loomiq'; u.graphic = [d];
+  D.dzVer(d, 'p@loomiq', [{ name:'мокап.png', url:'https://f/mock1.png', role:'mock' }], '', null, 'graphic');
+  window.__TOASTS = [];
+  try{ await U.act('dz-tell', document.getElementById('dzRoot'), { dz: u.id + '|graphic|0', v: 1 }); }catch(e){ window.__TOASTS.push('err:' + e.message); }
+  const sent = (d.vers || []).some(v => v.sentToClient);
+  u.graphic = [];
+  return { says: window.__TOASTS.slice(), sent };
+});
+ok(тел.says.some(m => /Спершу.*Створити замовлення/.test(m)) && !тел.sent, 'з чернетки «Надіслати клієнту» не йде: «Спершу натисніть «Створити замовлення»»', JSON.stringify(тел));
 await p.click('#dzRoot [data-do="order-create"]');
 await ЖДИ(800);
 const s3b = await p.evaluate(() => { const d = orders.find(o => o.draft) || null; const x = payments.find(q => q.id === 'p6');

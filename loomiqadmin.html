@@ -8343,32 +8343,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f0915d5d38"></script>
-<script src="loomiq-fingerprint.js?v=f0915d5d38"></script>
-<script src="loomiq-pricing.js?v=f0915d5d38"></script>
+<script src="loomiq-select.js?v=de7b068c18"></script>
+<script src="loomiq-fingerprint.js?v=de7b068c18"></script>
+<script src="loomiq-pricing.js?v=de7b068c18"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f0915d5d38"></script>
+<script src="loomiq-money-core.js?v=de7b068c18"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f0915d5d38"></script>
-<script src="loomiq-mock.js?v=f0915d5d38"></script>
+<script src="loomiq-design.js?v=de7b068c18"></script>
+<script src="loomiq-mock.js?v=de7b068c18"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f0915d5d38"></script>
+<script src="imagetracer.js?v=de7b068c18"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=f0915d5d38"></script>
-<script src="loomiq-threads.js?v=f0915d5d38"></script>
+<script src="loomiq-chat.js?v=de7b068c18"></script>
+<script src="loomiq-threads.js?v=de7b068c18"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f0915d5d38"></script>
+<script src="loomiq-cards.js?v=de7b068c18"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8413,8 +8413,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f0915d5d38';
-var LQ_VER_AT = '2026-10-28T18:13:39Z';
+var LQ_VER = 'de7b068c18';
+var LQ_VER_AT = '2026-10-28T18:26:28Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -13104,6 +13104,24 @@ async function orphanMergeInto(x, toNo){
   try{ accLog('renum', 'сироту #' + (x.no || k) + ' (ключ ' + k + ') обʼєднано в #' + noOf(to) + ': одяг, дизайн і ' + pays.length + ' платіж(і) тепер там, номер вибув'); }catch(e){}
   try{ repaintAfterOrders(); }catch(e){}
 }
+/* Чия це розмова — для відновленої картки без діалогу (28.10, Андрій: «я ці
+   відновив… діалога немає… як узнати, який був платіж?»). Рахується і для
+   карток, відновлених до цієї збірки (`restoredAt` є, підказки нема). */
+function restoreHintOf(o, j){
+  if(!o) return '';
+  if(o.restoreHint) return o.restoreHint;
+  if(!o.restoredAt || o.crmChatId) return '';
+  j = j || (designJobs || {})[o.orderId] || {};
+  const pl = (payments || []).filter(p => p && String(p.orderId || '') === String(o.orderId))
+    .map(p => fmt(Math.round(+p.amount || 0)) + ' ₴ від ' + (String(p.counter || '').trim() || '—') + ' (' + dmyOf(p.at) + ')');
+  const sent = [];
+  (j.units || []).forEach(u => (u && u.graphic || []).forEach(d => (d && d.vers || []).forEach(v => { if(v && v.sentToClient) sent.push(v.sentToClient); })));
+  const коли = s => { const d = new Date(s); return isNaN(d) ? '' : dmyOf(s) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  return 'Картку відновлено зі Звірки (' + dmyOf(o.restoredAt) + '): розмова була на картці, яка не записалась.' +
+    (pl.length ? ' Платіж: ' + pl.join('; ') + '.' : ' Платежу при картці немає.') +
+    (sent.length ? ' Дизайн надсилали клієнту ' + sent.sort().map(коли).filter(Boolean).join(', ') + '.' : '') +
+    ' Знайдіть цю розмову в Sitniks (за платником чи за часом надсилання) і вставте її адресу тут.';
+}
 async function orphanB2cRestore(x){
   if(x.kind === 'orphan_job'){
     const j = (designJobs || {})[x.toNo];
@@ -13116,17 +13134,7 @@ async function orphanB2cRestore(x){
     /* ПІДКАЗКА, ЧИЯ ЦЕ РОЗМОВА (28.10, Андрій: «а який це Інстаграм? взагалі
        не зрозуміло»): діалог був на картці, якої немає, — лишились платник з
        банку й час, коли дизайн надсилали клієнту. */
-    try{
-      const pl = (payments || []).filter(p => p && String(p.orderId || '') === String(x.toNo))
-        .map(p => fmt(Math.round(+p.amount || 0)) + ' ₴ від ' + (String(p.counter || '').trim() || '—') + ' (' + dmyOf(p.at) + ')');
-      const sent = [];
-      ((j.units || [])).forEach(u => (u && u.graphic || []).forEach(d => (d && d.vers || []).forEach(v => { if(v && v.sentToClient) sent.push(v.sentToClient); })));
-      const коли = s => { const d = new Date(s); return isNaN(d) ? '' : dmyOf(s) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-      o.restoreHint = 'Картку відновлено зі Звірки: розмова була на картці, яка не записалась.' +
-        (pl.length ? ' Платіж: ' + pl.join('; ') + '.' : '') +
-        (sent.length ? ' Дизайн надсилали клієнту ' + sent.sort().map(коли).filter(Boolean).join(', ') + '.' : '') +
-        ' Знайдіть цю розмову в Sitniks (за платником чи за часом надсилання) і вставте її адресу тут.';
-    }catch(e){}
+    try{ o.restoreHint = restoreHintOf(o, j); }catch(e){}
     orders.unshift(o);
     try{ await reserveOrderNo(o); }catch(e){ console.warn('бронь при відновленні', e); }
     await storeSet('orders', orders);
@@ -32553,6 +32561,7 @@ function designHostInit(){
     /* Чернетка з пристрою (28.10): що лежить і повернути її в роботу. */
     draftSaved: () => draftSaved(),
     draftError: () => draftLastErr,
+    restoreHint: o => restoreHintOf(o),
     resumeDraft: async () => {
       const o = draftResume();
       if(!o){ toast('Чернетки на цьому пристрої немає'); return; }

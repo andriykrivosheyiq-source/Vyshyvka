@@ -197,6 +197,16 @@ console.log('   ' + JSON.stringify(відн));
 ok(відн.n === 1 && відн.kind === 'orphan_job' && /#2000302 .*не дописалась/.test(відн.text), 'Звірка: «Картка #2000302 не дописалась…»', JSON.stringify(відн));
 ok(відн.є && відн.dir === 'b2c' && відн.paid === 6120 && відн.left === 0 && відн.lost === 0, '«Відновити» — картка на дошці з тим самим номером, платіж 6 120 ₴ при ній, «такого замовлення немає» зникло', JSON.stringify(відн));
 ok(/відновлено зі Звірки/.test(відн.hint) && /6.120 ₴ від Коваль Іра/.test(відн.hint) && /Sitniks/.test(відн.hint), 'у картці підказка, чия це розмова: платник і дата (28.10)', відн.hint);
+/* Картка, відновлена ДО цієї збірки (підказки в ній немає): підказка рахується на льоту, заслони «діалог і передоплата» немає, одяг видно. */
+const стара = await p.evaluate(() => {
+  const o = orders.find(x => x.orderId === '5000302'); delete o.restoreHint;
+  const j = designJobs['5000302']; const U = window.LQDesign.ui;
+  const out = { hint: restoreHintOf(o), gate: U.gate(j, o) };
+  o.restoredAt = ''; out.gateNew = U.gate(j, o); o.restoredAt = new Date().toISOString();
+  return out;
+});
+ok(/відновлено зі Звірки/.test(стара.hint) && /6.120 ₴ від Коваль Іра/.test(стара.hint) && стара.gate === null && стара.gateNew && !стара.gateNew.dialog,
+  'відновлена раніше картка: підказка рахується на льоту, заслони «діалог і передоплата» немає (а в звичайної нової без діалогу — є)', JSON.stringify(стара));
 
 console.log('');
 console.log('═══ 6. ВІДНОВИЛИ ПОРОЖНЮ, А СПРАВЖНЯ З ДІАЛОГОМ — ПІД ІНШИМ НОМЕРОМ: «ОБʼЄДНАТИ» (23.10) ═══');

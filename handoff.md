@@ -224,8 +224,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   кнопка `is-err` «Створити ще раз»); `draftDrop` заповнену чернетку
   лишає на пристрої (`draftPersist`), порожню забуває; `draftNew` при
   збереженій заповненій — `confirm` → `draftResume`; `orphanB2cRestore`
-  пише `o.restoreHint` (платник/сума/дата, `sentToClient`) — показує
-  блок «Розмова в Sitniks» (`.dz-own-restore`); Звірка перемальовується зі
+  пише `o.restoreHint` (платник/сума/дата, `sentToClient`; `restoreHintOf`
+  рахує й для раніше відновлених, host `restoreHint`) — показує
+  блок «Розмова в Sitniks» (`.dz-own-restore`); `b2cGate`: `restoredAt` →
+  без заслони, `sentToClient` = «пішло»; `dz-tell` у чернетці — відмова
+  «Спершу «Створити замовлення»»; `U.gate` для тестів; Звірка перемальовується зі
   знімків (`go('view-fin')` у `repaintAfterOrdersNow`, `finAuditRefresh`
   у `watchDesign`),
   `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.

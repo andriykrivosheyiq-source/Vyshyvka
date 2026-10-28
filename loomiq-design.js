@@ -3705,7 +3705,8 @@
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
           '<input data-bind placeholder="вставте адресу відкритої розмови"></label>' +
-        (o.restoreHint ? '<div class="dz-own-hint dz-own-restore">' + esc(o.restoreHint) + '</div>' : '') +
+        (function(){ var h = o.restoreHint || ''; try{ if(host.restoreHint) h = host.restoreHint(o) || h; }catch(e){}
+          return h ? '<div class="dz-own-hint dz-own-restore">' + esc(h) + '</div>' : ''; })() +
         '<div class="dz-own-hint">Відкрийте розмову в Sitniks і скопіюйте адресу ' +
           'з рядка браузера. Нік підтягнеться з неї сам.</div></div>';
     }
@@ -6104,8 +6105,13 @@
      ще не пішло в роботу: те, що вже в роботі, не зупиняємо. */
   function b2cGate(job, o){
     if(!(o && o.dir === 'b2c')) return null;
+    /* Відновлена зі Звірки картка вже в роботі (28.10, Андрій: «відновив —
+       діалога немає, ставте діалог і добавте платіж»): заслона ховала одяг
+       і дизайн, які там уже є. Дизайн, що йшов клієнту, — теж «пішло». */
+    if(o.restoredAt) return null;
     var пішло = !!(job && job.handedAt) || unitsOf(job).some(function(u){
-      return u && (u.ready || dzList(u, 'graphic').some(function(d){ return d && d.sentAt; }) ||
+      return u && (u.ready || dzList(u, 'graphic').some(function(d){ return d && (d.sentAt ||
+                     (d.vers || []).some(function(v){ return v && v.sentToClient; })); }) ||
                    dzList(u, 'stitch').some(function(d){ return d && (d.sentAt || d.who); })); });
     if(пішло) return null;
     var діалог = !!(o.crmChatId || String(o.webId || '').slice(0, 3) === 'tg:');
@@ -7031,7 +7037,7 @@
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
     orderCost: orderCost, sumRows: sumRows, netSum: netSum, priceLock: priceLock, priceLockJob: priceLockJob,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2, shipInfo: shipInfo, workDays: workDays,
-    unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen,
+    unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen, gate: b2cGate,
     waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, histHtml: histHtml, histSub: histSub,
@@ -14128,6 +14134,10 @@
          повідомлення, і слати перше вдруге виглядає так, ніби ми забули,
          про що йшлося. */
       if(what === 'dz-tell'){
+        /* З ЧЕРНЕТКИ КЛІЄНТУ НЕ ШЛЕМО (28.10, Андрій: «людина вже надсилала
+           клієнту, а потім тільки зберігала карточку»): замовлення ще не в
+           базі — надіслане не мало б куди лягти. Спершу «Створити замовлення». */
+        if(o && o.draft) return say('Спершу натисніть «Створити замовлення» — тоді надсилайте клієнту', 6000);
         var tv = (dd.vers || []).filter(function(x){ return +x.n === +(data && data.v); })[0]
                  || dd.vers[dd.vers.length - 1];
         if(!tv) return say('Версії ще немає');
