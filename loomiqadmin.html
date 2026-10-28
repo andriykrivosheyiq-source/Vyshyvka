@@ -8333,32 +8333,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=48b0f120fb"></script>
-<script src="loomiq-fingerprint.js?v=48b0f120fb"></script>
-<script src="loomiq-pricing.js?v=48b0f120fb"></script>
+<script src="loomiq-select.js?v=a929a08e4c"></script>
+<script src="loomiq-fingerprint.js?v=a929a08e4c"></script>
+<script src="loomiq-pricing.js?v=a929a08e4c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=48b0f120fb"></script>
+<script src="loomiq-money-core.js?v=a929a08e4c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=48b0f120fb"></script>
-<script src="loomiq-mock.js?v=48b0f120fb"></script>
+<script src="loomiq-design.js?v=a929a08e4c"></script>
+<script src="loomiq-mock.js?v=a929a08e4c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=48b0f120fb"></script>
+<script src="imagetracer.js?v=a929a08e4c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=48b0f120fb"></script>
-<script src="loomiq-threads.js?v=48b0f120fb"></script>
+<script src="loomiq-chat.js?v=a929a08e4c"></script>
+<script src="loomiq-threads.js?v=a929a08e4c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=48b0f120fb"></script>
+<script src="loomiq-cards.js?v=a929a08e4c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8403,8 +8403,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '48b0f120fb';
-var LQ_VER_AT = '2026-10-28T12:22:52Z';
+var LQ_VER = 'a929a08e4c';
+var LQ_VER_AT = '2026-10-28T12:57:23Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -26303,7 +26303,23 @@ function shipTtnExtra(o, v, d){
    були; причина відмови реєстру знімається. true — зроблено, інакше чому ні. */
 async function shipTtnRemake(o){
   if(!o || !String(o.ttn || '').trim()) return 'накладної немає';
-  const v = shipVals(o), miss = shipMissing(v);
+  let v = shipVals(o), miss = shipMissing(v);
+  /* НАКЛАДНА З КАБІНЕТУ НОВОЇ ПОШТИ (28.10, Андрій: «як так, якщо ТТН уже
+     була створена?»). Номер вписали руками, а форми «Відправка» в картці
+     ніхто не заповнював — перестворювати нема з чого. Імʼя й телефон
+     отримувача беремо зі статусу накладної в НП і кладемо у форму; місто й
+     відділення людина обирає зі списку сама. Кажемо це словами. */
+  if(miss.length && !String(o.ttnRef || '')){
+    try{
+      const t = await npCall('track', { ttn: String(o.ttn).replace(/\D/g, ''), phone: o.phone || '' });
+      const sh = (o.ship && typeof o.ship === 'object') ? o.ship : (o.ship = {});
+      let взято = false;
+      if(!sh.name && t && String(t.name || '').trim()){ sh.name = String(t.name).trim(); взято = true; }
+      if(!sh.phone && t && String(t.phone || '').replace(/\D/g, '').length >= 10){ sh.phone = String(t.phone).trim(); взято = true; }
+      if(взято){ touchOrder(o); try{ await saveOrders({ quiet: true, only: o.id }); }catch(e){} v = shipVals(o); miss = shipMissing(v); }
+    }catch(e){ console.warn('дані накладної з НП', e); }
+    if(miss.length) return 'цю накладну створили в кабінеті Нової пошти, а не в адмінці — у картці немає даних отримувача. Відкрийте «Відправка», заповніть: ' + miss.join(', ') + ' — і натисніть «Перестворити» ще раз';
+  }
   if(miss.length) return 'бракує: ' + miss.join(', ');
   const стара = String(o.ttn).trim(), старийRef = String(o.ttnRef || ''), sender = String(o.ttnSender || (v.sender ? v.sender.id : '') || '');
   let d;

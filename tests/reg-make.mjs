@@ -365,6 +365,28 @@ ok(r8b.ops.join() === 'create,ttnDelete' && r8b.опис === nos8[0] && r8b.delR
 ok(r8b.стан === 'reg' && r8b.shipCol === 'reg' && !r8b.regFail && !r8b.npSt && r8b.днів === 0,
   'картка лишилась у «Реєстр»; причина відмови й статус старої накладної зняті; накладній 0 днів', JSON.stringify({ с: r8b.стан, sc: r8b.shipCol, rf: r8b.regFail, np: r8b.npSt, д: r8b.днів }));
 
+/* Накладну створили в кабінеті НП і вписали номер руками (28.10, Андрій:
+   «як така помилка, якщо ТТН уже створена?»): форма «Відправка» порожня —
+   імʼя й телефон беремо зі статусу НП, про місто й відділення кажемо словами. */
+const r8c = await p.evaluate(async ids => {
+  const u0 = npUrl, c0 = npCall;
+  npUrl = () => 'https://np.test'; window.__NPC = [];
+  npCall = async (op, extra) => { window.__NPC.push({ op, extra });
+    if(op === 'track') return { ok:true, status:'Відправник самостійно створив цю накладну', code:'1', name:'Коваль Олена', phone:'380501112233' };
+    throw new Error('не та операція: ' + op); };
+  try{
+    const o = orders.find(x => x.orderId === ids[1]);
+    o.ttn = '20451587347945'; o.ttnRef = ''; o.ship = {}; o.phone = ''; delete o.crmChatId;
+    const why = await shipTtnRemake(o);
+    return { why, name: (o.ship || {}).name, phone: (o.ship || {}).phone, ops: window.__NPC.map(c => c.op), ttn: o.ttn };
+  } finally { npUrl = u0; npCall = c0; }
+}, g8);
+console.log('   ' + JSON.stringify(r8c));
+ok(/створили в кабінеті Нової пошти.*Відкрийте «Відправка», заповніть: місто.*відділення/.test(r8c.why) && !/імʼя отримувача|телефон отримувача/.test(r8c.why),
+  'накладна з кабінету НП: сказано словами, що бракує лише міста й відділення', r8c.why);
+ok(r8c.name === 'Коваль Олена' && r8c.phone === '380501112233' && r8c.ops.join() === 'track' && r8c.ttn === '20451587347945',
+  'імʼя й телефон отримувача взято зі статусу НП у форму; нову накладну не створювали, стара на місці', JSON.stringify(r8c));
+
 console.log('═══ 9. ЗВЕДЕННЯ ПО НАКЛАДНИХ У ФІНАНСАХ (27.10) ═══');
 /* Андрій: «по цим ТТН — де наложені платежі є, де немає, яка сума». */
 const r9 = await p.evaluate(ids => {
