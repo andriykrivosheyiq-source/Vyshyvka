@@ -439,6 +439,51 @@ ok(r.до === 'ready' && r.після === 'run' && r.mgr === 'менеджер@l
 ok(r.запізнився.стан === 'appr' && /вже рушили/.test(r.запізнився.toast) && d.tracks.qc === 'check',
   'картку тим часом погодили — хід не застосовано, показано свіжу «Чекає погодження»', JSON.stringify({ з: r.запізнився, dbQc: d.tracks.qc }));
 
+console.log('═══ 11. «ПОГОДЖЕНО МЕНЕДЖЕРОМ» ПРИ ЗБОЇ ЧИТАННЯ — НЕ «ВЖЕ РУШИЛИ», А «НЕ ЗАПИСАЛОСЬ»; ВИГЛЯД НЕ БРЕШЕ; ОДНЕ ЧИТАННЯ (28.10) ═══');
+/* Відео Андрія: натиснув «Погоджено» → «картку вже рушили далі: «Можна
+   відправляти»» → за хвилину картка знову в «Чекає погодження». Власна
+   невдала спроба лишала в памʼяті «погоджено», повтор бачив «уже погодили». */
+await setDb('o4', { touchedAt:'2026-10-28T08:00:00.000Z', rev: 4, ttn:'', npSt:null, reg:null, shipCol:'', tracks:{ supply:'got', prod:'done', qc:'check' }, prodQc:{ photos:['x'], at:'2026-10-28T07:00:00.000Z' } });
+r = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, root = document.getElementById('dzRoot');
+  const o = orders.find(x => x.id === 'o4');
+  const d = window.__ORDERS.find(x => x.id === 'o4');
+  Object.assign(o, JSON.parse(JSON.stringify(d))); ordersSaved.set('o4', JSON.stringify(o));
+  const j = designJobs['2000404'];
+  U.setTab('acct'); U.open('2000404'); U.render(root);
+  await new Promise(z => setTimeout(z, 150));
+  const out = { до: D.prodAt(j, o) };
+  /* 1. Базу не прочитали. */
+  window.__GET_FAIL = 1; window.__GET_FAILS = 0; window.__TOASTS = [];
+  await U.act('prod-ok', root);
+  window.__GET_FAIL = 0;
+  out.збій = { toast: window.__TOASTS.slice(-1)[0] || '', памʼять: D.prodAt(j, orders.find(x => x.id === 'o4')), база: (window.__ORDERS.find(x => x.id === 'o4').tracks || {}).qc, читань: window.__GET_FAILS };
+  /* 2. Звʼязок є — погоджується; читань бази — одне (дія читає, запис бере те саме). */
+  window.__TOASTS = []; window.__GETS = 0;
+  const g0 = Object.getPrototypeOf(ORDERS_COL.doc('o4')).get;
+  /* Стуб бази читає документ усередині update — то не читання адмінки. */
+  Object.getPrototypeOf(ORDERS_COL.doc('o4')).get = function(){ if(this.__col === 'kanbanOrders' && !/Doc\.update/.test(String(new Error().stack))) window.__GETS++; return g0.apply(this, arguments); };
+  const b = root.querySelector('.dz-panel [data-do="prod-ok"]');
+  b.click();
+  const зайнята = { busy: b.classList.contains('is-busy'), disabled: b.disabled };
+  await new Promise(z => setTimeout(z, 900));
+  Object.getPrototypeOf(ORDERS_COL.doc('o4')).get = g0;
+  out.ок = { toast: window.__TOASTS.slice(-1)[0] || '', памʼять: D.prodAt(j, orders.find(x => x.id === 'o4')), база: (window.__ORDERS.find(x => x.id === 'o4').tracks || {}).qc, читань: window.__GETS, зайнята };
+  /* 3. Вкладка зі старим виглядом (у базі вже погоджено) — чесне «вже рушили», показано свіжу. */
+  const o2 = orders.find(x => x.id === 'o4');
+  o2.tracks = { supply:'got', prod:'done', qc:'check' }; delete o2.prodQc.ok; ordersSaved.set('o4', JSON.stringify(o2));
+  window.__TOASTS = [];
+  await U.act('prod-ok', root);
+  out.старий = { toast: window.__TOASTS.slice(-1)[0] || '', памʼять: D.prodAt(j, orders.find(x => x.id === 'o4')) };
+  return out;
+});
+console.log('   ' + JSON.stringify(r));
+ok(r.до === 'appr' && /не записалось/.test(r.збій.toast) && !/вже рушили/.test(r.збій.toast) && r.збій.памʼять === 'appr' && r.збій.база === 'check',
+  'базу не прочитали — «Погодження не записалось…», картка в памʼяті лишилась «Чекає погодження», база не чіпалась', JSON.stringify(r.збій));
+ok(/Погоджено/.test(r.ок.toast) && r.ок.памʼять === 'ship' && r.ок.база === 'ok' && r.ок.читань === 1 && r.ок.зайнята.busy && r.ок.зайнята.disabled,
+  'звʼязок є — погоджено й у базі, й у памʼяті; база читалась один раз; кнопка одразу «зайнята»', JSON.stringify(r.ок));
+ok(/вже рушили далі/.test(r.старий.toast) && r.старий.памʼять === 'ship', 'старий вигляд, а в базі вже погоджено — «вже рушили далі», показано свіжу', JSON.stringify(r.старий));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'стан цеху не відкочується: повтор, годинник, одночасні записи, збій читання, НП веде колонку');

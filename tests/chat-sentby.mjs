@@ -184,6 +184,29 @@ u = await p.evaluate(async () => {
 ok(!u.failed && u.база.indexOf('з іншого пристрою') >= 0 && u.база.indexOf('моя відправка з цього пристрою') >= 0 && u.памʼять.indexOf('з іншого пристрою') >= 0,
   'у базі й у памʼяті обидві відправки — нічиє не загубилось', JSON.stringify(u));
 
+console.log('═══ 5. КЛІЄНТСЬКИЙ sentBy ПОТРАПИВ У «СВОЇ» — РОЗМОВА ЛІКУЄ СПИСОК; ЗБІГ ТЕКСТУ СТОРІНКУ НЕ ВЧИТЬ (28.10) ═══');
+/* Відео Андрія (Львівська гуцулочка): уся переписка клієнта праворуч — його
+   sentBy лежав у crmSelfIds, бо клієнт написав «Так», а такий текст ми
+   колись слали з цієї картки. */
+MSGS.push(CLIENT_MSG('c9', 'Дякуємо, відправимо завтра', '2026-10-27T12:02:24.923Z'));   // клієнт повторив наш текст слово в слово
+u = await p.evaluate(async ([CLIENT, OUR]) => {
+  const o = orders[0];
+  /* Отруєний список: і наша сторінка, і клієнт — «свої». */
+  contentData.crmSelfIds = [OUR, CLIENT]; window.__CONTENT.crmSelfIds = [OUR, CLIENT];
+  crmSelfHere.clear();
+  await crmLoadChat(o);                 // перечитати розмову, як при відкритті
+  if(chatWin && chatWin.id === o.id) renderChatWin();
+  await new Promise(r => setTimeout(r, 1200));
+  return { тут: [...crmSelfIds()], база: (window.__CONTENT || {}).crmSelfIds || [] };
+}, [CLIENT, OUR_PAGE]);
+rows = await feed();
+ok(side('Доброго дня') === false && side('12/13') === false && side('Оплата при') === false,
+  'клієнт знову ліворуч — його sentBy знято зі «своїх» за розмовою', JSON.stringify(rows.map(r => (r.mine ? '→' : '←') + r.txt.slice(0, 14))));
+ok(u.тут.indexOf(OUR_PAGE) >= 0 && u.тут.indexOf(CLIENT) < 0 && u.база.indexOf(CLIENT) < 0 && u.база.indexOf(OUR_PAGE) >= 0,
+  'у документі команди лишилась лише наша сторінка (вивчена з managerName / з номера відправки)', JSON.stringify(u));
+ok(side('Дякуємо, відправимо') !== undefined && rows.filter(r => r.txt.indexOf('Дякуємо, відправимо') === 0).some(r => r.mine === false),
+  'клієнт повторив наш текст слово в слово — його повідомлення ліворуч, сторінка з нього не вчиться', JSON.stringify(rows.filter(r => /Дякуємо/.test(r.txt))));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'бік — за sentBy Sitniks; після відповіді нуль; памʼять не губиться');
