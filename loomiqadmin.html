@@ -5646,6 +5646,7 @@
   .fin-chip.on{border-style:solid;border-color:#1B6B3A;background:#E7F6EC;color:#1B6B3A;
     font-weight:600;}
   .fin-chip i{font-style:normal;color:#B03A1A;}
+  .fin-chip.fin-goto-row{margin-left:4px;border-style:solid;}
   .fin-chip.is-chk-go{border-style:solid;border-color:#1B6B3A;background:#1B6B3A;color:#fff;font-weight:700;margin-right:4px;}
   .fin-chip.is-chk-go:hover{background:#155A30;border-color:#155A30;color:#fff;}
   .fin-sum .is-chk b{color:#1B6B3A;}
@@ -8354,32 +8355,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2e6d451428"></script>
-<script src="loomiq-fingerprint.js?v=2e6d451428"></script>
-<script src="loomiq-pricing.js?v=2e6d451428"></script>
+<script src="loomiq-select.js?v=f9f8609ab3"></script>
+<script src="loomiq-fingerprint.js?v=f9f8609ab3"></script>
+<script src="loomiq-pricing.js?v=f9f8609ab3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=2e6d451428"></script>
+<script src="loomiq-money-core.js?v=f9f8609ab3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2e6d451428"></script>
-<script src="loomiq-mock.js?v=2e6d451428"></script>
+<script src="loomiq-design.js?v=f9f8609ab3"></script>
+<script src="loomiq-mock.js?v=f9f8609ab3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=2e6d451428"></script>
+<script src="imagetracer.js?v=f9f8609ab3"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=2e6d451428"></script>
-<script src="loomiq-threads.js?v=2e6d451428"></script>
+<script src="loomiq-chat.js?v=f9f8609ab3"></script>
+<script src="loomiq-threads.js?v=f9f8609ab3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2e6d451428"></script>
+<script src="loomiq-cards.js?v=f9f8609ab3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8424,8 +8425,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2e6d451428';
-var LQ_VER_AT = '2026-10-28T19:12:14Z';
+var LQ_VER = 'f9f8609ab3';
+var LQ_VER_AT = '2026-10-28T19:26:03Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -13848,7 +13849,11 @@ function renderFin(){
           ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
             escapeHtml('#' + noOf(p.orderId) +
               (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) +
-            (o ? '' : ' <i>картки немає</i>') + '</button>'
+            (o ? '' : ' <i>картки немає</i>') + '</button>' +
+            /* 28.10, Андрій: «з оплати заходити в картку» — одним кліком, без
+               вікна привʼязки; B2C відкривається з діалогом. */
+            (o ? '<button class="fin-chip fin-goto-row" data-fin-goto-row="' + escapeHtml(p.orderId) + '" title="Відкрити картку #' +
+              escapeHtml(noOf(p.orderId)) + (o.crmChatId || tgChatOf(o) ? ' з діалогом' : '') + '">↗ картка</button>' : '')
           : свої[p.id] ? '<button class="fin-chip is-own" data-fin-open="' + escapeHtml(p.id) + '"' +
               (p.flow === 'pool' ? ' title="Гроші за посилки з контролем оплати вже пораховані поштучно, за ТТН — удруге не рахуємо">пул наложок</button>'
                                  : '>між своїми</button>')
@@ -13864,6 +13869,15 @@ function renderFin(){
    і побачити підказки, і знайти руками, і сказати, чим це є — передоплатою
    чи доплатою. У рядку списку на це немає місця, а без підпису сума лягає
    в картку без значення. */
+/* З платежу — у картку (28.10). B2C — шухляда відділу й вікно розмови
+   поруч, коли розмову привʼязано; B2B — картка замовлення. */
+function finGotoCard(orderId){
+  const o = (orders || []).find(x => x && String(x.orderId) === String(orderId));
+  try{ openByNo(orderId); }catch(e){ console.warn('з платежу в картку', e); }
+  if(o && orderDir(o) === 'b2c' && (o.crmChatId || tgChatOf(o))){
+    setTimeout(() => { try{ chatOpen(o, tgChatOf(o) ? 'tg' : 'crm', { noDrawer: true }); }catch(e){} }, 300);
+  }
+}
 function finOpen(id){
   const p = (payments || []).filter(x => x.id === id)[0] ||
     Object.keys(finHist.all).reduce((f, k) => f || finHist.all[k].filter(x => x.id === id)[0], null);
@@ -14242,6 +14256,8 @@ async function finAddManual(){
     if(e.target.closest && e.target.closest('[data-fin-hist-x]')){ finHist.acc = ''; return renderFin(); }
     const chk = e.target.closest && e.target.closest('[data-fin-chk]');
     if(chk) return finChk(chk.dataset.finChk);
+    const goRow = e.target.closest && e.target.closest('[data-fin-goto-row]');
+    if(goRow) return finGotoCard(goRow.dataset.finGotoRow);
     const open = e.target.closest && e.target.closest('[data-fin-open]');
     if(open) return finOpen(open.dataset.finOpen);
     if(e.target.id === 'fin-add') return finAddManual();

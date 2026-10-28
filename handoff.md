@@ -237,7 +237,8 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   дочитує завершені (до 180 днів), `crmFeedToCard`, памʼять «наше» з `chat`,
   нік лише без пробілів + `crmNick` зі списку, «Без картки · N»
   (`chatsInboxRows/Html`, `draftFromChat` в адмінці, договір), аудит у
-  `docs/AUDIT-2026-10-28.md`,
+  `docs/AUDIT-2026-10-28.md`; Фінанси: «↗ картка» в рядку руху
+  (`finGotoCard`),
   `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
