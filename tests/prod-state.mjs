@@ -376,7 +376,6 @@ r = await p.evaluate(() => {
   out.col = o.ship.abroadCol;
   D.prodMove(j, o, 'courier', 'цех');
   /* Плитка й фільтри на дошці цеху. */
-  localStorage.removeItem('dzProdGeo');
   U.setTab('prod'); U.open(''); U.render(root);
   const tile = () => root.querySelector('.dz-boards [data-open="2000402"]');
   const tile4 = () => root.querySelector('.dz-boards [data-open="2000403"]');
@@ -385,13 +384,13 @@ r = await p.evaluate(() => {
   const btn = k => root.querySelector('[data-do="prod-geo"][data-geo="' + k + '"]');
   out.фільтри = !!(btn('ua') && btn('ab'));
   btn('ua').click();
-  out.лишеУкраїна = { своя: !!tile(), українська: !!tile4(), on: btn('ua').classList.contains('on') };
+  out.лишеУкраїна = { своя: !!tile(), українська: !!tile4(), on: btn('ua').classList.contains('on'), напис: ((root.querySelector('.dz-geo-note') || {}).textContent || '') };
   btn('ab').click();
   out.обидва = { своя: !!tile(), українська: !!tile4() };
   btn('ua').click();
   out.лишеКордон = { своя: !!tile(), українська: !!tile4() };
-  btn('ab').click();
-  out.знову = { своя: !!tile(), українська: !!tile4(), збережено: localStorage.getItem('dzProdGeo') };
+  root.querySelector('[data-do="prod-geo-off"]').click();
+  out.знову = { своя: !!tile(), українська: !!tile4(), напис: !!root.querySelector('.dz-geo-note'), збережено: localStorage.getItem('dzProdGeo') };
   return out;
 });
 console.log('   ' + JSON.stringify(r));
@@ -401,8 +400,44 @@ ok(r.кроки.join() === 'courier,way,refused,done,ship' && r.sentAt && !r.sen
   'стоїть там, куди поставили: курʼєр → в дорозі → відмова → виконано (відправлено) → назад у «Можна відправляти» (відправку знято)', JSON.stringify({ к: r.кроки, s: r.sentAt, s2: r.sentAt2, c: r.col }));
 ok(/за кордон/.test(r.таблетка) && r.колонка === 'courier' && r.фільтри,
   'на плитці «✈ за кордон», картка в «Передано курʼєру»; над дошкою фільтри «Україна» / «За кордон»', JSON.stringify({ т: r.таблетка, к: r.колонка, ф: r.фільтри }));
-ok(!r.лишеУкраїна.своя && r.лишеУкраїна.українська && r.лишеУкраїна.on && r.обидва.своя && r.обидва.українська && r.лишеКордон.своя && !r.лишеКордон.українська && r.знову.своя && r.знову.українська,
-  '«Україна» — лише українські; обидва — усі; лише «За кордон» — лише закордонні; жоден — усі; вибір памʼятає браузер', JSON.stringify({ u: r.лишеУкраїна, o: r.обидва, k: r.лишеКордон, z: r.знову }));
+ok(!r.лишеУкраїна.своя && r.лишеУкраїна.українська && r.лишеУкраїна.on && /показано лише «Україна»/.test(r.лишеУкраїна.напис) && r.обидва.своя && r.обидва.українська && r.лишеКордон.своя && !r.лишеКордон.українська && r.знову.своя && r.знову.українська && !r.знову.напис && !r.знову.збережено,
+  '«Україна» — лише українські, з написом «показано лише…»; обидва — усі; лише «За кордон» — лише закордонні; «показати всі» — усі; браузер фільтр не памʼятає', JSON.stringify({ u: r.лишеУкраїна, o: r.обидва, k: r.лишеКордон, z: r.знову }));
+
+console.log('═══ 10. РУХ ЦЕХУ ЗІ СТАРОЇ КОПІЇ — НА СВІЖІЙ КАРТЦІ, НЕ ЗЛІТАЄ НАЗАД (28.10) ═══');
+/* Оператори: «перетягнув з «Готово до роботи» на «На станках» — злітає
+   назад». Картку хвилину тому правив менеджер з іншого пристрою (у базі
+   новіша), а вкладка цеху тримає стару копію. */
+await setDb('o3', { touchedAt:'2026-10-27T12:00:00.000Z', rev: 3, tracks:{ supply:'got', prod:'ready' }, mgrEmail:'менеджер@loomiq', prodQc: null, npSt: null, reg: null, shipCol:'' });
+r = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, root = document.getElementById('dzRoot');
+  const o = orders.find(x => x.id === 'o3');
+  /* Стара копія у вкладці: без правки менеджера, старіший touchedAt. */
+  o.tracks = { supply:'got', prod:'ready' }; delete o.mgrEmail; o.touchedAt = '2026-10-21T10:00:00.000Z'; delete o.rev; o.prodQc = null; o.npSt = null; o.reg = null; o.shipCol = '';
+  ordersSaved.set('o3', JSON.stringify(o));
+  window.__TOASTS = [];
+  U.setTab('prod'); U.open('2000403'); U.render(root);
+  await new Promise(z => setTimeout(z, 150));
+  const out = { до: D.prodAt(designJobs['2000403'], o) };
+  await U.act('prod-move', root, { to:'run' });
+  await new Promise(z => setTimeout(z, 300));
+  const o2 = orders.find(x => x.id === 'o3');
+  out.після = D.prodAt(designJobs['2000403'], o2); out.mgr = o2.mgrEmail; out.toast = window.__TOASTS.slice(-1)[0] || '';
+  /* Тим часом з іншого пристрою картку вже погодили — хід «на станки» запізнився. */
+  const d = window.__ORDERS.find(x => x.id === 'o3');
+  d.tracks = { supply:'got', prod:'done', qc:'check' }; d.prodQc = { photos:['x'], at:'2026-10-28T09:00:00.000Z' }; d.touchedAt = '2026-10-28T09:00:00.000Z'; d.rev = 9;
+  window.__TOASTS = [];
+  await U.act('prod-move', root, { to:'ready' });
+  await new Promise(z => setTimeout(z, 300));
+  const o3 = orders.find(x => x.id === 'o3');
+  out.запізнився = { стан: D.prodAt(designJobs['2000403'], o3), toast: window.__TOASTS.slice(-1)[0] || '' };
+  return out;
+});
+d = await db('o3');
+console.log('   ' + JSON.stringify({ r, db: { prod: (d.tracks || {}).prod, mgr: d.mgrEmail, qc: (d.tracks || {}).qc } }));
+ok(r.до === 'ready' && r.після === 'run' && r.mgr === 'менеджер@loomiq' && /На станках/.test(r.toast),
+  'зі старої копії перетягнули на «На станках» — хід ліг на свіжу картку, правка менеджера ціла, картка не злетіла назад', JSON.stringify({ r: { до: r.до, після: r.після, mgr: r.mgr, toast: r.toast } }));
+ok(r.запізнився.стан === 'appr' && /вже рушили/.test(r.запізнився.toast) && d.tracks.qc === 'check',
+  'картку тим часом погодили — хід не застосовано, показано свіжу «Чекає погодження»', JSON.stringify({ з: r.запізнився, dbQc: d.tracks.qc }));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

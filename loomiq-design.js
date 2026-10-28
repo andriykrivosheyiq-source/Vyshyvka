@@ -9595,6 +9595,35 @@
       return D.buyReady(u) || !!D.buyOf(всі, p.o.orderId, u.id); });
     return !!String(((p.o || {}).tracks || {}).supply || '');
   }
+  /* РУХ ЦЕХУ — НА СВІЖІЙ КАРТЦІ (28.10, оператори: «перетягнув на станки —
+     злітає назад»). Доти перенесення писало всю картку відділу й замовлення
+     з копії вкладки: чужа правка хвилину тому, або вкладка зі старою копією,
+     і запис відхилявся («картка в базі новіша — повторіть»), картка
+     поверталась. Тепер хід застосовується до свіжої картки з бази з
+     повтором (orderApply) і пише лише стан цеху; «stale» — картку вже рушили
+     деінде, показуємо свіжу. */
+  async function prodMoveApply(job, o, to, by){
+    var r = await orderApply(o, function(x){
+        var from = D.prodAt(job, x);
+        if(from === to) return;
+        if(!D.prodCanMove(from, to, x)) return false;
+        if(!D.prodMove(job, x, to, by)) return false; },
+      function(x){ return D.prodAt(job, x) === to; });
+    return r;
+  }
+  function prodMoveSay(root, job, o, to, r){
+    if(r === true){
+      render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+      return say(to === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
+    }
+    if(r === 'stale'){
+      render(root);
+      var свіжа = U.pairOf(o.orderId);
+      return say('Так перенести не можна: картку ' + U.jobNo(job) + ' вже рушили — «' + D.stepLabel(D.PROD, D.prodAt(job, свіжа ? свіжа.o : o)) + '». Показано свіжу');
+    }
+    render(root);
+    return say('Не записалось — перевірте інтернет і перетягніть ще раз');
+  }
   /* СТАТУСИ НОВОЇ ПОШТИ — ВИДНО, ЧИ ЖИВЕ ОПИТУВАННЯ (27.10, Андрій: «вчора
      поїхали, а воно не в дорозі… чому не оновлюється»). Кнопка «⟳ Статуси
      НП» питає Нову пошту зараз; відмова воркера — червоним тут, а не в
@@ -9610,8 +9639,10 @@
   }
   /* ФІЛЬТР «УКРАЇНА» / «ЗА КОРДОН» (27.10, Андрій: «два фільтри… таблетка
      за кордон»). Жоден або обидва — показати все. Памʼятає браузер. */
+  /* Фільтр живе лише в цій вкладці до перезавантаження (28.10: хтось
+     натиснув «За кордон», і наступного дня «пропали всі погоджені»). Поки
+     він увімкнений — напис «показано лише…» з «показати всі». */
   var PROD_GEO = { ua: false, ab: false };
-  try{ PROD_GEO = Object.assign({ ua: false, ab: false }, JSON.parse(localStorage.getItem('dzProdGeo') || '{}') || {}); }catch(e){}
   function geoPass(o){
     if(!!PROD_GEO.ua === !!PROD_GEO.ab) return true;
     return PROD_GEO.ab ? D.shipAbroad(o) : !D.shipAbroad(o);
@@ -10173,7 +10204,8 @@
       '" data-do="prod-deliv" title="Показати / сховати колонки доставки">Доставка ' + (PROD_DELIV ? '▴' : '▾') + '</button>' +
       '<span class="dz-geo" title="Фільтр: жоден або обидва — усі посилки">' +
         '<button type="button" class="dz-b dz-geo-b' + (PROD_GEO.ua ? ' on' : '') + '" data-do="prod-geo" data-geo="ua">Україна</button>' +
-        '<button type="button" class="dz-b dz-geo-b' + (PROD_GEO.ab ? ' on' : '') + '" data-do="prod-geo" data-geo="ab">✈ За кордон</button></span>';
+        '<button type="button" class="dz-b dz-geo-b' + (PROD_GEO.ab ? ' on' : '') + '" data-do="prod-geo" data-geo="ab">✈ За кордон</button></span>' +
+      (!!PROD_GEO.ua !== !!PROD_GEO.ab ? '<span class="dz-np-err dz-geo-note">показано лише ' + (PROD_GEO.ua ? '«Україна»' : '«За кордон»') + ' · <button type="button" class="dz-link" data-do="prod-geo-off">показати всі</button></span>' : '');
     var перемикач = (boss || свої.length > 1)
       ? '<label class="dz-as"><span>' + (boss ? 'Дивлюсь як' : 'Дошка') + '</span>' +
           '<select class="dz-as-sel" data-seat>' + свої.map(function(r){
@@ -11245,10 +11277,14 @@
             if(ord != null) p.job.boardOrd = ord;
             return save(p.job, p.o, 'Поставлено вручну: «' + D.pinLabel(to) + '» · 📌');
           }
-          if(!D.prodMove(p.job, p.o, to, me0)) return say('Так перенести не можна');
+          if(!D.prodCanMove(from, to, p.o)) return say('Так перенести не можна');
           if(ord != null) p.job.boardOrd = ord;
-          if(to === 'run') prodToTelegram(p.job, p.o, true);
-          save(p.job, p.o, to === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
+          prodMoveApply(p.job, p.o, to, me0).then(function(r){
+            if(r === true && to === 'run') prodToTelegram(p.job, p.o, true);
+            /* Порядок у колонці — у картці відділу; не ліг — не страшно. */
+            if(r === true && ord != null && host().save){ try{ Promise.resolve(host().save(p.job, null)).catch(function(){}); }catch(e){} }
+            prodMoveSay(root, p.job, p.o, to, r);
+          });
         };
       });
     }
@@ -12312,9 +12348,9 @@
     if(what === 'prod-geo'){
       var gk = (data && data.geo) === 'ab' ? 'ab' : 'ua';
       PROD_GEO[gk] = !PROD_GEO[gk];
-      try{ localStorage.setItem('dzProdGeo', JSON.stringify(PROD_GEO)); }catch(e){}
       return render(root);
     }
+    if(what === 'prod-geo-off'){ PROD_GEO.ua = false; PROD_GEO.ab = false; return render(root); }
     if(what === 'reg-make') return regMake(root);
     if(what === 'reg-list') return regList();
     /* «Зебра» (27.10): маркування 100×100 — одна ТТН (плитка, картка) або
@@ -12617,9 +12653,10 @@
     /* ── Цех: рух, «Готово», передрук, погодження, Telegram (06.10) ── */
     if(what === 'prod-move'){
       var до = String((data && data.to) || '');
-      if(!D.prodMove(job, o, до, m)) return say('Так перенести не можна');
-      if(до === 'run') prodToTelegram(job, o, true);     // карта — у Telegram цеху автоматично
-      return save(job, o, до === 'run' ? 'На станках · карта пішла в Telegram цеху' : 'Перенесено');
+      if(!D.prodCanMove(D.prodAt(job, o), до, o)) return say('Так перенести не можна');
+      var rM = await prodMoveApply(job, o, до, m);
+      if(rM === true && до === 'run') prodToTelegram(job, o, true);     // карта — у Telegram цеху автоматично
+      return prodMoveSay(root, job, o, до, rM);
     }
     if(what === 'prod-print-done'){
       if(D.jobTech(job) !== 'dtf') return say('Це не друк');
