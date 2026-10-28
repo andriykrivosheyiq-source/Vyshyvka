@@ -3645,9 +3645,15 @@
     if(o.draft){
       var бракує = [];
       try{ бракує = (host.draftMissing && host.draftMissing(o)) || []; }catch(e){}
-      створ = '<span class="dz-create">' +
-        (бракує.length ? '<i class="dz-create-n">бракує: ' + esc(бракує.join(', ')) + '</i>' : '') +
-        '<button type="button" class="dz-b pri dz-create-b" data-do="order-create"' + (бракує.length ? ' disabled' : '') + '>Створити замовлення</button></span>';
+      /* Не створилось — причина стоїть тут червоним, кнопка червона, доки
+         не натиснуть ще раз (28.10, Андрій: «пише помилка і залишається»). */
+      var помилка = '';
+      try{ помилка = (host.draftError && host.draftError()) || ''; }catch(e){}
+      створ = '<span class="dz-create' + (помилка ? ' is-err' : '') + '">' +
+        (помилка ? '<i class="dz-create-n dz-create-err">НЕ СТВОРЕНО: ' + esc(помилка) + '</i>' : '') +
+        (бракує.length && !помилка ? '<i class="dz-create-n">бракує: ' + esc(бракує.join(', ')) + '</i>' : '') +
+        '<button type="button" class="dz-b pri dz-create-b' + (помилка ? ' is-err' : '') + '" data-do="order-create"' + (бракує.length ? ' disabled' : '') + '>' +
+          (помилка ? 'Створити ще раз' : 'Створити замовлення') + '</button></span>';
     } else if(host.draftJust && host.draftJust(o.orderId)){
       створ = '<span class="dz-create is-done">✓ Замовлення створено</span>';
     }
@@ -3699,6 +3705,7 @@
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
           '<input data-bind placeholder="вставте адресу відкритої розмови"></label>' +
+        (o.restoreHint ? '<div class="dz-own-hint dz-own-restore">' + esc(o.restoreHint) + '</div>' : '') +
         '<div class="dz-own-hint">Відкрийте розмову в Sitniks і скопіюйте адресу ' +
           'з рядка браузера. Нік підтягнеться з неї сам.</div></div>';
     }
