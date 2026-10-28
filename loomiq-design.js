@@ -9092,16 +9092,20 @@
     return !!okFn(o);
   }
   /* ФОТО З ТЕЛЕФОНА (26.10): 12–48 Мп по 3–10 МБ на 4G не вкладались у
-     хвилину й мовчки зникали з вікна. Зменшуємо до 2000 px (JPEG 0.85) —
-     для погодження вистачає з запасом. Не вийшло зменшити — як є. */
+     хвилину й мовчки зникали з вікна. Зменшуємо до PHOTO_PX (JPEG
+     PHOTO_Q) — для погодження вистачає з запасом. Не вийшло зменшити — як
+     є. 28.10, Андрій: «щоб не в суперкласній якості вантажилось, і тоді
+     буде швидше» — 1400 px і 0.75 замість 2000 px і 0.85: файл утричі
+     менший, на екрані телефона чи ноутбука різниці не видно. */
+  var PHOTO_PX = 1400, PHOTO_Q = 0.75, PHOTO_ASIS = 400000;
   function photoSmall(f){
     return new Promise(function(res){
       try{
         var u = URL.createObjectURL(f), im = new Image();
         im.onload = function(){
           URL.revokeObjectURL(u);
-          var W = im.naturalWidth || 1, H = im.naturalHeight || 1, k = Math.min(1, 2000 / Math.max(W, H));
-          if(k >= 1 && (f.size || 0) < 1500000) return res(f);
+          var W = im.naturalWidth || 1, H = im.naturalHeight || 1, k = Math.min(1, PHOTO_PX / Math.max(W, H));
+          if(k >= 1 && (f.size || 0) < PHOTO_ASIS) return res(f);
           var c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
           c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
           c.toBlob(function(b){
@@ -9109,7 +9113,7 @@
             if(!b) return res(f);
             var name = String(f.name || 'фото').replace(/\.\w+$/, '') + '.jpg';
             res(typeof File === 'function' ? new File([b], name, { type:'image/jpeg' }) : b);
-          }, 'image/jpeg', 0.85);
+          }, 'image/jpeg', PHOTO_Q);
         };
         im.onerror = function(){ URL.revokeObjectURL(u); res(f); };
         im.src = u;

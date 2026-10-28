@@ -194,7 +194,7 @@ const відн = await p.evaluate(async () => {
   return Object.assign(r, { є: !!o, dir: o && o.dir, paid: o ? paidSum(o) : 0, left: orphanB2cRows().length, lost: moneyAudit().filter(x => x.kind === 'lost_order' && x.orderId === '5000302').length });
 });
 console.log('   ' + JSON.stringify(відн));
-ok(відн.n === 1 && відн.kind === 'orphan_job' && /#2000302 не дописалась/.test(відн.text), 'Звірка: «Картка #2000302 не дописалась…»', JSON.stringify(відн));
+ok(відн.n === 1 && відн.kind === 'orphan_job' && /#2000302 .*не дописалась/.test(відн.text), 'Звірка: «Картка #2000302 не дописалась…»', JSON.stringify(відн));
 ok(відн.є && відн.dir === 'b2c' && відн.paid === 6120 && відн.left === 0 && відн.lost === 0, '«Відновити» — картка на дошці з тим самим номером, платіж 6 120 ₴ при ній, «такого замовлення немає» зникло', JSON.stringify(відн));
 
 console.log('');
@@ -284,9 +284,21 @@ const злит = await p.evaluate(async () => {
   orders.push(Z); ordersSaved.set(Z.id, JSON.stringify(Z));
   payments.push({ id: 'p-332', amount: 500, at: at2, acc: 'mono1', src: 'mono', orderId: '5000332', tag: 'prepay' });
   window.__TAKEN['5000330'] = { id: 'dead-330' }; window.__TAKEN['5000331'] = { id: R.id }; window.__TAKEN['5000332'] = { id: Z.id };
+  /* друга сирота тієї ж Олени (1 100 ₴) — кандидат той самий, з позначкою; картка з власним платежем за іменем теж кандидат */
+  const j33 = D.emptyJob('5000329'); j33.no = '2000329'; j33.createdAt = at; j33.units = [Object.assign(D.ui.unitNew(), { gid:'hoodie', name:'Худі', qty:1 })]; designJobs['5000329'] = j33;
+  payments.push({ id: 'p-333', amount: 1100, at, acc: 'mono1', src: 'mono', counter: 'Коваль Олена', orderId: '5000329', tag: 'prepay' });
+  const at3 = new Date(t0 + 3 * 864e5).toISOString();
+  const R2 = { id: 're-334', orderId: '5000334', type: 'client', dir: 'b2c', name: 'Олена Коваль', crmChatId: 'c331', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at3, ttn: '20450000001234' };
+  orders.push(R2); ordersSaved.set(R2.id, JSON.stringify(R2));
+  const j34 = D.emptyJob('5000334'); j34.no = '2000334'; j34.createdAt = at3; designJobs['5000334'] = j34;
+  payments.push({ id: 'p-334', amount: 300, at: at3, acc: 'mono1', src: 'mono', orderId: '5000334', tag: 'final' });
+  window.__TAKEN['5000329'] = { id: 'dead-329' }; window.__TAKEN['5000334'] = { id: R2.id };
   const rows = orphanB2cRows();
   const row = rows.find(x => x.kind === 'orphan_job' && x.toNo === '5000330');
-  const r = { kinds: rows.map(x => x.kind).join(), twins: row && (row.twins || []).map(t => t.no + ':' + t.name).join(), text: row && row.text };
+  const row2 = rows.find(x => x.kind === 'orphan_job' && x.toNo === '5000329');
+  const r = { kinds: rows.map(x => x.kind).sort().join(), twins: row && (row.twins || []).map(t => t.no + ':' + t.name + ':' + t.why).join(), text: row && row.text,
+    twins2: row2 && (row2.twins || []).map(t => t.no).join(), shared: /Увага: #2000331, #2000334 пропонується ще й іншій сироті/.test((row2 || {}).text || ''),
+    ручна: (orphanMergeTarget('2000334', '5000330') || {}).id, ручнаКлюч: (orphanMergeTarget('#5000331', '5000330') || {}).id, сама: orphanMergeTarget('2000330', '5000330') };
   if(row) await orphanMergeInto(row, '5000331');
   const p = payments.find(x => x.id === 'p-330');
   return Object.assign(r, { pTo: p.orderId, copy: (R.payments || []).some(e => e.payId === 'p-330'), paid: paidSum(R),
@@ -295,8 +307,11 @@ const злит = await p.evaluate(async () => {
     left: orphanB2cRows().filter(x => x.toNo === '5000330').length, lost: moneyAudit().filter(x => x.kind === 'lost_order' && x.orderId === '5000330').length });
 });
 console.log('   ' + JSON.stringify(злит));
-ok(злит.twins === '5000331:Олена Коваль' && /#2000330 не дописалась.*завів її заново: #2000331 \(Олена Коваль\).*«Обʼєднати в #2000331».*«Створити картку»/.test(злит.text) && !/5000/.test(злит.text),
-  'Звірка: «…не дописалась… Схоже, менеджер завів її заново: #2000331 (Олена Коваль)» — кандидат за імʼям платника; Петро зі своїм платежем — ні', JSON.stringify(злит));
+ok(злит.twins === '5000331:Олена Коваль:імʼя,5000334:Олена Коваль:імʼя' && /#2000330 .*не дописалась.*платіж 1.560 ₴ від Коваль Олена \(\d\d\.\d\d\).*завів її заново: #2000331 \(Олена Коваль, \d\d\.\d\d, збіг імені платника\) або #2000334 \(Олена Коваль, .*уже має 1 платіж\(і\), є ТТН\).*«Обʼєднати в #2000331».*«Обʼєднати в №…».*«Створити картку»/.test(злит.text) && !/5000/.test(злит.text),
+  'Звірка: платник і дата в рядку; кандидати за імʼям платника (і з власним платежем/ТТН — з позначкою); Петро зі своїм платежем — ні', JSON.stringify(злит));
+ok(/ПЕРЕВІРТЕ: у цього платника кілька живих карток/.test(злит.text), 'порада в рядку: кілька карток платника — перевірити', злит.text);
+ok(злит.twins2 === '5000331,5000334' && злит.shared, 'друга сирота тієї ж людини — ті самі кандидати з попередженням «пропонується ще й іншій сироті»', JSON.stringify({ twins2: злит.twins2, shared: злит.shared }));
+ok(злит.ручна === 're-334' && злит.ручнаКлюч === 're-331' && злит.сама === null, '«Обʼєднати в №…»: номер відділу чи ключ знаходять картку, сама сирота — ні', JSON.stringify(злит));
 ok(злит.pTo === '5000331' && злит.copy && злит.paid === 1560 && злит.units === 1 && злит.no31 === '2000331' && злит.gone30 && злит.retired === 'gone:re-331' && злит.nR === 1 && злит.left === 0 && злит.lost === 0,
   '«Обʼєднати в #2000331»: платіж 1 560 ₴ і одяг тепер у #2000331 (її номер відділу), під #2000330 надгробок, номер вибув, Звірка чиста', JSON.stringify(злит));
 

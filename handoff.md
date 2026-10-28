@@ -255,7 +255,7 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
 - **Фото цеху й погодження** (26.10): `loomiq-design.js` — `orderApply(o, fn,
   okFn)` → `host.orderApply(id, fn, okFn)` (адмінка: до 3 спроб fn → `touchOrder`
   → `saveOrders({quiet})` → `okFn(JSON з ordersSaved)`); `prodModal` «done»:
-  `photoSmall` (2000 px, JPEG 0.85), `photoUp` (3 спроби), невдале — `is-err`
+  `photoSmall` (`PHOTO_PX` 1400, JPEG `PHOTO_Q` 0.75; до 28.10 — 2000/0.85), `photoUp` (3 спроби), невдале — `is-err`
   з `data-pm-retry`; «Надіслати» — `D.prodReady(x, me, urls, note, штамп)`
   (ідемпотентне за `at`), вікно закривається лише після запису. `prodApprove`
   більше не вимагає ТТН: `prodQc.ok.noTtn`, `D.shipNeedsTtn(o)`; кнопка
