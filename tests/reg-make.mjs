@@ -387,6 +387,36 @@ ok(/створили в кабінеті Нової пошти.*Відкрийт
 ok(r8c.name === 'Коваль Олена' && r8c.phone === '380501112233' && r8c.ops.join() === 'track' && r8c.ttn === '20451587347945',
   'імʼя й телефон отримувача взято зі статусу НП у форму; нову накладну не створювали, стара на місці', JSON.stringify(r8c));
 
+/* ✕ Видалити ТТН (28.10): створену з адмінки накладну скасовує в НП, номер в
+   історію як видалений, статуси зняті; форма з даними отримувача тут же. */
+const r8d = await p.evaluate(async ids => {
+  const U = window.LQDesign.ui, root = document.getElementById('dzRoot');
+  const u0 = npUrl, c0 = npCall; npUrl = () => 'https://np.test'; window.__NPC = [];
+  npCall = async (op, extra) => { window.__NPC.push({ op, extra }); if(op === 'ttnDelete') return { ok:true }; throw new Error('не та операція: ' + op); };
+  try{
+    const o = orders.find(x => x.orderId === ids[2]);
+    o.ttn = '20450000000777'; o.ttnRef = 'ref-777'; o.ttnSender = 'fop1'; o.npSt = { code:'1', status:'x' }; o.regFail = { why:'old' };
+    o.ship = Object.assign({}, o.ship || {}, { name:'Іра Коваль', phone:'380671112233' });
+    U.setTab('acct'); U.open(ids[2]); U.render(root); await new Promise(r => setTimeout(r, 250));
+    const fold = root.querySelector('.dz-panel [data-fold="Відправка"]');
+    if(fold && !root.querySelector('.dz-panel .dz-ship-ttn, .dz-panel [data-shipform]')){ fold.click(); await new Promise(r => setTimeout(r, 250)); }
+    const b = root.querySelector('.dz-panel [data-ship-ttn-del]');
+    const out = { кнопка: !!b, рядок: !!root.querySelector('.dz-panel .dz-ship-ttn .dz-ship-acts [data-ship-ttn-re]') };
+    if(b){ b.click(); await new Promise(r => setTimeout(r, 900)); }
+    const h = (o.ttnHist || []).slice(-1)[0] || {};
+    const form = root.querySelector('.dz-panel [data-shipform]');
+    out.ttn = o.ttn; out.hist = { ttn: h.ttn, deleted: !!h.deleted, npDel: !!h.npDel }; out.npSt = !!o.npSt; out.regFail = !!o.regFail;
+    out.ops = window.__NPC.map(c => c.op + ':' + (c.extra && c.extra.ref)); out.form = !!form;
+    out.імʼя = form ? (form.querySelector('[data-shf="name"]') || {}).value || '' : '';
+    return out;
+  } finally { npUrl = u0; npCall = c0; }
+}, g8);
+console.log('   ' + JSON.stringify(r8d));
+ok(r8d.кнопка && r8d.рядок && r8d.ttn === '' && r8d.hist.ttn === '20450000000777' && r8d.hist.deleted && r8d.hist.npDel && !r8d.npSt && !r8d.regFail,
+  '«✕ Видалити ТТН» у рядку кнопок: номер в історії як видалений, статуси й відмова реєстру зняті', JSON.stringify(r8d));
+ok(r8d.ops.join() === 'ttnDelete:ref-777' && r8d.form && r8d.імʼя === 'Іра Коваль',
+  'скасовано в НП за Ref; тут же форма накладної з даними отримувача — виправити й створити нову', JSON.stringify({ ops: r8d.ops, form: r8d.form, імʼя: r8d.імʼя }));
+
 console.log('═══ 9. ЗВЕДЕННЯ ПО НАКЛАДНИХ У ФІНАНСАХ (27.10) ═══');
 /* Андрій: «по цим ТТН — де наложені платежі є, де немає, яка сума». */
 const r9 = await p.evaluate(ids => {

@@ -140,7 +140,7 @@ const open = async () => {
   await p.waitForTimeout(500);
   await p.evaluate(() => { const c = document.querySelector('[data-open="2000777"]'); if(c) c.click(); });
   await p.waitForTimeout(600);
-  await p.evaluate(() => { const b = document.querySelector('[data-fold="Відправка"]'); if(b && !document.querySelector('.dz-panel [data-shipform], .dz-panel [data-ship-ttn-x]')) b.click(); });
+  await p.evaluate(() => { const b = document.querySelector('[data-fold="Відправка"]'); if(b && !document.querySelector('.dz-panel [data-shipform], .dz-panel [data-ship-ttn-x], .dz-panel [data-ship-ttn-del]')) b.click(); });
   await p.waitForTimeout(400);
 };
 const ord = () => p.evaluate(() => { const o = orders.filter(x => x.orderId === '2000777')[0];
@@ -182,13 +182,18 @@ await p.waitForTimeout(600);
 const a4 = await ord();
 ok(a4.ttn === '20450000123456', '14 цифр (з пробілами) — записано як 20450000123456', JSON.stringify(a4));
 await open();
-await p.click('.dz-panel [data-ship-ttn-x]');
-await p.waitForTimeout(600);
+/* 28.10: для справжнього номера — «✕ Видалити ТТН», не «Змінити». */
+const a4x = await p.evaluate(() => ({ x: !!document.querySelector('.dz-panel [data-ship-ttn-x]'), del: !!document.querySelector('.dz-panel [data-ship-ttn-del]'),
+  acts: !!document.querySelector('.dz-panel .dz-ship-ttn .dz-ship-acts') }));
+ok(!a4x.x && a4x.del && a4x.acts, 'біля справжньої накладної «✕ Видалити ТТН» у рядку кнопок під адресою; «Змінити» немає', JSON.stringify(a4x));
+await p.click('.dz-panel [data-ship-ttn-del]');
+await p.waitForTimeout(700);
 const a5 = await ord();
-console.log('  ' + JSON.stringify(a5));
-ok(a5.ttn === '' && a5.hist.join() === '20450000123456' && a5.form, 'справжню накладну знято лише з підтвердженням — вона в історії накладних (гроші знайдуть картку)', JSON.stringify(a5));
+const a5h = await p.evaluate(() => (orders.filter(x => x.orderId === '2000777')[0].ttnHist || []).slice(-1)[0] || {});
+console.log('  ' + JSON.stringify(a5) + ' ' + JSON.stringify(a5h));
+ok(a5.ttn === '' && a5.hist.join() === '20450000123456' && a5h.deleted === true && a5.form, '«✕ Видалити ТТН» — з підтвердженням: номер в історії як видалений (гроші знайдуть картку), форма знову є', JSON.stringify(a5));
 
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
-console.log(bad ? 'розходжень: ' + bad : 'номер ТТН руками — лише номер, «✎ Змінити» працює');
+console.log(bad ? 'розходжень: ' + bad : 'номер ТТН руками — лише номер; текст — «✎ Змінити», справжня — «✕ Видалити ТТН»');
 await browser.close(); srv.close();
 process.exit(bad ? 1 : 0);

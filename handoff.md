@@ -344,7 +344,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   `ttnDelete`; Фінанси `#fin-ttnsum` (`tsum`, `ttnSumRows`, `ttnSumRefresh`,
   `renderTtnSum`). Воркер: op `ttnDelete` (`InternetDocument.delete`).
   CSS: `.dz-c-ab`, `.dz-geo`, `.dz-c-regfail`, `.ts-*`. Тести `reg-make.mjs`
-  §8–9. **Перерозгорнути `loomiq-np`.**
+  §8–9. **Перерозгорнути `loomiq-np`.** 28.10: `shipTtnDelete` (host
+  `ttnDelete`, `[data-ship-ttn-del]`, `ttnHist[].deleted`), блок накладної
+  `.dz-ship-ttn`/`.dz-ship-acts`, «✎ Змінити» лише для не-номера;
+  `shipTtnRemake` для накладної з кабінету НП (без `ttnRef`) тягне
+  імʼя/телефон з `track`; `shipVals` бере `ttnName`/`ttnPhone`.
 - **За кордон** (27.10): `prodCanMove(from, to, o)`/`prodMove` →
   `o.ship.abroadCol`; `prodAt`; `PROD_GEO`/`geoPass` у `prodCards`, кнопки
   `data-do="prod-geo"`; DnD на дошці цеху передає картку в `можна`.
