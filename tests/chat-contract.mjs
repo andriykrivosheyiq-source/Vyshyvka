@@ -17,7 +17,7 @@ const chat = fs.readFileSync(path.join(ROOT, 'loomiq-chat.js'), 'utf8');
 /* Що діалог має право брати з адмінки (23.10 — стан на момент договору). */
 const CHAT_MAY_USE = new Set(`PHOTOS_DOC avatarHtml brandSnap canBindChat canQuick canSendFiles canSetup canWrite
   cardModelsMap cardsWroteNow chanFill chanSet chatReplied closeOrderDrawer contentData contentLoaded crmCanUnlink
-  crmForget crmWhoHtml crmWhoLabel designHostInit designJobs designOrders docDownload drawerOrderId dueSum escapeHtml
+  crmForget crmWhoHtml crmWhoLabel designHostInit designJobs designOrders docDownload draftFromChat drawerOrderId dueSum escapeHtml
   fbAuth fbDb fmt myEmail myName offerBuild offerClean offerUrl openOrderDrawer orderActivityAt orderDir orderName
   orderUnread orderWaiting orders ordersHeld qrDraft renderBoard renderOrderDrawer saveOrderMeta saveOrders showNo
   shrinkImage statusFlow tgUnread tgUnreadCount toast touchOrder uploadCloudinary waitingMin zipBlob`.split(/\s+/).filter(Boolean));

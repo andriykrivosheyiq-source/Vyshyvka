@@ -209,6 +209,49 @@ ok(/відновлено зі Звірки/.test(стара.hint) && /6.120 ₴ 
   'відновлена раніше картка: підказка рахується на льоту, заслони «діалог і передоплата» немає (а в звичайної нової без діалогу — є)', JSON.stringify(стара));
 
 console.log('');
+console.log('═══ 5а. «НЕПОВНІ КАРТКИ» У ФІНАНСАХ (28.10) ═══');
+/* Андрій: «усі замовлення, де немає платежу, складу чи діалогу — окремий
+   список, щоб підправити… і по ніках знайти». */
+const неп = await p.evaluate(() => {
+  const rows = finIncompleteRows();
+  const r = rows.find(x => x.o.orderId === '5000302');
+  const box = document.getElementById('fin-incomplete'); renderFinIncomplete();
+  return { n: rows.length, first: rows[0] && rows[0].o.orderId, r: r ? { бракує: r.бракує, як: r.як, плат: r.плат, схожі: r.схожі } : null,
+           html: box ? box.textContent : '', txt: finIncompleteText(rows).split('\n')[0] };
+});
+ok(неп.r && неп.first === '5000302' && /відновлена зі Звірки/.test(неп.r.як) && неп.r.бракує.join() === 'без діалогу,без одягу' && /6.120 ₴ від Коваль Іра/.test(неп.r.плат[0]),
+  'відновлена #2000302 — перша в «Неповних»: без діалогу й одягу, платіж 6 120 ₴ від Коваль Іра', JSON.stringify(неп.r));
+ok(/Неповні картки/.test(неп.html) && /#2000302/.test(неп.html) && /^#2000302 · /.test(неп.txt) && /без діалогу, без одягу/.test(неп.txt),
+  'блок намальовано, «Скопіювати список» дає рядок «#2000302 · дата · хто · …»', JSON.stringify({ txt: неп.txt }));
+
+console.log('');
+console.log('═══ 5б. ФОНОВИЙ ЗАПИС НЕ ВИДАЛЯЄ КАРТКУ, ЩО ЗʼЯВИЛАСЬ ПІД ЧАС ЗАПИСУ (аудит 28.10) ═══');
+/* Корінь «не дописалась»: saveOrders чекав базу, за цей час транзакція
+   створення (чи знімок) поклала нову картку в ordersSaved — кінцевий цикл
+   бачив її «зайвою» і видаляв з бази. */
+const дел = await p.evaluate(async () => {
+  const P = Object.getPrototypeOf(ORDERS_COL.doc('x'));
+  const g0 = P.get, d0 = P.delete; window.__dels = [];
+  P.get = async function(){ await new Promise(r => setTimeout(r, 250)); return g0.apply(this, arguments); };
+  P.delete = async function(){ window.__dels.push(this.id || (this.path || '').split('/').pop()); return d0.apply(this, arguments); };
+  const o = orders.find(x => x.orderId === '5000301'); o.note = 'правка ' + Date.now(); touchOrder(o);
+  const p1 = saveOrders({ quiet: true });
+  await new Promise(r => setTimeout(r, 60));
+  /* Як orderCreateAtomic з іншої вкладки: нова картка лягла в ordersSaved і в памʼять. */
+  const нова = { id: 'late-1', orderId: '5000399', dir: 'b2c', type: 'client', status: B2C_STATUS, createdAt: new Date().toISOString(), items: [], hist: [], arch: false, crmChatId: 'c-late', name: 'Пізня' };
+  ordersSaved.set('late-1', JSON.stringify(нова));
+  /* І картка, що приїхала лише в ordersSaved (знімок замінив список, памʼять ще не має). */
+  ordersSaved.set('late-2', JSON.stringify(Object.assign({}, нова, { id: 'late-2', orderId: '5000398' })));
+  orders.push(нова);
+  await p1;
+  P.get = g0; P.delete = d0;
+  const r = { dels: window.__dels.slice(), saved1: ordersSaved.has('late-1'), saved2: ordersSaved.has('late-2') };
+  orders.splice(orders.indexOf(нова), 1); ordersSaved.delete('late-1'); ordersSaved.delete('late-2');
+  return r;
+});
+ok(!дел.dels.length && дел.saved1 && дел.saved2, 'картки, що зʼявились під час запису, не видалено (ні з памʼяті, ні лише з ordersSaved)', JSON.stringify(дел));
+
+console.log('');
 console.log('═══ 6. ВІДНОВИЛИ ПОРОЖНЮ, А СПРАВЖНЯ З ДІАЛОГОМ — ПІД ІНШИМ НОМЕРОМ: «ОБʼЄДНАТИ» (23.10) ═══');
 const двійня = await p.evaluate(async () => {
   const D = window.LQDesign;

@@ -136,9 +136,9 @@ await p.route('**://**', async r => {
     if(mode === '429') return r.fulfill({ status:429, contentType:'application/json', headers:{ 'Retry-After':'2' }, body: JSON.stringify({ message:'Too Many Requests' }) });
     if(mode === '500') return r.fulfill({ status:500, contentType:'application/json', body: JSON.stringify({ message:'Internal error' }) });
     if(mode === 'timeout') return;                      // не відповідаємо зовсім
-    if(pth === '/chats') return r.fulfill({ contentType:'application/json', body: JSON.stringify({ items: Object.keys(sitniks.chats).map(id => {
+    if(pth === '/chats') return r.fulfill({ contentType:'application/json', body: JSON.stringify({ items: Object.keys(sitniks.chats).filter(id => !(sitniks.hide || []).includes(id)).map(id => {
       const l = listOf(id)[0] || {};
-      return { id, lastMessage: { text: l.text || '', createdAt: l.createdAt, isOutgoing: !!l.isOutgoing } }; }) }) });
+      return { id, client: (sitniks.who || {})[id], lastMessage: { text: l.text || '', createdAt: l.createdAt, isOutgoing: !!l.isOutgoing } }; }) }) });
     const mm = pth.match(/^\/chats\/([^/]+)\/messages$/);
     if(mm && m === 'GET') return r.fulfill({ contentType:'application/json', body: JSON.stringify({ items: listOf(mm[1]) }) });
     if(mm && m === 'POST'){
@@ -572,6 +572,73 @@ const арх15 = await p.evaluate(() => {
   return { є: !!r, n: rows.length, позначка: /Богдан[\s\S]*?· архів/.test(html) };
 });
 ok(арх15.є && арх15.n === 2 && арх15.позначка, 'архівна картка з розмовою лишається в списку чатів, з позначкою «архів»', JSON.stringify(арх15));
+
+console.log('═══ 16. ЗАВЕРШЕНА КАРТКА, ЯКОЇ НЕМАЄ В СПИСКУ SITNIKS, — ОБХІД ДОЧИТУЄ, РЯДОК ПІДНІМАЄТЬСЯ (28.10) ═══');
+/* Андрій, #2000196 «Виконано»: клієнтка писала 16:51–16:58, у Чатах рядок
+   стояв «23.10 · Навзаєм)». Обхід дочитував стрічки лише живих карток. */
+sitniks.hide = ['c-b'];
+sitniks.chats['c-b'].push({ id: '13', text: 'Не підходить( кенгуру треба до 9.11', createdAt: iso(Date.now() + 90e3), sender: { name: 'Богдан Коваль' } });
+const з16 = await p.evaluate(async () => {
+  chatClose();
+  const o = orders.find(x => x.id === 'b');
+  o.status = 'done'; o.crmAt = new Date(Date.now() - 5 * 864e5).toISOString(); o.crmLast = 'Навзаєм)'; o.crmTheirs = false; o.crmUnread = 0;
+  Object.keys(crmChecked).forEach(k => delete crmChecked[k]);
+  await crmSweepOnce(); await new Promise(r => setTimeout(r, 300));
+  await crmSweepOnce(); await new Promise(r => setTimeout(r, 300));
+  const rows = chatsRows('b2c');
+  const r = { at: o.crmAt, last: o.crmLast, theirs: !!o.crmTheirs, first: rows[0] && rows[0].o.id, n: +o.crmUnread || 0 };
+  o.status = 'prorahunok';
+  return r;
+});
+ok(/кенгуру/.test(з16.last) && з16.theirs && з16.first === 'b' && Date.parse(з16.at) > Date.now(), 'завершена картка дочитана: останнє «…кенгуру…», «клієнт чекає», перша в списку', JSON.stringify(з16));
+sitniks.hide = [];
+
+console.log('═══ 17. ВІДКРИТА СТРІЧКА ОДРАЗУ ПИШЕ В КАРТКУ ЧАС І ОСТАННЮ РЕПЛІКУ (28.10) ═══');
+sitniks.chats['c-a'].push({ id: '14', text: 'Ще питання по розміру', createdAt: iso(Date.now() + 120e3), sender: { name: 'Асія Дерещук' } });
+const з17 = await p.evaluate(async () => {
+  const o = orders.find(x => x.id === 'a');
+  o.crmAt = new Date(Date.now() - 864e5).toISOString(); o.crmLast = 'старе'; o.crmTheirs = false;
+  delete crmChat[o.id];
+  await crmLoadChat(o); await new Promise(r => setTimeout(r, 200));
+  const rows = chatsRows('b2c');
+  return { at: o.crmAt, last: o.crmLast, theirs: !!o.crmTheirs, first: rows[0] && rows[0].o.id };
+});
+ok(/розміру/.test(з17.last) && з17.theirs && Date.parse(з17.at) > Date.now() && з17.first === 'a', 'відкрили розмову — у картці час, «…по розміру», «клієнт чекає»; у списку перша', JSON.stringify(з17));
+
+console.log('═══ 18. «БЕЗ КАРТКИ · N» У ЧАТАХ B2C: СТВОРИТИ ЗАМОВЛЕННЯ, ПРИВʼЯЗАТИ ДО № (28.10) ═══');
+/* Андрій: «куча втрачених діалогів… де я їх знайду?» — розмови Sitniks, до
+   яких у Loomiq немає картки, списком з кнопками. */
+sitniks.chats['c-z'] = [{ id: '21', text: 'Добрий день, хочу худі', createdAt: iso(Date.now() + 60e3), sender: { name: 'Зоряна Мельник', username: 'zoryana_m' } }];
+sitniks.who = { 'c-z': { name: 'Зоряна Мельник', username: 'zoryana_m' } };
+const з18 = await p.evaluate(async () => {
+  await crmSweepOnce(); await new Promise(r => setTimeout(r, 300));
+  renderChats('b2c'); await new Promise(r => setTimeout(r, 100));
+  const blk = document.querySelector('#chatscRoot .chl-inbox');
+  const row = blk && blk.querySelector('[data-chl-inbox="c-z"]');
+  const out = { blk: !!blk, h: blk ? blk.querySelector('.chl-inbox-h').textContent : '', row: !!row, txt: row ? row.textContent : '',
+                btns: row ? row.querySelectorAll('button').length : 0 };
+  /* «Привʼязати до №…» → картка Богдана (2000502): розмова тепер на ній. */
+  const p0 = window.prompt; window.prompt = () => '2000502'; const c0 = window.confirm; window.confirm = () => true;
+  row.querySelector('[data-chl-bind]').click(); await new Promise(r => setTimeout(r, 400));
+  window.prompt = p0; window.confirm = c0;
+  const b = orders.find(x => x.id === 'b');
+  out.bound = b.crmChatId; out.name = b.crmChatName;
+  renderChats('b2c');
+  out.gone = !document.querySelector('#chatscRoot [data-chl-inbox="c-z"]');
+  /* Назад: Богдан — до своєї розмови; «Створити замовлення» → чернетка з розмовою. */
+  await crmPickChat(b, { chatId: 'c-b', name: 'Богдан Коваль', nick: 'bodya' });
+  await crmSweepOnce(); await new Promise(r => setTimeout(r, 300)); renderChats('b2c');
+  const row2 = document.querySelector('#chatscRoot [data-chl-inbox="c-z"]');
+  row2.querySelector('[data-chl-new]').click(); await new Promise(r => setTimeout(r, 400));
+  const d = orders.find(x => x.draft);
+  out.draft = d ? { chat: d.crmChatId, name: d.crmChatName, nick: d.crmNick || '' } : null;
+  try{ draftDrop(''); draftForget(); }catch(e){}
+  return out;
+});
+ok(з18.blk && /Без картки · \d+/.test(з18.h) && з18.row && /Зоряна Мельник/.test(з18.txt) && /хочу худі/.test(з18.txt) && з18.btns === 2, 'блок «Без картки · 1»: імʼя, остання репліка, дві кнопки', JSON.stringify(з18));
+ok(з18.bound === 'c-z' && /Зоряна/.test(з18.name) && з18.gone, '«Привʼязати до №2000502» — розмова на картці Богдана, з блоку зникла', JSON.stringify(з18));
+ok(з18.draft && з18.draft.chat === 'c-z' && /Зоряна/.test(з18.draft.name), '«Створити замовлення» — чернетка з цією розмовою', JSON.stringify(з18));
+delete sitniks.chats['c-z']; sitniks.who = {};
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

@@ -378,8 +378,8 @@ await p.evaluate(async () => { const U = window.LQDesign.ui; const d = orders.fi
 await ЖДИ(200);
 await p.click('#dzRoot [data-do="order-create"]'); await ЖДИ(600);
 const ні = await p.evaluate(() => ({ asked: window.__CONFIRMS.slice(), drafts: orders.filter(o => o.draft).length, tx: (window.__TX || []).length, p2: (payments.find(q => q.id === 'p2') || {}).orderId || '' }));
-ok(ні.asked.length === 1 && /#\d{7}/.test(ні.asked[0]) && /Мороз Євгенія/.test(ні.asked[0]) && ні.drafts === 1 && !ні.tx && !ні.p2,
-  'спитано «У цієї розмови (Мороз Євгенія) уже є замовлення #…»; «Ні» — нічого не створено, чернетка лишилась', JSON.stringify(ні));
+ok(ні.asked.length === 1 && /#\d{7}/.test(ні.asked[0]) && /Мороз Євгенія/.test(ні.asked[0]) && /ще одне замовлення з цим ніком/.test(ні.asked[0]) && ні.drafts === 1 && !ні.tx && !ні.p2,
+  'спитано «Цей нік (…Мороз Євгенія) уже під замовленням #… Заповнити ще одне?»; «Скасувати» — нічого не створено, чернетка лишилась', JSON.stringify(ні));
 await p.evaluate(() => { window.__YES = 1; });
 await p.click('#dzRoot [data-do="order-create"]'); await ЖДИ(800);
 const так = await p.evaluate(() => ({ asked: window.__CONFIRMS.length, drafts: orders.filter(o => o.draft).length, tx: (window.__TX || []).length, p2: (payments.find(q => q.id === 'p2') || {}).orderId || '', ls: localStorage.getItem('lq_draft:test@loomiq') }));
