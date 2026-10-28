@@ -222,10 +222,10 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if request.auth != null && may('setup');
     }
+    // existsAfter/getAfter (28.10): бронь і картка — однією транзакцією
+    // (orderCreateAtomic); окремий запис після броні проходить так само.
     match /kanbanOrders/{id} {
       allow read: if known();
-      // existsAfter/getAfter (28.10): бронь і картка — однією транзакцією
-      // (orderCreateAtomic); окремий запис після броні проходить так само.
       allow create: if request.auth != null && may('edit')
         && request.resource.data.orderId is string
         && existsAfter(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId))
