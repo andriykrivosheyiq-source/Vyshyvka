@@ -3779,6 +3779,13 @@
   .dz-ship{display:flex;align-items:center;gap:10px;border:1px solid var(--line);
     border-radius:12px;padding:10px 12px;background:#fff;}
   .dz-ship-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  /* Накладна (28.10): адреса на всю ширину, кнопки окремим рядком знизу. */
+  .dz-ship.dz-ship-ttn{flex-wrap:wrap;align-items:flex-start;}
+  .dz-ship-ttn .dz-ship-l{flex:1 1 100%;}
+  .dz-ship-ttn .dz-ship-l span{font-size:12.5px;color:var(--ink);line-height:1.35;}
+  .dz-ship-acts{display:flex;flex-wrap:wrap;gap:6px;width:100%;}
+  .dz-ship-acts .dz-b{white-space:nowrap;}
+  .dz-b.dz-danger{color:#B03A1A;border-color:#E8B8AE;}
   .dz-ship-l b{font-size:13.5px;color:var(--ink);}
   .dz-ship-ttn{font-size:11.5px;color:var(--good);font-weight:600;}
   .dz-ship-no{font-size:11.5px;color:var(--muted);}
@@ -8333,32 +8340,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a929a08e4c"></script>
-<script src="loomiq-fingerprint.js?v=a929a08e4c"></script>
-<script src="loomiq-pricing.js?v=a929a08e4c"></script>
+<script src="loomiq-select.js?v=1cf20d102d"></script>
+<script src="loomiq-fingerprint.js?v=1cf20d102d"></script>
+<script src="loomiq-pricing.js?v=1cf20d102d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=a929a08e4c"></script>
+<script src="loomiq-money-core.js?v=1cf20d102d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a929a08e4c"></script>
-<script src="loomiq-mock.js?v=a929a08e4c"></script>
+<script src="loomiq-design.js?v=1cf20d102d"></script>
+<script src="loomiq-mock.js?v=1cf20d102d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=a929a08e4c"></script>
+<script src="imagetracer.js?v=1cf20d102d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=a929a08e4c"></script>
-<script src="loomiq-threads.js?v=a929a08e4c"></script>
+<script src="loomiq-chat.js?v=1cf20d102d"></script>
+<script src="loomiq-threads.js?v=1cf20d102d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a929a08e4c"></script>
+<script src="loomiq-cards.js?v=1cf20d102d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8403,8 +8410,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a929a08e4c';
-var LQ_VER_AT = '2026-10-28T12:57:23Z';
+var LQ_VER = '1cf20d102d';
+var LQ_VER_AT = '2026-10-28T13:45:35Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -25847,6 +25854,29 @@ function shipTtnDrop(o){
   touchOrder(o);
   return true;
 }
+/* ✕ ВИДАЛИТИ ТТН (28.10, Андрій: «видалити ТТН, потім змінити дані і ще раз
+   створити»). Скасовуємо в Новій пошті (лише коли є внутрішній Ref — тобто
+   накладну створили з адмінки), номер — в o.ttnHist як видалений (гроші за
+   ним усе одно знайдуть картку), статуси й відмови реєстру знімаємо; дані
+   отримувача у формі «Відправка» лишаються — людина виправляє й створює
+   нову тут же. Повертає {ok, note|why}. */
+async function shipTtnDelete(o){
+  const стара = String((o && o.ttn) || '').trim();
+  if(!o || !стара) return { ok: false, why: 'накладної немає' };
+  const ref = String(o.ttnRef || ''), sender = String(o.ttnSender || '');
+  let npDel = false, note = '';
+  if(ref){
+    try{ await npCall('ttnDelete', { ref, sender }); npDel = true; }
+    catch(e){ note = 'у Новій пошті не скасувалась (' + String((e && e.message) || e).slice(0, 80) + ') — скасуйте в кабінеті НП'; }
+  } else note = 'створена не в адмінці — скасуйте її в кабінеті Нової пошти, якщо треба';
+  o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0, at: o.ttnAt || '', by: myEmail() || '',
+    till: new Date().toISOString(), deleted: true, npDel }]).slice(-10);
+  o.ttn = ''; o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
+  ['ttnRef','ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender','npSt','regFail'].forEach(k => { delete o[k]; });
+  touchOrder(o);
+  try{ accLog('ttn', 'видалив накладну ' + стара + ' з #' + showNo(o) + (npDel ? ' (скасовано в НП)' : '')); }catch(e){}
+  return { ok: true, note };
+}
 async function shipSetTtn(o, ttn, extra, opt){
   opt = opt || {};
   const n = String(ttn || '').trim();
@@ -26094,8 +26124,11 @@ function shipVals(o){
   const fmt = shipFormats(snd).filter(f => f.name === sh.format)[0] || shipPickFormat(snd, kg);
   const left = shipLeft(o);
   return {
-    sender: snd, name: sh.name || (зЧату && зЧату.name) || (b2c ? '' : (o.name || '')),
-    phone: sh.phone || (зЧату && зЧату.phone) || o.phone || '',
+    /* Накладна з кабінету НП (28.10): імʼя й телефон, які «Статус» підтягнув
+       з Нової пошти (ttnName/ttnPhone), годяться й для форми — форму ніхто
+       не заповнював, а дані отримувача вже є. */
+    sender: snd, name: sh.name || (зЧату && зЧату.name) || o.ttnName || (b2c ? '' : (o.name || '')),
+    phone: sh.phone || (зЧату && зЧату.phone) || o.ttnPhone || o.phone || '',
     fromChat: !!(зЧату && ((!sh.name && зЧату.name) || (!sh.phone && зЧату.phone))),
     cityRef: sh.cityRef || '', cityName: sh.cityName || sh.city || '',
     whRef: sh.whRef || '', whName: sh.whName || sh.office || '', whNumber: sh.whNumber || '',
@@ -32174,6 +32207,7 @@ function designHostInit(){
     shipForm: o => ((npUrl() || shipAbroad(o) || (o && o.ship && o.ship.abroad)) && !(o && o.ttn)) ? shipFormHtml(o) : '',
     shipAbroad: o => shipAbroad(o),
     ttnDrop: o => shipTtnDrop(o),
+    ttnDelete: o => shipTtnDelete(o),
     ttnRemake: o => shipTtnRemake(o),
     shipWire: (el, o, persist) => wireShipForm(el, o, persist),
     shipTrack: o => shipTrack(o),

@@ -6679,21 +6679,30 @@
        ТТН». Номер, якщо накладну зробили деінде, — вписати руками нижче. */
     if(o.dir === 'b2c' && host.shipForm && (host.shipForm(o) || ttn))
       return (ttn
-          ? '<div class="dz-ship"><div class="dz-ship-l"><b>Накладна ' + esc(ttn) +
+          ? '<div class="dz-ship dz-ship-ttn"><div class="dz-ship-l"><b>Накладна ' + esc(ttn) +
               (D.ttnDays(o) >= 3 ? ' <em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні">ТТН уже ' + esc(D.dniTxt(D.ttnDays(o))) + '</em>' : '') + '</b>' +
               (D.regFailOf(o) ? '<span class="dz-regfail-s">НП не взяла в реєстр: ' + esc(D.regFailOf(o)) + '</span>' : '') +
               (o.ttnStatus ? '<span>' + esc(o.ttnStatus) + '</span>' : '') +
               (o.ttnCity ? '<span>' + esc(o.ttnCity + (o.ttnWh ? ' · ' + o.ttnWh : '')) + '</span>' : '') + '</div>' +
+              /* Кнопки — окремим рядком під адресою (28.10, Андрій: «треба
+                 підправити, щоб гарно виглядало»): чотири кнопки в одному
+                 рядку з адресою стискали її в стовпчик по слову. */
+              '<div class="dz-ship-acts">' +
               '<button class="dz-b" data-ship-track>Оновити статус</button>' +
               (host.npZebra ? '<button class="dz-b" data-ship-zebra title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
-              /* ✎ Змінити (23.10): помилкова чи замінена накладна — назад до
-                 форми; стара лягає в o.ttnHist (гроші за неї знайдуть картку). */
-              (host.ttnDrop ? '<button class="dz-b dz-quiet" data-ship-ttn-x>✎ Змінити</button>' : '') +
+              /* ✎ Змінити (23.10) лишилось лише для тексту, що ліг як «накладна»
+                 (не 14 цифр): знімається без питань. Справжній номер —
+                 «✕ Видалити ТТН» (28.10, Андрій: «навіщо змінювати, якщо ТТН
+                 уже створено — видалити, змінити дані й створити ще раз, або
+                 перестворити»): скасування в НП, номер в історію, форма
+                 відкривається тут же з даними картки. */
+              (host.ttnDrop && !D.ttnValid(ttn) ? '<button class="dz-b dz-quiet" data-ship-ttn-x>✎ Змінити</button>' : '') +
               /* ↻ Перестворити (27.10, Андрій): нова накладна з тими самими
                  даними замість цієї; стара — в історію як замінена (брак) і
                  скасовується в Новій пошті. Лише в картці, з підтвердженням. */
               (host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
-            '</div>' + ttnInfoHtml(o)
+              (host.ttnDelete && D.ttnValid(ttn) ? '<button class="dz-b dz-quiet dz-danger" data-ship-ttn-del title="Скасувати накладну в Новій пошті й прибрати з картки; дані отримувача лишаться у формі — виправте й створіть нову">✕ Видалити ТТН</button>' : '') +
+              '</div></div>' + ttnInfoHtml(o)
           : host.shipForm(o)) +
         (ttn ? '' : '<label class="dz-own-f dz-ship-man"><span>Або номер ТТН руками</span>' +
           '<input data-of="ttn" value="" placeholder="якщо накладну створили в кабінеті НП"></label>');
@@ -11387,6 +11396,20 @@
       };
       var tr = root.querySelector('[data-ship-track]');
       if(tr && c && c.o && host().shipTrack) tr.onclick = function(){ host().shipTrack(c.o); };
+      var tdl = root.querySelector('[data-ship-ttn-del]');
+      if(tdl && c && c.o && host().ttnDelete) tdl.onclick = async function(){
+        var стараД = String(c.o.ttn || '').trim();
+        var окД = true;
+        try{ окД = window.confirm('Видалити накладну ' + стараД + '?\nЇї буде скасовано в Новій пошті (якщо створена з адмінки), номер піде в історію картки. Дані отримувача лишаться у формі — виправте й створіть нову.' +
+          (+c.o.ttnCod > 0 ? '\nУ ній контроль оплати ' + c.o.ttnCod + ' ₴.' : '')); }catch(e){}
+        if(!окД) return;
+        tdl.disabled = true; tdl.textContent = 'Видаляю…';
+        var rd;
+        try{ rd = await host().ttnDelete(c.o); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; }
+        tdl.disabled = false; tdl.textContent = '✕ Видалити ТТН';
+        if(!rd || !rd.ok) return say('Накладну не видалено: ' + ((rd && rd.why) || 'не вдалось'), 6000);
+        save(c.job, c.o, 'Накладну видалено' + (rd.note ? ' · ' + rd.note : '') + ' — виправте дані й створіть нову');
+      };
       var tre = root.querySelector('[data-ship-ttn-re]');
       if(tre && c && c.o && host().ttnRemake) tre.onclick = async function(){
         var стараТ = String(c.o.ttn || '').trim();
