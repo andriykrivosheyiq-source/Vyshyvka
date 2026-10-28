@@ -376,7 +376,7 @@ const r8c = await p.evaluate(async ids => {
     throw new Error('не та операція: ' + op); };
   try{
     const o = orders.find(x => x.orderId === ids[1]);
-    o.ttn = '20451587347945'; o.ttnRef = ''; o.ship = {}; o.phone = ''; delete o.crmChatId;
+    o.ttn = '20451587347945'; o.ttnRef = ''; o.ship = {}; o.phone = ''; delete o.crmChatId; delete o.ttnName; delete o.ttnPhone;
     const why = await shipTtnRemake(o);
     return { why, name: (o.ship || {}).name, phone: (o.ship || {}).phone, ops: window.__NPC.map(c => c.op), ttn: o.ttn };
   } finally { npUrl = u0; npCall = c0; }
