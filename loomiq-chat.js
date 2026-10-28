@@ -2553,12 +2553,24 @@ document.addEventListener('click', async e => {
    справді ведеться з двох боків, і загубити його гірше, ніж показати
    двічі. B2B при цьому не міняється взагалі: там як було, так і лишилось. */
 function chatsOrders(dir){
+  let l;
   if(dir === 'b2c'){
-    try{ return designOrders(); }
+    try{ l = designOrders(); }
     catch(e){ console.warn('чати B2C', e);
-      return (orders || []).filter(o => orderDir(o) === 'b2c' && !o.draft); }
-  }
-  return (orders || []).filter(o => orderDir(o) === 'b2b' && o.arch !== true);   // архів — не в чатах
+      l = (orders || []).filter(o => orderDir(o) === 'b2c' && !o.draft); }
+  } else l = (orders || []).filter(o => orderDir(o) === 'b2b' && o.arch !== true);
+  /* АРХІВНА КАРТКА З РОЗМОВОЮ — У ЧАТАХ (28.10, Андрій: «втратили частину
+     діалогів… людина писала, картка «Виконано», а в Чатах її немає»).
+     Список будувався лише з живих карток; завершена картка з позначкою
+     «архів» зникала разом із розмовою, хоч клієнт у неї пише. Такі картки
+     показуємо з позначкою «архів»; щойно в розмові щось зʼявляється,
+     картка сама повертається в живі (saveOrders знімає arch при зміні). */
+  const є = new Set(l.map(o => o && o.id));
+  (orders || []).forEach(o => {
+    if(!o || o.draft || o.arch !== true || є.has(o.id) || orderDir(o) !== dir) return;
+    if(o.crmChatId || tgChatOf(o)) l.push(o);
+  });
+  return l;
 }
 /* ── ОДНА РОЗМОВА, ДВА ЗАМОВЛЕННЯ ────────────────────────────────────────
 
@@ -2669,7 +2681,8 @@ function chatsHtml(dir){
       chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
       <span class="chl-who">${escapeHtml(r.who)}</span>
       <span class="chl-ch">${escapeHtml(r.channel)}${
-        r.o && r.o.orderId ? ' · ' + escapeHtml(showNo(r.o)) : ''}</span>
+        r.o && r.o.orderId ? ' · ' + escapeHtml(showNo(r.o)) : ''}${
+        r.o && r.o.arch === true ? ' · архів' : ''}</span>
       <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
