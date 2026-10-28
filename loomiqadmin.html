@@ -8332,32 +8332,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=bdb6d3ea8c"></script>
-<script src="loomiq-fingerprint.js?v=bdb6d3ea8c"></script>
-<script src="loomiq-pricing.js?v=bdb6d3ea8c"></script>
+<script src="loomiq-select.js?v=4f9103ed9b"></script>
+<script src="loomiq-fingerprint.js?v=4f9103ed9b"></script>
+<script src="loomiq-pricing.js?v=4f9103ed9b"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=bdb6d3ea8c"></script>
+<script src="loomiq-money-core.js?v=4f9103ed9b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=bdb6d3ea8c"></script>
-<script src="loomiq-mock.js?v=bdb6d3ea8c"></script>
+<script src="loomiq-design.js?v=4f9103ed9b"></script>
+<script src="loomiq-mock.js?v=4f9103ed9b"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=bdb6d3ea8c"></script>
+<script src="imagetracer.js?v=4f9103ed9b"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=bdb6d3ea8c"></script>
-<script src="loomiq-threads.js?v=bdb6d3ea8c"></script>
+<script src="loomiq-chat.js?v=4f9103ed9b"></script>
+<script src="loomiq-threads.js?v=4f9103ed9b"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=bdb6d3ea8c"></script>
+<script src="loomiq-cards.js?v=4f9103ed9b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8402,8 +8402,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'bdb6d3ea8c';
-var LQ_VER_AT = '2026-10-28T11:39:16Z';
+var LQ_VER = '4f9103ed9b';
+var LQ_VER_AT = '2026-10-28T11:50:59Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -12995,14 +12995,29 @@ function orphanB2cRows(){
     /* Схоже, менеджер завів її заново (28.10): жива картка з діалогом, без
        своїх грошей і накладної, з більшим номером, створена слідом. */
     const tw = orphanTwins(k, j, p, плат);
+    const платежі = p.map(x => гр(Math.round(+x.amount)) + ' від ' + (String(x.counter || '').trim() || '—') + ' (' + dmyOf(x.at) + ')').join(', ');
     out.push({ kind:'orphan_job', sev:'red', orderId: String(k), toNo: String(k), no: String(j.no || ''), twins: tw,
-      text: 'Картка #' + (j.no || '') + ' не дописалась: є одяг і дизайн' +
-            (p.length ? ' та ' + p.length + ' платіж(і) на ' + гр(p.reduce((a, x) => a + Math.round(+x.amount), 0)) : '') +
+      text: 'Картка #' + (j.no || '') + ' (одяг додано ' + dmyOf(j.createdAt) + ') не дописалась: є одяг і дизайн' +
+            (p.length ? ' та платіж ' + платежі : '') +
             ', а самої картки замовлення немає.' +
-            (tw.length ? ' Схоже, менеджер завів її заново: ' + tw.map(t => '#' + noOf(t.no) + (t.name ? ' (' + t.name + ')' : '') + ', ' + dmyOf(t.at)).join(' або ') +
+            (tw.length ? ' Схоже, менеджер завів її заново: ' + tw.map(t => '#' + noOf(t.no) + ' (' + (t.name || 'без імені') + ', ' + dmyOf(t.at) +
+                (t.why === 'імʼя' ? ', збіг імені платника' : ', створена слідом') + (t.pays ? ', уже має ' + t.pays + ' платіж(і)' : '') + (t.ttn ? ', є ТТН' : '') + ')').join(' або ') +
               '. «Обʼєднати в #' + noOf(tw[0].no) + '» — одяг, дизайн і платежі перейдуть туди, номер #' + (j.no || '') + ' вибуде.' : '') +
-            ' «Створити картку» — нова картка під #' + (j.no || '') + ' без діалогу (його привʼяжете самі).' });
+            ' «Обʼєднати в №…» — вкажіть номер картки самі.' +
+            ' «Створити картку» — нова картка під #' + (j.no || '') + ' без діалогу (його привʼяжете самі).' +
+            (tw.filter(t => t.why === 'імʼя').length === 1 ? ' РАДИМО: «Обʼєднати в #' + noOf(tw.filter(t => t.why === 'імʼя')[0].no) + '» — це картка цього ж платника; «Створити картку» зробить дубль.'
+             : tw.filter(t => t.why === 'імʼя').length > 1 ? ' ПЕРЕВІРТЕ: у цього платника кілька живих карток — відкрийте їх і оберіть ту, де цей одяг.'
+             : !tw.length ? ' РАДИМО: «Створити картку» — живої картки з таким платником не знайдено; якщо знаєте її номер — «Обʼєднати в №…».'
+             : ' ПЕРЕВІРТЕ: імʼя платника не збігається, кандидат лише за часом.') });
   });
+  /* Одна картка запропонована кільком сиротам (28.10, Андрій: «395 два рази…
+     різні суми») — кажемо це прямо: може, людина справді зробила два
+     замовлення, а може, картку завели заново лише раз. */
+  const скільки = {};
+  out.forEach(r => { if(r.kind === 'orphan_job') (r.twins || []).forEach(t => { скільки[t.no] = (скільки[t.no] || 0) + 1; }); });
+  out.forEach(r => { if(r.kind !== 'orphan_job') return;
+    const спільні = (r.twins || []).filter(t => скільки[t.no] > 1).map(t => '#' + noOf(t.no));
+    if(спільні.length) r.text += ' Увага: ' + спільні.join(', ') + ' пропонується ще й іншій сироті — обʼєднуйте туди лише те, що справді належить цій людині.'; });
   return out;
 }
 /* Кандидати, у які можна влити сироту: живі B2C з діалогом чи імʼям, без
@@ -13010,14 +13025,33 @@ function orphanB2cRows(){
    сироти й до доби після; перші — ті, чиє імʼя збігається з платником. */
 function orphanTwins(k, j, pays, плат){
   const t0 = Date.parse((j && j.createdAt) || '') || 0;
-  const імена = (pays || []).map(p => String(p.counter || '').toLowerCase()).filter(Boolean);
-  const схоже = o => { const n = String(o.name || o.crmChatName || '').toLowerCase();
-    return !!n && імена.some(c => c.split(/[\s·,]+/).some(w => w.length > 3 && n.indexOf(w) >= 0)); };
-  const вчас = o => { const t = Date.parse(o.createdAt || '') || 0; return !t0 || (t >= t0 - 3600000 && t <= t0 + 864e5); };
-  return (orders || []).filter(x => x && !x.draft && !x.gone && x.arch !== true && orderDir(x) === 'b2c' && +x.orderId > +k && x.status !== 'cancel' &&
-      (x.crmChatId || x.tgChatId || String(x.name || '').trim()) && !x.ttn && !плат(x.orderId).length && вчас(x))
-    .sort((a, b) => ((схоже(b) ? 1 : 0) - (схоже(a) ? 1 : 0)) || (Math.abs((Date.parse(a.createdAt || '') || 0) - t0) - Math.abs((Date.parse(b.createdAt || '') || 0) - t0)))
-    .slice(0, 2).map(x => ({ no: String(x.orderId), id: x.id, name: x.name || x.crmChatName || '', at: x.createdAt || '', alike: схоже(x) }));
+  const t = o => Date.parse((o && o.createdAt) || '') || 0;
+  /* Імʼя платника з банку («Коваль Олена») проти імені, ніку чи назви
+     розмови на картці — головна ознака (28.10, Андрій: «395 два рази…
+     різні суми»): такій картці можна й з власними платежами чи накладною,
+     до двох тижнів після сироти. Без збігу імені — лише порожня за часом
+     (до доби), як доти. Даремно відновлені порожні (restoredAt) — не
+     кандидати: ними опікується twin_b2c. */
+  const слова = c => String(c || '').toLowerCase().split(/[\s·,()"«»]+/).filter(w => w.length > 3);
+  const імена = (pays || []).map(p => слова(p.counter)).filter(l => l.length);
+  const схоже = o => { const n = (String(o.name || '') + ' ' + String(o.crmChatName || '') + ' ' + String(o.crmNick || '')).toLowerCase();
+    return імена.some(l => l.some(w => n.indexOf(w) >= 0)); };
+  const live = (orders || []).filter(x => x && !x.draft && !x.gone && x.arch !== true && orderDir(x) === 'b2c' && +x.orderId > +k &&
+      x.status !== 'cancel' && !x.restoredAt && (x.crmChatId || x.tgChatId || String(x.name || '').trim()));
+  const заІмʼям = live.filter(x => схоже(x) && (!t0 || (t(x) >= t0 - 3600000 && t(x) <= t0 + 14 * 864e5)));
+  const заЧасом = live.filter(x => !схоже(x) && !x.ttn && !плат(x.orderId).length && (!t0 || (t(x) >= t0 - 3600000 && t(x) <= t0 + 864e5)));
+  const ближчі = l => l.sort((a, b) => Math.abs(t(a) - t0) - Math.abs(t(b) - t0));
+  const row = (x, why) => ({ no: String(x.orderId), id: x.id, name: x.name || x.crmChatName || '', at: x.createdAt || '', why,
+                             pays: плат(x.orderId).length, ttn: !!x.ttn });
+  return ближчі(заІмʼям).map(x => row(x, 'імʼя')).concat(ближчі(заЧасом).map(x => row(x, 'час'))).slice(0, 2);
+}
+/* Картка за номером, який вказала людина («Обʼєднати в №…»): номер відділу
+   (2000395) або ключ (5000395); лише жива B2C, не сама сирота. */
+function orphanMergeTarget(no, k){
+  const d = String(no || '').replace(/\D/g, '');
+  if(!d) return null;
+  return (orders || []).find(x => x && !x.draft && !x.gone && orderDir(x) === 'b2c' && String(x.orderId) !== String(k || '') &&
+      (String(x.orderId) === d || String(((designJobs || {})[String(x.orderId)] || {}).no || '') === d)) || null;
 }
 /* ОБʼЄДНАТИ СИРОТУ В ЖИВУ КАРТКУ (28.10, Андрій: «не потрібно робити
    відновити… обʼєднати»). Платежі з-під ключа сироти переїжджають у #to
@@ -13488,6 +13522,7 @@ function renderFinAudit(){
           ${x.kind === 'dup_no' ? (canSetup() ? '<button class="pri" data-fa-renum title="Новішій картці без платежів і накладної дати наступний вільний номер">Перенумерувати новішу</button>' : '<span class="fa-wait">перенумеровує власник</span>') : ''}
           ${x.kind === 'orphan_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Зʼєднати</button>' : '<span class="fa-wait">зʼєднує власник</span>') : ''}
           ${x.kind === 'orphan_job' ? (canSetup() ? (x.twins || []).map(t => `<button class="pri" data-fa-merge="${E(t.no)}" title="Одяг, дизайн і платежі сироти перейдуть у цю картку; номер сироти вибуде">Обʼєднати в #${E(noOf(t.no))}</button>`).join('') +
+            `<button data-fa-merge-ask title="Вкажіть номер картки, у яку обʼєднати одяг, дизайн і платежі сироти">Обʼєднати в №…</button>` +
             `<button${(x.twins || []).length ? '' : ' class="pri"'} data-fa-restore title="Нова картка замовлення під номером сироти, без діалогу">Створити картку</button>` : '<span class="fa-wait">обʼєднує власник</span>') : ''}
           ${x.kind === 'twin_b2c' ? (canSetup() ? '<button class="pri" data-fa-restore>Обʼєднати</button>' : '<span class="fa-wait">обʼєднує власник</span>') : ''}
           ${x.kind === 'wrong_join' ? (canSetup() ? '<button class="pri" data-fa-restore>Повернути</button>' : '<span class="fa-wait">повертає власник</span>') : ''}
@@ -13503,6 +13538,16 @@ function renderFinAudit(){
     const o = x.orderId ? (orders || []).filter(q => String(q.orderId) === x.orderId)[0] : null;
     if(e.target.closest('[data-fa-open]')){ if(o) openByNo(o.orderId); return; }
     if(e.target.closest('[data-fa-more]')){ finAudit.more[key] = !finAudit.more[key]; return renderFinAudit(); }
+    if(e.target.closest('[data-fa-merge-ask]')){
+      const вказ = prompt('У яку картку обʼєднати #' + x.no + '? Вкажіть номер картки (наприклад 2000395):', '');
+      if(вказ == null || !String(вказ).trim()) return;
+      const T = orphanMergeTarget(вказ, x.toNo);
+      if(!T){ toast('Картки ' + String(вказ).trim() + ' немає серед живих B2C'); return; }
+      if(!confirm('Одяг, дизайн і платежі #' + x.no + ' перейдуть у #' + showNo(T) + (T.name || T.crmChatName ? ' (' + (T.name || T.crmChatName) + ')' : '') + '; номер #' + x.no + ' вибуде. Обʼєднати?')) return;
+      try{ await orphanMergeInto(x, String(T.orderId)); toast('Одяг, дизайн і платежі #' + x.no + ' тепер у #' + showNo(T) + '; номер #' + x.no + ' вибув'); }
+      catch(err){ console.error(err); toast('Не вдалось: ' + ((err && err.message) || err)); }
+      return renderFin();
+    }
     const mg = e.target.closest('[data-fa-merge]');
     if(mg){
       try{ await orphanMergeInto(x, mg.dataset.faMerge); toast('Одяг, дизайн і платежі #' + x.no + ' тепер у #' + noOf(mg.dataset.faMerge) + '; номер #' + x.no + ' вибув'); }
