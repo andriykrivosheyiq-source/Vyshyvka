@@ -195,6 +195,24 @@ ok(/номер у призначенні/.test(підказка.чому),
   'причину не названо: ' + підказка.чому);
 
 console.log('');
+console.log('═══ З ОПЛАТИ — У КАРТКУ (28.10) ═══');
+/* Андрій: «з оплати бачимо, що привʼязано до такого-то замовлення — щоб
+   могли зайти в цю картку». */
+const вКартку = await p.evaluate(async () => {
+  const p0 = payments.find(x => x.id === 'p1'); const був = p0.orderId;
+  const o = orders.find(x => x.orderId === '2000200'); if(!o) return { нема: 1 };
+  p0.orderId = '2000200'; renderFin(); await new Promise(r => setTimeout(r, 100));
+  const b = document.querySelector('[data-fin-goto-row="2000200"]');
+  const м0 = document.querySelectorAll('.fin-modal').length;      // вікно з попереднього кроку ще відкрите
+  const calls = []; const o0 = openByNo; openByNo = id => { calls.push(String(id)); };
+  if(b) b.click(); await new Promise(r => setTimeout(r, 100));
+  openByNo = o0; p0.orderId = був; renderFin();
+  return { є: !!b, txt: b ? b.textContent : '', calls, модальне: document.querySelectorAll('.fin-modal').length > м0 };
+});
+ok(вКартку.є && /картка/.test(вКартку.txt) && вКартку.calls.join() === '2000200' && !вКартку.модальне,
+  'у рядку привʼязаного руху — «↗ картка»: одним кліком у картку #2000200, без вікна привʼязки', JSON.stringify(вКартку));
+
+console.log('');
 console.log('═══ ПРИВʼЯЗАНА СУМА ЗМЕНШУЄ ЗАЛИШОК ═══');
 const гроші = await p.evaluate(async () => {
   const доПривʼязки = payPaid('2000200');

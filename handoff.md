@@ -230,7 +230,15 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   без заслони, `sentToClient` = «пішло»; `dz-tell` у чернетці — відмова
   «Спершу «Створити замовлення»»; `U.gate` для тестів; Звірка перемальовується зі
   знімків (`go('view-fin')` у `repaintAfterOrdersNow`, `finAuditRefresh`
-  у `watchDesign`),
+  у `watchDesign`); «Неповні картки» `#fin-incomplete` (`finIncompleteRows`,
+  `finIncompleteText`, `renderFinIncomplete`); `saveOrders` видаляє лише
+  `зналиНаСтарті` і лише відсутнє в памʼяті (`del-auto` у журнал); `draftTwinOf`
+  через `tgChatOf`, confirm «Цей нік уже під #X»; чати (LQ_CHAT): обхід
+  дочитує завершені (до 180 днів), `crmFeedToCard`, памʼять «наше» з `chat`,
+  нік лише без пробілів + `crmNick` зі списку, «Без картки · N»
+  (`chatsInboxRows/Html`, `draftFromChat` в адмінці, договір), аудит у
+  `docs/AUDIT-2026-10-28.md`; Фінанси: «↗ картка» в рядку руху
+  (`finGotoCard`),
   `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.

@@ -550,7 +550,7 @@ async function crmLoadChat(o){
     const r = await crmFetchMsgs(chatId);
     st.rawMsgs = r.first; st.rawAll = r.arr; st.pageInfo = r.info;
     const msgs = crmNormMsgs(r.arr || r.first, o);
-    if(msgs) st.msgs = msgs;
+    if(msgs){ st.msgs = msgs; try{ crmFeedToCard(o, msgs, chatId); }catch(e){} }
     else st.noHistory = 'відповідь без списку повідомлень';
   }catch(e){
     st.noHistory = (e.status === 404 || e.status === 405)
@@ -960,8 +960,10 @@ function crmKeep(o){
   }, 400);
 }
 function crmOutList(o){
-  const own = Array.isArray(o && o.crmOut) ? o.crmOut : [];
-  const here = (o && crmOutHere[o.id]) || [];
+  const chat = String((o && o.crmChatId) || '');
+  const свій = r => r && (!r.chat || String(r.chat) === chat);      // 28.10: лише ця розмова
+  const own = (Array.isArray(o && o.crmOut) ? o.crmOut : []).filter(свій);
+  const here = ((o && crmOutHere[o.id]) || []).filter(свій);
   if(!here.length) return own;
   /* Картка й памʼять вкладки тримають ті самі записи — без дублів (20.10). */
   const було = {};
@@ -969,6 +971,7 @@ function crmOutList(o){
 }
 function crmOutPush(o, rec){
   if(!o || !rec || !rec.t) return;
+  if(!rec.chat) rec.chat = String(o.crmChatId || '');
   const live = crmLive(o);
   [o, live].filter((x, i, a) => a.indexOf(x) === i).forEach(x => {
     const list = Array.isArray(x.crmOut) ? x.crmOut : (x.crmOut = []);
@@ -1500,16 +1503,23 @@ function crmNormMsgs(data, o){
    адреси тимчасові (blob:). */
 const crmPicsMem = {};
 const CRM_PICS_KEEP = 40, CRM_PICS_WIN = 10 * 60000;
+/* ПАМʼЯТЬ ПРО НАШІ ФОТО — ЛИШЕ ТІЄЇ РОЗМОВИ, ЩО ПРИВʼЯЗАНА (28.10). Записи
+   зливаються обʼєднанням (злиття списків в адмінці), тож після заміни розмови старі
+   повертаються з бази — і наш аркуш зі старої розмови вставав у нову
+   стрічку. Запис несе `chat`; чужий — не наш. Старі записи без `chat` —
+   як доти. */
 function crmPicsAll(o){
   if(!o) return [];
-  const saved = Array.isArray(o.crmPicsOut) ? o.crmPicsOut : [];
-  const mem = crmPicsMem[o.id] || [];
+  const chat = String(o.crmChatId || '');
+  const свій = e => e && (!e.chat || String(e.chat) === chat);
+  const saved = (Array.isArray(o.crmPicsOut) ? o.crmPicsOut : []).filter(свій);
+  const mem = (crmPicsMem[o.id] || []).filter(свій);
   return saved.concat(mem.filter(e => !saved.some(x => x.k === e.k)));
 }
 function crmPicsAdd(o, urls, state){
   const e = { k: 'lp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
               at: new Date().toISOString().replace('T', ' ').slice(0, 16), urls: (urls || []).slice(0, 10),
-              by: myName(), state: state || 'pending', t: '',
+              by: myName(), state: state || 'pending', t: '', chat: String(o.crmChatId || ''),
               /* Що вже стояло в стрічці з вкладеннями ДО натиску — це точно
                  не наше нове фото, навіть якщо час і кількість збігаються. */
               pre: (((crmChat[o.id] || {}).msgs) || []).filter(m => m && !m.local && (m.files || []).length)
@@ -1520,7 +1530,7 @@ function crmPicsAdd(o, urls, state){
 }
 /* Надіслане — у картку (з адресами хмари), щоб пережило перезавантаження. */
 function crmPicsKeep(o, e){
-  const rec = { k: e.k, at: e.at, urls: e.urls, by: e.by, state: 'sent', t: e.t || '', pre: (e.pre || []).slice(-20) };
+  const rec = { k: e.k, at: e.at, urls: e.urls, by: e.by, state: 'sent', t: e.t || '', pre: (e.pre || []).slice(-20), chat: e.chat || String(o.crmChatId || '') };
   const live = crmLive(o);
   [o, live].filter((x, i, a) => a.indexOf(x) === i).forEach(x => {
     const l = Array.isArray(x.crmPicsOut) ? x.crmPicsOut : (x.crmPicsOut = []);
@@ -1610,6 +1620,27 @@ function crmNoteIn(o, n){
   if(o.crmIn != null && n > (+o.crmIn || 0)) touchOrder(o);
   o.crmIn = n;
   saveOrders({ quiet:true }).then(renderBoard).catch(e => console.warn('лічильник реплік', e));
+}
+/* ОСТАННЯ РЕПЛІКА — У КАРТКУ З САМОЇ СТРІЧКИ (28.10, Андрій, #2000196). Доти
+   час і текст у списку розмов писав лише обхід; відкрите вікно показувало
+   нове, а рядок у списку лишався зі старим часом і не піднімався. Кличуть
+   лише завантаження й опитування відкритої розмови — коли стрічка справді
+   належить привʼязаній розмові. */
+function crmFeedToCard(o, msgs, chatId){
+  if(!o || !Array.isArray(msgs) || String(chatId || '') !== String(o.crmChatId || '')) return false;
+  const живі = msgs.filter(m => m && !m.gone && !m.local && (m.ts || m.at));
+  const ост = живі[живі.length - 1];
+  if(!ост) return false;
+  let at = '';
+  try{ at = new Date(ост.ts || ост.at).toISOString(); }catch(e){ return false; }
+  if(!at || at <= String(o.crmAt || '')) return false;
+  o.crmAt = at;
+  o.crmLast = String(ост.text || ((ост.files || []).length ? '📎 вкладення' : '')).slice(0, 160);
+  o.crmTheirs = !ост.mine;
+  if(o.crmTheirs) touchOrder(o);
+  saveOrders({ quiet:true }).catch(e => console.warn('остання репліка', e));
+  setTimeout(() => { try{ chatsLive(); }catch(e){} }, 0);
+  return true;
 }
 
 async function crmLoad(o, numFromInput){
@@ -2120,6 +2151,7 @@ async function crmPollOnce(o){
     }
     const msgs = crmNormMsgs(src, o);
     if(!msgs) return;
+    try{ crmFeedToCard(o, msgs, st.chatId); }catch(e){}
     /* Прикмета стрічки — не лише тексти. Бік, підпис, вкладення й слід
        видаленого теж міняють те, що людина бачить; порівнюючи самі тексти,
        ми пропускали саме ці зміни, а перемальовували й тоді, коли не
@@ -2403,6 +2435,10 @@ async function crmSweepOnce(){
                                  at:info.at, text:info.text, mine:info.mine });
         return;
       }
+      /* Справжній нік зі списку Sitniks (28.10): картка, привʼязана без
+         ніка (лише імʼя), отримує його, щойно список його дав. */
+      const нікС = crmNick(r);
+      if(нікС && !/\s/.test(нікС) && /^[\w.\-]+$/.test(нікС) && нікС !== String(o.crmNick || '')){ o.crmNick = нікС; touched = true; }
       if(!info || info.at <= String(o.crmAt || '')) return;
       o.crmAt = info.at;
       o.crmLast = info.text.slice(0, 160);
@@ -2448,9 +2484,18 @@ async function crmSweepOnce(){
       /* Першими — ще не перевірені за цей сеанс, серед них — де розмова
          жила останні два тижні (клієнт, що пише зараз, — майже завжди там). */
       const свіжа = o => String(o.crmAt || o.touchedAt || o.createdAt || '') > new Date(Date.now() - 14 * 864e5).toISOString() ? 0 : 1;
+      /* ЗАВЕРШЕНІ Й АРХІВНІ — ТЕЖ (28.10, Андрій, #2000196 «Виконано»: клієнтка
+         писала 16:51–16:58, а в списку стояло «23.10 · Навзаєм)»). Доти
+         дочитувались лише живі картки (crmSweepLive) — завершена, якої немає
+         в перших сторінках списку Sitniks, не оновлювалась ніколи, і рядок
+         сидів унизу за старою датою. Тепер: живі першими, за ними завершені
+         (до пів року без руху), по дві за такт, як і доти. */
+      const давно = new Date(Date.now() - 180 * 864e5).toISOString();
       const черга = (orders || []).filter(o => o && o.crmChatId && !уСписку.has(String(o.crmChatId)) &&
-          !(chatWin && chatWin.id === o.id) && crmSweepLive(o))
-        .sort((a, b) => ((crmChecked[a.id] || 0) - (crmChecked[b.id] || 0)) || (свіжа(a) - свіжа(b))).slice(0, 2);
+          !(chatWin && chatWin.id === o.id) &&
+          (crmSweepLive(o) || String(o.crmAt || o.touchedAt || o.createdAt || '') > давно))
+        .sort((a, b) => ((crmChecked[a.id] || 0) - (crmChecked[b.id] || 0)) ||
+                        ((crmSweepLive(b) ? 1 : 0) - (crmSweepLive(a) ? 1 : 0)) || (свіжа(a) - свіжа(b))).slice(0, 2);
       for(const o of черга){
         crmChecked[o.id] = Date.now();
         try{ if(crmTakeFeed(o, await crmFetch('/chats/' + encodeURIComponent(o.crmChatId) + '/messages'))) touched = true; }
@@ -2599,7 +2644,10 @@ function chatsRows(dir){
     /* ІМʼЯ Й НІК (28.10, Андрій: «немає тут ніка»): імʼя з картки чи назви
        розмови один раз (доти «Оля · Оля»), поруч «@нік», коли Sitniks його
        дав і він не те саме слово. Нічого не відомо — номер картки. */
-    const нік = String(o.crmNick || o.ig || o.instagram || '').replace(/^@/, '').trim();
+    /* «@» — лише справжній нік без пробілів (28.10, Андрій: «це імʼя, тут
+       немає ніка»): у полі Instagram нерідко лежить імʼя з розмови. */
+    const нік = [o.crmNick, o.ig, o.instagram].map(v => String(v || '').replace(/^@/, '').trim())
+      .find(v => v && !/\s/.test(v) && /^[\w.\-]+$/.test(v)) || '';
     const імʼя = String(o.name || o.crmChatName || '').trim();
     const хто = [імʼя && імʼя.toLowerCase() !== нік.toLowerCase() ? імʼя : '', нік ? '@' + нік : ''].filter(Boolean).join(' · ');
     out.push({
@@ -2671,17 +2719,73 @@ function chatsUnrBtn(dir){
     (chatsUnr[dir] ? 'Показати всі розмови' : 'Лише ті, що чекають на відповідь') + '">Непрочитані' + (n ? ' · ' + n : '') + '</button>';
 }
 function chatsRowsQ(dir){ return chatsRows(dir).filter(r => chatsMatch(r, chatsQ[dir]) && (!chatsUnr[dir] || r.waits)); }
+/* ══════════ БЕЗ КАРТКИ (28.10) ═══════════════════════════════════════════
+   Андрій: «куча втрачених діалогів… де я їх знайду?». Розмова губиться для
+   нас лише одним способом: обривається звʼязок «розмова → картка» (картка не
+   записалась, видалена, перевʼязана). Сама переписка живе в Sitniks. Обхід
+   уже тримає розмови з останніх сторінок списку, до яких немає картки
+   (crmInbox) — показуємо їх окремим блоком у Чатах B2C з кнопками
+   «Створити замовлення» і «Привʼязати до №…». Людина, яка написала вперше,
+   тут теж буде — це не втрата, і її так само можна завести. */
+function chatsInboxRows(dir){
+  if(dir !== 'b2c') return [];
+  const звʼязані = new Set((orders || []).filter(o => o && o.crmChatId).map(o => String(o.crmChatId)));
+  const q = String(chatsQ[dir] || '').trim().toLowerCase();
+  return (crmInbox || []).filter(r => r && r.chatId && !звʼязані.has(String(r.chatId)))
+    .filter(r => !q || [r.nick, r.name, r.rawNick, r.text].some(v => String(v || '').toLowerCase().indexOf(q) >= 0))
+    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+function chatsInboxHtml(dir){
+  const rows = chatsInboxRows(dir);
+  if(!rows.length) return '';
+  const може = (() => { try{ return canBindChat(); }catch(e){ return false; } })();
+  return '<div class="chl-inbox"><div class="chl-inbox-h">Без картки · ' + rows.length +
+    '<i>розмови Sitniks з останніх сторінок списку, до яких у Loomiq немає картки</i></div>' +
+    rows.map(r => `<div class="chl-inbox-r${r.mine ? '' : ' waits'}" data-chl-inbox="${escapeHtml(String(r.chatId))}">
+      <span class="chl-who">${escapeHtml([r.name, r.rawNick ? '@' + String(r.rawNick).replace(/^@/, '') : ''].filter(Boolean).join(' · ') || r.nick || 'розмова')}</span>
+      <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
+      <span class="chl-txt">${escapeHtml(String(r.text || '').replace(/\s+/g, ' ').slice(0, 90) || '—')}</span>
+      ${може ? `<span class="chl-inbox-b"><button type="button" class="ob-b" data-chl-new>Створити замовлення</button>
+        <button type="button" class="ob-b" data-chl-bind>Привʼязати до №…</button></span>` : ''}
+    </div>`).join('') + '</div>';
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-chl-new],[data-chl-bind]');
+  if(!b) return;
+  const row = b.closest('[data-chl-inbox]');
+  const r = (crmInbox || []).find(x => x && String(x.chatId) === String(row && row.dataset.chlInbox));
+  if(!r) return toast('Розмови вже немає в списку — оновіть сторінку');
+  if(!canBindChat()) return toast('Привʼязувати розмови — не ваша зона');
+  const хто = { chatId: String(r.chatId), name: r.name || '', nick: r.rawNick || '' };
+  if(b.hasAttribute('data-chl-new')){
+    /* Чернетка нового B2C з цією розмовою — далі як завжди: платіж, одяг,
+       «Створити замовлення». */
+    if(typeof draftFromChat !== 'function') return toast('Створення замовлення доступне з робочого місця');
+    try{ await draftFromChat(хто); }catch(e2){ toast('Не вдалось: ' + (e2 && e2.message || e2)); }
+    return;
+  }
+  const num = String(prompt('Номер картки, до якої привʼязати розмову' + (хто.name ? ' «' + хто.name + '»' : '') + ':', '') || '').replace(/^#/, '').trim();
+  if(!num) return;
+  const o = (orders || []).find(x => x && !x.draft && (String(x.orderId) === num || String(showNo(x)) === num));
+  if(!o) return toast('Картки №' + num + ' немає');
+  if(o.crmChatId && !confirm('У картки ' + showNo(o) + ' уже є розмова. Замінити на цю?')) return;
+  delete crmChat[o.id];
+  await crmPickChat(o, хто);
+  toast('Розмову привʼязано до ' + showNo(o));
+  try{ chatsLive(); }catch(e2){}
+});
 function chatsHtml(dir){
   const all = chatsRows(dir);
   const rows = chatsRowsQ(dir);
+  const inbox = chatsInboxHtml(dir);
   if(!all.length)
     return '<div class="chl-empty">Розмов тут поки немає. Вони зʼявляються, ' +
            'коли розмову привʼязують до замовлення цього напряму — у картці, ' +
-           'кнопкою 🔗 біля клієнта.</div>';
+           'кнопкою 🔗 біля клієнта.</div>' + inbox;
   if(!rows.length)
     return '<div class="chl-empty">' + (chatsUnr[dir] && !String(chatsQ[dir] || '').trim()
       ? 'Непрочитаних немає — усім відповіли 🎉'
-      : 'За «' + escapeHtml(chatsQ[dir]) + '» нічого' + (chatsUnr[dir] ? ' серед непрочитаних' : '') + ' немає.') + '</div>';
+      : 'За «' + escapeHtml(chatsQ[dir]) + '» нічого' + (chatsUnr[dir] ? ' серед непрочитаних' : '') + ' немає.') + '</div>' + inbox;
   return rows.map((r, i) => `
     <button class="chl-row${r.waits ? ' waits' : ''}${
       chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
@@ -2692,7 +2796,7 @@ function chatsHtml(dir){
       <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
-    </button>`).join('') +
+    </button>`).join('') + inbox +
     `<div class="chl-sweep${sweepStuck() ? ' is-err' : ''}" data-sweep-info>${escapeHtml(sweepInfoTxt())}</div>`;
 }
 function crmDayShort(at){
