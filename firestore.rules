@@ -62,6 +62,15 @@ service cloud.firestore {
     function touched(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(keys);
     }
+    // ЖИВА КАРТКА ЗА НОМЕРОМ (28.10). Номер заброньовано (orderNos), а
+    // картки замовлення за бронню немає (не дописалась чи вибула) — ні
+    // картка відділу, ні платіж туди не лягають: саме так 27.10 зʼявились
+    // девʼять сиріт «не дописалась». Номер без броні (старі картки) — як
+    // доти. *After — бо нова картка пишеться з бронню в одній транзакції.
+    function orderAlive(no) {
+      return !existsAfter(/databases/$(database)/documents/orderNos/$(no))
+        || existsAfter(/databases/$(database)/documents/kanbanOrders/$(getAfter(/databases/$(database)/documents/orderNos/$(no)).data.id));
+    }
 
     match /reviews/{doc} {
       allow read: if resource.data.approved == true;
@@ -213,12 +222,14 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if request.auth != null && may('setup');
     }
+    // existsAfter/getAfter (28.10): бронь і картка — однією транзакцією
+    // (orderCreateAtomic); окремий запис після броні проходить так само.
     match /kanbanOrders/{id} {
       allow read: if known();
       allow create: if request.auth != null && may('edit')
         && request.resource.data.orderId is string
-        && exists(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId))
-        && get(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId)).data.id == id;
+        && existsAfter(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId))
+        && getAfter(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId)).data.id == id;
       allow delete: if request.auth != null && may('del');
       allow update: if request.auth != null
         && (may('edit') || !touched(['items', 'totalPrice', 'totalCost', 'margin',
@@ -342,9 +353,12 @@ service cloud.firestore {
     // Видалення закрите намертво. Версія макета не має зникати ніколи — саме
     // заради цього відділ і заводився: «остаточний_фінал2» береться рівно з
     // того, що стару версію колись прибрали.
+    // Створити картку відділу можна лише до живої картки замовлення (28.10,
+    // orderAlive); правити — як доти. Власник (ремонт у Звірці) — завжди.
     match /designJobs/{orderId} {
       allow read: if known();
-      allow create, update: if known();
+      allow create: if known() && (may('setup') || orderAlive(orderId));
+      allow update: if known();
       allow delete: if false;
     }
 
@@ -400,11 +414,20 @@ service cloud.firestore {
         || request.resource.data.get('orderId', null) == ''
         || request.resource.data.get('orderId', null) == resource.data.get('orderId', null);
     }
+    // ПРИВʼЯЗКА — ЛИШЕ ДО ЖИВОЇ КАРТКИ (28.10): номер заброньовано, а картки
+    // за бронню немає — платіж туди не привʼязується (orderAlive).
+    function payTo() {
+      return request.resource.data.get('orderId', null) == null
+        || request.resource.data.get('orderId', null) == ''
+        || (resource != null && request.resource.data.get('orderId', null) == resource.data.get('orderId', null))
+        || orderAlive(request.resource.data.orderId);
+    }
     match /payments/{id} {
       allow read: if known() && (may('pay') || may('setup'));
       allow create: if known() && (may('pay') || may('setup'))
         && !bankSrc(request.resource.data)
-        && (may('setup') || cardNew(request.resource.data));
+        && (may('setup') || cardNew(request.resource.data))
+        && payTo();
       allow delete: if known() && (may('pay') || may('setup'))
         && !bankSrc(resource.data);
       allow update: if known() && (may('pay') || may('setup'))
@@ -412,7 +435,8 @@ service cloud.firestore {
         && (!bankSrc(resource.data)
             || !request.resource.data.diff(resource.data).affectedKeys().hasAny(payFixed()))
         && (may('setup') || !touched(['check', 'shot']))
-        && noSteal();
+        && noSteal()
+        && payTo();
     }
 
     match /loomiq/{doc} {

@@ -9268,6 +9268,10 @@
       var goB = m.querySelector('[data-pm-go]');
       if(goB.disabled) return;
       goB.disabled = true; goB.textContent = 'Надсилаю…';
+      /* Довго — видно, скільки, і що це інтернет, а не зависла кнопка (28.10). */
+      var t0 = Date.now();
+      var tick = setInterval(function(){ var s = Math.round((Date.now() - t0) / 1000);
+        if(goB.isConnected && goB.disabled && s >= 3) goB.textContent = 'Надсилаю… ' + s + ' с' + (s >= 10 ? ' · слабкий інтернет, чекаю' : ''); }, 1000);
       var штамп = new Date().toISOString();
       /* ЛИШЕ З «НА СТАНКАХ» (26.10, Володимир: «після оновлень переміщало
          назад, хоча менеджери давали згоду»): на телефоні ще стара картина,
@@ -9278,6 +9282,7 @@
           if(D.prodAt(job, x) !== 'run') return false;
           D.prodReady(x, me, urls, note, штамп); },
         function(x){ return !!(x && x.prodQc && x.prodQc.at === штамп); });
+      clearInterval(tick);
       if(лягло === 'stale'){
         close();
         var свіжаP = U.pairOf(o.orderId);
@@ -10214,8 +10219,16 @@
           }).join('') + '</select></label>'
       : '';
     var архів = (seat === 'acct' && host().archOpen) ? '<button type="button" class="dz-b dz-arch" data-do="arch-open" title="Завершені картки без руху понад 30 днів">Архів</button>' : '';
+    /* Чернетка з пристрою (28.10): не встигли створити — продовжити. */
+    function newBtnHtml(){
+      var s = null; try{ s = host().draftSaved && host().draftSaved(); }catch(e){}
+      var коли = '';
+      if(s){ var d = new Date(s.at || ''); if(!isNaN(d)) коли = ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+      return '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' +
+        (s ? '<button class="dz-b dz-resume" data-do="order-resume" title="Чернетка нового замовлення, яку не встигли створити (' + esc(коли) + (s.sum ? ' · ' + s.sum + ' ₴' : '') + (s.units ? ' · ' + s.units + ' поз.' : '') + ')">↩ Продовжити чернетку' + (s.name ? ' · ' + esc(s.name) : '') + '</button>' : '');
+    }
     var headHtml = boss
-      ? (seat === 'acct' ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
+      ? (seat === 'acct' ? newBtnHtml() : '') +
         seekHtml(шук) + архів + графік + перемикач
       /* Співробітнику не пишемо, хто він. Дошка в нього одна, зайти на чужу
          він не може — і підпис «Моя дошка · Графічний дизайнер» просто
@@ -10226,7 +10239,7 @@
       /* «+ Нове замовлення» — і співробітнику з правом створювати (акаунт,
          менеджер B2C): 22.10 він зник разом із перемикачем, який мав лишитись
          тільки власнику. */
-      : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' : '') +
+      : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? newBtnHtml() : '') +
         (seekHtml(шук) + архів + графік + перемикач);
     var _full =
       '<div class="dz-top">' + headHtml + '</div>' +
@@ -11724,7 +11737,7 @@
      єдине місце, де вони звіряються. Замок стоїть на самій дії, а не лише
      на кнопці: кнопку можна сховати, дію — ні. */
   var ACT_CAN = {
-    'order-new':'new', 'order-create':'new',
+    'order-new':'new', 'order-create':'new', 'order-resume':'new',
     'take':'art', 'start':'art', 'ver-new':'art', 'ver-file':'art',
     'ver-prev':'art', 'to-review':'art', 'u-add':'art', 'u-dup':'art',
     'u-del':'art', 'dz-add':'art', 'dz-del':'art', 'u-svc-add':'art', 'u-svc-del':'art', 'price-refresh':'art',
@@ -12292,6 +12305,10 @@
     if(what === 'order-new'){
       if(host().newOrder) return host().newOrder();
       return say('Створення замовлення доступне з робочого місця');
+    }
+    if(what === 'order-resume'){
+      if(host().resumeDraft) return host().resumeDraft();
+      return say('Чернетки недоступні');
     }
     /* Скидання пошуку теж іде ДО перевірки контексту: його тиснуть саме
        тоді, коли на дошці нічого не знайшлось, тобто коли відкривати нічого

@@ -475,6 +475,18 @@ r = await p.evaluate(async () => {
   window.__TOASTS = [];
   await U.act('prod-ok', root);
   out.старий = { toast: window.__TOASTS.slice(-1)[0] || '', памʼять: D.prodAt(j, orders.find(x => x.id === 'o4')) };
+  /* 4. База не відповідає взагалі (телефон після згортання): кнопка не висить
+     без кінця — за LQ_GET_MS чесне «не записалось», звʼязок штовхнуто. */
+  const d4 = window.__ORDERS.find(x => x.id === 'o4'); d4.tracks = { supply:'got', prod:'done', qc:'check' }; delete d4.prodQc.ok;
+  Object.assign(o2, JSON.parse(JSON.stringify(d4))); ordersSaved.set('o4', JSON.stringify(o2));
+  window.LQ_GET_MS = 300; window.__KICK = 0; window.__TOASTS = [];
+  fbDb.disableNetwork = () => { window.__KICK++; return Promise.resolve(); }; fbDb.enableNetwork = () => Promise.resolve();
+  const gH = Object.getPrototypeOf(ORDERS_COL.doc('o4')).get;
+  Object.getPrototypeOf(ORDERS_COL.doc('o4')).get = function(){ if(this.__col === 'kanbanOrders') return new Promise(() => {}); return gH.apply(this, arguments); };
+  const tH = Date.now();
+  await U.act('prod-ok', root);
+  Object.getPrototypeOf(ORDERS_COL.doc('o4')).get = gH; delete window.LQ_GET_MS;
+  out.висить = { ms: Date.now() - tH, toast: window.__TOASTS.slice(-1)[0] || '', памʼять: D.prodAt(j, orders.find(x => x.id === 'o4')), база: (d4.tracks || {}).qc, kick: window.__KICK };
   return out;
 });
 console.log('   ' + JSON.stringify(r));
@@ -483,6 +495,8 @@ ok(r.до === 'appr' && /не записалось/.test(r.збій.toast) && !/
 ok(/Погоджено/.test(r.ок.toast) && r.ок.памʼять === 'ship' && r.ок.база === 'ok' && r.ок.читань === 1 && r.ок.зайнята.busy && r.ок.зайнята.disabled,
   'звʼязок є — погоджено й у базі, й у памʼяті; база читалась один раз; кнопка одразу «зайнята»', JSON.stringify(r.ок));
 ok(/вже рушили далі/.test(r.старий.toast) && r.старий.памʼять === 'ship', 'старий вигляд, а в базі вже погоджено — «вже рушили далі», показано свіжу', JSON.stringify(r.старий));
+ok(r.висить.ms < 4000 && /не записалось/.test(r.висить.toast) && r.висить.памʼять === 'appr' && r.висить.база === 'check' && r.висить.kick >= 1,
+  'база не відповідає — за межу часу чесне «не записалось» (не висить), картка не чіпалась, звʼязок перепідключено', JSON.stringify(r.висить));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

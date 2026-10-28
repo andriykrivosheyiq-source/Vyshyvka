@@ -267,7 +267,41 @@ ok(журн.xNo === '5000320' && журн.rGone && журн.r2Gone && журн.p
   '«Повернути»: Іра знову під #2000320 з платежем 900 ₴, порожня зникла; «Прибрати»: порожня #2000310 зникла, під нею надгробок; Звірка чиста', JSON.stringify(журн));
 
 console.log('');
+console.log('═══ 8. СИРОТА, ЯКУ МЕНЕДЖЕР ЗАВІВ ЗАНОВО, — «ОБʼЄДНАТИ В #Y» (28.10) ═══');
+/* 27.10: картка #2000330 не дописалась (бронь, одяг і платіж є), менеджер
+   через дві години завів Олену заново як #2000331. Андрій: «не потрібно
+   робити відновити… обʼєднати». */
+const злит = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const t0 = Date.now() - 3 * 3600000, at = new Date(t0).toISOString(), at2 = new Date(t0 + 2 * 3600000).toISOString();
+  const j30 = D.emptyJob('5000330'); j30.no = '2000330'; j30.createdAt = at; j30.units = [Object.assign(D.ui.unitNew(), { gid:'tee', name:'Футболка', qty:2 })]; designJobs['5000330'] = j30;
+  payments.push({ id: 'p-330', amount: 1560, at, acc: 'mono1', src: 'mono', counter: 'Коваль Олена', orderId: '5000330', tag: 'prepay' });
+  const R = { id: 're-331', orderId: '5000331', type: 'client', dir: 'b2c', name: 'Олена Коваль', crmChatId: 'c331', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at2, payments: [] };
+  orders.push(R); ordersSaved.set(R.id, JSON.stringify(R));
+  const j31 = D.emptyJob('5000331'); j31.no = '2000331'; j31.createdAt = at2; designJobs['5000331'] = j31;
+  /* картка того ж часу з іншою людиною й своїм платежем — не кандидат */
+  const Z = { id: 'z-332', orderId: '5000332', type: 'client', dir: 'b2c', name: 'Петро', crmChatId: 'c332', status: 'prorahunok', site: 'main', items: [], hist: [], createdAt: at2 };
+  orders.push(Z); ordersSaved.set(Z.id, JSON.stringify(Z));
+  payments.push({ id: 'p-332', amount: 500, at: at2, acc: 'mono1', src: 'mono', orderId: '5000332', tag: 'prepay' });
+  window.__TAKEN['5000330'] = { id: 'dead-330' }; window.__TAKEN['5000331'] = { id: R.id }; window.__TAKEN['5000332'] = { id: Z.id };
+  const rows = orphanB2cRows();
+  const row = rows.find(x => x.kind === 'orphan_job' && x.toNo === '5000330');
+  const r = { kinds: rows.map(x => x.kind).join(), twins: row && (row.twins || []).map(t => t.no + ':' + t.name).join(), text: row && row.text };
+  if(row) await orphanMergeInto(row, '5000331');
+  const p = payments.find(x => x.id === 'p-330');
+  return Object.assign(r, { pTo: p.orderId, copy: (R.payments || []).some(e => e.payId === 'p-330'), paid: paidSum(R),
+    units: D.ui.unitsOf(designJobs['5000331']).length, no31: designJobs['5000331'].no, gone30: !!(designJobs['5000330'] || {}).gone,
+    retired: window.__TAKEN['5000330'] && window.__TAKEN['5000330'].id, nR: orders.filter(x => x.orderId === '5000331').length,
+    left: orphanB2cRows().filter(x => x.toNo === '5000330').length, lost: moneyAudit().filter(x => x.kind === 'lost_order' && x.orderId === '5000330').length });
+});
+console.log('   ' + JSON.stringify(злит));
+ok(злит.twins === '5000331:Олена Коваль' && /#2000330 не дописалась.*завів її заново: #2000331 \(Олена Коваль\).*«Обʼєднати в #2000331».*«Створити картку»/.test(злит.text) && !/5000/.test(злит.text),
+  'Звірка: «…не дописалась… Схоже, менеджер завів її заново: #2000331 (Олена Коваль)» — кандидат за імʼям платника; Петро зі своїм платежем — ні', JSON.stringify(злит));
+ok(злит.pTo === '5000331' && злит.copy && злит.paid === 1560 && злит.units === 1 && злит.no31 === '2000331' && злит.gone30 && злит.retired === 'gone:re-331' && злит.nR === 1 && злит.left === 0 && злит.lost === 0,
+  '«Обʼєднати в #2000331»: платіж 1 560 ₴ і одяг тепер у #2000331 (її номер відділу), під #2000330 надгробок, номер вибув, Звірка чиста', JSON.stringify(злит));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
-console.log(bad ? 'розходжень: ' + bad : 'номер бронюється в базі перед записом картки');
+console.log(bad ? 'розходжень: ' + bad : 'номер бронюється в базі перед записом картки; сирота обʼєднується в живу картку');
 process.exit(bad ? 1 : 0);
