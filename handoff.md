@@ -336,6 +336,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
 - **Пошук на телефоні**: `seekSoft(root)` (лише `.dz-boards`), `seekHit`
   без `#` і по цифрах, `boardHtml` → `.dz-board.is-seek`, `.dz-col.has-cards`;
   CSS у мобільному блоці адмінки. `tests/prod-mobile.mjs` (телефон, пошук).
+- **orderApply читає картку перед кожною спробою** (28.10): адмінка
+  `orderApply` (get → reset `o` з бази → `ordersSaved` → fn → `saveOrders({quiet,
+  only:id, pre:{id,doc}})`), `dbNewerOf` (звірка вже прочитаного), `saveOrders`
+  `onlyId`/`pre`; відділ: клік по `[data-do]` ставить `is-busy` (CSS в адмінці),
+  плитка при DnD одразу в колонці з `is-busy`. `tests/prod-state.mjs` §11.
 - **Рух цеху зі старої копії** (28.10): `prodMoveApply(job, o, to, by)` /
   `prodMoveSay` у `loomiq-design.js` (DnD на дошці цеху й дія `prod-move`);
   `PROD_GEO` без localStorage, `prod-geo-off`, `.dz-geo-note`.

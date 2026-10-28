@@ -11279,6 +11279,9 @@
           }
           if(!D.prodCanMove(from, to, p.o)) return say('Так перенести не можна');
           if(ord != null) p.job.boardOrd = ord;
+          /* Плитка одразу переїжджає й світиться «зайнятою», поки база не підтвердить. */
+          try{ var wM = root.querySelector('.dz-board [data-open="' + p.o.orderId + '"]'); var wW = wM && (wM.closest('.dz-card-w') || wM);
+               if(wW){ wW.classList.add('is-busy'); var bodyK = k.querySelector('.dz-col-b'); if(bodyK) bodyK.insertBefore(wW, bodyK.firstChild); } }catch(e){}
           prodMoveApply(p.job, p.o, to, me0).then(function(r){
             if(r === true && to === 'run') prodToTelegram(p.job, p.o, true);
             /* Порядок у колонці — у картці відділу; не ліг — не страшно. */
@@ -11292,7 +11295,12 @@
       b.onclick = function(e){
         /* Кнопка всередині картки (Instagram) — картку не відкриває. */
         if(e && b.closest('[data-open]') && b.closest('[data-open]') !== b){ e.stopPropagation(); e.preventDefault(); }
-        act(b.dataset.do, root, b.dataset); };
+        /* Кнопка одразу «зайнята» (28.10, Андрій: «зависає трохи»): дія читає
+           й пише базу пів секунди-секунду, людина має бачити, що натиснулось. */
+        b.classList.add('is-busy'); if('disabled' in b) b.disabled = true;
+        var prA; try{ prA = act(b.dataset.do, root, b.dataset); }catch(err){ console.warn('дія', b.dataset.do, err); }
+        Promise.resolve(prA).catch(function(err){ console.warn('дія', b.dataset.do, err); })
+          .then(function(){ if(b.isConnected){ b.classList.remove('is-busy'); if('disabled' in b) b.disabled = false; } }); };
       if(b.getAttribute('role') === 'button') b.onkeydown = function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); b.onclick(e); } };
     });
     /* Поля складу пишуться на «change», а не на кожну літеру: кожен натиск

@@ -5194,6 +5194,7 @@
   /* Статуси НП над дошкою цеху (27.10): кнопка й червона відмова опитування. */
   .dz-np-err{display:inline-flex;align-items:center;max-width:420px;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;
     color:#B42318;background:#FEF2F2;border:1px solid #FECACA;white-space:normal;line-height:1.3;}
+  .dz-b.is-busy,.dz-card-w.is-busy,[role="button"].is-busy{opacity:.55;cursor:progress;pointer-events:none;}
   .dz-np-err .dz-link,.dz-geo-note .dz-link{all:unset;cursor:pointer;color:#2F5FA8;font-weight:700;text-decoration:underline;margin-left:4px;}
   .dz-geo-note{color:#92400E;background:#FFFBEB;border-color:#FDE68A;}
   .dz-col.dz-deliv-col{flex:0 0 190px;width:190px;max-width:190px;}
@@ -8331,32 +8332,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=804ac87374"></script>
-<script src="loomiq-fingerprint.js?v=804ac87374"></script>
-<script src="loomiq-pricing.js?v=804ac87374"></script>
+<script src="loomiq-select.js?v=9f24971ab3"></script>
+<script src="loomiq-fingerprint.js?v=9f24971ab3"></script>
+<script src="loomiq-pricing.js?v=9f24971ab3"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=804ac87374"></script>
+<script src="loomiq-money-core.js?v=9f24971ab3"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=804ac87374"></script>
-<script src="loomiq-mock.js?v=804ac87374"></script>
+<script src="loomiq-design.js?v=9f24971ab3"></script>
+<script src="loomiq-mock.js?v=9f24971ab3"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=804ac87374"></script>
+<script src="imagetracer.js?v=9f24971ab3"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=804ac87374"></script>
-<script src="loomiq-threads.js?v=804ac87374"></script>
+<script src="loomiq-chat.js?v=9f24971ab3"></script>
+<script src="loomiq-threads.js?v=9f24971ab3"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=804ac87374"></script>
+<script src="loomiq-cards.js?v=9f24971ab3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8401,8 +8402,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '804ac87374';
-var LQ_VER_AT = '2026-10-28T09:04:50Z';
+var LQ_VER = '9f24971ab3';
+var LQ_VER_AT = '2026-10-28T09:34:56Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -9489,7 +9490,12 @@ async function dbNewer(ref, base, field, out, baseRev){
      `out.fail`, і запис не йде. */
   try{ snap = await ref.get(); }catch(e){ console.warn('перевірка версії', e); if(out) out.fail = String((e && (e.code || e.message)) || e); return null; }
   if(!snap || !snap.exists) return null;
-  const d = snap.data() || {};
+  return dbNewerOf(snap.data() || {}, base, field, out, baseRev);
+}
+/* Та сама звірка для вже прочитаного документа (28.10: orderApply читає
+   картку перед дією — друге читання перед записом зайве). */
+function dbNewerOf(d, base, field, out, baseRev){
+  if(!d) return null;
   if(out) out.doc = d;                             // що лежить у базі зараз — для версій
   const v = String(d[field] || '');
   if(base === undefined) return d;                 // у базі є те, чого ми не читали
@@ -9956,8 +9962,11 @@ async function saveOrders(opts){
     cur.set(o.id, json);
   });
   const failed = [];
+  const onlyId = (opts && opts.only) || '';
+  const pre = (opts && opts.pre && opts.pre.doc) ? opts.pre : null;
   for(const [id, json] of cur){
     if(ordersSaved.get(id) === json) continue;
+    if(onlyId && id !== onlyId) continue;                          // дія над однією карткою — пишемо лише її
     /* ДВА ЗАМОВЛЕННЯ З ОДНИМ НОМЕРОМ (22.10, Андрій: 1000147 двічі). Номер
        видає кожна вкладка сама, з того, що в неї в памʼяті; дві вкладки з
        різною картиною дають один номер. Тому перед першим записом нової
@@ -10005,7 +10014,8 @@ async function saveOrders(opts){
     try{
       const base = ordersSaved.has(id) ? touchedOfJson(ordersSaved.get(id)) : undefined;
       const baseRev = ordersSaved.has(id) ? revOfJson(ordersSaved.get(id)) : null;
-      const свіжа = await dbNewer(ORDERS_COL.doc(id), base, 'touchedAt', вБазі, baseRev);
+      const свіжа = (pre && pre.id === id) ? dbNewerOf(JSON.parse(JSON.stringify(pre.doc)), base, 'touchedAt', вБазі, baseRev)
+                                           : await dbNewer(ORDERS_COL.doc(id), base, 'touchedAt', вБазі, baseRev);
       if(свіжа){
         свіжа.id = свіжа.id || id;
         const i = (orders || []).findIndex(x => x && x.id === id);
@@ -31766,11 +31776,32 @@ function designHostInit(){
     orderApply: async (id, fn, okFn) => {
       for(let i = 0; i < 3; i++){
         const o = (orders || []).find(x => x && x.id === id);
-        if(!o || dbLinkDead()) return false;
+        if(!o || dbLinkDead() || window.LQ_UPD_STALE) return false;
+        /* СВІЖА КАРТКА ПЕРЕД КОЖНОЮ СПРОБОЮ (28.10, відео Андрія: «Погоджено
+           менеджером» → «картку вже рушили далі: «Можна відправляти»» → за
+           хвилину картка знову в «Чекає погодження»). Власна невдала спроба
+           (базу не прочитали — запис відкладено) лишала в памʼяті вже змінену
+           картку; повтор бачив «уже погодили», казав 'stale', а в базі нічого
+           не лягло — знімок повертав стару. Тепер перед кожною спробою картка
+           береться з бази: не прочитали — не пишемо (false), прочитали — дія
+           саме на свіжій, і «вже рушили» означає, що рушили справді. Це ж
+           читання йде в saveOrders як звірка версії (`pre`) — другого
+           читання немає, пишеться лише ця картка (`only`): так швидше. */
+        let snap = null;
+        try{ snap = await ORDERS_COL.doc(id).get(); }
+        catch(e){ console.warn('картка перед дією', e); if(i < 2){ await new Promise(r => setTimeout(r, 400 * (i + 1))); continue; } return false; }
+        let pre = null;
+        if(snap && snap.exists){
+          const d = JSON.parse(JSON.stringify(snap.data() || {}));
+          Object.keys(o).forEach(k => { if(k !== 'id' && !(k in d)) delete o[k]; });
+          Object.assign(o, d, { id });
+          ordersSaved.set(id, JSON.stringify(o));
+          pre = { id, doc: d };
+        }
         let r; try{ r = fn(o); }catch(e){ console.warn('зміна картки', e); return false; }
         if(r === false) return 'stale';
         touchOrder(o);
-        try{ await saveOrders({ quiet: true }); }catch(e){ console.warn('запис картки', e); }
+        try{ await saveOrders({ quiet: true, only: id, pre }); }catch(e){ console.warn('запис картки', e); }
         let saved = null;
         try{ saved = JSON.parse(ordersSaved.get(id) || 'null'); }catch(e){}
         if(saved && okFn(saved)) return true;
