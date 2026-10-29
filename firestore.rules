@@ -224,6 +224,15 @@ service cloud.firestore {
     }
     // existsAfter/getAfter (28.10): бронь і картка — однією транзакцією
     // (orderCreateAtomic); окремий запис після броні проходить так само.
+    // ЛІЧИЛЬНИК НЕ ЙДЕ НАЗАД (29.10): запис, що відстав (стара копія з
+    // вкладки без звʼязку, черга телефона), має rev не більший за той, що
+    // в базі, — база його не пускає. Лише арх-позначки пишуться без rev.
+    function revOk() {
+      return !('rev' in resource.data)
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['arch', 'archAt', 'unarchAt'])
+        || (('rev' in request.resource.data) && request.resource.data.rev is number
+            && request.resource.data.rev > resource.data.rev);
+    }
     match /kanbanOrders/{id} {
       allow read: if known();
       allow create: if request.auth != null && may('edit')
@@ -232,6 +241,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/orderNos/$(request.resource.data.orderId)).data.id == id;
       allow delete: if request.auth != null && may('del');
       allow update: if request.auth != null
+        && revOk()
         && (may('edit') || !touched(['items', 'totalPrice', 'totalCost', 'margin',
                                      'marginPct', 'status', 'hist', 'discount']))
         && (may('pay')  || !touched(['payments']));
