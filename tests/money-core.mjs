@@ -249,6 +249,24 @@ console.log('═══ 13. АРХІВНА КАРТКА — НЕ «ТАКОГО �
   ok(без.length === 1 && з.length === 0, 'платіж на номер з архіву (картки в памʼяті немає) — не пункт Звірки; без списку архіву — пункт є', JSON.stringify({ без: без.length, з: з.length }));
 }
 
+console.log('═══ 14. ДВІ ПОСИЛКИ — ДВІ НАКЛАДНІ ОДНОГО ЗАМОВЛЕННЯ (29.10) ═══');
+{
+  const o = { id:'T1', orderId:'2000777', totalPrice:2000, ttn:'20450000000002', ttnCod:525, payments:[{ sum:500 }],
+    ship2: { on:true, units:['u2'], ttn:'20450000000001', ttnCod:975, ttnHist:[{ ttn:'20450000000009', cod:900 }] } };
+  ok(M.ttnsOf(o).join() === '20450000000002,20450000000001,20450000000009', 'ttnsOf — головна, друга посилка, її замінена', M.ttnsOf(o).join());
+  ok(M.codOfTtn(o, '20450000000001') === 975 && M.codOfTtn(o, '20450000000009') === 900 && M.codOfTtn(o, '20450000000002') === 525,
+    'контроль оплати по кожній накладній', [M.codOfTtn(o, '20450000000001'), M.codOfTtn(o, '20450000000009')].join());
+  const run = x => M.audit([x], [], { now: Date.now(), np: {}, accs: [] }).filter(y => /^cod_(over|under)$/.test(y.kind));
+  ok(!run(o).length, 'контроль 525 + 975 = залишок 1 500 — Звірка мовчить', JSON.stringify(run(o)));
+  const менше = JSON.parse(JSON.stringify(o)); менше.ship2.ttnCod = 400;
+  const u = run(менше)[0] || {};
+  ok(u.kind === 'cod_under' && u.sum === 575, 'разом 925 замість 1 500 — червоний «недоотримаємо 575 ₴»', JSON.stringify(u));
+  /* Гроші за другою накладною забрали, а не привʼязали — cod_late як для головної. */
+  const np = { '20450000000001': { code:'9', at: new Date(Date.now() - 5 * 864e5).toISOString() } };
+  const l = M.audit([o], [{ id:'x', ttn:'20450000000001', amount:975, at: new Date().toISOString() }], { now: Date.now(), np, accs: [] }).filter(y => y.kind === 'cod_late');
+  ok(l.length === 1 && l[0].ttn === '20450000000001' && l[0].sum === 975 && l[0].fix === 'link', 'посилку 2 забрали, гроші прийшли без привʼязки — «cod_late» з пропозицією привʼязати', JSON.stringify(l));
+}
+
 console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);

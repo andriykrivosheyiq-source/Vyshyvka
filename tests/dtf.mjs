@@ -157,13 +157,14 @@ const t2 = await p.evaluate(() => {
   U.setTab('acct'); U.open(''); U.render(document.getElementById('dzRoot'));
   const tile = document.querySelector('#dzRoot [data-open="2000301"]');
   const tile2 = document.querySelector('#dzRoot [data-open="2000302"]');
-  return { q1: D.dzInQueue(s1), txt1: s1.thread[s1.thread.length - 1].text, txt2: s2.thread[s2.thread.length - 1].text,
+  return { q1: D.dzInQueue(s1), q2: D.dzInQueue(s2), need2: D.dzUnassigned(s2), txt1: s1.thread[s1.thread.length - 1].text, txt2: s2.thread[s2.thread.length - 1].text,
            dtf, stitch, who, chip, colName, acctChip: !!(tile && tile.querySelector('.dz-c-tech')), acctChip2: !!(tile2 && tile2.querySelector('.dz-c-tech')),
            steps: tile ? tile.textContent.includes('Файл DTF') || tile.textContent.includes('Друк') : false };
 });
 console.log('   ' + JSON.stringify(t2));
-ok(t2.q1 && /чергу друку/.test(t2.txt1) && /чергу вишивки/.test(t2.txt2), 'після фіксації друк стає «в чергу друку (DTF)», вишивка — «в чергу вишивки»', JSON.stringify(t2));
-ok(t2.dtf.join() === '2000301' && t2.stitch.join() === '2000302', 'дошка DTF-дизайнера бачить лише друк, вишивальна — лише вишивку', JSON.stringify({ dtf: t2.dtf, stitch: t2.stitch }));
+const D_q2 = t2.q2 || !t2.need2;
+ok(t2.q1 && /чергу друку/.test(t2.txt1) && /призначте вишивального/.test(t2.txt2) && !D_q2, 'після фіксації друк стає «в чергу друку (DTF)», вишивка — без черги, «призначте вишивального дизайнера» (29.10)', JSON.stringify(t2));
+ok(t2.dtf.join() === '2000301' && t2.stitch.join() === '', 'дошка DTF-дизайнера бачить лише друк; вишивку без призначення вишивальна не бачить (29.10)', JSON.stringify({ dtf: t2.dtf, stitch: t2.stitch }));
 ok(t2.who.some(x => /Данило/.test(x)) && !t2.who.some(x => /Віра/.test(x)), 'дизайнера для друку обирають серед DTF-дизайнерів (Данило), не вишивальних', JSON.stringify(t2.who));
 ok(t2.chip && t2.acctChip && !t2.acctChip2, 'мітка «DTF» на плитці друку (у DTF-дизайнера й в акаунта), на вишивці її немає', JSON.stringify(t2));
 

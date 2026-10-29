@@ -166,49 +166,79 @@ await p.waitForTimeout(500);
 const після = await p.evaluate(() => {
   const D = window.LQDesign;
   return __j.units.map(u => { const d = D.dzList(u, 'stitch')[0];
-    return d ? { черга: D.dzInQueue(d), подія: d.thread[d.thread.length - 1].text, звідки: JSON.stringify(d.from) } : null; });
+    return d ? { черга: D.dzInQueue(d), непризн: D.dzUnassigned(d), подія: d.thread[d.thread.length - 1].text, звідки: JSON.stringify(d.from) } : null; });
 });
 console.log('  ' + JSON.stringify(після));
-ok(після.every(x => x && x.черга && /черг/.test(x.подія)),
-  'ескіз погоджено — обидві позиції самі стали в чергу вишивки',
-  'вишивка не стала в чергу: ' + JSON.stringify(після));
+ok(після.every(x => x && !x.черга && x.непризн && /призначте вишивального/.test(x.подія)),
+  'ескіз погоджено — обидві позиції чекають призначення вишивального (29.10: черги немає)',
+  'вишивка: ' + JSON.stringify(після));
 ok(після.every(x => /"ver":1/.test(x.звідки)), 'і тягнуть посилання на погоджену версію (v1)', 'звідки: ' + JSON.stringify(після));
 ok(await стан() === 'stitchq', 'у Канбані менеджера — окремий статус «Черга вишивки»', 'стан: ' + await стан());
 
 console.log('');
-console.log('═══ 3. ВИШИВАЛЬНИЙ: ЧЕРГА → БЕРУ ═══');
+console.log('═══ 3. ВИШИВАЛЬНИЙ: БЕЗ ЧЕРГИ — ПРИЗНАЧАЄ АКАУНТ (29.10) ═══');
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('stitch'); U.open(''); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(300);
 const дошка = await p.evaluate(() => [...document.querySelectorAll('.dz-col')].map(c => ({
   кол: ((c.querySelector('.dz-col-h') || {}).textContent || '').replace(/\d+$/, '').trim(),
   карток: c.querySelectorAll('.dz-card-w').length })));
 console.log('  ' + дошка.map(x => x.кол + ':' + x.карток).join(' · '));
-ok(/Черга відділу/.test(дошка[0].кол) && дошка[0].карток === 1,
-  'у вишивальних перша колонка — «Черга відділу», замовлення там',
+ok(дошка.every(x => x.карток === 0) && !(await p.evaluate(() => !!document.querySelector('[data-open="2000101"]'))),
+  'у вишивальних замовлення без призначення не видно ніде — і в «Черзі відділу» теж',
   'дошка вишивальних: ' + JSON.stringify(дошка));
+/* Акаунт: червоне «не призначено» на етапах і в шапці зони; списку «Черга відділу» немає. */
+const акаунт = await p.evaluate(() => {
+  const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000101');
+  U.SIDE[__j.units[0].id] = 'stitch'; U.SIDE_AT[__j.units[0].id] = Date.now() + 1e6;
+  U.render(document.getElementById('dzRoot'));
+  const sel = document.querySelector('.dz-panel [data-dzwho$="|stitch|0"]');
+  const опції = sel ? [...sel.options].map(o => o.value) : [];
+  const етапи = [...document.querySelectorAll('.dz-panel .dz-chain .is-bad, .dz-panel .dz-stage.is-bad, .dz-panel [class*="bad"]')].map(x => x.textContent.trim());
+  return { select: !!sel, червоний: sel ? sel.classList.contains('is-bad') : false, опції,
+           етап: (document.querySelector('.dz-panel') || {}).textContent.includes('Вишивка · не призначено'),
+           стан: window.LQDesign.ui.stateOf ? '' : '' };
+});
+console.log('  ' + JSON.stringify(акаунт));
+ok(акаунт.select && акаунт.червоний && !акаунт.опції.includes('@queue') && акаунт.опції.includes('test@loomiq'),
+  'в акаунта у шапці вишивки — червоний список «не призначено · оберіть», без «Черга відділу»', JSON.stringify(акаунт));
+ok(акаунт.етап, 'на етапах картки червоне «Вишивка · не призначено»', JSON.stringify(акаунт));
+const плитка = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('acct'); U.open(''); U.render(document.getElementById('dzRoot'));
+  const t = document.querySelector('#dzRoot [data-open="2000101"]'); return t ? t.textContent : ''; });
+ok(/не призначено вишивального дизайнера/.test(плитка), 'на плитці акаунта — «не призначено вишивального дизайнера»', плитка.slice(0, 200));
+/* Не акаунт (цех) — лише напис, списку немає. */
+const цех = await p.evaluate(() => {
+  const U = window.LQDesign.ui; const was = U.host.refuseOk; U.host.refuseOk = () => false;
+  U.setTab('acct'); U.open('2000101'); U.render(document.getElementById('dzRoot'));
+  const r = { select: !!document.querySelector('.dz-panel [data-dzwho$="|stitch|0"]'),
+              напис: /не призначено вишивального дизайнера/.test((document.querySelector('.dz-panel .dz-u-no.is-bad') || {}).textContent || '') };
+  U.host.refuseOk = was; return r; });
+ok(!цех.select && цех.напис, 'без права акаунта/власника — лише напис «не призначено», списку немає', JSON.stringify(цех));
+/* Акаунт обирає людину — призначено й передано в роботу одразу, на обидві позиції. */
+await p.evaluate(() => {
+  const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000101');
+  U.SIDE[__j.units[0].id] = 'stitch'; U.SIDE_AT[__j.units[0].id] = Date.now() + 1e6;
+  U.render(document.getElementById('dzRoot'));
+  const sel = document.querySelector('.dz-panel [data-dzwho$="|stitch|0"]'); sel.value = 'test@loomiq'; sel.onchange();
+});
+await p.waitForTimeout(700);
+const призн = await p.evaluate(() => __j.units.map(u => { const d = window.LQDesign.dzList(u, 'stitch')[0]; return d.who + ':' + d.status + ':' + (d.sentAt ? 1 : 0); }));
+console.log('  ' + JSON.stringify(призн));
+ok(призн.every(x => x === 'test@loomiq:work:1'), 'обрали — обидві позиції призначено й одразу «в роботі», без «Беру»', JSON.stringify(призн));
+ok(await стан() === 'stitch', 'призначили — у Канбані «У вишивального дизайнера»', 'стан: ' + await стан());
+await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('stitch'); U.open(''); U.render(document.getElementById('dzRoot')); });
+await p.waitForTimeout(300);
+const уВишив = await p.evaluate(() => { const c = document.querySelector('[data-open="2000101"]'); const col = c && c.closest('.dz-col');
+  return { є: !!c, кол: col ? ((col.querySelector('.dz-col-h') || {}).textContent || '').replace(/\d+$/, '').trim() : '' }; });
+ok(уВишив.є && /роботі/i.test(уВишив.кол), 'у вишивальника картка одразу «В роботі»', JSON.stringify(уВишив));
 await p.evaluate(() => document.querySelector('[data-open="2000101"]').click());
 await p.waitForTimeout(400);
 const картка = await p.evaluate(() => ({
   тз: [...document.querySelectorAll('.dz-panel .dz-w .dz-tile-l')].map(x => x.textContent).slice(0, 3),
   беру: document.querySelectorAll('.dz-panel [data-do="dz-take"]').length,
-  відмова: !!document.querySelector('.dz-panel [data-do="dz-no"]') }));
+  здати: !!document.querySelector('.dz-panel [data-do="dz-stitch-up"]') }));
 console.log('  ' + JSON.stringify(картка));
 ok(картка.тз.join() === 'мокап,оригінал,картка', 'у ТЗ — погоджений ескіз: мокап, оригінал, картка (без «роботи», 13.10)', 'ТЗ: ' + JSON.stringify(картка.тз));
-ok(картка.беру === 1 && !картка.відмова, 'одна «Беру в роботу» на всю картку (20.10), відмовитись не можна', 'кнопки: ' + JSON.stringify(картка));
-/* Ліміт вишивальних — окремий: 1 одночасно. */
-await p.evaluate(() => { contentData.b2c = Object.assign({}, contentData.b2c, { stitchLimit: 1, dzLimit: 0 }); });
-await p.evaluate(() => document.querySelectorAll('.dz-panel [data-do="dz-take"]')[0].click());
-await p.waitForTimeout(500);
-await p.evaluate(() => { const b = document.querySelector('.dz-panel [data-do="dz-take"]'); if(b) b.click(); });
-await p.waitForTimeout(500);
-const взяв = await p.evaluate(() => __j.units.map(u => window.LQDesign.dzList(u, 'stitch')[0].who));
-console.log('  ' + JSON.stringify(взяв));
-ok(взяв[0] === 'test@loomiq' && взяв[1] === 'test@loomiq', 'ліміт рахує замовлення: одна картка — одне «Беру», обидві позиції взято разом (20.10)',
-   'ліміт: ' + JSON.stringify(взяв));
-await p.evaluate(() => { contentData.b2c.stitchLimit = 0; });
-await p.evaluate(() => { const b = document.querySelector('.dz-panel [data-do="dz-take"]'); if(b) b.click(); });
-await p.waitForTimeout(500);
-ok(await стан() === 'stitch', 'взяли — у Канбані «У вишивального дизайнера»', 'стан: ' + await стан());
+ok(картка.беру === 0 && картка.здати, 'кнопки «Беру» немає — одразу «Завантажити роботу»', 'кнопки: ' + JSON.stringify(картка));
 
 console.log('');
 console.log('═══ 4. ЗДАТИ ВИШИВКУ: DST/EMB + СКРІН WILCOM ═══');

@@ -68,7 +68,28 @@
     var out = [];
     var t = ttnOf(o && o.ttn); if(t) out.push(t);
     ((o && o.ttnHist) || []).forEach(function(h){ var x = ttnOf(h && h.ttn); if(x && out.indexOf(x) < 0) out.push(x); });
+    /* Друга посилка (29.10): її накладна й замінені — теж цього замовлення. */
+    var s2 = o && o.ship2;
+    if(s2 && typeof s2 === 'object'){
+      var t2 = ttnOf(s2.ttn); if(t2 && out.indexOf(t2) < 0) out.push(t2);
+      (s2.ttnHist || []).forEach(function(h){ var x = ttnOf(h && h.ttn); if(x && out.indexOf(x) < 0) out.push(x); });
+    }
     return out;
+  }
+  /* Контроль оплати саме цієї накладної: головна, замінена, друга посилка. */
+  function codOfTtn(o, t){
+    var r = function(v){ return Math.round(+v || 0); };
+    if(!o) return 0;
+    if(ttnOf(o.ttn) === t) return r(o.ttnCod);
+    var h = (o.ttnHist || []).filter(function(x){ return x && ttnOf(x.ttn) === t; })[0];
+    if(h) return r(h.cod);
+    var s2 = o.ship2;
+    if(s2 && typeof s2 === 'object'){
+      if(ttnOf(s2.ttn) === t) return r(s2.ttnCod);
+      var h2 = (s2.ttnHist || []).filter(function(x){ return x && ttnOf(x.ttn) === t; })[0];
+      if(h2) return r(h2.cod);
+    }
+    return 0;
   }
 
   /* СКІЛЬКИ СПЛАЧЕНО.
@@ -207,7 +228,7 @@
 
       /* Контроль оплати: посилку забрали, а грошей у замовленні немає. */
       ttnsOf(o).forEach(function(t, i){
-        var cod = i === 0 ? r(o.ttnCod) : r(((o.ttnHist || []).filter(function(h){ return ttnOf(h.ttn) === t; })[0] || {}).cod);
+        var cod = codOfTtn(o, t);
         if(cod <= 0) return;
         var гроші = pays.some(function(p){ return ttnOf(p.ttn) === t && r(p.amount) > 0 && id(p.orderId) === oid; });
         var st = np[t] || null;
@@ -232,10 +253,13 @@
       /* Контроль оплати = залишок (±5 ₴). Більший — клієнт переплатить;
          менший (або без контролю) — посилку віддадуть, а гроші недоотримаємо. */
       var t0 = ttnOf(o.ttn), COD_TOL = 5;
+      /* Дві посилки (29.10): контроль оплати ділиться між накладними —
+         порівнюємо з залишком їхню суму, а не одну. */
+      var t2 = (o.ship2 && typeof o.ship2 === 'object') ? ttnOf(o.ship2.ttn) : '';
       if(t0 && total > 0 && o.ttnCod != null && o.ttnCod !== '' &&
          !(np[t0] && (NP_GOT.concat(NP_BACK)).indexOf(String(np[t0].code)) >= 0)){
-        var свій = pays.some(function(p){ return ttnOf(p.ttn) === t0 && id(p.orderId) === oid && r(p.amount) > 0; });
-        var кк = r(o.ttnCod);
+        var свій = pays.some(function(p){ return (ttnOf(p.ttn) === t0 || (t2 && ttnOf(p.ttn) === t2)) && id(p.orderId) === oid && r(p.amount) > 0; });
+        var кк = r(o.ttnCod) + (t2 ? r(o.ship2.ttnCod) : 0);
         if(!свій && кк > 0 && кк > лишилось + COD_TOL)
           out.push({ kind:'cod_over', sev:'red', orderId:oid, ttn:t0, sum:кк - лишилось,
             text: 'Контроль оплати ТТН ' + t0 + ' — ' + грн(кк) + ', а лишилось сплатити ' + грн(лишилось) +
@@ -359,7 +383,7 @@
 
   var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
               COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
-              paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, audit:audit,
+              paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, codOfTtn:codOfTtn, audit:audit,
               ttnsOf:ttnsOf, ttnOf:ttnOf, isBank:isBank, keyOf:keyOf };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LQMoney = api;
