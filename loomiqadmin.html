@@ -8355,32 +8355,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f9f8609ab3"></script>
-<script src="loomiq-fingerprint.js?v=f9f8609ab3"></script>
-<script src="loomiq-pricing.js?v=f9f8609ab3"></script>
+<script src="loomiq-select.js?v=099c1f397c"></script>
+<script src="loomiq-fingerprint.js?v=099c1f397c"></script>
+<script src="loomiq-pricing.js?v=099c1f397c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f9f8609ab3"></script>
+<script src="loomiq-money-core.js?v=099c1f397c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f9f8609ab3"></script>
-<script src="loomiq-mock.js?v=f9f8609ab3"></script>
+<script src="loomiq-design.js?v=099c1f397c"></script>
+<script src="loomiq-mock.js?v=099c1f397c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f9f8609ab3"></script>
+<script src="imagetracer.js?v=099c1f397c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=f9f8609ab3"></script>
-<script src="loomiq-threads.js?v=f9f8609ab3"></script>
+<script src="loomiq-chat.js?v=099c1f397c"></script>
+<script src="loomiq-threads.js?v=099c1f397c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f9f8609ab3"></script>
+<script src="loomiq-cards.js?v=099c1f397c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8425,8 +8425,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f9f8609ab3';
-var LQ_VER_AT = '2026-10-28T19:26:03Z';
+var LQ_VER = '099c1f397c';
+var LQ_VER_AT = '2026-10-29T10:40:07Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -9222,7 +9222,11 @@ function ordersHeld(){
 }
 function mйБрудний(мій, знане, тримаємо){
   if(!мій) return false;
-  if(знане == null) return true;            // у базі її ще немає — тим паче не чіпаємо
+  /* 29.10: картка Є в базі (ми її розбираємо зі знімка), а вкладка її ще
+     не «знала». Доти памʼять лишалась стара, а за базу бралась свіжа —
+     наступний запис повертав картку до старої копії цілком. Тепер беремо
+     копію з бази; лише чернетка (у базі її немає) лишається своєю. */
+  if(знане == null) return !!мій.draft;
   if(!тримаємо) return false;
   return JSON.stringify(мій) !== знане;
 }
@@ -9375,9 +9379,13 @@ function patchKeys(p){ return Object.keys(p.set).concat(p.del).filter(k => !PATC
 const PATCH_UNION = { trackHist:1, crmOut:1, crmPicsOut:1 };
 function patchClash(mine, theirs){
   const t = new Set(patchKeys(theirs));
+  const same = k => { try{ return JSON.stringify(mine.set[k]) === JSON.stringify(theirs.set[k]); }catch(e){ return false; } };
   return patchKeys(mine).filter(k => {
     if(!t.has(k)) return false;
     if(PATCH_UNION[k]) return false;
+    /* Те саме значення з обох боків (29.10: після невдалого запису памʼять
+       уже злита з базою) — не суперечність, а згода. */
+    if(k in mine.set && k in theirs.set && same(k)) return false;
     const sm = (mine.subs || {})[k], st = (theirs.subs || {})[k];
     if(sm && st) return sm.some(x => st.some(y => subOverlap(x, y)));
     return true;
@@ -9450,15 +9458,26 @@ function stateRollback(db, mine){
   if(db.prodQc && db.prodQc.photos && db.prodQc.photos.length && !(mine.prodQc && mine.prodQc.photos && mine.prodQc.photos.length)) out.push('фото цеху');
   if(db.prodQc && db.prodQc.ok && !(mine.prodQc && mine.prodQc.ok)) { if(out.indexOf('погоджено') < 0) out.push('погоджено'); }
   if(db.reg && db.reg.ref && !(mine.reg && mine.reg.ref)) out.push('у реєстрі');
+  /* 29.10 (ніч 28.10: ~30 відправлених карток лишились без ТТН і одягу):
+     накладну знімає лише явна дія — вона кладе стару в ttnHist. Одяг
+     «отримано» й історія статусів назад не ходять. */
+  if(db.ttn && !mine.ttn && !(Array.isArray(mine.ttnHist) && mine.ttnHist.some(h => h && String(h.ttn || '') === String(db.ttn)))) out.push('ТТН');
+  if(((db.tracks || {}).supply) && !((mine.tracks || {}).supply)) out.push('одяг отримано');
+  if(Array.isArray(db.hist) && Array.isArray(mine.hist) && db.hist.length > mine.hist.length && mine.hist.length < 40) out.push('історія статусів');
   return out;
 }
+const TTN_KEEP = ['ttn', 'ttnRef', 'ttnSender', 'ttnName', 'ttnPhone', 'ttnCod', 'ttnAt', 'ttnBy', 'npSt', 'npStAt', 'ttnHist'];
 function stateKeep(db, live){
   live.tracks = Object.assign({}, live.tracks || {});
   ['prod', 'qc'].forEach(k => { if(db.tracks && db.tracks[k] !== undefined) live.tracks[k] = db.tracks[k]; });
+  if(db.tracks && db.tracks.supply && !live.tracks.supply) live.tracks.supply = db.tracks.supply;   // одяг «отримано» не зникає; «частково» з іншого пристрою — лишається
   if(db.prodQc) live.prodQc = JSON.parse(JSON.stringify(db.prodQc));
   if(db.reg) live.reg = JSON.parse(JSON.stringify(db.reg));
   if(db.shipCol !== undefined) live.shipCol = db.shipCol;
   if(Array.isArray(db.trackHist)) live.trackHist = trackHistMerge(live.trackHist || [], db.trackHist);
+  if(db.ttn && !live.ttn && !(Array.isArray(live.ttnHist) && live.ttnHist.some(h => h && String(h.ttn || '') === String(db.ttn))))
+    TTN_KEEP.forEach(k => { if(db[k] !== undefined) live[k] = JSON.parse(JSON.stringify(db[k])); });
+  if(Array.isArray(db.hist) && Array.isArray(live.hist) && db.hist.length > live.hist.length && live.hist.length < 40) live.hist = JSON.parse(JSON.stringify(db.hist));
   return live;
 }
 function deviceShort(){
@@ -9497,9 +9516,11 @@ async function docPatchWrite(ref, p, whole){
   if(!Object.keys(upd).length) return 'none';
   try{ await ref.update(upd); return 'update'; }
   catch(e){
-    /* Документа вже немає (видалили з іншого пристрою) — як і доти, кладемо
-       цілком: правило бази пустить лише з чинною бронню номера. */
-    if(e && /not-found|No document to update/i.test(String(e.code || e.message || e))){ await ref.set(whole); return 'set'; }
+    /* «Не знайдено» (29.10): доти клали цілком зі своєї памʼяті — без
+       звʼязку SDK не бачить документа в кеші, каже «немає», і стара копія
+       цілком лягала в чергу, а по звʼязку — поверх живої картки. Тепер
+       цілком — лише коли той, хто пише, явно це дозволив (p.recreate). */
+    if(p.recreate === true && e && /not-found|No document to update/i.test(String(e.code || e.message || e))){ await ref.set(whole); return 'set'; }
     throw e;
   }
 }
@@ -9518,8 +9539,14 @@ function getWithin(ref, ms){
     let done = false;
     const t = setTimeout(() => { if(done) return; done = true;
       rej(Object.assign(new Error('база не відповіла за ' + Math.round(ms / 1000) + ' с'), { code: 'lq-timeout' })); dbKick(); }, ms);
-    Promise.resolve().then(() => ref.get()).then(s => { if(done) return; done = true; clearTimeout(t); res(s); },
-                                                e => { if(done) return; done = true; clearTimeout(t); rej(e); });
+    Promise.resolve().then(() => ref.get()).then(s => { if(done) return; done = true; clearTimeout(t);
+        /* КОПІЯ З КЕШУ — НЕ ЧИТАННЯ (29.10, ніч 28.10: вкладка без звʼязку
+           «прочитала» стару копію, звірка пройшла, стара копія лягла поверх
+           погоджених). Без звʼязку SDK віддає те, що памʼятає, і позначає
+           fromCache — для нас це збій читання: не пишемо, підключаємось. */
+        if(s && s.metadata && s.metadata.fromCache === true){ dbKick(); rej(Object.assign(new Error('база віддала копію з кешу, не свіжу'), { code: 'lq-cache' })); return; }
+        res(s); },
+      e => { if(done) return; done = true; clearTimeout(t); rej(e); });
   });
 }
 let dbKickAt = 0;

@@ -238,7 +238,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   нік лише без пробілів + `crmNick` зі списку, «Без картки · N»
   (`chatsInboxRows/Html`, `draftFromChat` в адмінці, договір), аудит у
   `docs/AUDIT-2026-10-28.md`; Фінанси: «↗ картка» в рядку руху
-  (`finGotoCard`),
+  (`finGotoCard`); 29.10 замки проти запізнілого запису: `revOk()` у
+  правилах `kanbanOrders`, `getWithin` відхиляє `fromCache`, `docPatchWrite`
+  без `set(whole)` на not-found (лише `p.recreate`), `stateRollback`/`stateKeep`
+  + ТТН (`TTN_KEEP`)/supply/hist, `mйБрудний` бере базу при `знане == null`,
+  `patchClash` ігнорує однакові значення,
   `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.

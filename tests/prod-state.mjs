@@ -62,6 +62,7 @@ stub = stub.replace('var fs=function(){ return { collection:function(){ return n
   '    return set0.apply(this, arguments); };\n' +
   '  var get0=Doc.prototype.get; Doc.prototype.get=function(){ var id=this.__id;\n' +
   '    if(this.__col==="kanbanOrders" && window.__GET_FAIL){ window.__GET_FAILS=(window.__GET_FAILS||0)+1; return Promise.reject(new Error("Failed to get document because the client is offline.")); }\n' +
+  '    if(this.__col==="kanbanOrders" && window.__GET_CACHE){ window.__GET_FAILS=(window.__GET_FAILS||0)+1; var oc=window.__ORDERS.filter(function(x){ return x.id===id; })[0]; var sc=new Snap(id, oc?JSON.parse(JSON.stringify(window.__GET_CACHE_DOC||oc)):null); sc.metadata={ fromCache:true, hasPendingWrites:false }; return Promise.resolve(sc); }\n' +
   '    if(this.__col==="kanbanOrders"){ var o=window.__ORDERS.filter(function(x){ return x.id===id; })[0]; return Promise.resolve(new Snap(id, o?JSON.parse(JSON.stringify(o)):null)); }\n' +
   '    return get0.apply(this, arguments); };\n' +
   '  SeedCol.prototype.onSnapshot=function(cb){ setTimeout(function(){ try{ cb({\n' +
@@ -351,6 +352,56 @@ ok(/Немає ключа API/.test(r.err) && /Статуси Нової пош�
   'воркер відмовив — над дошкою цеху червоним «статуси НП не оновлюються: …» і кнопка «⟳ Статуси НП»', JSON.stringify(r));
 ok(!r.після.err && r.після.okAt && !r.після.напис && /оновлено/.test(r.після.toast),
   '«⟳ Статуси НП» опитує знову — напис зник, «оновлено: опитано …»', JSON.stringify(r.після));
+
+console.log('═══ 8а. КОПІЯ З КЕШУ — НЕ ЧИТАННЯ; «НЕ ЗНАЙДЕНО» — НЕ ЦІЛА КАРТКА; ТТН І ОДЯГ ПІД ЗАХИСТОМ (29.10) ═══');
+/* Ніч 28.10, pro100sanin · Windows · Chrome, 22:19: вкладка без звʼязку
+   «прочитала» з кешу стару копію (звірка пройшла), а update без документа в
+   кеші впав «не знайдено» — і стара копія лягла цілком поверх ~30 карток:
+   без погодження, реєстру, ТТН, з історією з одного запису. */
+await setDb('o1', Object.assign({ touchedAt:'2026-10-28T20:00:00.000Z', rev: 12, ttn:'20450000000001', ttnRef:'ref-1', npSt:{ code: 4 }, hist:[{ s:'prorahunok', at:'2026-10-20T10:00:00.000Z' }, { s:'done', at:'2026-10-28T19:00:00.000Z' }],
+  trackHist:[{ t:'prod', s:'done', at:'2026-10-25T10:00:00.000Z', by:'цех@loomiq' }, { t:'qc', s:'ok', at:'2026-10-26T12:00:00.000Z', by:'м@loomiq' }], reg:{ ref:'r1', at:'2026-10-28T19:30:00.000Z', by:'м@loomiq' } }, JSON.parse(JSON.stringify(ПОГОДЖ))));
+r = await p.evaluate(async () => {
+  const o = orders.find(x => x.id === 'o1');
+  /* Стара копія в памʼяті вкладки: ні ТТН, ні погодження, ні реєстру, історія з одного запису. */
+  const стара = { tracks:{}, hist:[{ s:'prorahunok', at:'2026-10-20T10:00:00.000Z' }], trackHist:[{ t:'supply', s:'got', at:'2026-10-22T10:00:00.000Z', by:'з@loomiq' }], touchedAt:'2026-10-22T10:00:00.000Z', rev: 3 };
+  delete o.prodQc; delete o.reg; delete o.ttn; delete o.ttnRef; delete o.npSt; Object.assign(o, стара);
+  ordersSaved.set('o1', JSON.stringify(o));
+  /* а) читання віддає копію з кешу — як без звʼязку. */
+  window.__SETS = []; window.__UPDATES = []; window.__GET_CACHE = 1; window.__GET_CACHE_DOC = JSON.parse(JSON.stringify(o)); window.__GET_FAILS = 0;
+  o.note = 'правка зі старої копії'; touchOrder(o);
+  const f1 = await saveOrders({ quiet: true });
+  const a = { failed: (f1 || []).length, reads: window.__GET_FAILS, writes: window.__SETS.filter(s => s.id === 'o1').length + window.__UPDATES.filter(u => u.id === 'o1').length };
+  window.__GET_CACHE = 0; window.__GET_CACHE_DOC = null; clearTimeout(saveDeferT);
+  /* б) читання свіже, але update каже «не знайдено» — цілком не кладемо. */
+  const P = Object.getPrototypeOf(ORDERS_COL.doc('x')); const u0 = P.update;
+  P.update = function(){ return Promise.reject(Object.assign(new Error('No document to update: projects/x/databases/(default)/documents/kanbanOrders/o1'), { code: 'not-found' })); };
+  window.__SETS = []; window.__UPDATES = [];
+  const f2 = await saveOrders({ quiet: true });
+  P.update = u0;
+  const b = { failed: (f2 || []).length, sets: window.__SETS.filter(s => s.id === 'o1').length };
+  /* в) читання свіже, запис іде — ТТН, одяг, погодження, реєстр і історія беруться з бази. */
+  window.__SETS = []; window.__UPDATES = [];
+  const f3 = await saveOrders({ quiet: true });
+  const live = orders.find(x => x.id === 'o1');
+  const c = { failed: (f3 || []).length, ttn: live.ttn, npSt: !!live.npSt, supply: (live.tracks || {}).supply, qc: (live.tracks || {}).qc, reg: !!(live.reg && live.reg.ref), hist: (live.hist || []).length, note: live.note, журнал: accLogList().filter(x => x.kind === 'rollback').length, w3: window.__SETS.filter(s => s.id === 'o1').length + window.__UPDATES.filter(u => u.id === 'o1').length };
+  dbKickAt = 0;
+  return { a, b, c };
+});
+d = await db('o1');
+console.log('   ' + JSON.stringify(r) + ' · база: ' + JSON.stringify({ ttn: d.ttn, qc: (d.tracks || {}).qc, supply: (d.tracks || {}).supply, reg: !!d.reg, hist: (d.hist || []).length, note: d.note, rev: d.rev }));
+ok(r.a.reads >= 1 && r.a.writes === 0 && !r.a.failed, 'а) копія з кешу = не прочитали: у базу нічого не пішло, картка відкладена', JSON.stringify(r.a));
+ok(r.b.sets === 0 && r.b.failed === 1, 'б) «не знайдено» — цілою карткою зі старої памʼяті не пишемо, запис у невдалі', JSON.stringify(r.b));
+ok(!r.c.failed && d.ttn === '20450000000001' && (d.tracks || {}).qc === 'ok' && (d.tracks || {}).supply === 'got' && d.reg && (d.hist || []).length === 2 && d.note === 'правка зі старої копії' && r.c.журнал >= 1,
+  'в) своє (нотатка) записано, а ТТН, одяг, «погоджено», реєстр та історія статусів узяті з бази; спроба — у журналі', JSON.stringify({ c: r.c, db: { ttn: d.ttn, qc: (d.tracks || {}).qc, supply: (d.tracks || {}).supply, hist: (d.hist || []).length } }));
+/* г) Явне видалення накладної (вона в ttnHist як deleted) — проходить. */
+r = await p.evaluate(async () => {
+  const o = orders.find(x => x.id === 'o1');
+  o.ttnHist = (o.ttnHist || []).concat([{ ttn: o.ttn, deleted: true, till: new Date().toISOString() }]); delete o.ttn; delete o.ttnRef; delete o.npSt;
+  touchOrder(o); const f = await saveOrders({ quiet: true });
+  return { failed: (f || []).length };
+});
+d = await db('o1');
+ok(!r.failed && !d.ttn && (d.ttnHist || []).some(h => h.deleted), 'г) явне «✕ Видалити ТТН» (номер у ttnHist) — проходить', JSON.stringify({ r, ttn: d.ttn }));
 
 console.log('═══ 9. ЗА КОРДОН: КОЛОНКУ СТАВИТЬ ЦЕХ РУКАМИ, ТАБЛЕТКА, ФІЛЬТР «УКРАЇНА / ЗА КОРДОН» (27.10) ═══');
 /* Андрій: «за кордон… вручну перетягнути в будь-який далі статус, бо вони ж

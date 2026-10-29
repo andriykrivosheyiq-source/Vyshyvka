@@ -72,13 +72,25 @@ ok(await can(setDoc(doc(mgr, 'orderNos/1000148'), { id: 'B', by: 'dasha@loomiq',
   'з наступним номером 1000148 — бронь і картка проходять', 'наступний номер не пройшов');
 
 console.log('');
+console.log('═══ ЛІЧИЛЬНИК ЗАПИСІВ НЕ ЙДЕ НАЗАД (29.10) ═══');
+/* Ніч 28.10: вкладка без звʼязку поклала в чергу старі копії ~30 карток,
+   а по звʼязку вони лягли поверх погоджених і відправлених. Запис із rev не
+   більшим за той, що в базі, база не пускає. */
+ok(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { rev: 5, tracks: { qc: 'ok' } }, { merge: true })), 'перший запис із rev 5 (у базі rev не було) — проходить', 'rev 5 не записався');
+ok(!(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { rev: 4, tracks: { qc: '' } }, { merge: true }))), 'запис із rev 4 поверх 5 — відмова (стара копія)', 'стару копію пущено!');
+ok(!(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { rev: 5, name: 'Денис-2' }, { merge: true }))), 'той самий rev 5 — відмова', 'запис із тим самим rev пущено!');
+ok(!(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { name: 'Денис-3' }, { merge: true }))), 'запис без rev поверх картки з rev — відмова', 'запис без rev пущено!');
+ok(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { rev: 6, name: 'Денис-2' }, { merge: true })), 'rev 6 — проходить', 'rev 6 не пройшов');
+ok(await can(setDoc(doc(own, 'kanbanOrders/A'), { arch: true, archAt: '2026-10-29T00:00:00Z' }, { merge: true })), 'лише арх-позначка без rev — проходить', 'арх-позначку не пущено');
+
+console.log('');
 console.log('═══ ФОРМА БРОНІ Й ПРАВА ═══');
 ok(!(await can(setDoc(doc(mgr, 'orderNos/abc'), { id: 'C', by: '', at: '', dir: 'b2b' }))), 'бронь не-номера — відмова', 'заброньовано «abc»');
 ok(!(await can(setDoc(doc(mgr, 'orderNos/1000149'), { id: 'C', extra: 1 }))), 'зайві поля в броні — відмова', 'бронь із зайвими полями');
 ok(!(await can(setDoc(doc(noRight, 'orderNos/1000150'), { id: 'D', by: '', at: '', dir: 'b2b' }))), 'без права «редагувати» бронювати не можна', 'без права заброньовано');
 ok(!(await can(deleteDoc(doc(mgr, 'orderNos/1000148')))), 'менеджер бронь не знімає', 'менеджер зняв бронь');
 ok(await can(deleteDoc(doc(own, 'orderNos/1000148'))), 'власник (ремонт) — може', 'власник не зміг зняти');
-ok(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { status: 'kp' }, { merge: true })), 'правка існуючої картки броні не вимагає', 'правку заблоковано');
+ok(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { status: 'kp', rev: 7 }, { merge: true })), 'правка існуючої картки броні не вимагає (лічильник росте)', 'правку заблоковано');
 /* Лічильники-підказки (orderSeq / orderSeqC) пише будь-хто з команди — інакше
    менеджер B2C бачив «лічильник не зберігся» на кожному замовленні (23.10). */
 ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { orderSeqC: 5000123 }, { merge: true })) &&
