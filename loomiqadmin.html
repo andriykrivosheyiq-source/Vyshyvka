@@ -8355,32 +8355,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=099c1f397c"></script>
-<script src="loomiq-fingerprint.js?v=099c1f397c"></script>
-<script src="loomiq-pricing.js?v=099c1f397c"></script>
+<script src="loomiq-select.js?v=b7bf4cf159"></script>
+<script src="loomiq-fingerprint.js?v=b7bf4cf159"></script>
+<script src="loomiq-pricing.js?v=b7bf4cf159"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=099c1f397c"></script>
+<script src="loomiq-money-core.js?v=b7bf4cf159"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=099c1f397c"></script>
-<script src="loomiq-mock.js?v=099c1f397c"></script>
+<script src="loomiq-design.js?v=b7bf4cf159"></script>
+<script src="loomiq-mock.js?v=b7bf4cf159"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=099c1f397c"></script>
+<script src="imagetracer.js?v=b7bf4cf159"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=099c1f397c"></script>
-<script src="loomiq-threads.js?v=099c1f397c"></script>
+<script src="loomiq-chat.js?v=b7bf4cf159"></script>
+<script src="loomiq-threads.js?v=b7bf4cf159"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=099c1f397c"></script>
+<script src="loomiq-cards.js?v=b7bf4cf159"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8425,8 +8425,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '099c1f397c';
-var LQ_VER_AT = '2026-10-29T10:40:07Z';
+var LQ_VER = 'b7bf4cf159';
+var LQ_VER_AT = '2026-10-29T11:59:33Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -10255,7 +10255,7 @@ async function orderNoClash(o){
   }
   o.orderId = String(next);
   if(designJobs && designJobs[було] && !designJobs[next]){ designJobs[next] = designJobs[було]; designJobs[next].orderId = String(next); delete designJobs[було];
-    try{ await DESIGN_COL.doc(String(next)).set(JSON.parse(JSON.stringify(designJobs[next]))); await DESIGN_COL.doc(було).delete(); }catch(e){ console.warn('картка відділу при перенумеруванні', e); } }
+    try{ await designSetWhole(String(next), JSON.parse(JSON.stringify(designJobs[next]))); await DESIGN_COL.doc(було).delete(); }catch(e){ console.warn('картка відділу при перенумеруванні', e); } }
   try{ accLog('renum', 'номер ' + було + ' уже був у базі — картці дано ' + next); }catch(e){}
   toast('Номер ' + було + ' уже зайнятий іншою карткою — цій дано ' + next);
   return true;
@@ -10312,7 +10312,7 @@ async function reserveOrderNo(o){
         toast('Номер ' + було + ' уже зайнятий — цій картці дано ' + no);
         if(designJobs && designJobs[було] && !designJobs[no] && orderDir(o) === 'b2c'){
           designJobs[no] = designJobs[було]; designJobs[no].orderId = no; delete designJobs[було];
-          try{ await DESIGN_COL.doc(no).set(JSON.parse(JSON.stringify(designJobs[no]))); }catch(e){ console.warn('картка відділу при перенумеруванні', e); }
+          try{ await designSetWhole(no, JSON.parse(JSON.stringify(designJobs[no]))); }catch(e){ console.warn('картка відділу при перенумеруванні', e); }
           await jobTombstone(було, no);
         }
       }
@@ -13217,7 +13217,7 @@ async function orphanB2cRestore(x){
       const no = (jN && jN.no) || jT.no;
       jT.orderId = N; jT.no = no; delete jT.gone; delete jT.mergedInto;
       designJobs[N] = jT;
-      try{ await DESIGN_COL.doc(N).set(JSON.parse(JSON.stringify(jT))); }catch(e){ console.warn('картка відділу при поверненні', e); }
+      try{ await designSetWhole(N, JSON.parse(JSON.stringify(jT))); }catch(e){ console.warn('картка відділу при поверненні', e); }
       await jobTombstone(T, N);
     }
     if(!orderNosOff && fbDb && typeof fbDb.runTransaction === 'function'){
@@ -13257,7 +13257,7 @@ async function jobTombstone(no, intoNo){
   t.no = старе.no || ''; t.createdAt = старе.createdAt || t.createdAt;
   t.gone = true; t.mergedInto = String(intoNo || ''); t.goneAt = new Date().toISOString(); t.arch = true;
   designJobs[k] = t;
-  try{ await DESIGN_COL.doc(k).set(JSON.parse(JSON.stringify(t))); }catch(e){ console.warn('надгробок картки відділу', k, e); }
+  try{ await designSetWhole(k, JSON.parse(JSON.stringify(t))); }catch(e){ console.warn('надгробок картки відділу', k, e); }
 }
 /* Робота з-під ключа fromNo переїжджає під intoNo: порожня — просто
    забувається; з роботою — стає карткою під intoNo, якщо там порожньо, або
@@ -13279,7 +13279,7 @@ async function jobMergeInto(intoNo, fromNo){
       if((bF.pics || []).length) bI.pics = (bI.pics || []).concat(bF.pics);
       try{ window.LQDesign.ds(jI, 'merge', { from: String(fromNo), units: U.unitsOf(jF).length }); }catch(e){}
     }
-    try{ await DESIGN_COL.doc(String(intoNo)).set(JSON.parse(JSON.stringify(designJobs[String(intoNo)]))); }catch(e){ console.warn('картка відділу при обʼєднанні', e); }
+    try{ await designSetWhole(String(intoNo), JSON.parse(JSON.stringify(designJobs[String(intoNo)]))); }catch(e){ console.warn('картка відділу при обʼєднанні', e); }
   }
   await jobTombstone(fromNo, intoNo);
 }
@@ -13490,7 +13490,7 @@ async function rbRestore(i, what){
     копія.orderId = r.k.key;
     копія.restoredFrom = { at: rb.at, by: myEmail() || '', when: new Date().toISOString(), had: r.now };
     designJobs[r.k.key] = копія;
-    await DESIGN_COL.doc(r.k.key).set(копія);
+    await designSetWhole(r.k.key, копія);
     try{ accLog('renum', 'відкат картки відділу #' + r.k.no + ' на стан від ' + rbFmt(r.then.at) + ' (було: ' + rbJobText(r.now).slice(0, 80) + ')'); }catch(e){}
     r.now = rbJobSum(копія);
     try{ repaintAfterOrders(); }catch(e){}
@@ -26322,7 +26322,9 @@ function shipVals(o){
        контролю немає. Інша сума потрібна — спершу внесіть оплату в «Гроші».
        Лишилось до 5 ₴ — вважаємо сплаченим (копійки округлень / комісій). */
     codOn: left > 5, cod: left > 5 ? Math.round(left) : 0,
-    left, payer: sh.payer === 'sender' ? 'sender' : 'recipient'
+    left, payer: sh.payer === 'sender' ? 'sender' : 'recipient',
+    total: +o.totalPrice || 0,
+    unitsN: orderDir(o) === 'b2c' ? (((designJobs || {})[o.orderId] || {}).units || []).filter(u => u && u.gid).length : 0
   };
 }
 /* Чого бракує для накладної — словами, а не неактивною кнопкою мовчки. */
@@ -26335,6 +26337,9 @@ function shipMissing(v){
   if(String(v.phone).replace(/\D/g, '').length < 10) m.push('телефон отримувача');
   if(!v.cityRef) m.push('місто (оберіть зі списку)');
   if(!v.whRef) m.push('відділення чи поштомат (оберіть зі списку)');
+  /* 29.10 (після нічного відкату накладні створювались без контролю оплати:
+     ціна в картці була нуль): є одяг, а ціни немає — накладну не створюємо. */
+  if(v.unitsN > 0 && !(v.total > 0)) m.push('ціна замовлення (нуль — накладна була б без контролю оплати)');
   return m;
 }
 function shipFormHtml(o){
@@ -30901,6 +30906,7 @@ const ORDER_NOS = fbDb.collection('orderNos');
 let designJobs = {};              // orderId → задача
 let designWatching = false;
 let designDirty = {};             // що чекає запису
+let designSkipped = {};           // orderId → знімок прийшов під час нашого запису; дочитати після (29.10)
 let designSeen = {};              // orderId → updatedAt, який ця вкладка бачила останнім
 let designBase = {};              // orderId → JSON версії з бази, яку вкладка бачила останньою (для злиття полями, крок 3)
 /* Попередню копію для версій беремо з того самого читання бази, що й
@@ -31293,7 +31299,8 @@ async function designPut(job, opt){
   if(dbLinkDead()) throw new Error('звʼязок з базою втрачено — оновіть сторінку');
   if(window.LQ_UPD_STALE) throw new Error('вийшло оновлення адмінки — натисніть «Оновити», ця вкладка в базу вже не пише');
   const було = {};
-  const свіжа = await dbNewer(DESIGN_COL.doc(id), designSeen[id], 'updatedAt', було);
+  /* 29.10: ще й лічильник rev (як у картки замовлення) — годинник пристрою його не обдурить. */
+  const свіжа = await dbNewer(DESIGN_COL.doc(id), designSeen[id], 'updatedAt', було, designBase[id] ? revOfJson(designBase[id]) : null);
   /* Не прочитали — не пишемо (27.10): без версії з бази стара копія затерла б чужу роботу. */
   if(було.fail) throw new Error('немає звʼязку з базою — зміну не записано, повторіть за хвилину');
   if(свіжа){
@@ -31321,6 +31328,10 @@ async function designPut(job, opt){
   }
   if(job.arch === undefined) job.arch = false;
   if(job.arch === true && !job.gone) job.arch = false;              // торкнулись — жива
+  /* ЛІЧИЛЬНИК ЗАПИСІВ (29.10, як у saveOrders): на одиницю більший за той, що
+     в базі й у баченій версії. Правило бази (jobRevOk) запізнілий запис із
+     меншим чи тим самим rev не пускає — стара копія з черги не ляже. */
+  job.rev = Math.max(+((було.doc || {}).rev || 0) || 0, +(job.rev || 0) || 0, designBase[id] ? revOfJson(designBase[id]) : 0) + 1;
   const body = JSON.stringify(job);
   const prev = було.doc ? JSON.stringify(було.doc) : '';
   if(prev && prev !== body) await histPut(DESIGN_COL, id, prev, opt && opt.why);
@@ -31782,7 +31793,7 @@ async function draftCommit(o){
       const bad = await storeSet('orders', orders) || [];
       const неЗаписано = (Array.isArray(bad) && bad.some(f => f && (f.id === o.id || f.id === '*'))) || !ordersSaved.has(o.id);
       if(неЗаписано) throw new Error('картка замовлення не записалась у базу — перевірте звʼязок і натисніть «Створити» ще раз');
-      await DESIGN_COL.doc(String(o.orderId)).set(JSON.parse(JSON.stringify(designJobs[String(o.orderId)] || job)));
+      await designSetWhole(String(o.orderId), JSON.parse(JSON.stringify(designJobs[String(o.orderId)] || job)));
     }
   }catch(e){
     console.error('створення замовлення', e);
@@ -32030,8 +32041,9 @@ function watchDesign(){
       if(v && v.kind === 'stock'){ designStock = Array.isArray(v.items) ? v.items : [];
         designStockMoves = Array.isArray(v.moves) ? v.moves : []; return; }
       if(!v || !v.orderId) return;
-      // Локальні незбережені правки чужим знімком не затираємо
-      if(designDirty[v.orderId]) return;
+      // Локальні незбережені правки чужим знімком не затираємо — але памʼятаємо,
+      // що пропустили: після запису дочитаємо (29.10, аудит B.2).
+      if(designDirty[v.orderId]){ designSkipped[v.orderId] = 1; return; }
       designJobs[v.orderId] = v;
       designSeen[v.orderId] = String(v.updatedAt || '');
       designBase[v.orderId] = JSON.stringify(v);
@@ -32116,7 +32128,7 @@ async function migrateSoloJobs(){
       delete fresh.solo; delete fresh.own;
       orders.unshift(o);
       await storeSet('orders', orders);
-      await DESIGN_COL.doc(o.orderId).set(fresh);
+      await designSetWhole(o.orderId, fresh);
       designJobs[o.orderId] = fresh;
       await DESIGN_COL.doc(key).delete();
       delete designJobs[key];
@@ -32184,6 +32196,29 @@ function payNextTag(o){
   const id = String((o && o.orderId) || '');
   return (payments || []).some(p => id && String(p.orderId || '') === id) ? 'final' : 'prepay';
 }
+/* Знімок картки відділу прийшов, поки ми її писали, — тепер у базі злите (наш
+   патч поверх чужого); беремо його в памʼять, інакше наступний запис повернув
+   би чуже назад (29.10, аудит B.2). */
+async function designResync(id){
+  try{
+    const s = await getWithin(DESIGN_COL.doc(String(id)));
+    const v = s && s.exists ? s.data() : null;
+    if(!v || !v.orderId || designDirty[id]) return;
+    designJobs[id] = v; designSeen[id] = String(v.updatedAt || ''); designBase[id] = JSON.stringify(v);
+    try{ if(window.LQDesign && LQDesign.ui.renderSoft) LQDesign.ui.renderSoft(document.getElementById('dzRoot')); }catch(e){}
+  }catch(e){ console.warn('дочитати картку відділу', id, e); }
+}
+/* Цілий документ картки відділу (ремонти Звірки, перенумерування, надгробок):
+   лише з rev на одиницю більшим за той, що в базі, — інакше правило бази не
+   пустить (29.10). Не прочитали базу — не пишемо. */
+async function designSetWhole(key, obj){
+  const ref = DESIGN_COL.doc(String(key));
+  const s = await getWithin(ref);
+  const cur = s && s.exists ? (s.data() || {}) : {};
+  obj.rev = Math.max(+(cur.rev || 0) || 0, +(obj.rev || 0) || 0) + 1;
+  await ref.set(obj);
+  return obj;
+}
 async function designSave(job, o){
   if(!job || !job.orderId) return;
   if(job.draft || (o && o.draft)){
@@ -32194,6 +32229,15 @@ async function designSave(job, o){
     return;
   }
   try{ b2cSumWrite(job, o); }catch(e){ console.warn('сума B2C', e); }
+  /* СТАРА КОПІЯ В ЗАМИКАННІ (аудит 28.10, B.3): екран тримає обʼєкт картки,
+     знімок тим часом замінив її в памʼяті новішою — записати старий означало
+     б відкотити чуже. Не пишемо, кажемо повторити. */
+  const жива = (designJobs || {})[job.orderId];
+  if(жива && жива !== job && String(жива.updatedAt || '') > String(job.updatedAt || '') && +(жива.rev || 0) >= +(job.rev || 0)){
+    toast('Картку #' + noOf(job.orderId) + ' уже оновили з іншого пристрою — повторіть правку на свіжій');
+    try{ const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); }catch(e){}
+    throw new Error('картку відділу вже оновили з іншого пристрою — повторіть правку');
+  }
   designDirty[job.orderId] = 1;
   designJobs[job.orderId] = job;
   let записано = false;
@@ -32205,6 +32249,7 @@ async function designSave(job, o){
     throw e;
   }finally{
     delete designDirty[job.orderId];
+    if(designSkipped[job.orderId]){ delete designSkipped[job.orderId]; designResync(job.orderId); }
     /* Доручення могло щойно зʼявитись або закритись — число на кнопці має
        це показати одразу, а не після перезаходу. */
     try{ paintTaskBadge(); }catch(e){}

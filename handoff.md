@@ -242,7 +242,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   правилах `kanbanOrders`, `getWithin` відхиляє `fromCache`, `docPatchWrite`
   без `set(whole)` на not-found (лише `p.recreate`), `stateRollback`/`stateKeep`
   + ТТН (`TTN_KEEP`)/supply/hist, `mйБрудний` бере базу при `знане == null`,
-  `patchClash` ігнорує однакові значення,
+  `patchClash` ігнорує однакові значення; картки відділу: `jobRevOk()` у
+  правилах, `designPut` rev, `designSetWhole`, `designSave` відмовляє старій
+  копії з замикання, `designSkipped`/`designResync`; `shipMissing` — ціна
+  нуль при одязі; «✈ Відправлено за кордон → Виконано» (`prod-abroad-sent`
+  через `orderApply`, у будь-якій колонці від ready, `prodMbar`),
   `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.

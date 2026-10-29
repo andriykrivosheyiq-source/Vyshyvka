@@ -209,6 +209,26 @@ r = await p.evaluate(() => (window.__WHERE || []).filter(w => w[0] === 'offers' 
 ok(r.includes('offers:updatedAt>=') && r.includes('offers:clientAt>=') && r.includes('an_tg:lastAt>='), 'offers (updatedAt, clientAt) і an_tg (lastAt) з вікном', 'where: ' + JSON.stringify(r));
 
 console.log('8. Сторінка без помилок');
+console.log('═══ 5. КАРТКА ВІДДІЛУ: ЛІЧИЛЬНИК rev РОСТЕ; СТАРА КОПІЯ В ЗАМИКАННІ НЕ ПИШЕТЬСЯ (29.10) ═══');
+const r5 = await p.evaluate(async () => {
+  const id = '2000301';
+  const j = JSON.parse(JSON.stringify(window.__JOBS[id])); j.rev = 4; window.__JOBS[id].rev = 4;
+  designJobs[id] = j; designSeen[id] = j.updatedAt; designBase[id] = JSON.stringify(j);
+  j.brief.text = 'ТЗ з rev'; j.updatedAt = new Date().toISOString();
+  const ok1 = await designPut(j);
+  const rev1 = window.__JOBS[id].rev;
+  /* Стара копія в замиканні: екран тримає старий обʼєкт, у памʼяті вже новіша (знімок). */
+  const старий = JSON.parse(JSON.stringify(j)); старий.brief.text = 'зі старого замикання';
+  const новіша = JSON.parse(JSON.stringify(j)); новіша.updatedAt = new Date(Date.now() + 60000).toISOString(); новіша.rev = rev1 + 1; новіша.brief.text = 'чуже свіже';
+  designJobs[id] = новіша; designSeen[id] = новіша.updatedAt; designBase[id] = JSON.stringify(новіша); window.__JOBS[id] = JSON.parse(JSON.stringify(новіша));
+  window.__TOASTS = [];
+  let err = ''; try{ await designSave(старий); }catch(e){ err = String(e.message || e); }
+  return { ok1, rev1, err, db: window.__JOBS[id].brief.text, mem: designJobs[id].brief.text, toasts: window.__TOASTS };
+});
+ok(r5.ok1 && r5.rev1 === 5, 'designPut ставить rev = база + 1 (4 → 5)', JSON.stringify(r5));
+ok(/вже оновили/.test(r5.err) && r5.db === 'чуже свіже' && r5.mem === 'чуже свіже' && r5.toasts.some(t => /повторіть правку/.test(t)),
+  'стара копія в замиканні не пишеться: чуже свіже лишилось у базі й у памʼяті, людині сказано повторити', JSON.stringify(r5));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 
 await browser.close();

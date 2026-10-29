@@ -318,6 +318,10 @@
        лишилось у «погоджено» чи «реєстрі» (їх могла затерти стара копія). */
     var ns = npStage(o);
     if(ns) return ns;
+    /* ЗА КОРДОН — «ВИКОНАНО» КНОПКОЮ З БУДЬ-ЯКОЇ КОЛОНКИ (29.10, Андрій:
+       «реєстр не має сенсу… кнопка всередині картки — і зразу у Виконано»).
+       Статусу НП у такої посилки немає, тож «відправлено» ставить людина. */
+    if(shipAbroad(o) && !String(o.ttn || '').trim() && o.ship.abroadSentAt && !(o.ship.abroadCol && PROD_IDX[o.ship.abroadCol] > PROD_IDX.ship && o.ship.abroadCol !== 'done')) return 'done';
     /* Трек «відправка» = «є ТТН», а не «посилка поїхала»: ТТН менеджер
        створює й до погодження. Тому далі — лише реєстр і статус НП.
        Старі замовлення (до фото-погодження) з ТТН — одразу «Виконано». */
@@ -8998,6 +9002,8 @@
      зоні дій), а на телефоні в зоні ховаються дублікати (`dz-mb-dup`). */
   function prodMbar(job, o){
     var at = D.prodAt(job, o), b = [];
+    if(D.shipAbroad(o) && !o.ttn && at !== 'done' && at !== 'refused' && D.PROD_IDX[at] >= D.PROD_IDX.ready)
+      b.push('<button type="button" class="dz-b pri" data-do="prod-abroad-sent">✈ За кордон → Виконано</button>');
     if(at === 'ready') b.push('<button type="button" class="dz-b pri" data-do="prod-move" data-to="run">На станки</button>');
     else if(at === 'run' && D.jobTech(job) === 'dtf') b.push('<button type="button" class="dz-b pri" data-do="prod-print-done">✓ Надруковано</button>',
       '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>');
@@ -9078,9 +9084,9 @@
           ? '<div class="dz-miss dz-no-ttn">ТТН ще немає — створіть накладну' + (as === 'acct' ? '' : ' (менеджер)') + '</div>' +
             (as === 'acct' ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="ship">Створити ТТН</button></div>' : '')
           : '') +
-        (at === 'ship' && as === 'prod' ? (D.shipAbroad(o) && !o.ttn
-            ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-abroad-sent">✈ Відправлено за кордон</button></div>'
-            : '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>') : '') +
+        (D.shipAbroad(o) && !o.ttn && at !== 'done' && at !== 'refused' && D.PROD_IDX[at] >= D.PROD_IDX.ready
+            ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-abroad-sent" title="Посилка за кордон відправлена — картка одразу у «Виконано», без реєстру">✈ Відправлено за кордон → Виконано</button></div>'
+            : (at === 'ship' && as === 'prod' ? '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>' : '')) +
         /* РЕЄСТР УЖЕ Є, А В КАРТЦІ ЙОГО НЕМАЄ (26.10, Володимир: «реєстр
            роздрукований… злетіла з Передано курʼєру… перемістити не можу»):
            реєстр у Новій пошті створили, а запис у картку не ліг — картка
@@ -12967,8 +12973,16 @@
     }
     if(what === 'prod-abroad-sent'){
       if(!D.shipAbroad(o)) return say('Це не відправка за кордон');
-      o.ship.abroadSentAt = new Date().toISOString(); o.ship.abroadSentBy = m;
-      return save(job, o, 'Відправлено за кордон');
+      if(!confirm('Посилку ' + U.jobNo(job) + ' за кордон відправлено? Картка одразу піде у «Виконано».')) return;
+      /* На свіжій картці (orderApply): стара копія не затре чужого. */
+      return orderApply(o, function(x){
+          if(!x.ship || typeof x.ship !== 'object') return false;
+          if(D.prodAt(job, x) === 'done') return;
+          x.ship.abroadCol = 'done'; x.ship.abroadColBy = m; x.ship.abroadColAt = new Date().toISOString();
+          if(!x.ship.abroadSentAt){ x.ship.abroadSentAt = new Date().toISOString(); x.ship.abroadSentBy = m; }
+          if(typeof D.prodTrack === 'function') D.prodTrack(x, 'ship', 'sent', m); },
+        function(x){ return D.prodAt(job, x) === 'done'; })
+        .then(function(r){ prodMoveSay(root, job, o, 'done', r); });
     }
     if(what === 'pay-check'){
       if(!host().payCheck) return say('Підтвердження оплати недоступне');
