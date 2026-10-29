@@ -291,13 +291,13 @@
   function regFailOf(o){
     var f = o && o.regFail;
     if(!f || !f.why) return '';
-    if(String(f.ttn || '').replace(/\D/g, '') !== String(o.ttn || '').replace(/\D/g, '')) return '';
-    return npWhyUa(f.why);
+    var t = String(f.ttn || '').replace(/\D/g, '');
+    if(t !== String(o.ttn || '').replace(/\D/g, '') && !(ship2Ttn(o) && t === ship2Ttn(o).replace(/\D/g, ''))) return '';
+    return npWhyUa(f.why) + (ship2Ttn(o) && t === ship2Ttn(o).replace(/\D/g, '') ? ' (посилка 2)' : '');
   }
   /* Стан посилки з коду Нової пошти (o.npSt — пише опитування адмінки). */
   var NP_WAY = [4, 41, 5, 6, 101, 104, 111, 112], NP_DONE = [9, 10, 11, 106], NP_REF = [102, 103, 108, 105];
-  function npStage(o){
-    var s = o && o.npSt;
+  function npStageOf(s){
     if(!s || !s.code) return '';
     var c = +s.code;
     if(NP_DONE.indexOf(c) >= 0) return 'done';
@@ -308,6 +308,21 @@
     }
     if(NP_WAY.indexOf(c) >= 0) return 'way';
     return '';
+  }
+  /* Дві посилки (29.10): колонка — за відстаючою. Одна ще без статусу НП —
+     картка ще не поїхала; відмова на будь-якій — «Відмова»; інакше нижча
+     з двох (у дорозі < у відділенні < доставлено), «понад 3 дні» — коли
+     хоч одна застрягла. */
+  var NP_RANK = { way: 1, arrived: 2, stuck: 2, done: 3 };
+  function npStage(o){
+    var s1 = npStageOf(o && o.npSt);
+    if(!ship2Ttn(o)) return s1;
+    var s2 = npStageOf(o.ship2.npSt);
+    if(!s1 || !s2) return '';
+    if(s1 === 'refused' || s2 === 'refused') return 'refused';
+    var r = Math.min(NP_RANK[s1], NP_RANK[s2]);
+    if(r === 2) return (s1 === 'stuck' || s2 === 'stuck') ? 'stuck' : 'arrived';
+    return r === 1 ? 'way' : 'done';
   }
   function prodAt(job, o){
     o = o || {};
@@ -542,7 +557,14 @@
   function shipAbroad(o){ var sh = o && o.ship; return !!(sh && sh.abroad && String(sh.abroadTo || '').trim()); }
   /* Номер накладної Нової пошти — 14 цифр (пробіли й дефіси не рахуються). */
   function ttnValid(t){ return /^\d{14}$/.test(String(t || '').replace(/[\s-]/g, '')); }
-  function shipKnown(o){ return !!String((o && o.ttn) || '').trim() || shipAbroad(o); }
+  /* Дві посилки (29.10): відправка «відома», лише коли є накладні на обидві. */
+  function ship2Live(o){ var s = o && o.ship2; return !!(s && typeof s === 'object' && s.on && Array.isArray(s.units) && s.units.length); }
+  function ship2Ttn(o){ return ship2Live(o) ? String(o.ship2.ttn || '').trim() : ''; }
+  function shipKnown(o){
+    var t = String((o && o.ttn) || '').trim();
+    if(t && ship2Live(o) && !ship2Ttn(o)) return false;
+    return !!t || shipAbroad(o);
+  }
   /* Після цеху — за станом цеху (07.10): ТТН менеджер створює й до
      погодження, тож «є ТТН» більше не означає «відправлено». Відправлено —
      коли посилка в реєстрі / в Новій пошті. Старі замовлення з ТТН (до
@@ -3083,7 +3105,7 @@
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
-    PROD: PROD, PROD_IDX: PROD_IDX, prodAt: prodAt, shipAbroad: shipAbroad, abroadManual: abroadManual, npWhyUa: npWhyUa, ttnDays: ttnDays, dniTxt: dniTxt, regFailOf: regFailOf, shipKnown: shipKnown, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
+    PROD: PROD, PROD_IDX: PROD_IDX, prodAt: prodAt, shipAbroad: shipAbroad, abroadManual: abroadManual, npWhyUa: npWhyUa, ttnDays: ttnDays, dniTxt: dniTxt, regFailOf: regFailOf, shipKnown: shipKnown, ship2Live: ship2Live, ship2Ttn: ship2Ttn, npStageOf: npStageOf, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
@@ -3456,6 +3478,7 @@
             /* Реєстр (27.10): накладній від 3 днів — червона таблетка; Нова
                пошта не взяла в реєстр — причина прямо на плитці. */
             (c.ttnOld ? '<span class="dz-c-row"><em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні — перестворіть ТТН у картці">ТТН уже ' + esc(dniTxt(c.ttnOld)) + '</em></span>' : '') +
+            (c.two ? '<span class="dz-c-row"><em class="dz-c-stk dz-c-two" title="Замовлення їде двома посилками двом отримувачам — дві накладні, дві бирки">📦 2 посилки</em></span>' : '') +
             (c.regFail ? '<i class="dz-c-state dz-c-regfail">НП не взяла в реєстр: ' + esc(c.regFail) + '</i>' : '') +
           '</span>' +
         '</span>' +
@@ -3481,7 +3504,7 @@
             '</span>' +
             /* «Зебра» (27.10): маркування 100×100 цієї ТТН — одним дотиком з плитки. */
             (c.zebra ? '<span class="dz-card-zb" role="button" tabindex="0" data-do="zebra" data-ttn="' + esc(c.zebra.ttn) + '" data-sender="' + esc(c.zebra.sender) +
-              '" title="Зебра — маркування 100×100 для термопринтера, ТТН ' + esc(c.zebra.ttn) + '">Зебра</span>' : '') +
+              '" title="Зебра — маркування 100×100 для термопринтера, ТТН ' + esc(c.zebra.ttn) + '">Зебра' + (c.zebra.n > 1 ? ' ×' + c.zebra.n : '') + '</span>' : '') +
             '</span>'
           : '') +
       '</button>' +
@@ -6752,35 +6775,52 @@
     /* Форма накладної робочого місця (04.10): відправник, отримувач, місто й
        відділення з довідника НП, вага, формат, контроль оплати, «Створити
        ТТН». Номер, якщо накладну зробили деінде, — вписати руками нижче. */
-    if(o.dir === 'b2c' && host.shipForm && (host.shipForm(o) || ttn))
-      return (ttn
-          ? '<div class="dz-ship dz-ship-ttn"><div class="dz-ship-l"><b>Накладна ' + esc(ttn) +
-              (D.ttnDays(o) >= 3 ? ' <em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні">ТТН уже ' + esc(D.dniTxt(D.ttnDays(o))) + '</em>' : '') + '</b>' +
-              (D.regFailOf(o) ? '<span class="dz-regfail-s">НП не взяла в реєстр: ' + esc(D.regFailOf(o)) + '</span>' : '') +
-              (o.ttnStatus ? '<span>' + esc(o.ttnStatus) + '</span>' : '') +
-              (o.ttnCity ? '<span>' + esc(o.ttnCity + (o.ttnWh ? ' · ' + o.ttnWh : '')) + '</span>' : '') + '</div>' +
-              /* Кнопки — окремим рядком під адресою (28.10, Андрій: «треба
-                 підправити, щоб гарно виглядало»): чотири кнопки в одному
-                 рядку з адресою стискали її в стовпчик по слову. */
-              '<div class="dz-ship-acts">' +
-              '<button class="dz-b" data-ship-track>Оновити статус</button>' +
-              (host.npZebra ? '<button class="dz-b" data-ship-zebra title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
-              /* ✎ Змінити (23.10) лишилось лише для тексту, що ліг як «накладна»
-                 (не 14 цифр): знімається без питань. Справжній номер —
-                 «✕ Видалити ТТН» (28.10, Андрій: «навіщо змінювати, якщо ТТН
-                 уже створено — видалити, змінити дані й створити ще раз, або
-                 перестворити»): скасування в НП, номер в історію, форма
-                 відкривається тут же з даними картки. */
-              (host.ttnDrop && !D.ttnValid(ttn) ? '<button class="dz-b dz-quiet" data-ship-ttn-x>✎ Змінити</button>' : '') +
-              /* ↻ Перестворити (27.10, Андрій): нова накладна з тими самими
-                 даними замість цієї; стара — в історію як замінена (брак) і
-                 скасовується в Новій пошті. Лише в картці, з підтвердженням. */
-              (host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
-              (host.ttnDelete && D.ttnValid(ttn) ? '<button class="dz-b dz-quiet dz-danger" data-ship-ttn-del title="Скасувати накладну в Новій пошті й прибрати з картки; дані отримувача лишаться у формі — виправте й створіть нову">✕ Видалити ТТН</button>' : '') +
-              '</div></div>' + ttnInfoHtml(o)
-          : host.shipForm(o)) +
+    /* ДВІ ПОСИЛКИ (29.10, Андрій: «дві посилки в два різних місця… дві
+       зебри на картці»). Перша — накладна чи форма, як доти; друга — під
+       нею: її накладна зі своїми «Статус / Зебра / Видалити» або форма
+       другого отримувача; «+ Додатковий отримувач» — коли другого ще немає. */
+    var s2 = (o.ship2 && typeof o.ship2 === 'object' && o.ship2.on) ? o.ship2 : null;
+    var ttn2 = s2 ? String(s2.ttn || '').trim() : '';
+    var блокТТН = function(p, n){
+      var t = String(p.ttn || '').trim();
+      var ст = String(p.ttnStatus || '');
+      return '<div class="dz-ship dz-ship-ttn' + (n === 2 ? ' dz-ship-ttn2' : '') + '"><div class="dz-ship-l"><b>' + (s2 ? 'Посилка ' + n + ' · ' : '') + 'Накладна ' + esc(t) +
+          (n === 1 && D.ttnDays(o) >= 3 ? ' <em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні">ТТН уже ' + esc(D.dniTxt(D.ttnDays(o))) + '</em>' : '') + '</b>' +
+          (n === 1 && D.regFailOf(o) ? '<span class="dz-regfail-s">НП не взяла в реєстр: ' + esc(D.regFailOf(o)) + '</span>' : '') +
+          (ст ? '<span>' + esc(ст) + '</span>' : '') +
+          (p.ttnCity ? '<span>' + esc(p.ttnCity + (p.ttnWh ? ' · ' + p.ttnWh : '')) + '</span>' : '') +
+          (n === 2 && (p.name || p.ttnName) ? '<span>' + esc(p.ttnName || p.name) + '</span>' : '') + '</div>' +
+          /* Кнопки — окремим рядком під адресою (28.10, Андрій: «треба
+             підправити, щоб гарно виглядало»): чотири кнопки в одному
+             рядку з адресою стискали її в стовпчик по слову. */
+          '<div class="dz-ship-acts">' +
+          '<button class="dz-b" data-ship-track="' + n + '">Оновити статус</button>' +
+          (host.npZebra ? '<button class="dz-b" data-ship-zebra="' + n + '" data-ttn="' + esc(t) + '" data-sender="' + esc(String(p.ttnSender || o.ttnSender || '')) + '" title="Маркування 100×100 для термопринтера">▥ Зебра' + (s2 ? ' · ' + n : '') + '</button>' : '') +
+          /* ✎ Змінити (23.10) лишилось лише для тексту, що ліг як «накладна»
+             (не 14 цифр): знімається без питань. Справжній номер —
+             «✕ Видалити ТТН» (28.10, Андрій: «навіщо змінювати, якщо ТТН
+             уже створено — видалити, змінити дані й створити ще раз, або
+             перестворити»): скасування в НП, номер в історію, форма
+             відкривається тут же з даними картки. */
+          (n === 1 && host.ttnDrop && !D.ttnValid(t) ? '<button class="dz-b dz-quiet" data-ship-ttn-x>✎ Змінити</button>' : '') +
+          /* ↻ Перестворити (27.10, Андрій): нова накладна з тими самими
+             даними замість цієї; стара — в історію як замінена (брак) і
+             скасовується в Новій пошті. Лише в картці, з підтвердженням. */
+          (n === 1 && host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
+          (host.ttnDelete && D.ttnValid(t) ? '<button class="dz-b dz-quiet dz-danger" data-ship-ttn-del="' + n + '" title="Скасувати накладну в Новій пошті й прибрати з картки; дані отримувача лишаться у формі — виправте й створіть нову">✕ Видалити ТТН</button>' : '') +
+          '</div></div>' + ttnInfoHtml(o, n);
+    };
+    if(o.dir === 'b2c' && host.shipForm && (host.shipForm(o) || ttn || ttn2)){
+      var шапка2 = s2 ? '<div class="dz-ship-two">📦 <b>Дві посилки</b>' +
+          '<span>1: ' + (ttn ? 'ТТН ' + esc(ttn) : 'накладної ще немає') + '</span>' +
+          '<span>2: ' + (ttn2 ? 'ТТН ' + esc(ttn2) : 'накладної ще немає') + (s2.name ? ' · ' + esc(s2.name) : '') + '</span></div>' : '';
+      return шапка2 +
+        (ttn ? блокТТН(o, 1) : host.shipForm(o)) +
         (ttn ? '' : '<label class="dz-own-f dz-ship-man"><span>Або номер ТТН руками</span>' +
-          '<input data-of="ttn" value="" placeholder="якщо накладну створили в кабінеті НП"></label>');
+          '<input data-of="ttn" value="" placeholder="якщо накладну створили в кабінеті НП"></label>') +
+        (s2 ? (ttn2 ? блокТТН(s2, 2) : (host.shipForm2 ? host.shipForm2(o) : ''))
+            : (ttn && host.shipTwo && !D.shipAbroad(o) ? '<div class="dz-ship-acts"><button class="dz-b dz-quiet" data-ship-two title="Друга посилка в інше місце: оберіть, які позиції їдуть другому отримувачу">+ Додатковий отримувач</button></div>' : ''));
+    }
     if(o.dir === 'b2c')
       return '<div class="dz-ship-f">' +
           поле('name', 'Імʼя та прізвище', 'на кого оформити') +
@@ -6809,9 +6849,9 @@
      усередині накладної, тут не пишуться»): отримувач, відправник,
      контроль оплати й чи гроші вже прийшли, хто платить доставку,
      оголошена вартість, коли доставлять. */
-  function ttnInfoHtml(o){
+  function ttnInfoHtml(o, which){
     var t = null;
-    try{ t = host.ttnInfo ? host.ttnInfo(o) : null; }catch(e){}
+    try{ t = host.ttnInfo ? host.ttnInfo(o, which) : null; }catch(e){}
     if(!t) return '';
     var гр = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA') + ' ₴'; };
     var р = [];
@@ -7670,7 +7710,7 @@
   function stateOf(job, o, col, open){
     var доруч = open ? ' · доручень ' + open : '';
     if(col === 'queue'){ var дн = D.queueDays(job); return 'у черзі ' + (дн ? дн + ' дн.' : 'з сьогодні') + доруч; }
-    if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn : D.shipAbroad(o) ? 'за кордон' : 'чекає ТТН') + доруч;
+    if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn + (D.ship2Live(o) ? (D.ship2Ttn(o) ? ' + ' + D.ship2Ttn(o) : ' · посилка 2 чекає ТТН') : '') : D.shipAbroad(o) ? 'за кордон' : 'чекає ТТН') + доруч;
     if(col === 'appr')    return 'фото з цеху — погодьте' + доруч;
     if(col === 'prod' || col === 'shipped'){
       var pk = D.prodAt(job, o);
@@ -9429,7 +9469,7 @@
     /* Закордонна посилка в «Реєстр» стоїть руками (27.10) — реєстр НП її не стосується. */
     var всіР = U.pairsLive().filter(function(p){ return D.prodAt(p.job, p.o) === 'reg' && !D.abroadManual(p.o); });
     /* Без ТТН (погоджено без накладної, 26.10) у реєстр не йде — кажемо, хто. */
-    var безТТН = всіР.filter(function(p){ return D.shipNeedsTtn(p.o) || !String(p.o.ttn || '').trim(); });
+    var безТТН = всіР.filter(function(p){ return D.shipNeedsTtn(p.o) || !String(p.o.ttn || '').trim() || (D.ship2Live(p.o) && !D.ship2Ttn(p.o)); });
     var там = всіР.filter(function(p){ return безТТН.indexOf(p) < 0; });
     if(!там.length) return say(безТТН.length ? 'У «Реєстр» лише посилки без ТТН: ' + безТТН.map(function(p){ return U.jobNo(p.job); }).join(', ') + ' — спершу створіть накладні'
                                              : 'У колонці «Реєстр» порожньо — перетягніть сюди посилки з ТТН');
@@ -9444,7 +9484,13 @@
     var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = безТТН.map(function(p){ return { no: U.jobNo(p.job), why: 'немає ТТН' }; }), номери = [], неЗапис = [];
     for(var k in групи){
       var r;
-      try{ r = await host().npRegistry(k, групи[k].map(function(p){ return { ttn: String(p.o.ttn || ''), ref: String(p.o.ttnRef || '') }; })); }
+      /* Дві посилки (29.10): у реєстр ідуть обидві накладні картки. */
+      var докиР = [];
+      групи[k].forEach(function(p){
+        докиР.push({ ttn: String(p.o.ttn || ''), ref: String(p.o.ttnRef || '') });
+        if(D.ship2Ttn(p.o)) докиР.push({ ttn: D.ship2Ttn(p.o), ref: String(p.o.ship2.ttnRef || '') });
+      });
+      try{ r = await host().npRegistry(k, докиР); }
       catch(e){ r = { error: String((e && e.message) || e) }; }
       /* ЛИШЕ ТЕ, ЩО СПРАВДІ ЛЯГЛО В РЕЄСТР (25.10). Доти «Передано курʼєру»
          отримували всі картки відправника — і ті, чию накладну Нова пошта
@@ -9470,7 +9516,12 @@
       for(var i = 0; i < групи[k].length; i++){
         var p = групи[k][i];
         var n = чисто(p.o.ttn), rf = чисто(p.o.ttnRef);
-        var увійшла = безРеєстру ? false : єПерелік ? !!(прийняті[n] || (rf && прийняті[rf])) : !(погані[n] || (rf && погані[rf]));
+        var увійшлаЦя = function(n, rf){ return безРеєстру ? false : єПерелік ? !!(прийняті[n] || (rf && прийняті[rf])) : !(погані[n] || (rf && погані[rf])); };
+        var увійшла = увійшлаЦя(n, rf);
+        /* Дві посилки: картка в реєстрі, лише коли обидві накладні прийнято;
+           не прийнято другу — причина з її номером. */
+        var n2 = чисто(D.ship2Ttn(p.o)), rf2 = n2 ? чисто(p.o.ship2.ttnRef) : '';
+        if(n2 && увійшла && !увійшлаЦя(n2, rf2)){ увійшла = false; n = n2; rf = rf2; }
         if(!увійшла){
           var чомуТ = чому[n] || (rf && чому[rf]) || (безРеєстру ? (r.error || 'Нова пошта не створила реєстр') : 'не увійшла в реєстр');
           не.push({ no: U.jobNo(p.job), why: D.npWhyUa(чомуТ) });
@@ -9481,7 +9532,7 @@
           try{ await orderApply(p.o, function(x){
               if(x.regFail && x.regFail.at === штампF) return;
               if(D.prodAt(p.job, x) !== 'reg') return false;
-              x.regFail = { at: штампF, why: String(чомуТ).slice(0, 300), ttn: String(x.ttn || '').trim(), by: me }; },
+              x.regFail = { at: штампF, why: String(чомуТ).slice(0, 300), ttn: n === n2 ? n2 : String(x.ttn || '').trim(), by: me }; },
             function(x){ return !!(x && x.regFail && x.regFail.at === штампF); }); }catch(e){}
           continue;
         }
@@ -9808,9 +9859,12 @@
       }
       var крокП = D.prodAt(p.job, p.o);
       /* «Зебра» (27.10): від колонки «Реєстр» і далі, поки є ТТН. */
-      var зебра = (String(p.o.ttn || '').trim() && ZEBRA_COLS.indexOf(крокП) >= 0) ? { ttn: String(p.o.ttn).trim(), sender: String(p.o.ttnSender || '') } : null;
+      /* Дві посилки (29.10): одна кнопка — обидві бирки одним PDF. */
+      var ттн2 = D.ship2Ttn(p.o);
+      var зебра = (String(p.o.ttn || '').trim() && ZEBRA_COLS.indexOf(крокП) >= 0) ? { ttn: String(p.o.ttn).trim() + (ттн2 ? ',' + ттн2 : ''), sender: String(p.o.ttnSender || ''), n: ттн2 ? 2 : 1 } : null;
       var днівТ = крокП === 'reg' ? D.ttnDays(p.o) : -1;
       return { id: p.o.orderId, step: крокП, v2: true, zebra: зебра,
+        two: D.ship2Live(p.o),
         abroad: D.shipAbroad(p.o),
         ttnOld: днівТ >= 3 ? днівТ : 0,
         regFail: крокП === 'reg' ? D.regFailOf(p.o) : '',
@@ -11494,30 +11548,40 @@
     /* Форма накладної — робочого місця; зберігаємо тим самим шляхом, що й
        решту полів замовлення. */
     (function(){
-      var box = root.querySelector('[data-shipform]');
       var c = ctx();
-      if(box && c && c.o && host().shipWire)
-        host().shipWire(box, c.o, function(){ return save(c.job, c.o, ''); });
+      /* Дві посилки (29.10): форм може бути дві (перша й другий отримувач). */
+      root.querySelectorAll('[data-shipform]').forEach(function(box){
+        if(c && c.o && host().shipWire) host().shipWire(box, c.o, function(){ return save(c.job, c.o, ''); });
+      });
+      var two = root.querySelector('[data-ship-two]');
+      if(two && c && c.o && host().shipTwo) two.onclick = function(){
+        if(host().shipTwo(c.o)) save(c.job, c.o, 'Другий отримувач: оберіть його позиції й заповніть дані');
+      };
       var tx = root.querySelector('[data-ship-ttn-x]');
       if(tx && c && c.o && host().ttnDrop) tx.onclick = function(){
         if(host().ttnDrop(c.o)) save(c.job, c.o, 'Накладну знято — можна вписати іншу');
       };
-      var tr = root.querySelector('[data-ship-track]');
-      if(tr && c && c.o && host().shipTrack) tr.onclick = function(){ host().shipTrack(c.o); };
-      var tdl = root.querySelector('[data-ship-ttn-del]');
-      if(tdl && c && c.o && host().ttnDelete) tdl.onclick = async function(){
-        var стараД = String(c.o.ttn || '').trim();
-        var окД = true;
-        try{ окД = window.confirm('Видалити накладну ' + стараД + '?\nЇї буде скасовано в Новій пошті (якщо створена з адмінки), номер піде в історію картки. Дані отримувача лишаться у формі — виправте й створіть нову.' +
-          (+c.o.ttnCod > 0 ? '\nУ ній контроль оплати ' + c.o.ttnCod + ' ₴.' : '')); }catch(e){}
-        if(!окД) return;
-        tdl.disabled = true; tdl.textContent = 'Видаляю…';
-        var rd;
-        try{ rd = await host().ttnDelete(c.o); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; }
-        tdl.disabled = false; tdl.textContent = '✕ Видалити ТТН';
-        if(!rd || !rd.ok) return say('Накладну не видалено: ' + ((rd && rd.why) || 'не вдалось'), 6000);
-        save(c.job, c.o, 'Накладну видалено' + (rd.note ? ' · ' + rd.note : '') + ' — виправте дані й створіть нову');
-      };
+      root.querySelectorAll('[data-ship-track]').forEach(function(tr){
+        if(c && c.o && host().shipTrack) tr.onclick = function(){ host().shipTrack(c.o, +tr.dataset.shipTrack === 2 ? 2 : 1); };
+      });
+      root.querySelectorAll('[data-ship-ttn-del]').forEach(function(tdl){
+        if(!(c && c.o && host().ttnDelete)) return;
+        var яка = +tdl.dataset.shipTtnDel === 2 ? 2 : 1;
+        tdl.onclick = async function(){
+          var пос = яка === 2 ? (c.o.ship2 || {}) : c.o;
+          var стараД = String(пос.ttn || '').trim();
+          var окД = true;
+          try{ окД = window.confirm('Видалити накладну ' + стараД + (яка === 2 ? ' (посилка 2)' : '') + '?\nЇї буде скасовано в Новій пошті (якщо створена з адмінки), номер піде в історію картки. Дані отримувача лишаться у формі — виправте й створіть нову.' +
+            (+пос.ttnCod > 0 ? '\nУ ній контроль оплати ' + пос.ttnCod + ' ₴.' : '')); }catch(e){}
+          if(!окД) return;
+          tdl.disabled = true; tdl.textContent = 'Видаляю…';
+          var rd;
+          try{ rd = await host().ttnDelete(c.o, яка); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; }
+          tdl.disabled = false; tdl.textContent = '✕ Видалити ТТН';
+          if(!rd || !rd.ok) return say('Накладну не видалено: ' + ((rd && rd.why) || 'не вдалось'), 6000);
+          save(c.job, c.o, 'Накладну видалено' + (rd.note ? ' · ' + rd.note : '') + ' — виправте дані й створіть нову');
+        };
+      });
       var tre = root.querySelector('[data-ship-ttn-re]');
       if(tre && c && c.o && host().ttnRemake) tre.onclick = async function(){
         var стараТ = String(c.o.ttn || '').trim();
@@ -11531,8 +11595,9 @@
         if(rr === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(c.o.ttn || '')); }
         say('Накладну не перестворено: ' + (rr || 'Нова пошта відмовила'));
       };
-      var zb = root.querySelector('[data-ship-zebra]');
-      if(zb && c && c.o) zb.onclick = function(){ act('zebra', root, { ttn: String(c.o.ttn || ''), sender: String(c.o.ttnSender || '') }); };
+      root.querySelectorAll('[data-ship-zebra]').forEach(function(zb){
+        if(c && c.o) zb.onclick = function(){ act('zebra', root, { ttn: String(zb.dataset.ttn || c.o.ttn || ''), sender: String(zb.dataset.sender || c.o.ttnSender || '') }); };
+      });
     })();
     root.querySelectorAll('[data-sf]').forEach(function(el){
       el.onchange = function(){
@@ -12547,11 +12612,12 @@
        всі накладні реєстру одним PDF. */
     if(what === 'zebra'){
       if(!host().npZebra) return say('Маркування недоступне — немає воркера Нової пошти');
-      var ttnZ = String((data && data.ttn) || '').replace(/\D/g, '');
-      if(!ttnZ) return say('Накладної ще немає');
+      /* Кілька накладних через кому (29.10, дві посилки) — одним PDF. */
+      var ttnsZ = String((data && data.ttn) || '').split(/[^\d]+/).filter(function(x){ return x.length >= 10; });
+      if(!ttnsZ.length) return say('Накладної ще немає');
       say('Завантажую зебру…');
-      var прZ = await host().npZebra([ttnZ], String((data && data.sender) || ''));
-      return say(прZ === true ? 'Зебру завантажено · ТТН ' + ttnZ : ('Зебра: ' + (прZ || 'не вийшло')));
+      var прZ = await host().npZebra(ttnsZ, String((data && data.sender) || ''));
+      return say(прZ === true ? 'Зебру завантажено · ТТН ' + ttnsZ.join(', ') : ('Зебра: ' + (прZ || 'не вийшло')));
     }
     if(what === 'reg-zebra'){
       if(!host().npZebra) return say('Маркування недоступне — немає воркера Нової пошти');

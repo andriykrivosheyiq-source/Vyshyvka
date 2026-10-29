@@ -348,6 +348,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ номер ТТН руками — лише номер"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-money-core\.js|tests/ship-two\.mjs)'; then
+  node tests/ship-two.mjs >/tmp/lq-ship-two.log 2>&1 || {
+    echo "✗ Дві посилки зламано (другий отримувач, поділ контролю оплати, дві накладні, дві зебри, колонка за відстаючою) — коміт зупинено. Подробиці: /tmp/lq-ship-two.log"
+    grep '✗' /tmp/lq-ship-two.log
+    exit 1
+  }
+  echo "✓ дві посилки з одного замовлення"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-mock\.js|loomiq-design\.js|tests/place-tools\.mjs)'; then
   node tests/place-tools.mjs >/tmp/lq-place-tools.log 2>&1 || {
     echo "✗ У вікні розміщення зламано поворот, колір, перед/спину чи PhotoRoom — коміт зупинено. Подробиці: /tmp/lq-place-tools.log"
