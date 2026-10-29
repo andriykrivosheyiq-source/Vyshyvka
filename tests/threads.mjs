@@ -220,7 +220,7 @@ const бриф = await p.evaluate(() => {
   const D = window.LQDesign, U = D.ui, u = __j.units[0];
   const g = D.dzList(u, 'graphic')[0]; D.dzOk(g, 'test@loomiq', 'client', 1);
   D.clothConfirm(u, 'test@loomiq'); D.dzAutoQueue(__j, null, 'test@loomiq');
-  const s = D.dzList(u, 'stitch')[0]; D.dzClaim(s, 'test@loomiq');
+  const s = D.dzList(u, 'stitch')[0]; D.dzAssign(s, 'test@loomiq', 'test@loomiq');   // 29.10: вишивку призначають, не беруть
   U.setTab('stitch'); U.open('2000201'); U.render(document.getElementById('dzRoot'));
   return document.querySelectorAll('.dz-panel .dz-threads .dz-thr').length;
 });

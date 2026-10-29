@@ -338,7 +338,7 @@ const мікс = await p.evaluate(() => {
   D.dzAutoStitch(__j2, 'mgr@loomiq');
   стани.push(D.chainAt(__j2, __o2));
   const si = D.dzList(інд, 'stitch')[0];
-  D.dzClaim(si, 'emb@loomiq');
+  D.dzAssign(si, 'emb@loomiq', 'mgr@loomiq');   // 29.10: вишивку призначають, не беруть
   D.dzVer(si, 'emb@loomiq', [{ name:'лого.dst', url:'d', role:'machine' }], '', null, 'stitch');
   D.dzOk(si, 'emb@loomiq', 'auto', 1);
   стани.push(D.chainAt(__j2, __o2));

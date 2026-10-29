@@ -348,7 +348,7 @@ ok(замок.stitch === 1 && замок.кнопок === 0, 'пішло у ви
 console.log('');
 console.log('═══ 4. ВИШИВАЛЬНИЙ ЗДАЄ КІЛЬКА ФАЙЛІВ ═══');
 await p.evaluate(() => { const D = window.LQDesign; const d = D.dzList(__j.units[1], 'stitch')[0];
-  D.dzClaim(d, 'test@loomiq'); const U = D.ui; U.setTab('stitch'); U.open('2000201'); U.render(document.getElementById('dzRoot')); });
+  D.dzAssign(d, 'test@loomiq', 'test@loomiq'); const U = D.ui; U.setTab('stitch'); U.open('2000201'); U.render(document.getElementById('dzRoot')); });
 await p.waitForTimeout(400);
 const бриф = await p.evaluate(() => [...document.querySelectorAll('.dz-panel .dz-spot')].map(x => x.textContent.replace(/\s+/g, ' ')));
 console.log('  ' + JSON.stringify(бриф));
@@ -480,7 +480,7 @@ const рано = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab
 ok(рано.length === 0,
   'поки вишивку здано не на всіх позиціях — у цеху замовлення немає', 'у цеху: ' + JSON.stringify(рано));
 await p.evaluate(() => { const D = window.LQDesign; const d = D.dzList(__j.units[0], 'stitch')[0];
-  D.dzClaim(d, 'test@loomiq'); D.dzVer(d, 'test@loomiq', [{ name:'a.dst', url:'https://x/a.dst', role:'machine' },
+  D.dzAssign(d, 'test@loomiq', 'test@loomiq'); D.dzVer(d, 'test@loomiq', [{ name:'a.dst', url:'https://x/a.dst', role:'machine' },
     { name:'w.png', url:'https://x/w.png', role:'shot' }], '', null, 'stitch'); D.dzOk(d, 'test@loomiq', 'acct', 1); });
 await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('prod'); U.open('2000201'); U.render(document.getElementById('dzRoot')); });
 const цехДошка = await p.evaluate(() => [...document.querySelectorAll('.dz-boards [data-open]')].map(x => x.dataset.open).sort());

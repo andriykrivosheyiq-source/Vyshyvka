@@ -248,6 +248,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   нуль при одязі; «✈ Відправлено за кордон → Виконано» (`prod-abroad-sent`
   через `orderApply`, у будь-якій колонці від ready, `prodMbar`),
   `resumeDraft`; відділ `newBtnHtml` → `data-do="order-resume"`.
+  29.10 (вечір) вишивка без черги: `dzNeedWho`/`dzUnassigned`/`dzAssign`/
+  `stitchNeedWho` (ядро), `dzColHtml` (select `.is-bad` без `@queue`, лише
+  `refuseOk`), `stageMarks` «Вишивка · не призначено», `jobWhere`, плитка
+  `c.needWho`; `jobApply` (ui) + host `designFresh` — дії дизайнера на свіжій
+  картці (`dz-take`, `dz-no`, `dz-send`, `[data-dzwho]`). Далі за домовленістю:
+  другий отримувач у відправці (дві ТТН, контроль оплати по товару кожного,
+  дві «Зебри»).
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото

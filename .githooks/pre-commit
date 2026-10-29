@@ -300,7 +300,7 @@ if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|loomiq-moc
   }
   echo "✓ фон — лише PhotoRoom, відмова словами"
 fi
-if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/fbstub\.js|tests/field-write\.mjs)'; then
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/fbstub\.js|tests/field-write\.mjs)'; then
   node tests/field-write.mjs >/tmp/lq-field-write.log 2>&1 || {
     echo "✗ Картка знову пишеться цілком або злиття полями затирає чуже — коміт зупинено. Подробиці: /tmp/lq-field-write.log"
     grep '✗' /tmp/lq-field-write.log

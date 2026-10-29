@@ -5061,6 +5061,7 @@
     border-radius:10px;padding:8px 10px;background:#fff;}
   .dz-cl-r select:focus,.dz-cl-r input:focus{outline:none;border-color:var(--accent);}
   .dz-u-no.is-bad{color:#B91C1C;}
+  .dz-u-l select.dz-u-sel.is-bad{border-color:#B91C1C;color:#B91C1C;font-weight:600;}
   /* Розміщення цифрами — у брифі вишивальника й у цеху. */
   .dz-spots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .dz-spot{display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:10px;
@@ -8355,32 +8356,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=80f1945907"></script>
-<script src="loomiq-fingerprint.js?v=80f1945907"></script>
-<script src="loomiq-pricing.js?v=80f1945907"></script>
+<script src="loomiq-select.js?v=58c3b5e8eb"></script>
+<script src="loomiq-fingerprint.js?v=58c3b5e8eb"></script>
+<script src="loomiq-pricing.js?v=58c3b5e8eb"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=80f1945907"></script>
+<script src="loomiq-money-core.js?v=58c3b5e8eb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=80f1945907"></script>
-<script src="loomiq-mock.js?v=80f1945907"></script>
+<script src="loomiq-design.js?v=58c3b5e8eb"></script>
+<script src="loomiq-mock.js?v=58c3b5e8eb"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=80f1945907"></script>
+<script src="imagetracer.js?v=58c3b5e8eb"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=80f1945907"></script>
-<script src="loomiq-threads.js?v=80f1945907"></script>
+<script src="loomiq-chat.js?v=58c3b5e8eb"></script>
+<script src="loomiq-threads.js?v=58c3b5e8eb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=80f1945907"></script>
+<script src="loomiq-cards.js?v=58c3b5e8eb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8425,8 +8426,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '80f1945907';
-var LQ_VER_AT = '2026-10-29T16:43:32Z';
+var LQ_VER = '58c3b5e8eb';
+var LQ_VER_AT = '2026-10-29T17:09:09Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -32414,6 +32415,29 @@ function designHostInit(){
        оновлень переміщало назад»): дія не застосовується, повертаємо 'stale',
        у памʼяті — свіжа версія. На повторі після відхиленого запису fn
        бачить уже свіжу картку — і сама вирішує, чи ще є що робити. */
+    /* СВІЖА КАРТКА ВІДДІЛУ ПЕРЕД ДІЄЮ (29.10, як orderApply для замовлення;
+       Андрій: «дизайнери беруть — не береться, повертається назад»). false —
+       базу не прочитали (не пишемо); null — у базі картки немає (беремо
+       памʼять); інакше — та сама картка з памʼяті, доведена до версії з
+       бази (той самий обʼєкт: екран тримає посилання), і ця версія стає
+       базою звірки (designSeen/designBase) для запису, що йде слідом. */
+    designFresh: async id => {
+      id = String(id || '');
+      if(!id || dbLinkDead() || window.LQ_UPD_STALE) return false;
+      const cur = designJobs[id] || null;
+      if(designDirty[id]) return cur;
+      let s = null;
+      try{ s = await getWithin(DESIGN_COL.doc(id)); }
+      catch(e){ console.warn('картка відділу перед дією', id, e); return false; }
+      if(!s || !s.exists) return null;
+      const v = JSON.parse(JSON.stringify(s.data() || {}));
+      if(!v.orderId) return null;
+      const новіша = !cur || String(v.updatedAt || '') > String(designSeen[id] || '') || +(v.rev || 0) > +(cur.rev || 0);
+      if(cur && новіша){ Object.keys(cur).forEach(k => { if(!(k in v)) delete cur[k]; }); Object.assign(cur, v); }
+      else if(!cur) designJobs[id] = v;
+      designSeen[id] = String(v.updatedAt || ''); designBase[id] = JSON.stringify(v);
+      return designJobs[id];
+    },
     orderApply: async (id, fn, okFn) => {
       for(let i = 0; i < 3; i++){
         const o = (orders || []).find(x => x && x.id === id);

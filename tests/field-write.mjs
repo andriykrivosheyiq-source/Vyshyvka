@@ -229,6 +229,47 @@ ok(r5.ok1 && r5.rev1 === 5, 'designPut ставить rev = база + 1 (4 → 
 ok(/вже оновили/.test(r5.err) && r5.db === 'чуже свіже' && r5.mem === 'чуже свіже' && r5.toasts.some(t => /повторіть правку/.test(t)),
   'стара копія в замиканні не пишеться: чуже свіже лишилось у базі й у памʼяті, людині сказано повторити', JSON.stringify(r5));
 
+console.log('═══ 6. ДІЯ НА СВІЖІЙ КАРТЦІ ВІДДІЛУ: jobApply + designFresh (29.10, «беру — відскакує») ═══');
+const r6 = await p.evaluate(async () => {
+  const id = '2000301', U = window.LQDesign.ui, D = window.LQDesign;
+  if(!U.host.designFresh) designHostInit();   // host відділу — як після відкриття розділу
+  const j = JSON.parse(JSON.stringify(window.__JOBS[id])); j.rev = 10; window.__JOBS[id].rev = 10;
+  j.brief.text = ''; window.__JOBS[id].brief.text = '';
+  designJobs[id] = j; designSeen[id] = j.updatedAt; designBase[id] = JSON.stringify(j);
+  /* У базі новіша: колега вже взяв графіку; наша копія цього не бачила. */
+  const db = window.__JOBS[id];
+  db.units[0].graphic = [{ who:'kolega@loomiq', status:'work', sentAt:'2026-10-21T10:00:00.000Z', vers:[], thread:[] }];
+  db.updatedAt = '2099-05-01T00:00:00.000Z'; db.rev = 11;
+  window.__TOASTS = [];
+  await U.jobApply(j, null, function(job){
+    const d = D.dzList(job.units[0], 'graphic')[0];
+    if(d && d.who && d.who !== 'test@loomiq') return false;   // уже взяли — не беремо
+    job.brief.text = 'взяв я'; return 'взяв';
+  });
+  const a = { same: designJobs[id] === j, memWho: (j.units[0].graphic[0] || {}).who, dbBrief: window.__JOBS[id].brief.text,
+              dbWho: window.__JOBS[id].units[0].graphic[0].who, toasts: window.__TOASTS.slice() };
+  /* База не відповіла — нічого не пишемо. */
+  window.__TOASTS = [];
+  const proto = Object.getPrototypeOf(DESIGN_COL.doc(id)), get1 = proto.get;
+  proto.get = function(){ if(this.__col === 'designJobs') return Promise.reject(new Error('offline')); return get1.apply(this, arguments); };
+  await U.jobApply(j, null, function(job){ job.brief.text = 'без звʼязку'; return 'пишу'; });
+  proto.get = get1;
+  const b = { dbBrief: window.__JOBS[id].brief.text, memBrief: j.brief.text, toasts: window.__TOASTS.slice() };
+  /* Звʼязок є, у базі новіша в ІНШОМУ полі — дія на свіжій, у базі обидві зміни. */
+  window.__TOASTS = [];
+  window.__JOBS[id].tasks = [{ id:'t9', text:'доручення' }]; window.__JOBS[id].updatedAt = '2099-06-01T00:00:00.000Z'; window.__JOBS[id].rev = 12;
+  await U.jobApply(j, null, function(job){ job.brief.text = 'на свіжій'; return 'записано'; });
+  const c = { memTasks: (j.tasks || []).length, dbBrief: window.__JOBS[id].brief.text, dbTasks: (window.__JOBS[id].tasks || []).length,
+              rev: window.__JOBS[id].rev, toasts: window.__TOASTS.slice() };
+  return { a, b, c };
+});
+ok(r6.a.same && r6.a.memWho === 'kolega@loomiq' && r6.a.dbBrief === '' && r6.a.toasts.some(t => /вже змінили/.test(t)),
+  'у базі колега вже взяв — дію не застосовано, у памʼяті (той самий обʼєкт) свіжа копія, базу не чіпали, людині сказано', JSON.stringify(r6.a));
+ok(r6.b.dbBrief === '' && r6.b.memBrief === '' && r6.b.toasts.some(t => /Немає звʼязку/.test(t)),
+  'базу не прочитали — не пишемо, у памʼяті нічого не змінено, напис «Немає звʼязку»', JSON.stringify(r6.b));
+ok(r6.c.memTasks === 1 && r6.c.dbBrief === 'на свіжій' && r6.c.dbTasks === 1 && r6.c.rev === 13,
+  'у базі новіше в іншому полі — дія на свіжій копії, у базі обидві зміни, rev 12 → 13', JSON.stringify(r6.c));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 
 await browser.close();

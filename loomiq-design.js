@@ -1175,6 +1175,46 @@
                     text: 'Взяв у роботу з черги', seen: [String(by)] });
     return d;
   }
+  /* ══════════ ВИШИВКА — БЕЗ ЧЕРГИ, ЛИШЕ ПРИЗНАЧЕННЯ (29.10) ══════════
+
+     Андрій: «вишивальні беруть замовлення — воно не береться, повертається
+     назад… не брати, а призначати: акаунти призначають вишивального
+     дизайнера, на картці пишеться «не призначений вишивальний дизайнер»;
+     черга хай буде чисто фігурально, передача одразу кожному вручну».
+
+     Після фіксації запис вишивки заводиться БЕЗ виконавця й без черги
+     (`needWho`): вишивальники його не бачать, картка акаунта стоїть у
+     «Черзі вишивки» з червоним «не призначено». Призначення (`dzAssign`) —
+     це і передача, і «беру» одразу: робота в дизайнера в «В роботі», кнопки
+     «Беру» в нього немає. Призначає акаунт або власник (host.refuseOk).
+     DTF лишається в черзі друку, як доти; старі записи, що вже стоять у
+     черзі вишивки, вишивальники добирають, як і раніше. */
+  function dzNeedWho(d, by, text){
+    if(!d) return null;
+    d.who = ''; d.pool = false; d.needWho = true; d.needAt = nowIso();
+    d.sentAt = ''; d.takenAt = '';
+    if(!d.status || d.status === 'sent' || d.status === 'work') d.status = 'new';
+    d.thread.push({ at: d.needAt, by: String(by || ''), kind:'need',
+                    text: text || 'Призначте вишивального дизайнера', seen: [String(by || '')] });
+    return d;
+  }
+  function dzUnassigned(d){ return !!(d && d.needWho && !d.who && !d.ok && d.status !== 'approved'); }
+  function dzAssign(d, who, by, name){
+    if(!d || !who) return null;
+    if(d.status === 'approved') return d;
+    d.pool = false; delete d.needWho;
+    dzAttach(d, who, by, name);
+    d.sentBy = String(by || ''); d.sentAt = nowIso();
+    d.status = 'work'; d.takenAt = d.sentAt;
+    d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'sent',
+                    text: 'Призначено й передано в роботу · ' + String(name || who), seen: [String(by || '')] });
+    return d;
+  }
+  /* Позиції, де вишивальний дизайн ще нікому не призначено (не DTF). */
+  function stitchNeedWho(job){
+    return jobUnits(job).filter(function(u){
+      return !!u && techOf(u) !== 'dtf' && dzList(u, 'stitch').some(dzUnassigned); });
+  }
   /* Акаунт-менеджер забирає роботу в дизайнера. Версії лишаються при
      дизайні — це історія роботи, а не власність людини. Годинник
      починається наново: наступному виконавцю доба від його старту, а не
@@ -1772,9 +1812,12 @@
         return;
       }
       l.push(d);
-      dzQueue(d, by);
       d.auto = true;
-      d.thread[d.thread.length - 1].text = techOf(u) === 'dtf' ? 'Ескіз погоджено — стало в чергу друку (DTF)' : 'Ескіз погоджено — стало в чергу вишивки';
+      /* Вишивка — без черги (29.10): запис чекає, кого призначить акаунт. */
+      if(techOf(u) === 'dtf'){
+        dzQueue(d, by);
+        d.thread[d.thread.length - 1].text = 'Ескіз погоджено — стало в чергу друку (DTF)';
+      }else dzNeedWho(d, by, 'Ескіз погоджено — призначте вишивального дизайнера');
       n++;
     });
     return n;
@@ -3055,6 +3098,7 @@
     /* Строк дизайнера й дві його відповіді на передачу. */
     dzTake: dzTake, dzDecline: dzDecline,
     dzInQueue: dzInQueue, dzQueue: dzQueue, dzClaim: dzClaim, dzRecall: dzRecall,
+    dzNeedWho: dzNeedWho, dzUnassigned: dzUnassigned, dzAssign: dzAssign, stitchNeedWho: stitchNeedWho,
     verParts: verParts, baseFrom: baseFrom, verSpots: verSpots, msgRole: msgRole,
     unitMissing: unitMissing, graphicDone: graphicDone, placeLocked: placeLocked,
     clothOk: clothOk, clothConfirm: clothConfirm, dzReal: dzReal,
@@ -3421,6 +3465,8 @@
            праворуч (06.10: «нормальна кнопка всередині картки внизу, як у B2B»). Усередині
            картки-кнопки — тож не <button>, а span з роллю кнопки. */
         (c.noTtn ? '<span class="dz-c-ttn" title="Ескіз узгоджено, а накладної ще немає">ТТН не створена</span>' : '') +
+        /* Вишивка без черги (29.10): акаунт має призначити людину — червоним на плитці. */
+        (c.needWho ? '<span class="dz-c-ttn dz-c-need" title="Оберіть вишивального дизайнера в картці — роботу бачить лише призначений">не призначено вишивального дизайнера</span>' : '') +
         ((c.wait || c.fix || c.chat || c.qTxt || c.waitTxt || c.zebra)
           ? '<span class="dz-c-foot">' +
             (c.chat ? '<span class="dz-card-ig is-in" role="button" tabindex="0" data-do="chat" data-id="' + esc(c.id) +
@@ -4667,10 +4713,13 @@
     var роль = kind === 'stitch' ? D.stitchRole(u) : 'designer';
     var key = esc(u.id) + '|' + kind + '|0';
     var хто;
-    /* Черга відділу — лише в графіки. Вишивальників переведемо на нову
-       схему окремо, тоді й у них зʼявиться своя черга. */
-    var черга = '<option value="@queue">Черга відділу — бере перший</option>';
-    if(d && !ro && SWAP[key] && (d.who || d.pool)){
+    /* ВИШИВКА — БЕЗ ЧЕРГИ (29.10): у вишивальних немає «Черга відділу» —
+       лише конкретна людина, і призначає її акаунт або власник. Графіка й
+       DTF — як доти. */
+    var вишивка = kind === 'stitch' && D.techOf(u) !== 'dtf';
+    var призначає = !вишивка || (host.refuseOk ? !!host.refuseOk() : true);
+    var черга = вишивка ? '' : '<option value="@queue">Черга відділу — бере перший</option>';
+    if(d && !ro && призначає && SWAP[key] && (d.who || d.pool)){
       хто = '<select class="dz-u-sel" data-dzwho="' + key + '">' +
           '<option value="">— кому віддати —</option>' + черга +
           teamOpts(роль, d.who || '') +
@@ -4679,8 +4728,15 @@
           '" title="Не міняти">×</button>';
     } else if(d && d.who){
       хто = '<b class="dz-u-who">' + esc(whoName(d.who)) + '</b>' +
-        (ro ? '' : '<button type="button" class="dz-ib" data-do="dz-swap" ' +
+        ((ro || !призначає) ? '' : '<button type="button" class="dz-ib" data-do="dz-swap" ' +
           'data-dz="' + key + '" title="Забрати або віддати іншому">\u270E</button>');
+    } else if(d && D.dzUnassigned(d)){
+      /* НЕ ПРИЗНАЧЕНО (29.10): червоним; акаунту — список одразу. */
+      хто = (!ro && призначає)
+        ? '<select class="dz-u-sel is-bad" data-dzwho="' + key + '" title="Призначте вишивального дизайнера">' +
+            '<option value="" selected>— не призначено · оберіть —</option>' + teamOpts(роль, '') +
+          '</select>'
+        : '<i class="dz-u-no is-bad">не призначено вишивального дизайнера</i>';
     } else if(d && d.pool && !ro){
       /* У ЧЕРЗІ — СПИСОК ОДРАЗУ. Андрій: після погодження ескізу можна
          одразу призначити людину; не призначили — бере будь-хто. */
@@ -4702,8 +4758,10 @@
         ? '<i class="dz-u-no">' + esc(sketchWait(u)) + '</i>'
         : (kind === 'stitch' && !D.clothOk(u))
         ? '<i class="dz-u-no is-bad">чекає підтвердження одягу</i>'
+        : (вишивка && !призначає)
+        ? '<i class="dz-u-no">вишивального призначає акаунт або власник</i>'
         : '<select class="dz-u-sel" data-dzwho="' + key + '">' +
-            '<option value="">— оберіть дизайнера —</option>' + черга +
+            '<option value="">' + (вишивка ? '— призначте вишивального —' : '— оберіть дизайнера —') + '</option>' + черга +
             teamOpts(роль, '') +
           '</select>';
     }
@@ -7501,6 +7559,31 @@
     });
   }
   function can(k){ return host().can ? !!host().can(k) : true; }
+  /* ДІЯ НА СВІЖІЙ КАРТЦІ ВІДДІЛУ (29.10). Андрій: «дизайнери беруть
+     замовлення — не береться, повертається назад». «Беру» писав усю картку зі
+     своєї копії; була застаріла (знімок пропущено, звʼязок) — база казала
+     «новіша», вкладка показувала свіжу, і виглядало, ніби відскочило. Тепер
+     перед дією картка береться з бази (host.designFresh: не прочитали — не
+     пишемо), дія — на ній, і лише тоді запис. fn(job) повертає: рядок —
+     записати з цим написом; true — з `msg`; false — «картку вже змінили»,
+     показати свіжу; null — нічого не писати (причину вже сказали). */
+  async function jobApply(job, o, fn, msg){
+    var id = String((job && job.orderId) || '');
+    var j = job;
+    if(id && host().designFresh && !(job && job.draft) && !(o && o.draft)){
+      var свіжа = null;
+      try{ свіжа = await host().designFresh(id); }
+      catch(e){ console.warn('картка відділу перед дією', e); свіжа = false; }
+      if(свіжа === false) return say('Немає звʼязку з базою — не записано, повторіть за хвилину');
+      if(свіжа) j = свіжа;
+    }
+    var r;
+    try{ r = fn(j); }
+    catch(e){ console.error('дія з карткою відділу', e); return say('Не вдалось: ' + ((e && e.message) || e)); }
+    if(r === false){ render(document.getElementById('dzRoot')); return say('Картку вже змінили з іншого пристрою — показано свіжу, повторіть'); }
+    if(r == null){ render(document.getElementById('dzRoot')); return; }
+    return save(j, o, typeof r === 'string' ? r : (msg || ''));
+  }
 
   /* ── Картки дощок ──────────────────────────────────────────────────── */
   /* Картка ланцюга каже три речі: що це, де воно й хто його тримає. Більше
@@ -7578,6 +7661,7 @@
         /* Чого бракує менеджеру (20.10): «чекаємо доплату / дані» і «ТТН не створена». */
         waitTxt: U.WAIT_TXT[U.waitOf(p.job, p.o)] || '',
         noTtn: U.noTtn(p.job, p.o),
+        needWho: !!(D.stitchNeedWho && D.stitchNeedWho(p.job).length),
         foot: стан };
     });
   }
@@ -7686,7 +7770,10 @@
       : { st:'now', t: gWho ? 'Графіка · ' + імя(gWho) : 'Графіка', title: gWho ? 'Працює: ' + nameOf(gWho) : 'Графічному ще не передано' });
     var sDone = крок >= 2 || (sl.length > 0 && sl.every(function(d){ return !!d.ok; }));
     var sWho = (sl.filter(function(d){ return !d.ok && d.who; })[0] || {}).who;
+    /* Не призначено вишивального (29.10) — червоним, щоб акаунт побачив одразу. */
+    var sNeed = !sDone && D.stitchNeedWho ? D.stitchNeedWho(job).length : 0;
     out.push(sDone ? { st:'ok', t:'Вишивка' }
+      : gDone && sNeed ? { st:'bad', t:'Вишивка · не призначено', title:'Не призначено вишивального дизайнера — оберіть у картці (акаунт або власник)' }
       : gDone ? { st:'now', t: sWho ? 'Вишивка · ' + імя(sWho) : 'Вишивка', title: sWho ? 'Працює: ' + nameOf(sWho) : 'У черзі вишивального' }
       : { st:'next', t:'Вишивка' });
     /* ДАЛІ — КОЖЕН КРОК ОКРЕМО (Андрій, 08.10): «у акаунт-менеджера
@@ -7815,6 +7902,7 @@
         });
       });
     });
+    if(D.stitchNeedWho && D.stitchNeedWho(job).length) return 'не призначено вишивального дизайнера';
     if(чекають.length) return 'чекає погодження · ' + nameOf(чекають[0]);
     if(передані.length) return 'у роботі · ' + nameOf(передані[0]);
     return 'ще не передано';
@@ -11107,6 +11195,7 @@
   window.LQDesign.ui.upload = upload;
   window.LQDesign.ui.panelFor = panelFor;
   window.LQDesign.ui.save = save;
+  window.LQDesign.ui.jobApply = jobApply;
   window.LQDesign.ui.can = can;
   window.LQDesign.ui.wireHook = function(f){ wireExtra = f; };
   var wireExtra = null;
@@ -11508,27 +11597,50 @@
       el.onchange = function(){
         var c = ctx(); if(!c) return;
         var pp = String(el.dataset.dzwho).split('|');
-        var u = U.unitAt(c.job, pp[0]);
         var k = pp[1] === 'stitch' ? 'stitch' : 'graphic';
+        var who = String(el.value || '');
+        var хтоЯ = (host().me && host().me()) || '';
+        delete U.SWAP[String(el.dataset.dzwho)];
+        var u0 = U.unitAt(c.job, pp[0]);
+        var вишивка = k === 'stitch' && !!u0 && D.techOf(u0) !== 'dtf';
+        /* Вишивального призначає акаунт або власник (29.10). */
+        if(вишивка && !(host().refuseOk ? host().refuseOk() : true)){
+          render(root);
+          return say('Вишивального дизайнера призначає акаунт або власник');
+        }
+        /* На свіжій картці з бази (29.10): призначення не має відскочити. */
+        return jobApply(c.job, c.o, function(job){
+        var u = U.unitAt(job, pp[0]);
         var d = u && D.dzAt(u, k, pp[2]);
         /* Рядок зʼявляється з ВИБОРУ, а не до нього. Колонка малює порожній
            рядок наперед, щоб було що заповнювати; у даних його ще немає — і
            заводимо ми його рівно тоді, коли людину обрали. Інакше в кожному
            виробі висіли б порожні дизайни, яких ніхто не замовляв. */
-        if(!d && u && String(el.value || '')){
+        if(!d && u && who){
           var бракує = k === 'stitch' ? D.unitMissing(u) : [];
           if(бракує.length){
-            render(root);
-            return say('У вишивку не йде, поки не заповнено: ' + бракує.join(', '));
+            say('У вишивку не йде, поки не заповнено: ' + бракує.join(', '));
+            return null;
           }
           d = D.dzNew();
           D.dzList(u, k).push(d);
         }
-        if(!d) return;
-        var who = String(el.value || '');
-        var хтоЯ = (host().me && host().me()) || '';
-        delete U.SWAP[String(el.dataset.dzwho)];
+        if(!d) return null;
         var одна = function(d){
+          /* ВИШИВКА (29.10): обрали людину — призначено й передано в роботу
+             одразу, без черги й без «Беру»; зняли — знову «не призначено». */
+          if(вишивка){
+            if(d.status === 'approved') return '';
+            if(who === '@queue') return '';
+            if(!who){
+              if(!d.who && !d.sentAt) return '';
+              D.dzNeedWho(d, хтоЯ, 'Дизайнера знято — призначте іншого');
+              return 'Дизайнера знято — призначте іншого';
+            }
+            if(who === d.who && d.sentAt) return '';
+            D.dzAssign(d, who, хтоЯ, U.whoName(who));
+            return 'Призначено · ' + U.whoName(who) + ' — у роботі';
+          }
           /* Робота вже передана — це «забрати або віддати іншому»: з подією
              в розмові й новим відліком строку. */
           if(d.sentAt && who){
@@ -11551,14 +11663,15 @@
            те саме на всіх, що йдуть через дизайнера цього виду. Графіку, якої
            в позиції ще немає, заводимо; вишивку — лише де вона вже є. */
         var ще = 0;
-        if(k === 'graphic' && who) U.unitsOf(c.job).forEach(function(x){
+        if(k === 'graphic' && who) U.unitsOf(job).forEach(function(x){
           if(!x || x === u || x.ready) return;
           if(D.dzList(x, 'graphic').some(function(y){ return y && !y.readyMade; })) return;
           D.dzList(x, 'graphic').push(D.dzNew());
         });
-        D.dzPeers(c.job, u, k).forEach(function(x){ if(одна(x.d)) ще++; });
-        if(!напис && !ще) return render(root);
-        save(c.job, c.o, (напис || U.whoName(who)) + (ще ? ' · уся картка (' + (ще + 1) + ' позиції)' : ''));
+        D.dzPeers(job, u, k).forEach(function(x){ if(одна(x.d)) ще++; });
+        if(!напис && !ще) return null;
+        return (напис || U.whoName(who)) + (ще ? ' · уся картка (' + (ще + 1) + ' позиції)' : '');
+        });
       };
     });
     root.querySelectorAll('[data-jwait]').forEach(function(el){
@@ -13506,18 +13619,27 @@
         if(D.dzUnseen(dd, m, asRole(), dk)){ D.dzSeen(dd, m, asRole()); return save(job, o, ''); }
         return render(root);
       }
-      if(what === 'dz-send' && dd.pool && !dd.who){
-        if(dk === 'graphic' && !D.unitFilled(job, du)) return say('Додайте картинку або коментар — без них ТЗ порожнє');
-        D.dzQueue(dd, m);
-        return save(job, o, 'Передано у відділ — чекає, хто візьме');
-      }
+      /* Передача — на свіжій картці з бази (29.10, jobApply). */
       if(what === 'dz-send'){
-        if(!dd.who) return say('Спершу прикріпіть дизайнера');
-        if(dk === 'graphic' && !D.unitFilled(job, du)) return say('Додайте картинку або коментар — без них ТЗ порожнє');
-        if(dk === 'stitch' && !D.graphicOk(du))
-          return say('Спершу погодьте графічний ескіз цього виробу');
-        D.dzSend(dd, m);
-        return save(job, o, 'ТЗ відправлено · ' + U.whoName(dd.who));
+        return jobApply(job, o, function(j){
+          var ju = U.unitAt(j, dp[0]), jd = ju && D.dzAt(ju, dk, dp[2]);
+          if(!jd) return false;
+          if(jd.pool && !jd.who){
+            if(dk === 'graphic' && !D.unitFilled(j, ju)){ say('Додайте картинку або коментар — без них ТЗ порожнє'); return null; }
+            D.dzQueue(jd, m);
+            return 'Передано у відділ — чекає, хто візьме';
+          }
+          if(!jd.who){ say('Спершу прикріпіть дизайнера'); return null; }
+          if(dk === 'graphic' && !D.unitFilled(j, ju)){ say('Додайте картинку або коментар — без них ТЗ порожнє'); return null; }
+          if(dk === 'stitch' && !D.graphicOk(ju)){ say('Спершу погодьте графічний ескіз цього виробу'); return null; }
+          /* Вишивка (29.10): передати = призначити, одразу в роботу. */
+          if(dk === 'stitch' && D.techOf(ju) !== 'dtf'){
+            D.dzAssign(jd, jd.who, m, U.whoName(jd.who));
+            return 'Призначено · ' + U.whoName(jd.who) + ' — у роботі';
+          }
+          D.dzSend(jd, m);
+          return 'ТЗ відправлено · ' + U.whoName(jd.who);
+        });
       }
       /* ПРОСТО НАПИСАТИ — БЕЗ ФАЙЛУ Й БЕЗ МОКАПУ.
 
@@ -13579,30 +13701,39 @@
          порожнім, із причиною в розмові. Друга однаково законна: людина
          буває завантажена або хвора, і мовчазне «висить добу» коштує
          дорожче за чесне «віддайте іншому». */
+      /* «БЕРУ» — НА СВІЖІЙ КАРТЦІ З БАЗИ (29.10, jobApply): не зі своєї
+         копії, яка могла застаріти, — саме так робота «відскакувала». */
       if(what === 'dz-take'){
-        /* Нове (з черги чи передане мені) — лише коли руки вільні. Правку
-           брати можна завжди: це те, що й треба робити першим. */
-        if(dk === 'graphic' && dd.status !== 'revision' && (D.dzInQueue(dd) || dd.status === 'sent')){
-          var заважає = takeBlock(m, 'graphic');
-          if(заважає) return say(заважає);
-        }
-        if(D.dzInQueue(dd) || (dd.pool && dd.who && dd.who !== m)){
-          var ліміт = +((dk === 'stitch'
-            ? (host().stitchLimit && host().stitchLimit())
-            : (host().dzLimit && host().dzLimit())) || 0);
-          var тримаю = busyOrders(m, dk);
-          if(ліміт > 0 && тримаю >= ліміт && D.dzInQueue(dd))
-            return say('У вас уже ' + тримаю + ' в роботі (можна ' + ліміт +
-                       ') — здайте щось на перевірку, щоб узяти нове');
-          var взяв = D.dzClaim(dd, m);
-          if(взяв && взяв.taken){ render(root); return say('Уже взяв(ла) ' + U.whoName(взяв.taken)); }
-          if(!взяв) return;
-          var разом1 = takePeers(job, du, dk, m);
-          return save(job, o, 'Взяли з черги в роботу' + (разом1 ? ' · уся картка (' + (разом1 + 1) + ' позиції)' : ''));
-        }
-        D.dzTake(dd, m);
-        var разом2 = takePeers(job, du, dk, m);
-        return save(job, o, 'Взяли в роботу' + (разом2 ? ' · уся картка (' + (разом2 + 1) + ' позиції)' : ''));
+        return jobApply(job, o, function(j){
+          var ju = U.unitAt(j, dp[0]), jd = ju && D.dzAt(ju, dk, dp[2]);
+          if(!jd) return false;
+          /* Нове (з черги чи передане мені) — лише коли руки вільні. Правку
+             брати можна завжди: це те, що й треба робити першим. */
+          if(dk === 'graphic' && jd.status !== 'revision' && (D.dzInQueue(jd) || jd.status === 'sent')){
+            var заважає = takeBlock(m, 'graphic');
+            if(заважає){ say(заважає); return null; }
+          }
+          if(D.dzInQueue(jd) || (jd.pool && jd.who && jd.who !== m)){
+            var ліміт = +((dk === 'stitch'
+              ? (host().stitchLimit && host().stitchLimit())
+              : (host().dzLimit && host().dzLimit())) || 0);
+            var тримаю = busyOrders(m, dk);
+            if(ліміт > 0 && тримаю >= ліміт && D.dzInQueue(jd)){
+              say('У вас уже ' + тримаю + ' в роботі (можна ' + ліміт +
+                  ') — здайте щось на перевірку, щоб узяти нове');
+              return null;
+            }
+            var взяв = D.dzClaim(jd, m);
+            if(взяв && взяв.taken){ say('Уже взяв(ла) ' + U.whoName(взяв.taken)); return null; }
+            if(!взяв) return null;
+            var разом1 = takePeers(j, ju, dk, m);
+            return 'Взяли з черги в роботу' + (разом1 ? ' · уся картка (' + (разом1 + 1) + ' позиції)' : '');
+          }
+          if(!jd.sentAt) return false;
+          D.dzTake(jd, m);
+          var разом2 = takePeers(j, ju, dk, m);
+          return 'Взяли в роботу' + (разом2 ? ' · уся картка (' + (разом2 + 1) + ' позиції)' : '');
+        });
       }
       if(what === 'dz-no'){
         var чому = '';
@@ -13611,8 +13742,12 @@
         /* Порожня причина — це відмова без відповіді, і менеджер лишається
            з тим самим питанням. Тому питаємо один раз і чекаємо слова. */
         if(!String(чому).trim()) return say('Без причини не повертаємо — напишіть рядок');
-        D.dzDecline(dd, m, String(чому).trim());
-        return save(job, o, 'Повернули менеджеру');
+        return jobApply(job, o, function(j){
+          var ju = U.unitAt(j, dp[0]), jd = ju && D.dzAt(ju, dk, dp[2]);
+          if(!jd) return false;
+          D.dzDecline(jd, m, String(чому).trim());
+          return 'Повернули менеджеру';
+        });
       }
       /* ЗДАТИ РОБОТУ — ОДНІЄЮ ДІЄЮ.
 
