@@ -82,6 +82,14 @@ ok(!(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { rev: 5, name: 'Денис-2'
 ok(!(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { name: 'Денис-3' }, { merge: true }))), 'запис без rev поверх картки з rev — відмова', 'запис без rev пущено!');
 ok(await can(setDoc(doc(mgr, 'kanbanOrders/A'), { rev: 6, name: 'Денис-2' }, { merge: true })), 'rev 6 — проходить', 'rev 6 не пройшов');
 ok(await can(setDoc(doc(own, 'kanbanOrders/A'), { arch: true, archAt: '2026-10-29T00:00:00Z' }, { merge: true })), 'лише арх-позначка без rev — проходить', 'арх-позначку не пущено');
+/* Те саме для картки відділу; закупівля (kind buy) — як доти, без rev. */
+ok(await can(setDoc(doc(own, 'designJobs/1000147'), { orderId: '1000147', state: 'new', rev: 2 })), 'картка відділу з rev 2 — створюється', 'картку відділу не створено');
+ok(!(await can(setDoc(doc(mgr, 'designJobs/1000147'), { rev: 2, state: 'design' }, { merge: true }))), 'картка відділу: той самий rev 2 — відмова', 'стару копію картки відділу пущено!');
+ok(!(await can(setDoc(doc(mgr, 'designJobs/1000147'), { state: 'design' }, { merge: true }))), 'картка відділу: без rev поверх rev 2 — відмова', 'запис без rev пущено!');
+ok(await can(setDoc(doc(mgr, 'designJobs/1000147'), { rev: 3, state: 'design' }, { merge: true })), 'картка відділу: rev 3 — проходить', 'rev 3 не пройшов');
+ok(await can(setDoc(doc(own, 'designJobs/1000147'), { arch: true, archAt: '2026-10-29T00:00:00Z' }, { merge: true })), 'картка відділу: лише арх-позначка — проходить', 'арх-позначку картки відділу не пущено');
+ok(await can(setDoc(doc(own, 'designJobs/b-1'), { kind: 'buy', id: 'b-1', rev: 1, rows: [] })) && await can(setDoc(doc(own, 'designJobs/b-1'), { kind: 'buy', id: 'b-1', rows: [{ x: 1 }] })),
+  'закупівля (kind buy) пишеться цілком без rev, як доти', 'закупівлю заблокувало');
 
 console.log('');
 console.log('═══ ФОРМА БРОНІ Й ПРАВА ═══');

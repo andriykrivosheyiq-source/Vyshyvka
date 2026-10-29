@@ -454,6 +454,31 @@ ok(/за кордон/.test(r.таблетка) && r.колонка === 'courier
 ok(!r.лишеУкраїна.своя && r.лишеУкраїна.українська && r.лишеУкраїна.on && /показано лише «Україна»/.test(r.лишеУкраїна.напис) && r.обидва.своя && r.обидва.українська && r.лишеКордон.своя && !r.лишеКордон.українська && r.знову.своя && r.знову.українська && !r.знову.напис && !r.знову.збережено,
   '«Україна» — лише українські, з написом «показано лише…»; обидва — усі; лише «За кордон» — лише закордонні; «показати всі» — усі; браузер фільтр не памʼятає', JSON.stringify({ u: r.лишеУкраїна, o: r.обидва, k: r.лишеКордон, z: r.знову }));
 
+console.log('═══ 9а. ЗА КОРДОН: КНОПКА «ВІДПРАВЛЕНО → ВИКОНАНО» З БУДЬ-ЯКОЇ КОЛОНКИ (29.10) ═══');
+/* Андрій: «реєстр не має сенсу їх перетягувати… кнопку всередині картки
+   «виконано», і воно перетягується зразу в колонку виконано». */
+r = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui, root = document.getElementById('dzRoot');
+  const j = designJobs['2000402'], o = orders.find(x => x.id === 'o2');
+  o.ttn = ''; o.npSt = null; o.reg = null; o.tracks = { supply:'got' }; delete o.prodQc; o.ship = { abroad: true, abroadTo: 'Польща' };
+  ordersSaved.set('o2', JSON.stringify(o)); const d = window.__ORDERS.find(x => x.id === 'o2'); Object.assign(d, JSON.parse(JSON.stringify(o)));
+  U.setTab('prod'); U.open('2000402'); U.render(root);
+  const out = { старт: D.prodAt(j, o), кнопка: !!root.querySelector('.dz-panel [data-do="prod-abroad-sent"]'), мбар: !!root.querySelector('.dz-panel .dz-mbar [data-do="prod-abroad-sent"]') };
+  const c0 = window.confirm; window.confirm = () => true;
+  await U.act('prod-abroad-sent', root, {});
+  await new Promise(r => setTimeout(r, 300));
+  window.confirm = c0;
+  const live = orders.find(x => x.id === 'o2');
+  out.після = D.prodAt(j, live); out.sent = !!live.ship.abroadSentAt; out.col = live.ship.abroadCol;
+  out.база = D.prodAt(j, window.__ORDERS.find(x => x.id === 'o2'));
+  /* Знову кнопки немає: вже виконано. */
+  U.render(root); out.кнопка2 = !!root.querySelector('.dz-panel [data-do="prod-abroad-sent"]');
+  U.open(''); return out;
+});
+console.log('   ' + JSON.stringify(r));
+ok(r.старт === 'ready' && r.кнопка && r.мбар, 'закордонна картка в «Готово до роботи» має кнопку «✈ Відправлено за кордон → Виконано» (і внизу на телефоні)', JSON.stringify(r));
+ok(r.після === 'done' && r.база === 'done' && r.sent && r.col === 'done' && !r.кнопка2, 'натиснули — картка у «Виконано» в памʼяті й у базі; кнопки більше немає', JSON.stringify(r));
+
 console.log('═══ 10. РУХ ЦЕХУ ЗІ СТАРОЇ КОПІЇ — НА СВІЖІЙ КАРТЦІ, НЕ ЗЛІТАЄ НАЗАД (28.10) ═══');
 /* Оператори: «перетягнув з «Готово до роботи» на «На станках» — злітає
    назад». Картку хвилину тому правив менеджер з іншого пристрою (у базі

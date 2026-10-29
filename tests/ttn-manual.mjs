@@ -175,6 +175,22 @@ ok(await p.evaluate(() => window.LQDesign.shipAbroad(orders.filter(x => x.orderI
 await p.click('.dz-panel [data-shf-abroad="0"]');
 await p.waitForTimeout(400);
 
+console.log('═══ 2а. ЦІНА НУЛЬ, А ОДЯГ Є — НАКЛАДНА НЕ СТВОРЮЄТЬСЯ (29.10) ═══');
+/* Після нічного відкату ціна в картці була нуль — накладні пішли без
+   контролю оплати. Тепер це «бракує: ціна замовлення». */
+const ц = await p.evaluate(() => {
+  const o = orders.find(x => x.orderId === '2000777'); const j = designJobs['2000777'] || {};
+  const U = window.LQDesign.ui;
+  j.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1 })];
+  const p0 = +o.totalPrice || 0; o.totalPrice = 0;
+  const m0 = shipMissing(shipVals(o));
+  o.totalPrice = 1500;
+  const m1 = shipMissing(shipVals(o));
+  o.totalPrice = p0; j.units = [];
+  return { m0, m1 };
+});
+ok(ц.m0.some(x => /ціна замовлення/.test(x)) && !ц.m1.some(x => /ціна замовлення/.test(x)), 'одяг є, ціна нуль — «бракує: ціна замовлення…»; з ціною — ні', JSON.stringify(ц));
+
 console.log('═══ 3. СПРАВЖНІЙ НОМЕР — ЗАПИСУЄТЬСЯ; ЗАМІНА — В ІСТОРІЮ ═══');
 await p.fill('.dz-panel [data-of="ttn"]', '2045 0000 1234 56');
 await p.dispatchEvent('.dz-panel [data-of="ttn"]', 'change');

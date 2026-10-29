@@ -365,10 +365,19 @@ service cloud.firestore {
     // того, що стару версію колись прибрали.
     // Створити картку відділу можна лише до живої картки замовлення (28.10,
     // orderAlive); правити — як доти. Власник (ремонт у Звірці) — завжди.
+    // ЛІЧИЛЬНИК НЕ ЙДЕ НАЗАД і для карток відділу (29.10). Закупівлі й склад
+    // (kind buy/stock) пишуться цілком без rev — як доти.
+    function jobRevOk() {
+      return !('rev' in resource.data)
+        || (resource.data.get('kind', '') in ['buy', 'stock'])
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['arch', 'archAt', 'unarchAt'])
+        || (('rev' in request.resource.data) && request.resource.data.rev is number
+            && request.resource.data.rev > resource.data.rev);
+    }
     match /designJobs/{orderId} {
       allow read: if known();
       allow create: if known() && (may('setup') || orderAlive(orderId));
-      allow update: if known();
+      allow update: if known() && jobRevOk();
       allow delete: if false;
     }
 
