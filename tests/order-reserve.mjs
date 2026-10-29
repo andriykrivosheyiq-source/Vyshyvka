@@ -223,6 +223,24 @@ ok(неп.r && неп.first === '5000302' && /відновлена зі Звір
   'відновлена #2000302 — перша в «Неповних»: без діалогу й одягу, платіж 6 120 ₴ від Коваль Іра', JSON.stringify(неп.r));
 ok(/Неповні картки/.test(неп.html) && /#2000302/.test(неп.html) && /^#2000302 · /.test(неп.txt) && /без діалогу, без одягу/.test(неп.txt),
   'блок намальовано, «Скопіювати список» дає рядок «#2000302 · дата · хто · …»', JSON.stringify({ txt: неп.txt }));
+/* Картка без номера відділу (29.10, Андрій: «що це за дивні номера 5000…»): написано прямо, є «Дати номер відділу». */
+const бн = await p.evaluate(async () => {
+  const j = designJobs['5000302']; const було = j.no; j.no = '';
+  renderFinIncomplete();
+  const box = document.getElementById('fin-incomplete');
+  const r = { напис: /без номера відділу/.test(box.textContent), кнопка: !!box.querySelector('[data-fi-no="5000302"]'), ключ: /#5000302/.test(box.textContent) };
+  await finIncompleteNo('5000302');
+  r.номер = designJobs['5000302'].no; r.після = /без номера відділу/.test(document.getElementById('fin-incomplete').textContent);
+  designJobs['5000302'].no = було;
+  /* Старша за 14 днів і не відновлена — лише за «показати всі». */
+  const o = orders.find(x => x.orderId === '5000302'); const r0 = o.restoredAt; const c0 = o.createdAt;
+  delete o.restoredAt; o.createdAt = '2026-09-01T10:00:00.000Z';
+  r.свіжі = finIncompleteRows(false).some(x => x.o.orderId === '5000302'); r.усі = finIncompleteRows(true).some(x => x.o.orderId === '5000302');
+  o.restoredAt = r0; o.createdAt = c0;
+  return r;
+});
+ok(бн.напис && бн.кнопка && бн.ключ && /^2\d{6}$/.test(String(бн.номер)) && !бн.після, 'без номера відділу — написано прямо, «Дати номер відділу» дає наступний номер 2…', JSON.stringify(бн));
+ok(!бн.свіжі && бн.усі, 'стара картка (не відновлена) — лише за «показати всі»; за замовчуванням останні 14 днів', JSON.stringify(бн));
 
 console.log('');
 console.log('═══ 5б. ФОНОВИЙ ЗАПИС НЕ ВИДАЛЯЄ КАРТКУ, ЩО ЗʼЯВИЛАСЬ ПІД ЧАС ЗАПИСУ (аудит 28.10) ═══');

@@ -8355,32 +8355,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b7bf4cf159"></script>
-<script src="loomiq-fingerprint.js?v=b7bf4cf159"></script>
-<script src="loomiq-pricing.js?v=b7bf4cf159"></script>
+<script src="loomiq-select.js?v=80f1945907"></script>
+<script src="loomiq-fingerprint.js?v=80f1945907"></script>
+<script src="loomiq-pricing.js?v=80f1945907"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=b7bf4cf159"></script>
+<script src="loomiq-money-core.js?v=80f1945907"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b7bf4cf159"></script>
-<script src="loomiq-mock.js?v=b7bf4cf159"></script>
+<script src="loomiq-design.js?v=80f1945907"></script>
+<script src="loomiq-mock.js?v=80f1945907"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=b7bf4cf159"></script>
+<script src="imagetracer.js?v=80f1945907"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=b7bf4cf159"></script>
-<script src="loomiq-threads.js?v=b7bf4cf159"></script>
+<script src="loomiq-chat.js?v=80f1945907"></script>
+<script src="loomiq-threads.js?v=80f1945907"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b7bf4cf159"></script>
+<script src="loomiq-cards.js?v=80f1945907"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8425,8 +8425,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b7bf4cf159';
-var LQ_VER_AT = '2026-10-29T11:59:33Z';
+var LQ_VER = '80f1945907';
+var LQ_VER_AT = '2026-10-29T16:43:32Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -13590,13 +13590,19 @@ function renderRollback(){
    Звірки / обʼєднана), чого бракує, підказками (платник з банку, час
    надсилання дизайну, картки з таким самим імʼям чи ніком, включно з
    архівними) і «Скопіювати список» одним текстом. */
-const finInc = { open: true };
-function finIncompleteRows(){
+const finInc = { open: true, all: false };
+const FIN_INC_DAYS = 14;
+function finIncompleteRows(all){
   const out = [];
   const усі = (orders || []).filter(o => o && o.orderId && !o.draft && !o.gone);
   const ключ = v => String(v || '').replace(/^@/, '').trim().toLowerCase();
+  const межа = new Date(Date.now() - FIN_INC_DAYS * 864e5).toISOString();
   усі.forEach(o => {
     if(orderDir(o) !== 'b2c' || o.arch === true || o.status === 'cancel') return;
+    /* За замовчуванням — останні два тижні (29.10, Андрій: «341» — старі картки
+       без діалогу тонуть у списку); «показати всі» — усе. */
+    if(!all && String(o.createdAt || '') < межа && !o.restoredAt) return;
+    const jExists = !!(designJobs || {})[o.orderId];
     const j = (designJobs || {})[o.orderId] || {};
     const діалог = !!(o.crmChatId || tgChatOf(o));
     let гроші = 0; try{ гроші = paidSum(o); }catch(e){}
@@ -13621,36 +13627,55 @@ function finIncompleteRows(){
         ніки.some(n => [x.crmNick, x.ig, x.instagram].map(ключ).indexOf(n) >= 0)))
       .map(x => '#' + showNo(x) + (x.arch === true ? ' (архів)' : '') + (x.crmChatId ? ' з діалогом' : ''));
     const ттн = String(o.ttn || '').trim();
-    out.push({ o, бракує, як, хто, коли: коли(o.createdAt), sent: sent.sort().map(коли), плат, схожі,
+    /* НОМЕР ВІДДІЛУ (29.10, Андрій: «що це за дивні номера 5000…»): показуємо
+       номер картки відділу; його немає (картка відділу без номера або
+       взагалі без картки відділу) — кажемо прямо й даємо кнопку. */
+    const номер = showNo(o), безНомера = !jExists || !j.no;
+    out.push({ o, бракує, як, хто, коли: коли(o.createdAt), sent: sent.sort().map(коли), плат, схожі, номер, безНомера, безКартки: !jExists,
       стан: [o.status || '', ттн ? 'ТТН ' + ттн : '', sent.length ? 'дизайн надсилали' : ''].filter(Boolean).join(' · '),
       вага: (o.restoredAt ? 0 : 1) * 10 + (sent.length || ттн ? 0 : 1) });
   });
   return out.sort((a, b) => (a.вага - b.вага) || String(b.o.createdAt || '').localeCompare(String(a.o.createdAt || '')));
 }
+/* Дати номер відділу картці, у якої його немає (власник): картки відділу
+   немає — заводимо; номер — наступний вільний (makeDesignNo). */
+async function finIncompleteNo(orderId){
+  const o = (orders || []).find(x => x && String(x.orderId) === String(orderId));
+  if(!o) return toast('Картки немає в памʼяті');
+  let job = (designJobs || {})[o.orderId];
+  if(!job){ try{ job = designJobMake(o.orderId); }catch(e){ return toast('Картку відділу не вдалось завести: ' + (e && e.message || e)); } }
+  if(!job.no) job.no = makeDesignNo();
+  try{ await designSave(job, o); toast('Картці дано номер #' + job.no); }
+  catch(e){ toast('Не записалось: ' + (e && e.message || e)); }
+  try{ renderFinIncomplete(); }catch(e){}
+}
 function finIncompleteText(rows){
-  return rows.map(r => '#' + showNo(r.o) + ' · ' + r.коли + ' · ' + (r.хто || '—') + ' · ' + r.як + ' · ' + r.бракує.join(', ') +
+  return rows.map(r => '#' + r.номер + (r.безНомера ? ' (без номера відділу)' : '') + ' · ' + r.коли + ' · ' + (r.хто || '—') + ' · ' + r.як + ' · ' + r.бракує.join(', ') +
     (r.стан ? ' · ' + r.стан : '') + (r.плат.length ? ' · платіж: ' + r.плат.join('; ') : '') +
     (r.sent.length ? ' · клієнту надсилали: ' + r.sent.join(', ') : '') + (r.схожі.length ? ' · схожі: ' + r.схожі.join(', ') : '')).join('\n');
 }
 function renderFinIncomplete(){
   const box = document.getElementById('fin-incomplete');
   if(!box) return;
-  let rows = [];
-  try{ rows = finIncompleteRows(); }catch(e){ console.warn('неповні картки', e); }
+  let rows = [], усіх = 0;
+  try{ rows = finIncompleteRows(finInc.all); усіх = finInc.all ? rows.length : finIncompleteRows(true).length; }catch(e){ console.warn('неповні картки', e); }
   const E = escapeHtml;
-  if(!rows.length){ box.innerHTML = '<div class="fa-h"><b>Неповні картки</b><span class="fa-ok">✓ У кожній живій B2C-картці є діалог, платіж і одяг</span></div>'; return; }
+  if(!rows.length && !усіх){ box.innerHTML = '<div class="fa-h"><b>Неповні картки</b><span class="fa-ok">✓ У кожній живій B2C-картці є діалог, платіж і одяг</span></div>'; return; }
   box.innerHTML = `<div class="fa-h"><b>Неповні картки</b><span class="fa-n amber">${rows.length}</span>
-      <span>живі B2C без діалогу, платежу чи одягу — спершу відновлені й ті, де вже щось надсилали</span>
+      <span>живі B2C без діалогу, платежу чи одягу${finInc.all ? ' — усі' : ' — за останні ' + FIN_INC_DAYS + ' днів і відновлені'}; спершу відновлені й ті, де вже щось надсилали</span>
+      ${усіх > rows.length || finInc.all ? `<button class="fa-t" data-fi-all>${finInc.all ? 'лише останні ' + FIN_INC_DAYS + ' днів' : 'показати всі (' + усіх + ')'}</button>` : ''}
       <button class="fa-t" data-fi-copy>Скопіювати список</button>
       <button class="fa-t" data-fi-toggle>${finInc.open ? 'згорнути ▴' : 'показати ▾'}</button></div>` +
     (finInc.open ? `<div class="fa-list">${rows.map(r => `<div class="fa-i ${r.o.restoredAt ? 'red' : 'amber'}">
-        <div class="fa-x"><b>#${E(showNo(r.o))}</b> · ${E(r.коли)} · ${E(r.хто || '—')} · ${E(r.як)} · <b>${E(r.бракує.join(', '))}</b>${r.стан ? ' · ' + E(r.стан) : ''}
+        <div class="fa-x"><b>#${E(r.номер)}</b>${r.безНомера ? ' <i class="fa-n red">' + (r.безКартки ? 'без картки відділу' : 'без номера відділу') + '</i>' : ''} · ${E(r.коли)} · ${E(r.хто || '—')} · ${E(r.як)} · <b>${E(r.бракує.join(', '))}</b>${r.стан ? ' · ' + E(r.стан) : ''}
           ${r.плат.length ? '<br>платіж: ' + E(r.плат.join('; ')) : ''}
           ${r.sent.length ? '<br>дизайн надсилали клієнту: ' + E(r.sent.join(', ')) : ''}
           ${r.схожі.length ? '<br>схожі картки (імʼя чи нік): ' + E(r.схожі.join(', ')) : ''}</div>
-        <div class="fa-b"><button data-fi-open="${E(r.o.orderId)}">Відкрити</button></div></div>`).join('')}</div>` : '');
+        <div class="fa-b">${r.безНомера && canSetup() ? `<button class="pri" data-fi-no="${E(r.o.orderId)}" title="Завести картку відділу (якщо її немає) і дати наступний вільний номер">Дати номер відділу</button>` : ''}<button data-fi-open="${E(r.o.orderId)}">Відкрити</button></div></div>`).join('')}</div>` : '');
   box.onclick = e => {
     if(e.target.closest('[data-fi-toggle]')){ finInc.open = !finInc.open; return renderFinIncomplete(); }
+    if(e.target.closest('[data-fi-all]')){ finInc.all = !finInc.all; return renderFinIncomplete(); }
+    const nb = e.target.closest('[data-fi-no]'); if(nb){ nb.disabled = true; finIncompleteNo(nb.dataset.fiNo); return; }
     const op = e.target.closest('[data-fi-open]'); if(op){ openByNo(op.dataset.fiOpen); return; }
     if(e.target.closest('[data-fi-copy]')){
       const txt = finIncompleteText(rows);
