@@ -69,12 +69,18 @@
      картка нічого не вигадує. Аркуш під них росте на PILLS_H, галерея не
      меншає. У колонці порівняння плитки менші й переносяться по чотири в
      рядок, смуга виробу росте під них (`cmpExtra`). */
-  /* Картка позиції: усі плитки в один рядок, розтягнуті на ширину (TILE_WH
-     заввишки); першою — «1 шт» за роздрібною ціною, далі до TILES_MAX
-     порогів. Порівняння: чотири квадратні плитки (TILE_S) — «1 шт» і три
-     найближчі пороги. Акцент тихий: вага 600, відсоток дрібним. */
+  /* ПЛИТКИ ОДИН В ОДИН З КОНСТРУКТОРА (30.10). Андрій: «ось такі таблетки
+     один в один вони в нас вже є, і суму там саме тягнем». Ряд порогів
+     (`tierRow`: діапазон «2–3 шт», ціна, відсоток, який з них поточний)
+     конструктор кладе на позицію, адмінка — в документ КП, картка малює як
+     є: підпис діапазону зверху, ціна, темна таблетка з відсотком у правому
+     верхньому куті, поточний тираж — темною рамкою. «1 шт» — без відсотка.
+     Картка позиції: усі плитки одним рядком на всю ширину (TILE_WH
+     заввишки). Порівняння: CMP_TILES квадратних (TILE_S) — «1 шт»,
+     поточний діапазон і два наступні. Старі позиції без `tierRow` — з
+     порогів `tiers`, як доти. */
   var TILE_WH = 100, TILE_S = 86, TILE_GAP = 12, TILES_MAX = 7, CMP_TILES = 4;
-  var PILLS_H = TILE_WH + 26, PILL_H = TILE_WH;
+  var PILLS_H = TILE_WH + 34, PILL_H = TILE_WH;
   function pillsOf(card){ return (card && card.tiers && card.tiers.length) ? card.tiers : []; }
   function footOf(card, moved){
     var extra = pillsOf(card).length ? PILLS_H : 0;
@@ -746,7 +752,7 @@
         var c = card('variant:' + r.i, 'variant', r.it);
         return { id: c.id, name: c.name, sub: c.sub, shots: c.allShots || c.shots,
                  specs: c.specs, unit: c.unit, base: c.base, qty: c.qty, tier: c.tier,
-                 tiers: (c.tiers || []).slice(0, CMP_TILES), lost: c.lost };
+                 tiers: cmpPick(c.tiers), lost: c.lost };
       });
       /* ЯКІ РЯДИ КАДРІВ ПОКАЗУВАТИ. У таблиці сторони — це рядки, і знімає
          менеджер саме РЯД, а не окремий кадр: прибрати спину в одного
@@ -1196,6 +1202,17 @@
      до TILES_MAX. Немає жодного вищого порогу — плиток немає зовсім. */
   function tiersOf(it){
     var cur = (it.parts && +it.parts.groupQty) || (+it.qty || 0);
+    var row = Array.isArray(it.tierRow) ? it.tierRow.filter(function(r){ return r && +r.price > 0; }) : [];
+    if(row.length){
+      var hasNow = row.some(function(r){ return r.now; });
+      return row.map(function(r){
+        var from = +r.from || 1, to = (r.to == null ? null : +r.to);
+        var one = from === 1 && (to === 1 || to == null && row.length === 1);
+        var now = hasNow ? !!r.now : (cur >= from && (to == null || cur <= to));
+        var label = one ? '1 шт' : (String(r.label || '') || (from + (to == null ? '+' : '–' + to) + ' шт')).replace(/^(\d+)-(\d+)/, '$1–$2');
+        return { qty: from, to: to, label: label, unit: Math.round(+r.price), pct: one ? 0 : Math.round(+r.pct || 0), one: one, now: now };
+      });
+    }
     var up = (it.tiers || [])
       .filter(function(t){ return t && !t.now && +t.qty > cur && +t.unit > 0; })
       .sort(function(a, b){ return a.qty - b.qty; })
@@ -1204,6 +1221,17 @@
     if(!up.length) return [];
     var base = +it.baseUnitPrice || 0;
     return (base > 0 && cur > 1 ? [{ qty: 1, unit: Math.round(base), one: true }] : []).concat(up);
+  }
+  /* Чотири плитки для порівняння: «1 шт», поточний діапазон і два наступні
+     (Андрій, 30.10). Поточного немає (старі пороги) — перші після «1 шт». */
+  function cmpPick(tiers){
+    var t = tiers || [];
+    if(!t.length) return [];
+    var one = t.filter(function(r){ return r.one; }).slice(0, 1);
+    var rest = t.filter(function(r){ return !r.one; });
+    var k = rest.findIndex(function(r){ return r.now; });
+    if(k < 0) k = 0;
+    return one.concat(rest.slice(k, k + (CMP_TILES - one.length)));
   }
   /* Рядок плиток. Повертає нижній край. Картка позиції (`small` хибне):
      плитки розтягнуті на всю ширину в один рядок, три рядки тексту —
@@ -1218,22 +1246,33 @@
     var px = X, py = Y;
     tiers.forEach(function(r, i){
       if(i > 0 && i % per === 0){ px = X; py += h + gap; }
-      x.fillStyle = t.panel; x.strokeStyle = t.line; x.lineWidth = 1;
+      var label = r.label || (r.one ? '1 шт' : 'від ' + r.qty + ' шт');
+      var pct = r.one ? 0 : (r.pct != null ? r.pct : (base > r.unit ? Math.round((base - r.unit) / base * 100) : 0));
+      /* Плитка як у конструкторі: біла, тонка рамка; поточний тираж —
+         темна рамка в два пікселі. */
+      x.fillStyle = t.panel; x.strokeStyle = r.now ? t.ink : t.line; x.lineWidth = r.now ? 2 : 1;
       rr(x, px, py, S, h, small ? 12 : 14); x.fill(); x.stroke();
       var cx = px + S / 2;
-      var q = r.one ? '1 шт' : 'від ' + r.qty + ' шт';
-      var off = (!r.one && base > r.unit) ? '−' + Math.round((base - r.unit) / base * 100) + '%' : '';
       x.textAlign = 'center';
       if(small){
-        x.fillStyle = t.dim; x.font = '400 12px ' + t.body; x.fillText(q, cx, py + 22);
-        x.fillStyle = t.ink; x.font = '600 17px ' + t.body; x.fillText(money(r.unit).replace(/ грн$/, ''), cx, py + 48);
-        x.fillStyle = t.dim; x.font = '400 10px ' + t.body; x.fillText('грн/шт', cx, py + 62);
-        if(off){ x.fillStyle = SALE; x.font = '600 12px ' + t.body; x.fillText(off, cx, py + 78); }
+        /* У малій плитці «3 475 грн» одним рядком не вміщається: число
+           окремо, «грн» дрібним під ним. */
+        x.fillStyle = t.dim; x.font = '400 12px ' + t.body; x.fillText(label, cx, py + 28);
+        x.fillStyle = t.ink; x.font = '700 17px ' + t.body; x.fillText(money(r.unit).replace(/ грн$/, ''), cx, py + 54);
+        x.fillStyle = t.dim; x.font = '400 11px ' + t.body; x.fillText('грн', cx, py + 70);
       } else {
-        x.fillStyle = t.dim; x.font = '400 13px ' + t.body; x.fillText(q, cx, py + 27);
-        x.fillStyle = t.ink; x.font = '600 19px ' + t.body; x.fillText(money(r.unit) + '/шт', cx, py + 58);
-        if(off){ x.fillStyle = SALE; x.font = '600 13px ' + t.body; x.fillText(off, cx, py + 84); }
-        else { x.fillStyle = t.dim; x.font = '400 12px ' + t.body; x.fillText(r.one ? 'роздріб' : '', cx, py + 84); }
+        x.fillStyle = t.dim; x.font = '400 14px ' + t.body; x.fillText(label, cx, py + 40);
+        x.fillStyle = t.ink; x.font = '700 21px ' + t.body; x.fillText(money(r.unit), cx, py + 72);
+      }
+      /* Відсоток — темною таблеткою в правому верхньому куті, поверх
+         рамки, як у конструкторі. */
+      if(pct > 0){
+        var s = '−' + pct + '%';
+        x.font = '700 ' + (small ? 11 : 12) + 'px ' + t.body;
+        var bw = x.measureText(s).width + (small ? 14 : 16), bh = small ? 20 : 22;
+        var bx = px + S - bw + 6, by = py - bh / 2 + 2;
+        x.fillStyle = t.ink; rr(x, bx, by, bw, bh, bh / 2); x.fill();
+        x.fillStyle = '#fff'; x.fillText(s, bx + bw / 2, by + bh / 2 + (small ? 4 : 4.5));
       }
       x.textAlign = 'left';
       px += S + gap;

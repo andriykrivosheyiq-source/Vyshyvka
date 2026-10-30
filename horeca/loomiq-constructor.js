@@ -5737,28 +5737,37 @@
       }
       renderTabPanel(); updatePriceBar();
     }
-    function renderTiers(){
+    /* РЯД ПОРОГІВ ЯК ДАНІ (30.10). Андрій: «ось такі таблетки один в один
+       вони в нас вже є, і суму там саме тягнем». Ті самі рядки, що стоять
+       під ціною в конструкторі, їдуть з позицією в замовлення (`tierRow`)
+       і далі в документ КП та на скачувані картки — щоб картка показувала
+       рівно ті числа, що бачив менеджер. */
+    function tierRowsNow(){
       var pt = pricingTiers();
-      var rows;
       if(pt){
         var actT = activeCoefTier();
         /* Визначальна ціна = ефективна ціна за 1 шт із ПОВНОЮ разовою
            оплатою, тобто ця позиція сама по собі. Від неї й рахуються
            знижки: саме стільки коштувала б одна штука, замовлена окремо. */
         var base1 = effUnitPriceCoef(pt[0].coef, pt[0].min, true);
-        rows = pt.map(function(t){
+        return pt.map(function(t){
           // ефективна ціна порогу: коеф на базу+вишивку (+ DTF за тираж порогу) + частка разової оплати
           var price = effUnitPriceCoef(t.coef, t.min);
           var pct = base1 > 0 ? Math.round((1 - price / base1) * 100) : 0;
           // Порівнюємо за порогом, а не за посиланням: activeCoefTier() будує свій
           // масив, тож t===actT не збігалося ніколи й активний поріг не визначався.
-          return {label:t.label, min:t.min, badge: pct > 0 ? ('−'+pct+'%') : null, price:price,
-                  isActive: !!actT && t.min === actT.min};
+          return {label:t.label, min:t.min, max: t.max >= 99999 ? null : t.max, badge: pct > 0 ? ('−'+pct+'%') : null,
+                  pct: pct > 0 ? pct : 0, price:price, isActive: !!actT && t.min === actT.min};
         });
-      } else {
-        var active = activeTier();
-        rows = TIERS.map(function(t){ return {label:t.label, min:t.min, badge:t.badge, price:t.price, isActive: !!active && t.min === active.min}; });
       }
+      var active = activeTier();
+      return TIERS.map(function(t){ return {label:t.label, min:t.min, max: t.max == null ? null : t.max, badge:t.badge,
+        pct: t.badge ? (parseInt(String(t.badge).replace(/[^0-9]/g, ''), 10) || 0) : 0,
+        price:t.price, isActive: !!active && t.min === active.min}; });
+    }
+    window.__lqTierRows = function(){ try{ return tierRowsNow(); }catch(e){ return null; } };
+    function renderTiers(){
+      var rows = tierRowsNow();
       // Показуємо саму градацію, а не речення про неї: три найближчі пороги
       // з відсотком і ціною за штуку. Так одразу видно, наскільки дешевшає
       // виріб і на скільки треба збільшити тираж. Тап — ставить цей тираж.
@@ -8353,6 +8362,13 @@
         var _gq = (_sd && _sd.parts && _sd.parts.groupQty) ? _sd.parts.groupQty : totalUnits();
         item.calcLines = calcLinesForItem(_gq);
       }catch(e){ item.calcLines = []; }
+      /* Ряд порогів з-під ціни — як є, з тими самими числами й відсотками:
+         він піде в КП і на скачувані картки (30.10, «один в один»). */
+      try{
+        item.tierRow = tierRowsNow().map(function(r){
+          return { from: r.min, to: r.max == null ? null : r.max, label: r.label, price: r.price, pct: r.pct || 0, now: !!r.isActive };
+        });
+      }catch(e){ item.tierRow = null; }
       // Редагування з кошика — перезаписуємо ту саму позицію на її місці,
       // щоб порядок не стрибав і не з'являвся дубль.
       var ei = window.__pmEditIndex;

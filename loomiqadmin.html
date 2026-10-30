@@ -8364,32 +8364,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=89564851ef"></script>
-<script src="loomiq-fingerprint.js?v=89564851ef"></script>
-<script src="loomiq-pricing.js?v=89564851ef"></script>
+<script src="loomiq-select.js?v=33a3546548"></script>
+<script src="loomiq-fingerprint.js?v=33a3546548"></script>
+<script src="loomiq-pricing.js?v=33a3546548"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=89564851ef"></script>
+<script src="loomiq-money-core.js?v=33a3546548"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=89564851ef"></script>
-<script src="loomiq-mock.js?v=89564851ef"></script>
+<script src="loomiq-design.js?v=33a3546548"></script>
+<script src="loomiq-mock.js?v=33a3546548"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=89564851ef"></script>
+<script src="imagetracer.js?v=33a3546548"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=89564851ef"></script>
-<script src="loomiq-threads.js?v=89564851ef"></script>
+<script src="loomiq-chat.js?v=33a3546548"></script>
+<script src="loomiq-threads.js?v=33a3546548"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=89564851ef"></script>
+<script src="loomiq-cards.js?v=33a3546548"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8434,8 +8434,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '89564851ef';
-var LQ_VER_AT = '2026-10-30T15:41:49Z';
+var LQ_VER = '33a3546548';
+var LQ_VER_AT = '2026-10-30T16:20:14Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -17011,6 +17011,11 @@ window.__adminSaveClientOrder = async function(payload){
          формулою, з якої вийшла сума. Відновити його потім нізвідки — він
          живе тільки поки конструктор відкритий. */
       calcLines: Array.isArray(it.calcLines) ? it.calcLines.slice(0, 12) : null,
+      /* Ряд порогів тиражу з-під ціни в конструкторі — один в один, з
+         відсотками (30.10). Далі йде в документ КП і на скачувані картки. */
+      tierRow: Array.isArray(it.tierRow) ? it.tierRow.slice(0, 12).map(r => ({
+        from: +r.from || 1, to: (r.to == null ? null : +r.to), label: String(r.label || ''),
+        price: Math.round(+r.price || 0), pct: Math.round(+r.pct || 0), now: !!r.now })) : null,
       /* Рішення менеджера про вид дизайну, яке конструктор поклав на
          позицію. Нижче воно переходить у мапу замовлення. Доти це поле тут
          відсіювалось — і код, який мав його підхопити, не отримував нічого:
@@ -20089,7 +20094,10 @@ function offerItem(it, order, itemIdx){
        логотип той самий. Без цього числа підпис під ціною казав «від 4
        штук» там, де ціна восьми. */
     tierQty: (it.parts && +it.parts.groupQty) || 0,
-    tiers: offerTiers(order, itemIdx)
+    tiers: offerTiers(order, itemIdx),
+    /* Ряд порогів з конструктора — для скачуваних карток (30.10, «один в
+       один»). Старі позиції без нього — картка бере пороги з `tiers`. */
+    tierRow: Array.isArray(it.tierRow) && it.tierRow.length ? it.tierRow : null
   };
 }
 /* ══════════ ОДИН ЛОГОТИП НА КІЛЬКА ПОЗИЦІЙ ═══════════════════════════

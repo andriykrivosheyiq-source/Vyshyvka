@@ -267,11 +267,12 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   (`pm.recolorMode`/`pm.recolorSrc`, `logoColors`/`LOGO_PAL`,
   `recolorLogoPart`, `layer.recolorMap`, `[data-rc-mode]`/`[data-rc-src]`,
   `.pm-rc-*` в `index.html`; `__lqLayerInfo` віддає `recolorMap`, `url`).
-  `tests/recolor-part.mjs`. Скачувані картки: пороги тиражу плитками —
-  «1 шт» + до семи на всю ширину в позиції, чотири квадратні в порівнянні
-  (`loomiq-cards.js`: `tiersOf`, `pillsOf`, `pillsRow`, `TILE_WH`/`TILE_S`/
-  `TILES_MAX`/`CMP_TILES`, `PILLS_H`, `cmpExtra`, поле `tiers` у `FIELDS`;
-  адмінка `offerTiers` до 8 рядків; `tests/card-tiers.mjs`).
+  `tests/recolor-part.mjs`. Скачувані картки: ряд порогів один в один
+  з конструктора (`tierRowsNow`/`__lqTierRows` → `item.tierRow` → адмінка
+  зберігає й кладе в КП → `loomiq-cards.js` `tiersOf`/`cmpPick`/`pillsRow`:
+  усі на ширину в позиції, 4 квадратні в порівнянні, поточний — рамкою,
+  «−N%» таблеткою; `TILE_WH`/`TILE_S`/`CMP_TILES`, `PILLS_H`, `cmpExtra`, поле
+  `tiers` у `FIELDS`; адмінка `offerTiers` до 8 рядків; `tests/card-tiers.mjs`).
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото
