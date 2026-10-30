@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   chat-guard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest став 26.04, Playwright 1.56 Chromium там не ставить (30.10)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
