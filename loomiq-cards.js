@@ -60,11 +60,21 @@
   /* Висота нижньої смуги. Характеристик більше трьох — смуга підростає під
      них. А якщо «Про товар» переїхав у вільну клітинку сітки, рости нема
      чому: внизу лишились тільки ціна й примітка. */
+  /* ПОРОГИ ТИРАЖУ — ТАБЛЕТКАМИ ПІД УСІМ (30.10). Андрій: «щоб на картці
+     було видно, що при більшій кількості ще будуть знижки… маленькими
+     таблетками під всім». Під нижньою смугою — рядок маленьких таблеток:
+     «від 20 шт · 2 530 грн/шт · −20 %», до трьох порогів, лише вищих за
+     тираж, за яким порахована ціна. Числа — ті, що адмінка поклала в
+     документ КП (`tiers`, той самий рушій, що й ціна): картка нічого не
+     вигадує. Аркуш під них росте на PILLS_H, галерея не меншає. */
+  var PILLS_H = 56, PILL_H = 34;
+  function pillsOf(card){ return (card && card.tiers && card.tiers.length) ? card.tiers : []; }
   function footOf(card, moved){
-    if(moved) return FOOT;
+    var extra = pillsOf(card).length ? PILLS_H : 0;
+    if(moved) return FOOT + extra;
     var n = ((card && card.specs) || []).slice(0, 6).length;
-    if(n <= 3) return FOOT;
-    return FOOT + (n - 3) * SPEC_STEP;
+    if(n <= 3) return FOOT + extra;
+    return FOOT + (n - 3) * SPEC_STEP + extra;
   }
   function sheetW(n){
     n = Math.max(2, Math.min(4, n | 0));
@@ -195,6 +205,7 @@
     { id:'unit',  name:'Ціна за штуку' },
     { id:'old',   name:'Стара ціна' },
     { id:'valid', name:'Термін дії ціни' },
+    { id:'tiers', name:'Пороги тиражу' },
     { id:'warn',  name:'Застереження' }
   ];
 
@@ -671,6 +682,7 @@
         /* Базова ціна — та сама, з якої сторінка пропозиції рахує «ви
            економите». Своєї старої ціни картка не вигадує. */
         base: +it.baseUnitPrice || 0,
+        tiers: tiersOf(it),
         art: cfg.art || artOf(it),
         shots: shots, pics: all,
         /* Сторони з нанесенням, для яких кадру не знайшлось. Веземо далі,
@@ -727,7 +739,7 @@
         var c = card('variant:' + r.i, 'variant', r.it);
         return { id: c.id, name: c.name, sub: c.sub, shots: c.allShots || c.shots,
                  specs: c.specs, unit: c.unit, base: c.base, qty: c.qty, tier: c.tier,
-                 lost: c.lost };
+                 tiers: c.tiers, lost: c.lost };
       });
       /* ЯКІ РЯДИ КАДРІВ ПОКАЗУВАТИ. У таблиці сторони — це рядки, і знімає
          менеджер саме РЯД, а не окремий кадр: прибрати спину в одного
@@ -1172,6 +1184,40 @@
      Застереження стоїть третьою колонкою праворуч, а не рядком упоперек
      аркуша. Це виноска: збоку дрібним вона читається як виноска, а на всю
      ширину під числами — як попередження, яке ми чомусь кричимо. */
+  /* Пороги з документа КП: лише вищі за тираж ціни, з ціною за штуку, до трьох. */
+  function tiersOf(it){
+    var cur = (it.parts && +it.parts.groupQty) || (+it.qty || 0);
+    return (it.tiers || [])
+      .filter(function(t){ return t && !t.now && +t.qty > cur && +t.unit > 0; })
+      .sort(function(a, b){ return a.qty - b.qty; })
+      .slice(0, 3)
+      .map(function(t){ return { qty: +t.qty, unit: Math.round(+t.unit) }; });
+  }
+  /* Рядок таблеток. Повертає нижній край. `small` — для колонки
+     порівняння, де місця менше. Таблетка: «від N шт» сірим, ціна чорнилом,
+     відсоток тепло-рудим — ті самі три речі, що й у самої ціни. */
+  function pillsRow(x, t, tiers, base, X, Y, w, small){
+    var h = small ? 30 : PILL_H, gap = 10, px = X, py = Y;
+    var fq = (small ? 13 : 15) + 'px ', fp = (small ? 14 : 16) + 'px ', fo = (small ? 13 : 15) + 'px ';
+    tiers.forEach(function(r){
+      var q = 'від ' + r.qty + ' шт', p = money(r.unit) + '/шт';
+      var off = (base > r.unit) ? '−' + Math.round((base - r.unit) / base * 100) + '%' : '';
+      x.font = '400 ' + fq + t.body; var qw = x.measureText(q).width;
+      x.font = '600 ' + fp + t.body; var pw = x.measureText(p).width;
+      x.font = '700 ' + fo + t.body; var ow = off ? x.measureText(off).width : 0;
+      var pad = small ? 12 : 14, sp = small ? 7 : 9;
+      var pwid = pad + qw + sp + pw + (off ? sp + ow : 0) + pad;
+      if(px > X && px + pwid > X + w){ px = X; py += h + 8; }   // не влазить — наступний рядок
+      x.fillStyle = t.panel; x.strokeStyle = t.line; x.lineWidth = 1.5;
+      rr(x, px, py, pwid, h, h / 2); x.fill(); x.stroke();
+      var ty = py + h / 2 + (small ? 5 : 6), cx = px + pad;
+      x.fillStyle = t.dim; x.font = '400 ' + fq + t.body; x.fillText(q, cx, ty); cx += qw + sp;
+      x.fillStyle = t.ink; x.font = '600 ' + fp + t.body; x.fillText(p, cx, ty); cx += pw;
+      if(off){ cx += sp; x.fillStyle = SALE; x.font = '700 ' + fo + t.body; x.fillText(off, cx, ty); }
+      px += pwid + gap;
+    });
+    return py + h;
+  }
   function oldPrice(card, show){
     if(!show('old')) return null;
     var base = +card.base || 0, unit = +card.unit || 0;
@@ -1253,7 +1299,10 @@
     /* У сітці при трьох кадрах «Про товар» переїхав у вільну клітинку —
        тут його вже немає, і смузі нема від чого рости. */
     var moved = !!(o && o.aboutMoved);
+    var pills = pillsOf(card);
     var yRule = HH - footOf(card, moved), yLab = yRule + 44, yVal = yRule + 94;
+    /* Низ колонок: над таблетками, коли вони є. */
+    var yBot = HH - 46 - (pills.length ? PILLS_H : 0);
     rule(x, t, PAD, right, yRule);
 
     /* Ціна ЧОРНИЛОМ, а не акцентом. Кольорове число читається як цінник
@@ -1384,9 +1433,10 @@
       x.strokeStyle = t.line; x.lineWidth = 1;
       x.beginPath();
       x.moveTo(sx - GAPC / 2, yRule + 20);
-      x.lineTo(sx - GAPC / 2, HH - 46);
+      x.lineTo(sx - GAPC / 2, yBot);
       x.stroke();
     });
+    if(pills.length && price) pillsRow(x, t, pills, +card.base || 0, PAD, HH - 46 - PILL_H, right - PAD, false);
   }
   /* Знижка — допоміжна, тож не залита акцентом, а лише притінена ним:
      суцільна заливка акцентом на картці одна, і вона в ціни. */
@@ -2177,6 +2227,8 @@
         x.font = '400 15px ' + t.body;
         var tq = card.tier || card.qty;
         x.fillText((tq > 1) ? 'ціна від ' + tq + ' шт' : 'ціна за 1 шт', tx, ty);
+        var pl = pillsOf(c);
+        if(pl.length) ty = pillsRow(x, t, pl, base, tx, ty + 16, tw, true);
       }
       ty += 44;
       /* Склад — парами «про що / скільки», одним сірим. Однакове в усіх
@@ -2377,6 +2429,12 @@
     var show = function(k){
       return OFF_BY_DEFAULT[k] ? fields[k] === true : fields[k] !== false;
     };
+    /* Поле «Пороги тиражу» вимкнули — картка їх не знає зовсім: ні
+       таблеток, ні зайвої висоти. Без ціни теж не показуємо. */
+    if(!show('tiers') || !show('unit')){
+      card = Object.assign({}, card, { tiers: [] },
+        card.cols ? { cols: card.cols.map(function(c){ return Object.assign({}, c, { tiers: [] }); }) } : {});
+    }
     await fontReady();
 
     /* Ширину аркуша задає САМА КАРТКА — скільки в неї колонок, така вона й
@@ -2402,6 +2460,7 @@
     var H2 = H;
     if(card.type === 'cmp') H2 = cmpH(card);
     else if(lay === 'grid' && nShots > 2) H2 = H + Math.round((H - FOOT - HEAD - 50) / 2) + GAP;
+    if(card.type !== 'cmp' && card.type !== 'set' && pillsOf(card).length) H2 += PILLS_H;
 
     /* ═══ АРКУШ МАЛЮЄТЬСЯ ВДВІЧІ ГУСТІШЕ, НІЖ РОЗКЛАДАЄТЬСЯ ═══
        Уся розкладка тут рахується в логічних точках: смуги, відступи,
