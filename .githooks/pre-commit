@@ -292,6 +292,14 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
   }
   echo "✓ взяти зі складу: склад −, посилка — на склад"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|index\.html|tests/recolor-part\.mjs)'; then
+  node tests/recolor-part.mjs >/tmp/lq-recolor-part.log 2>&1 || {
+    echo "✗ Часткова зміна кольору нитки в КП зламана (кольори логотипа, заміна одного кольору, повернення) — коміт зупинено. Подробиці: /tmp/lq-recolor-part.log"
+    grep '✗' /tmp/lq-recolor-part.log
+    exit 1
+  }
+  echo "✓ колір нитки: увесь або лише один колір"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|index\.html|tests/phone-logo\.mjs)'; then
   node tests/phone-logo.mjs >/tmp/lq-phone-logo.log 2>&1 || {
     echo "✗ Логотип з телефона знову валить сторінку (фото не зменшується, клієнт без напису, вікно фону не те) — коміт зупинено. Подробиці: /tmp/lq-phone-logo.log"

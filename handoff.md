@@ -263,7 +263,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   (`designJobOf` без перебору, `pairOf` з `PAIR_IDX` на такт, `seekBoard`/
   `SEEK_B`, `SEEK_WAIT_MS`, `pairIndex`, `openFast` + `__lqTop/__lqBoards`);
   `readyStray`/`readyStrayRetire`/`graphicLive` (#2000170). `tests/board-fast.mjs`,
-  `ready-design` §9.
+  `ready-design` §9. 30.10: КП «Колір нитки» — режим «Лише один колір»
+  (`pm.recolorMode`/`pm.recolorSrc`, `logoColors`/`LOGO_PAL`,
+  `recolorLogoPart`, `layer.recolorMap`, `[data-rc-mode]`/`[data-rc-src]`,
+  `.pm-rc-*` в `index.html`; `__lqLayerInfo` віддає `recolorMap`, `url`).
+  `tests/recolor-part.mjs`.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото

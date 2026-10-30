@@ -996,7 +996,7 @@
       var l = findLayerAnySide(pm.activeLogoId) || currentLayers()[0];
       if(!l) return null;
       var d = layerOpaqueDimsMm(l);
-      return { id: l.id, fp: l.fp || '', recolorTo: l.recolorTo || null,
+      return { id: l.id, fp: l.fp || '', recolorTo: l.recolorTo || null, recolorMap: l.recolorMap || null, url: l.url || '',
                recolored: !!l.recolorFrom, mm2: Math.round(layerInkMm2(l)),
                // габарит у мм — за ним видно, чи спрацювала стеля розміру
                wMm: Math.round(d.w), hMm: Math.round(d.h) };
@@ -5041,18 +5041,46 @@
               /* Зразки — реальні нитки й плівка, ті самі, що й для напису.
                  Вільна палітра поруч, але окремо: фірмовий відтінок буває
                  точний, а вгадувати його зразками — марна справа. */
-              var now = actL.recolorTo || '#111111';
-              html += '<div class="pm-mgr-recolor">' +
-                '<div class="pm-lbl">Звести логотип в один колір</div>' +
-                '<div class="pm-mgr-sw">' +
+              /* ЧАСТКОВА ЗАМІНА (30.10, Андрій: «зміна нитки — один колір на
+                 все, а я хочу часткову»). Другий режим: кольори самого
+                 логотипа рядком, обираєш який і на що — решта лишається.
+                 Замін може бути кілька, кожна рахується від оригіналу. */
+              var part = pm.recolorMode === 'part';
+              var pal = part ? logoColorsNow(actL) : null;
+              if(part && !pal) logoColors(actL).then(function(){ if(pm.recolorFor === actL.id) renderTabPanel(); });
+              var map = Array.isArray(actL.recolorMap) ? actL.recolorMap : [];
+              var toOf = function(hex){ var m = map.filter(function(x){ return x.from === hex; })[0]; return m ? m.to : ''; };
+              var cur = part ? toOf(pm.recolorSrc || '') : (actL.recolorTo || '');
+              var now = cur || '#111111';
+              var зразки = '<div class="pm-mgr-sw">' +
                   '<input type="color" id="pmRecolorPick" value="' + now + '" ' +
                     'aria-label="Точний відтінок">' +
                   TEXT_COLORS.map(function(c){
-                    return '<button class="pm-ts-sw' + (c === actL.recolorTo ? ' on' : '') + '" ' +
+                    return '<button class="pm-ts-sw' + (c === cur ? ' on' : '') + '" ' +
                            'data-sw="' + c + '" style="background:' + c + '" ' +
                            'aria-label="' + colorName(c) + '"></button>';
                   }).join('') +
+                '</div>';
+              html += '<div class="pm-mgr-recolor">' +
+                '<div class="pm-rc-modes">' +
+                  '<button type="button" class="pm-rc-mode' + (!part ? ' on' : '') + '" data-rc-mode="all">Увесь логотип одним кольором</button>' +
+                  '<button type="button" class="pm-rc-mode' + (part ? ' on' : '') + '" data-rc-mode="part">Лише один колір</button>' +
                 '</div>' +
+                (part
+                  ? '<div class="pm-lbl">Який колір логотипа замінити</div>' +
+                    '<div class="pm-mgr-sw pm-rc-src">' +
+                      (pal ? pal.map(function(c){
+                          var to = toOf(c.hex);
+                          return '<button type="button" class="pm-ts-sw pm-rc-s' + (pm.recolorSrc === c.hex ? ' on' : '') + (to ? ' is-done' : '') + '" ' +
+                            'data-rc-src="' + c.hex + '" style="background:' + (to || c.hex) + '" ' +
+                            'title="' + colorName(c.hex) + (to ? ' → ' + colorName(to) : '') + '" aria-label="' + colorName(c.hex) + '">' + (to ? '✓' : '') + '</button>';
+                        }).join('')
+                       : '<i class="pm-ts-warn">рахую кольори логотипа…</i>') +
+                    '</div>' +
+                    (pm.recolorSrc && pal && pal.some(function(c){ return c.hex === pm.recolorSrc; })
+                      ? '<div class="pm-lbl">На який колір</div>' + зразки
+                      : '<div class="pm-ts-warn">Оберіть колір логотипа вище — тоді зʼявиться, на який його змінити.</div>')
+                  : '<div class="pm-lbl">Звести логотип в один колір</div>' + зразки) +
                 '<div class="pm-ts-warn">Форма й розмір не змінюються — отже й ціна теж. ' +
                   'Повернути початкові кольори можна будь-коли.</div>' +
               '</div>';
@@ -5325,10 +5353,25 @@
           if(layer) resetRecolor(layer);
         });
       });
+      pmTabPanel.querySelectorAll('[data-rc-mode]').forEach(function(el){
+        el.addEventListener('click', function(){ pm.recolorMode = el.dataset.rcMode === 'part' ? 'part' : 'all'; renderTabPanel(); });
+      });
+      pmTabPanel.querySelectorAll('[data-rc-src]').forEach(function(el){
+        el.addEventListener('click', function(){ pm.recolorSrc = el.dataset.rcSrc; renderTabPanel(); });
+      });
+      /* Зразок чи палітра: у режимі «лише один колір» — заміна обраного
+         кольору логотипа, інакше — увесь логотип одним. */
+      var applyRecolor = function(layer, color){
+        if(pm.recolorMode === 'part'){
+          if(!pm.recolorSrc) return;
+          return recolorLogoPart(layer, pm.recolorSrc, color);
+        }
+        return recolorLogo(layer, color);
+      };
       pmTabPanel.querySelectorAll('[data-sw]').forEach(function(el){
         el.addEventListener('click', function(){
           var layer = findLayerAnySide(pm.recolorFor);
-          if(layer) recolorLogo(layer, el.dataset.sw);
+          if(layer) applyRecolor(layer, el.dataset.sw);
         });
       });
       (function(){
@@ -5336,7 +5379,7 @@
         if(!pick) return;
         pick.addEventListener('change', function(){
           var layer = findLayerAnySide(pm.recolorFor);
-          if(layer) recolorLogo(layer, pick.value);
+          if(layer) applyRecolor(layer, pick.value);
         });
       })();
       pmTabPanel.querySelectorAll('[data-bgtoggle]').forEach(function(el){
@@ -6871,6 +6914,7 @@
         x.putImageData(d, 0, 0);
         if(!layer.recolorFrom) layer.recolorFrom = srcUrl;   // щоб можна було повернути як було
         layer.recolorTo = color;                             // яким саме звели — видно на зразку
+        delete layer.recolorMap;                             // увесь одним — часткові заміни знято
         var out = c.toDataURL('image/png');
         layer.url = out; layer.cleanUrl = out;
         return measureLayerShape(layer, out);
@@ -6879,11 +6923,97 @@
         renderGarment(); renderTabPanel(); updatePriceBar();
       });
     }
+    /* ══════════ ЧАСТКОВА ЗАМІНА КОЛЬОРУ (30.10) ══════════
+       Андрій: «зміна нитки — один колір на все, а я хочу мати можливість на
+       часткову зміну». Кольори логотипа рахуємо з ОРИГІНАЛУ (recolorFrom або
+       сам файл): зменшена копія, кольори округлені до 16 рівнів на канал,
+       близькі злиті, лишаються ті, що займають хоч 1,5 % непрозорих пікселів
+       (до 8). Заміна: кожен непрозорий піксель іде до найближчого з цих
+       кольорів, і якщо для нього є заміна — стає нею. Кілька замін — карта
+       `recolorMap` [{from, to}], завжди від оригіналу, тож порядок не важить.
+       Відбиток дизайну (fp) лишається: програма вишивки та сама. */
+    var LOGO_PAL = {};
+    function logoColorsNow(layer){ return LOGO_PAL[layer.recolorFrom || layer.url] || null; }
+    function logoColors(layer){
+      var srcUrl = layer.recolorFrom || layer.url;
+      if(LOGO_PAL[srcUrl]) return Promise.resolve(LOGO_PAL[srcUrl]);
+      return loadImgEl(srcUrl).then(function(img){
+        var W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+        var k = Math.min(1, 200 / Math.max(W, H));
+        var w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        var x = c.getContext('2d'); x.drawImage(img, 0, 0, w, h);
+        var p = x.getImageData(0, 0, w, h).data, cnt = {}, total = 0;
+        for(var i = 0; i < p.length; i += 4){
+          if(p[i + 3] < 128) continue;
+          total++;
+          var key = ((p[i] >> 4) << 8) | ((p[i + 1] >> 4) << 4) | (p[i + 2] >> 4);
+          if(!cnt[key]) cnt[key] = { n: 0, r: 0, g: 0, b: 0 };
+          cnt[key].n++; cnt[key].r += p[i]; cnt[key].g += p[i + 1]; cnt[key].b += p[i + 2];
+        }
+        var list = Object.keys(cnt).map(function(k){ var e = cnt[k];
+          return { n: e.n, rgb: [Math.round(e.r / e.n), Math.round(e.g / e.n), Math.round(e.b / e.n)] }; })
+          .sort(function(a, b){ return b.n - a.n; });
+        var hexOf = function(rgb){ return '#' + rgb.map(function(v){ return ('0' + v.toString(16)).slice(-2); }).join(''); };
+        var out = [];
+        list.forEach(function(e){
+          if(out.length >= 8 || e.n < total * 0.015) return;
+          var near = out.filter(function(o){ return hexDist(hexOf(o.rgb), hexOf(e.rgb)) < 0.13; })[0];
+          if(near){ near.n += e.n; return; }
+          out.push({ rgb: e.rgb, n: e.n });
+        });
+        out.forEach(function(o){ o.hex = hexOf(o.rgb); });
+        LOGO_PAL[srcUrl] = out;
+        return out;
+      }).catch(function(){ LOGO_PAL[srcUrl] = []; return []; });
+    }
+    function recolorLogoPart(layer, fromHex, toHex){
+      var srcUrl = layer.recolorFrom || layer.url;
+      var keepFp = layer.fp;
+      var map = (Array.isArray(layer.recolorMap) ? layer.recolorMap : []).filter(function(m){ return m.from !== fromHex; });
+      if(toHex && toHex !== fromHex) map.push({ from: fromHex, to: toHex });
+      var hex = function(h){ var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h || '')) || [];
+        return [parseInt(m[1], 16) || 0, parseInt(m[2], 16) || 0, parseInt(m[3], 16) || 0]; };
+      return logoColors(layer).then(function(pal){
+        if(!pal.length) return;
+        var cent = pal.map(function(c){ return c.rgb; });
+        var to = pal.map(function(c){ var m = map.filter(function(x){ return x.from === c.hex; })[0]; return m ? hex(m.to) : null; });
+        return loadImgEl(srcUrl).then(function(img){
+          var W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+          var c = document.createElement('canvas'); c.width = W; c.height = H;
+          var x = c.getContext('2d'); x.drawImage(img, 0, 0);
+          var d = x.getImageData(0, 0, W, H), p = d.data;
+          for(var i = 0; i < p.length; i += 4){
+            if(p[i + 3] === 0) continue;
+            var best = 0, bd = 1e9;
+            for(var j = 0; j < cent.length; j++){
+              var dr = p[i] - cent[j][0], dg = p[i + 1] - cent[j][1], db = p[i + 2] - cent[j][2];
+              var dd = dr * dr + dg * dg + db * db;
+              if(dd < bd){ bd = dd; best = j; }
+            }
+            var t = to[best];
+            if(t){ p[i] = t[0]; p[i + 1] = t[1]; p[i + 2] = t[2]; }
+          }
+          x.putImageData(d, 0, 0);
+          if(!layer.recolorFrom) layer.recolorFrom = srcUrl;
+          layer.recolorTo = null;
+          layer.recolorMap = map;
+          var out = c.toDataURL('image/png');
+          layer.url = out; layer.cleanUrl = out;
+          return measureLayerShape(layer, out);
+        });
+      }).then(function(){
+        if(keepFp) layer.fp = keepFp;
+        renderGarment(); renderTabPanel(); updatePriceBar();
+      });
+    }
+    window.__lqRecolorPart = function(id, from, to){ var l = findLayerAnySide(id); return l ? recolorLogoPart(l, from, to) : Promise.resolve(); };
     function resetRecolor(layer){
       if(!layer.recolorFrom) return Promise.resolve();
       var back = layer.recolorFrom;
       layer.recolorFrom = null;
       layer.recolorTo = null;
+      delete layer.recolorMap;
       layer.url = back; layer.cleanUrl = back;
       return measureLayerShape(layer, back)
         .then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); });
