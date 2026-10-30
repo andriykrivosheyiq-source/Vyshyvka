@@ -292,6 +292,14 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
   }
   echo "✓ взяти зі складу: склад −, посилка — на склад"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|index\.html|tests/phone-logo\.mjs)'; then
+  node tests/phone-logo.mjs >/tmp/lq-phone-logo.log 2>&1 || {
+    echo "✗ Логотип з телефона знову валить сторінку (фото не зменшується, клієнт без напису, вікно фону не те) — коміт зупинено. Подробиці: /tmp/lq-phone-logo.log"
+    grep '✗' /tmp/lq-phone-logo.log
+    exit 1
+  }
+  echo "✓ логотип з телефона — зменшений, сторінка жива"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|loomiq-mock\.js|index\.html|quiz/index\.html|offer-edit\.html|tests/bg-photoroom\.mjs)'; then
   node tests/bg-photoroom.mjs >/tmp/lq-bg-photoroom.log 2>&1 || {
     echo "✗ Фон знову прибирається не лише PhotoRoom або відмова мовчить — коміт зупинено. Подробиці: /tmp/lq-bg-photoroom.log"

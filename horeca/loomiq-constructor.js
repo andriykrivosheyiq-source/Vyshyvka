@@ -7171,26 +7171,39 @@
       var f = e.target.files && e.target.files[0];
       if(!f) return;
       var rd = new FileReader();
-      rd.onload = function(ev){
-        /* Спершу — до робочого розміру (13.10): фото з телефону по 12–48 Мп
-           у повному розмірі валили Safari на iPhone при створенні КП. Лише
-           в КП (режим менеджера) — сайт для клієнтів поки як був. */
-        (isMgrMode() ? shrinkUpload(ev.target.result) : Promise.resolve(ev.target.result)).then(function(src){
+      rd.onload = function(ev){ pickedFile(ev.target.result); };
+      rd.readAsDataURL(f);
+      e.target.value = '';
+    });
+    /* ФАЙЛ З ТЕЛЕФОНА — СПЕРШУ ДО РОБОЧОГО РОЗМІРУ, І ДЛЯ КЛІЄНТА ТЕЖ (30.10).
+       Андрій, відео з iPhone: «після прикріплення файлу висне» — на худі
+       порожній квадрат і сторінка не відповідає. Фото з камери (12–48 Мп)
+       на сайті йшло в повному розмірі: полотно такого розміру Safari на
+       iPhone не малює (квадрат без картинки), а повний файл летів у PhotoRoom
+       по 4G довше за 20 с. З 13.10 зменшення було лише в КП; тепер — усім.
+       Поки PhotoRoom працює, клієнт бачить «Прибираємо фон…», а не тишу;
+       не вийшло — картинка як є, без слова про кредити (25.10). */
+    function upNote(text){
+      var n = document.getElementById('pmUpNote');
+      if(!text){ if(n) n.remove(); return; }
+      if(!n){ n = document.createElement('div'); n.id = 'pmUpNote'; n.className = 'pm-upnote'; n.setAttribute('role', 'status'); document.body.appendChild(n); }
+      n.textContent = text;
+    }
+    function pickedFile(raw){
+      return shrinkUpload(raw).then(function(src){
         if(isMgrMode()){
-          bgAsk(src).then(function(v){
+          return bgAsk(src).then(function(v){
             if(!v) return;
             addLogo(src, v.clean);
             if(v.pro){ var last = currentLayers()[currentLayers().length - 1]; if(last){ last.bgPro = true; renderTabPanel(); } }
           });
-          return;
         }
-        removeBgForUpload(src).then(function(clean){ addLogo(src, clean); })
-          .catch(function(){ addLogo(src, null); });
-        });
-      };
-      rd.readAsDataURL(f);
-      e.target.value = '';
-    });
+        upNote('Прибираємо фон…');
+        return removeBgForUpload(src).then(function(clean){ upNote(''); addLogo(src, clean); },
+                                          function(){ upNote(''); addLogo(src, null); });
+      });
+    }
+    window.__lqPickedFile = pickedFile;
 
     document.getElementById('pmTabs').querySelectorAll('.pm-tab').forEach(function(tabBtn){
       tabBtn.addEventListener('click', function(){
