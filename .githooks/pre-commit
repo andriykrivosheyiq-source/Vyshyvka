@@ -294,11 +294,11 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
 fi
 if git diff --cached --name-only | grep -qE '^(loomiq-cards\.js|offer-edit\.html|tests/card-tiers\.mjs)'; then
   node tests/card-tiers.mjs >/tmp/lq-card-tiers.log 2>&1 || {
-    echo "✗ Пороги тиражу таблетками на скачуваних картках зламані (три пороги, вимкнення поля, порівняння) — коміт зупинено. Подробиці: /tmp/lq-card-tiers.log"
+    echo "✗ Пороги тиражу плитками на скачуваних картках зламані (сім плиток, вимкнення поля, порівняння) — коміт зупинено. Подробиці: /tmp/lq-card-tiers.log"
     grep '✗' /tmp/lq-card-tiers.log
     exit 1
   }
-  echo "✓ картки: пороги тиражу таблетками"
+  echo "✓ картки: пороги тиражу плитками"
 fi
 if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|index\.html|tests/recolor-part\.mjs)'; then
   node tests/recolor-part.mjs >/tmp/lq-recolor-part.log 2>&1 || {
