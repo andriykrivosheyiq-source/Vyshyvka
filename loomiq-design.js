@@ -721,7 +721,7 @@
      решта. */
   var STAGE_RANK = { new: 0, design: 1, sketch: 2, client: 3, sketchok: 4, stitchq: 5, stitch: 6, prod: 7 };
   function unitStage(u){
-    var графіка = dzList(u, 'graphic').filter(dzReal), вишивка = dzList(u, 'stitch').filter(dzReal);
+    var графіка = graphicLive(u), вишивка = dzList(u, 'stitch').filter(dzReal);
     /* Позиція без жодного дизайну етапу не має — інакше старе замовлення з
        зайвим рядком одягу відкотилось би в «Нове». Передають тепер лише
        цілим замовленням, тож нової такої позиції посеред роботи не буде. */
@@ -1287,6 +1287,8 @@
                   window.LQDesign.ui.host.readyDesign) || null;
       if(rdOf && !(o && chainAt(job, o) === 'shipped')) jobUnits(job).forEach(function(u){ if(u && u.ready && !u.ready.repeat && !u.ready.link) readySync(u, rdOf(u.ready.id), by); });
     }catch(e){ console.warn('готовий дизайн', e); }
+    /* Зайві індивідуальні рядки при готовому дизайні — в історію (30.10). */
+    jobUnits(job).forEach(function(u){ try{ readyStrayRetire(u, by); }catch(e){} });
     var n = dzAutoStitch(job, by);
     linkSync(job, by);
     return n;
@@ -1405,7 +1407,7 @@
   }
   /* Графіку погоджено саме тут — є що погоджувати, і погоджено все. */
   function graphicDone(u){
-    var g = dzList(u, 'graphic').filter(dzReal);
+    var g = graphicLive(u);
     return !!g.length && g.every(function(d){ return !!d.ok; });
   }
   /* ОДЯГ ПІДТВЕРДЖЕНО — ПРИ ПОГОДЖЕННІ ЕСКІЗУ.
@@ -1969,6 +1971,32 @@
   }
   /* Запис графіки для готового дизайну: створюємо, коли менеджер уперше
      розмістив принт. Чужих (індивідуальних) записів не чіпаємо. */
+  /* ЗАЙВИЙ ІНДИВІДУАЛЬНИЙ РЯДОК ПРИ ГОТОВОМУ ДИЗАЙНІ (30.10, #2000170,
+     #2000201: «фіксація пройшла, а воно на графіці»). Позицію вже передали
+     графічному, а потім поставили готовий дизайн: рядок дизайнера лишався й
+     тримав картку «У графічного дизайнера» без жодної кнопки далі. Такі
+     рядки (не затверджені, не готового дизайну) картку більше не тримають, а
+     при збереженні йдуть в історію позиції (`u.graphicGone`). */
+  function readyStray(u){
+    if(!u || !u.ready) return [];
+    var l = dzList(u, 'graphic');
+    if(!l.some(function(d){ return d.readyMade; })) return [];
+    return l.filter(function(d){ return !d.readyMade && dzReal(d) && !d.ok && d.status !== 'approved'; });
+  }
+  function readyStrayRetire(u, by){
+    var s = readyStray(u);
+    if(!s.length) return 0;
+    var at = nowIso();
+    u.graphicGone = (Array.isArray(u.graphicGone) ? u.graphicGone : []).concat(s.map(function(d){
+      d.gone = { at: at, by: String(by || ''), why: 'готовий дизайн' }; return d; })).slice(-10);
+    u.graphic = u.graphic.filter(function(d){ return s.indexOf(d) < 0; });
+    return s.length;
+  }
+  /* Справжні графічні дизайни позиції, без зайвих при готовому дизайні. */
+  function graphicLive(u){
+    var s = readyStray(u);
+    return dzList(u, 'graphic').filter(function(d){ return dzReal(d) && s.indexOf(d) < 0; });
+  }
   function readyGraphic(u, by){
     var l = dzList(u, 'graphic');
     var d = l.filter(function(x){ return x.readyMade; })[0];
@@ -2474,7 +2502,7 @@
      вся робота піде в кошик. Якщо графічних дизайнів на виробі немає зовсім
      — чекати нема на що. */
   function graphicOk(u){
-    var g = dzList(u, 'graphic').filter(dzReal);
+    var g = graphicLive(u);
     if(!g.length) return true;
     return g.every(function(d){ return !!d.ok; });
   }
@@ -3132,7 +3160,7 @@
     dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, stitchHeal: stitchHeal,
     handMissing: handMissing, kindMissing: kindMissing, unitStage: unitStage,
     prodThread: prodThread, prodSay: prodSay, prodUnseen: prodUnseen, prodSeen: prodSeen, dzHandOver: dzHandOver, dzHandable: dzHandable, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
-    ttnValid: ttnValid, readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
+    ttnValid: ttnValid, readyStray: readyStray, readyStrayRetire: readyStrayRetire, graphicLive: graphicLive, readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -3283,13 +3311,20 @@
   var SEEK = '';
   function seek(){ return SEEK; }
   function seekSet(v){ SEEK = String(v == null ? '' : v).trim(); }
-  function seekHit(c){
+  /* Індекс пар за номером (30.10): пошук по кожній плитці не перебирає всі
+     замовлення заново. */
+  function pairIndex(){
+    var idx = {};
+    pairs().forEach(function(p){ idx[p.o.orderId] = p; });
+    return idx;
+  }
+  function seekHit(c, idx){
     if(!SEEK) return true;
     /* «#2000161» з ґраткою, як на плитці, — теж номер (27.10, телефон цеху). */
     var q = SEEK.toLowerCase().replace(/^#+/, '').trim();
     if(!q) return true;
     var цифри = /^\d+$/.test(q);
-    var p = pairOf(c && c.id);
+    var p = (idx && typeof idx === 'object') ? idx[c && c.id] : pairOf(c && c.id);
     var o = (p && p.o) || {};
     var job = (p && p.job) || {};
     return [c && c.title, c && c.nick, o.orderId, o.name, o.company, o.phone,
@@ -3301,10 +3336,20 @@
         return цифри && s.replace(/\D/g, '').indexOf(q) >= 0;
       });
   }
+  /* ПАРА ЗА НОМЕРОМ — З ІНДЕКСУ НА ЦЕЙ ТАКТ (30.10). `pairOf` кличуть по
+     кілька разів на кожну дію (панель, контекст, кнопки), і кожен виклик
+     перебирав усі пари. Індекс живе один такт подій (setTimeout 0): знімки
+     бази й записи приходять окремими тактами, тож застарілим він не буває. */
+  var PAIR_IDX = null;
   function pairOf(orderId){
-    var l = pairs();
-    for(var i = 0; i < l.length; i++) if(l[i].o.orderId === orderId) return l[i];
-    return null;
+    var p = PAIR_IDX ? PAIR_IDX[orderId] : null;
+    /* Є в індексі й картка відділу та сама — віддаємо; немає (щойно
+       створена в цьому ж такті) чи підмінена — перебудовуємо індекс. */
+    if(p && host.job && host.job(orderId) === p.job) return p;
+    PAIR_IDX = {};
+    pairs().forEach(function(x){ PAIR_IDX[x.o.orderId] = x; });
+    setTimeout(function(){ PAIR_IDX = null; }, 0);
+    return PAIR_IDX[orderId] || null;
   }
 
   /* Доручення на дошку. Виконавцю — тільки свої: чужа робота на власній
@@ -7116,7 +7161,7 @@
     open: function(k){ openKey = k; },
     tabOpen: function(){ return openKey; },
     esc: esc, dt: dt, nameOf: nameOf, say: say, verPic: verPic, dlExt: dlExt, dlFile: dlFile, baseHtml: baseHtml,
-    pairs: pairs, pairsLive: pairsLive, pairOf: pairOf,
+    pairs: pairs, pairsLive: pairsLive, pairOf: pairOf, pairIndex: pairIndex,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
     teamPick: teamPick, teamOpts: teamOpts, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
@@ -7803,7 +7848,7 @@
     var крок = CHAIN_STEP[col] != null ? CHAIN_STEP[col] : 0;
     var out = [];
     var gl = [], sl = [];
-    us.forEach(function(u){ gl = gl.concat(D.dzList(u, 'graphic')); sl = sl.concat(D.dzList(u, 'stitch')); });
+    us.forEach(function(u){ gl = gl.concat(D.graphicLive ? D.graphicLive(u) : D.dzList(u, 'graphic')); sl = sl.concat(D.dzList(u, 'stitch')); });
     var gDone = !!job.approvedVersion || крок >= 1 || (gl.length > 0 && gl.every(function(d){ return d.ok || d.status === 'approved'; }));
     var gWho = (gl.filter(function(d){ return !d.ok && d.status !== 'approved' && d.who; })[0] || {}).who;
     out.push(gDone ? { st:'ok', t:'Графіка' }
@@ -8027,10 +8072,12 @@
   function myDz(job, kind, m){
     var out = [];
     U.unitsOf(job).forEach(function(u){
+      var зайві = kind === 'graphic' && D.readyStray ? D.readyStray(u) : [];
       D.dzList(u, kind).forEach(function(d){
         if(!d.sentAt) return;
         /* Готовий дизайн — без дизайнерів (13.10): на їхніх дошках його немає. */
         if(d.readyMade) return;
+        if(зайві.indexOf(d) >= 0) return;
         if(m && d.who && d.who !== m) return;
         out.push({ u: u, d: d });
       });
@@ -10213,16 +10260,28 @@
   /* Перемальовка лише дошки під пошук (27.10): `.dz-boards` збирається
      наново, шапка з полем пошуку стоїть. false — дошки на екрані немає
      (закупівля, відкрита картка), тоді звичайний render. */
+  /* ДОШКА ПІД ПОШУК — ОДИН РАЗ НА СЕАНС НАБОРУ (30.10, Андрій: «пошук… поки
+     вона знайде, дуже довго»). Доти кожна буква будувала всі плитки наново
+     (етапи, цех, одяг, непрочитані — на кожну картку), а тоді відсіювала.
+     Тепер плитки збираються один раз і далі лише фільтруються; повна
+     перемальовка (render) кеш скидає. */
+  var SEEK_B = null, SEEK_B_MS = 20000;
+  function seekBoard(seat){
+    if(SEEK_B && SEEK_B.seat === seat && Date.now() - SEEK_B.at < SEEK_B_MS) return SEEK_B.b;
+    var b = boardOf(seat);
+    SEEK_B = { seat: seat, b: b, at: Date.now(), idx: U.pairIndex() };
+    return b;
+  }
   function seekSoft(root){
     var bd = root && root.querySelector('.dz-wrap > .dz-boards');
     if(!bd || root.querySelector('.dz-panel:not(.hide)')) return false;
     var seat = U.tab();
     var b;
-    try{ b = boardOf(seat); }catch(e){ return false; }
+    try{ b = seekBoard(seat); }catch(e){ return false; }
     if(!b || !b.steps) return false;
-    if(U.seek && U.seek()) b = { steps: b.steps, cards: b.cards.filter(U.seekHit) };
+    if(U.seek && U.seek()){ var idx = SEEK_B ? SEEK_B.idx : U.pairIndex(); b = { steps: b.steps, cards: b.cards.filter(function(c){ return U.seekHit(c, idx); }) }; }
     bd.innerHTML = U.boardHtml(b.steps, b.cards, mcolOf(seat, b));
-    root.__lqHtml = '';
+    root.__lqHtml = ''; root.__lqTop = ''; root.__lqBoards = bd.innerHTML; root.__lqSeat = seat;
     var lab = root.querySelector('.dz-seek'), x = lab && lab.querySelector('.dz-seek-x');
     if(lab && U.seek() && !x){
       x = document.createElement('button'); x.type = 'button'; x.className = 'dz-seek-x'; x.title = 'Показати всі'; x.textContent = '×';
@@ -10352,11 +10411,12 @@
     if(!U.ROLES.some(function(r){ return r.key === seat; })) seat = boss ? 'acct' : 'graphic';
     if(seat !== U.tab()) U.setTab(seat);
     var свої = boss ? U.ROLES : U.ROLES.filter(function(r){ return крісла.indexOf(r.key) >= 0; });
+    SEEK_B = null;
     var b = boardOf(seat);
     /* Фільтр накладаємо тут, на готові картки: колонки лишаються на місці
        разом із лічильниками, просто в них видно те, що шукали. Прибирати
        порожні колонки не можна — дошка перестала б бути тією самою. */
-    if(U.seek && U.seek()) b = { steps: b.steps, cards: b.cards.filter(U.seekHit) };
+    if(U.seek && U.seek()){ var _idx = U.pairIndex(); b = { steps: b.steps, cards: b.cards.filter(function(c){ return U.seekHit(c, _idx); }) }; }
     var openId = U.tabOpen ? U.tabOpen() : '';
     var cur = U.ROLES.filter(function(r){ return r.key === seat; })[0] || U.ROLES[0];
     /* ШАПКА ВІДДІЛУ: дія ліворуч, пошук посередині, роль праворуч.
@@ -10420,13 +10480,16 @@
          тільки власнику. */
       : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? newBtnHtml() : '') +
         (seekHtml(шук) + архів + графік + перемикач);
+    var _top = '<div class="dz-top">' + headHtml + '</div>';
+    var _boards = seat === 'supply' ? '' : U.boardHtml(b.steps, b.cards, mcolOf(seat, b));
+    root.__lqTop = _top; root.__lqBoards = _boards; root.__lqSeat = seat;
     var _full =
-      '<div class="dz-top">' + headHtml + '</div>' +
+      _top +
       /* Закупівля — без канбана: список «треба замовити», оформлені
          замовлення й склад. Андрій: «канбана тут немає». */
       (seat === 'supply' ? buyScreenHtml() :
       '<div class="dz-wrap">' +
-        '<div class="dz-boards">' + U.boardHtml(b.steps, b.cards, mcolOf(seat, b)) + '</div>' +
+        '<div class="dz-boards">' + _boards + '</div>' +
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
           (openId ? probBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
@@ -10472,6 +10535,54 @@
     else { delete BOARD_OPEN_X[_key]; BOARD_MOVED[_key] = false; }
   }
   var LAST_ON = '';
+  /* ВІДКРИТИ КАРТКУ — ЛИШЕ КАРТКА (30.10, Андрій: «перелистання між
+     замовленнями дуже висне»). Доти клік по плитці перемальовував усе: усі
+     плитки всіх колонок наново, і лише потім картку. Тепер, коли дошка вже
+     на екрані, будується лише панель картки, плитці ставиться позначка
+     «відкрита», решта дошки стоїть. Нема дошки чи що не так — звичайний
+     render. */
+  function openFast(root, id){
+    id = String(id || '');
+    if(!root || !id || SOLO) return false;
+    var bd = root.querySelector('.dz-wrap > .dz-boards'), pn = root.querySelector('#dzPanel');
+    if(!bd || !pn) return false;
+    var seat = U.tab();
+    var _was = !!root.querySelector('.dz-panel:not(.hide)');
+    var _key = 'b:' + seat;
+    if(!_was){
+      var _cols = {};
+      root.querySelectorAll('.dz-col[data-col] > .dz-col-b').forEach(function(b){ _cols[b.parentNode.getAttribute('data-col')] = b.scrollTop; });
+      BOARD_AT[_key] = { x: bd.scrollLeft, cols: _cols }; BOARD_MOVED[_key] = false;
+    }
+    try{ if(host().draftDrop) host().draftDrop(id); }catch(e){}
+    U.open(id);
+    var html;
+    try{ html = probBarHtml(id) + panelFor(seat, id); }catch(e){ console.warn('картка', e); return false; }
+    if(!html) return false;
+    pn.innerHTML = html;
+    pn.classList.remove('hide');
+    root.querySelectorAll('.dz-card.on').forEach(function(c){ c.classList.remove('on'); });
+    var on = null;
+    root.querySelectorAll('.dz-card[data-open]').forEach(function(c){ if(c.getAttribute('data-open') === id){ c.classList.add('on'); on = on || c; } });
+    /* Той самий рядок, що зібрав би повний render: тихе оновлення без змін
+       (no-flicker) побачить «те саме» й картку не перемалює. Дошка з
+       останнього повного малювання, позначка «on» переставлена в рядку. */
+    var bs = root.__lqBoards;
+    if(bs && root.__lqTop && root.__lqSeat === seat){
+      bs = bs.split('class="dz-card on" data-open="').join('class="dz-card" data-open="')
+             .split('class="dz-card" data-open="' + esc(id) + '"').join('class="dz-card on" data-open="' + esc(id) + '"');
+      root.__lqBoards = bs;
+      root.__lqHtml = root.__lqTop + '<div class="dz-wrap"><div class="dz-boards">' + bs + '</div>' +
+        '<aside class="dz-panel" id="dzPanel">' + html + '</aside></div>';
+    } else root.__lqHtml = '';
+    wire(root);
+    try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
+    try{ document.body.classList.add('dz-panel-on'); }catch(e){}
+    if(on && on.scrollIntoView && id !== LAST_ON){ try{ on.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){} }
+    LAST_ON = id;
+    BOARD_OPEN_X[_key] = bd.scrollLeft;
+    return true;
+  }
   /* Панель доручення. Усе потрібне для роботи лежить ТУТ: що зробити, від
      кого, до якого числа, чим закрити й де перепитати. Саме тому виконавцю
      не треба відкривати картку замовлення — і не треба роздавати доступ до
@@ -11250,10 +11361,12 @@
   window.LQDesign.ui.panelFor = panelFor;
   window.LQDesign.ui.save = save;
   window.LQDesign.ui.jobApply = jobApply;
+  window.LQDesign.ui.openFast = openFast;
   window.LQDesign.ui.can = can;
   window.LQDesign.ui.wireHook = function(f){ wireExtra = f; };
   var wireExtra = null;
 
+  var seekTimer = 0, SEEK_WAIT_MS = 150;
   function wire(root){
     /* Перемикач ролі. Він НЕ дає прав: дії й далі виконуються від імені
        того, хто зайшов, і в історію пишеться саме він. Це погляд, а не
@@ -11268,7 +11381,13 @@
        далі й не помічає, що між літерами екран перебудувався. */
     var seekEl = root.querySelector('[data-seek]');
     if(seekEl){
+      /* Пауза між буквами (30.10): дошка перебудовується після останньої
+         набраної, а не на кожну. */
       seekEl.oninput = function(){
+        clearTimeout(seekTimer);
+        seekTimer = setTimeout(function(){ seekApply(root, seekEl); }, SEEK_WAIT_MS);
+      };
+      var seekApply = function(root, seekEl){
         U.seekSet(seekEl.value);
         /* ПОЛЕ ЛИШАЄТЬСЯ ТИМ САМИМ (27.10, телефон цеху: «пише цифри, а
            клавіатура перекидає на букви»). Перемальовуємо лише дошку й
@@ -11283,7 +11402,7 @@
       };
     }
     root.querySelectorAll('[data-open]').forEach(function(b){
-      b.onclick = function(){ U.open(b.dataset.open); render(root); };
+      b.onclick = function(){ if(!openFast(root, b.dataset.open)){ U.open(b.dataset.open); render(root); } };
     });
     /* Вкладки колонок (телефон): перемикає лише людина. */
     root.querySelectorAll('[data-ctab]').forEach(function(b){

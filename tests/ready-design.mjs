@@ -506,6 +506,38 @@ const службове = await p.evaluate(() => {
 console.log('  ' + JSON.stringify(службове));
 ok(службове.n === 0, 'службові події готового дизайну («оновлено в бібліотеці») не дають червоного «1» на картці', JSON.stringify(службове));
 
+console.log('═══ 9. ІНДИВІДУАЛЬНИЙ РЯДОК ПРИ ГОТОВОМУ ДИЗАЙНІ НЕ ТРИМАЄ КАРТКУ (30.10, #2000170) ═══');
+/* Позицію передали графічному, а потім поставили готовий дизайн: рядок
+   дизайнера лишався і тримав картку «У графічного дизайнера» без кнопки далі. */
+const зайвий = await p.evaluate(() => {
+  const D = window.LQDesign, U = D.ui;
+  const j = designJobMake('2000103'); const o = orders.find(x => x.orderId === '2000103');
+  const u = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1 });
+  j.units = [u];
+  const di = D.dzNew(); D.dzAttach(di, 'test@loomiq', 'mgr@loomiq'); D.dzSend(di, 'mgr@loomiq'); D.dzTake(di, 'test@loomiq');
+  D.dzList(u, 'graphic').push(di);
+  const до = D.chainAt(j, o);
+  D.readyAttach(u, U.host.readyDesign('rd2'));
+  const dg = D.readyGraphic(u, 'mgr@loomiq');
+  D.dzVer(dg, 'mgr@loomiq', [{ name:'кіт.png', url:'w', role:'work' }], '', null, 'acct');
+  D.dzOk(dg, 'mgr@loomiq', 'client', 1); D.clothConfirm(u, 'mgr@loomiq');
+  const стан = D.chainAt(j, o), ok1 = D.graphicOk(u), зайві = D.readyStray(u).length;
+  const етап = U.chainStageMarks ? '' : '';
+  const мої = (function(){ U.setTab('graphic'); U.open(''); U.render(document.getElementById('dzRoot'));
+    if(U.tab() !== 'graphic') return false;   // дошку графічного тут не показують — перевірка нижче на даних
+    return !!document.querySelector('#dzRoot .dz-col [data-open="2000103"]'); })();
+  D.dzAutoQueue(j, o, 'mgr@loomiq');
+  const після = { граф: D.dzList(u, 'graphic').map(d => d.readyMade ? 'готовий' : d.who), gone: (u.graphicGone || []).map(d => d.who + ':' + ((d.gone || {}).why || '')),
+                  stitch: D.dzList(u, 'stitch').length, стан: D.chainAt(j, o) };
+  return { до, стан, ok1, зайві, мої, після };
+});
+console.log('  ' + JSON.stringify(зайвий));
+ok(зайвий.до === 'design' && зайвий.стан !== 'design' && зайвий.ok1 && зайвий.зайві === 1,
+  'до готового дизайну — «У графічного»; з готовим — зайвий рядок картку не тримає, графіка погоджена', JSON.stringify(зайвий));
+ok(!зайвий.мої, 'на дошці графічного дизайнера зайвий рядок не висить', JSON.stringify(зайвий));
+ok(зайвий.після.граф.join() === 'готовий' && зайвий.після.gone.join() === 'test@loomiq:готовий дизайн' && зайвий.після.stitch === 1 && зайвий.після.стан !== 'design',
+  'при збереженні зайвий рядок пішов в історію позиції (graphicGone), лишився готовий дизайн, вишивка готова', JSON.stringify(зайвий.після));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'усе зійшлось');

@@ -259,7 +259,11 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   відділ: `ship2Live`/`ship2Ttn`/`npStageOf`, `npStage` за відстаючою,
   `regMake` з обома, блок `блокТТН(p, n)` у `shipHtml`, `.dz-ship-two`,
   зебра `ttn: 'a,b'`; ядро: `ttnsOf` + `codOfTtn`, Звірка рівняє суму
-  контролів. `tests/ship-two.mjs`, `money-core` §14.
+  контролів. `tests/ship-two.mjs`, `money-core` §14. 30.10: дошка не висне
+  (`designJobOf` без перебору, `pairOf` з `PAIR_IDX` на такт, `seekBoard`/
+  `SEEK_B`, `SEEK_WAIT_MS`, `pairIndex`, `openFast` + `__lqTop/__lqBoards`);
+  `readyStray`/`readyStrayRetire`/`graphicLive` (#2000170). `tests/board-fast.mjs`,
+  `ready-design` §9.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото

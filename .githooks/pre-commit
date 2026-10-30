@@ -340,6 +340,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   }
   echo "✓ підписи на картинках ТЗ"
 fi
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/board-fast\.mjs)'; then
+  node tests/board-fast.mjs >/tmp/lq-board-fast.log 2>&1 || {
+    echo "✗ Дошка відділу знову висне (пошук перебудовує все на кожну букву, відкриття картки перемальовує дошку, картка за номером перебором) — коміт зупинено. Подробиці: /tmp/lq-board-fast.log"
+    grep '✗' /tmp/lq-board-fast.log
+    exit 1
+  }
+  echo "✓ дошка відділу не висне"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/ttn-manual\.mjs)'; then
   node tests/ttn-manual.mjs >/tmp/lq-ttn-manual.log 2>&1 || {
     echo "✗ Поле «номер ТТН руками» знову бере будь-який текст або «✎ Змінити» не працює — коміт зупинено. Подробиці: /tmp/lq-ttn-manual.log"
