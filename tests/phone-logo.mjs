@@ -93,6 +93,28 @@ console.log('═══ 1. IPHONE ═══');
 }
 
 console.log('');
+console.log('═══ 1б. КЛІЄНТ НА IPHONE (30.10: «після прикріплення файлу висне») ═══');
+{
+  const { p, ctx } = await відкрити(IPHONE, { width:390, height:844 });
+  const фото = await камера(p);
+  await p.evaluate(async () => { await window.__openProductModal('tee'); await new Promise(r => setTimeout(r, 600)); });
+  const файл = Buffer.from(фото.split(',')[1], 'base64');
+  const t0 = Date.now();
+  /* Без режиму менеджера: вікна фону немає, PhotoRoom (адреси воркера в тесті немає) — картинка як є. */
+  const нотатка = p.waitForSelector('#pmUpNote', { timeout: 4000 }).then(() => true, () => false);
+  await p.setInputFiles('#pmFileInput', { name:'IMG_0002.jpg', mimeType:'image/jpeg', buffer: файл });
+  const булаНотатка = await нотатка;
+  await p.waitForTimeout(2500);
+  const стан = await p.evaluate(() => ({ вікно: !!document.querySelector('#pmBgAsk'), нотатка: !!document.getElementById('pmUpNote'),
+    шар: (() => { const im = [...document.querySelectorAll('[data-layer-id] img')].slice(-1)[0]; return im ? im.src : null; })() }));
+  const дК = стан.шар && await розмір(p, стан.шар);
+  console.log('  ' + JSON.stringify({ булаНотатка, вікно: стан.вікно, нотаткаЛишилась: стан.нотатка, дК, мс: Date.now() - t0 }));
+  ok(!стан.вікно && дК && Math.max(...дК) <= 2400, 'клієнт: без вікна фону, фото 6000 × 4000 на виробі вже ≤ 2400 px — квадрата без картинки немає', 'шар: ' + JSON.stringify(дК));
+  ok(булаНотатка && !стан.нотатка, 'поки прибирався фон — напис «Прибираємо фон…», після — зник', JSON.stringify({ булаНотатка, лишилась: стан.нотатка }));
+  await ctx.close();
+}
+
+console.log('');
 console.log('═══ 2. КОМПʼЮТЕР ═══');
 {
   const { p, ctx } = await відкрити('', { width:1400, height:1000 });
