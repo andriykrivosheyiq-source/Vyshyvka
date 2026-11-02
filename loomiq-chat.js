@@ -1530,7 +1530,8 @@ function crmPicsAdd(o, urls, state){
 }
 /* Надіслане — у картку (з адресами хмари), щоб пережило перезавантаження. */
 function crmPicsKeep(o, e){
-  const rec = { k: e.k, at: e.at, urls: e.urls, by: e.by, state: 'sent', t: e.t || '', pre: (e.pre || []).slice(-20), chat: e.chat || String(o.crmChatId || '') };
+  const rec = { k: e.k, at: e.at, urls: e.urls, by: e.by, state: 'sent', t: e.t || '', pre: (e.pre || []).slice(-20), chat: e.chat || String(o.crmChatId || ''),
+                sentMs: +e.sentMs || 0, way: e.way || '', meta: e.meta || null };
   const live = crmLive(o);
   [o, live].filter((x, i, a) => a.indexOf(x) === i).forEach(x => {
     const l = Array.isArray(x.crmPicsOut) ? x.crmPicsOut : (x.crmPicsOut = []);
@@ -1597,8 +1598,13 @@ function crmPicsMerge(o, list){
   });
   const out = list.filter(m => !(m && m.local));
   лишити.forEach(e => {
+    /* ✓ — Sitniks прийняв; за дві хвилини без повернення в переписку —
+       жовте «перевірте у клієнта»; червоне — Sitniks відмовив (02.11). */
+    const вік = e.sentMs ? Date.now() - e.sentMs : 0;
+    const ob = e.state === 'pending' ? undefined : e.state === 'failed' ? 'failed' : (вік > crmPicsLateMs() ? 'late' : 'sent');
     const msg = { text: '', files: (e.urls || []).map(u => ({ url: u, kind: 'img' })), mine: true, by: e.by || '',
-                  at: e.state === 'pending' ? '' : e.at, pending: e.state === 'pending', local: e.k, lt: e.t || '' };
+                  at: e.state === 'pending' ? '' : e.at, pending: e.state === 'pending', local: e.k, lt: e.t || '',
+                  ob, obErr: e.err || '', obId: e.k, obO: o.id, obPic: true, picMeta: e.meta || null, picWay: e.way || '' };
     const te = crmTime(e.at);
     const at = te ? out.findIndex(m => m && !m.local && crmTime(m.at) > te) : -1;
     if(at >= 0) out.splice(at, 0, msg); else out.push(msg);
@@ -1739,21 +1745,12 @@ const CRM_PIC_WAYS = [
      пʼятої спроби Sitniks почав віддавати 429. */
   { id:'attach-url',   many:true,  json:u => ({ attachments:u }) },
   { id:'attach-text',  many:true,  json:u => ({ text:'', attachments:u }) },
-  { id:'attach-type',  many:true,  json:u => ({ messageType:'image', attachments:u }) },
-  /* Ці дві форми Sitniks ПРИЙМАВ — і не робив нічого: вкладення в стрічці
-     не зʼявлялось, а клієнту летіло порожнє повідомлення. Тому їх тут
-     більше немає: спосіб, який мовчки шле клієнту пустоту, гірший за
-     спосіб, який чесно відмовляє. */
-  { id:'files',       many:true,  json:u => ({ files:u }) },
-  { id:'media',       many:true,  json:u => ({ media:u }) },
-  { id:'imageUrl',    many:false, json:u => ({ imageUrl:u[0] }) },
-  { id:'photo',       many:false, json:u => ({ photo:u[0] }) },
-  // Те саме, але файлом, а не адресою: на випадок, якщо адресу він бере
-  // лише зі свого сховища
-  { id:'form:file',     many:true, form:'file',  path:id => '/chats/' + id + '/messages' },
-  { id:'form:image',    many:true, form:'image', path:id => '/chats/' + id + '/messages' },
-  { id:'form:msg-file', many:true, form:'file',  path:id => '/chats/' + id + '/messages/file' },
-  { id:'form:attach',   many:true, form:'file',  path:id => '/chats/' + id + '/attachments' }
+  { id:'attach-type',  many:true,  json:u => ({ messageType:'image', attachments:u }) }
+  /* ЗАПАСНИХ СПОСОБІВ БІЛЬШЕ НЕМАЄ (02.11, Андрій: «текст доходить, а
+     картинка ні»). `files`, `media`, `imageUrl`, `photo` і форми з файлом
+     Sitniks приймав і давав номер — а в Instagram не передавав нічого:
+     у нас ✓✓, у клієнта порожньо. Спосіб, що мовчки шле пустоту, гірший
+     за чесну відмову: не прийняв полем attachments — червоне одразу. */
 ];
 /* Sitniks рахує запити. Перебір бив у нього чергою без пауз, і після
    пʼятої спроби він почав відповідати 429 — чотирнадцять способів із
@@ -1766,6 +1763,32 @@ const CRM_PIC_WAYS = [
    пів хвилини — і менеджер устиг би вирішити, що адмінка зависла. */
 const CRM_PIC_GAP = 1000;
 const CRM_PIC_COOL = 4000;
+/* КАРТИНКА В INSTAGRAM — JPEG ДО 2000 px (02.11). Макет чи картка КП летіли
+   як є: повнорозмірний PNG на кілька мегабайтів. Instagram такі мовчки
+   відкидає (ліміт 8 МБ, прозорість не показує), Sitniks про це не каже, а
+   текст поруч доходить. Тому все, що йде в Instagram, спершу стискається:
+   довша сторона 2000 px, JPEG 0.85 на білому. */
+const CRM_PIC_MAX_PX = 2000;
+/* Sitniks не повернув картинку в переписку за дві хвилини — жовте
+   «перевірте у клієнта» (не червоне: свої вкладення він повертає не завжди,
+   навіть коли клієнт їх отримав, і «не дійшло» було б брехнею з дублем). */
+const CRM_PICS_LATE_MS = 120000;
+function crmPicsLateMs(){ return (+window.LQ_PICS_LATE_MS > 0) ? +window.LQ_PICS_LATE_MS : CRM_PICS_LATE_MS; }
+/* Адреса з хмари без файлу на руках (картка дизайну → «Надіслати клієнту»):
+   Cloudinary стискає сам, якщо попросити в адресі. */
+function crmPicUrlIg(u){
+  u = String(u || '');
+  const m = u.match(/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/);
+  if(!m) return u;
+  const rest = m[2];
+  if(/^[a-z]{1,2}_[^/]*\//.test(rest)) return u;                 // перетворення вже є
+  return m[1] + 'w_' + CRM_PIC_MAX_PX + ',h_' + CRM_PIC_MAX_PX + ',c_limit,f_jpg,q_85/' + rest;
+}
+function crmPicMetaTxt(meta){
+  if(!meta) return '';
+  const kb = meta.bytes ? Math.round(meta.bytes / 1024) + ' КБ' : '';
+  return [String(meta.type || '').replace('image/', '').toUpperCase(), (meta.w && meta.h) ? meta.w + '×' + meta.h : '', kb].filter(Boolean).join(' · ');
+}
 /* ПАЧКОЮ, А НЕ ПО ОДНІЙ.
 
    У Direct кілька фото в одному повідомленні йдуть пачкою — одним блоком,
@@ -1901,12 +1924,60 @@ function crmChatIdOf(o){
   const st = crmChat[o && o.id];
   return String((st && st.chatId) || (o && o.crmChatId) || '');
 }
+/* ПО ОДНІЙ КАРТИНЦІ НА ПОВІДОМЛЕННЯ (02.11). Андрій: «після КП тиснемо
+   скрипт із картками — і не завжди вона надсилалась». Три картки йшли
+   одним повідомленням зі списком адрес; Instagram бере одну картинку на
+   повідомлення, і що з пачки реально пішло, ніхто не знав. Тепер кожна
+   картинка — своє повідомлення зі своїм номером, своєю ✓ і своїм
+   «Повторити». Між ними пауза, щоб Sitniks не обмежив частоту. */
+function crmPicsSplit(o, urls, local){
+  if(urls.length === 1){
+    const e = local || crmPicsAdd(o, urls, 'pending');
+    e.urls = urls.slice();
+    return [e];
+  }
+  const pre = local ? (local.pre || []).slice() : null;
+  if(local) crmPicsDrop(o, local.k);
+  const out = urls.map(u => { const e = crmPicsAdd(o, [u], 'pending'); if(pre) e.pre = pre.slice(); return e; });
+  crmPicsShow(o);
+  return out;
+}
 async function crmSendPic(o, url, blob, local){
   const chatId = crmChatIdOf(o);
   if(!chatId) throw new Error('розмову не привʼязано');
   const st = crmChat[o.id] || { chatId };
-  const urls = crmPicList(url), blobs = crmPicList(blob);
+  const urls = crmPicList(url).map(crmPicUrlIg), blobs = crmPicList(blob);
   if(!urls.length) throw new Error('немає що надсилати');
+  crmPicLog = [];
+  const entries = crmPicsSplit(o, urls, local);
+  let way = '';
+  for(let i = 0; i < urls.length; i++){
+    if(i) await crmWait(CRM_PIC_GAP);
+    const e = entries[i];
+    try{ way = await crmSendPicOne(o, st, urls[i], blobs[i] || null, e); }
+    catch(err){
+      const why = String((err && err.message) || err || 'відмова').slice(0, 160);
+      e.state = 'failed'; e.err = why;
+      /* Немає звʼязку чи Sitniks обмежив частоту — решту не шлемо: нічого
+         не зміниться. Перша картинка — старий шлях: усе назад у смужку. */
+      if(!err || !err.status || err.status === 429){
+        if(i === 0){ entries.forEach(x => crmPicsDrop(o, x.k)); crmPicsShow(o); throw err; }
+        for(let j = i + 1; j < urls.length; j++){ entries[j].state = 'failed'; entries[j].err = 'не надсилали: ' + why; }
+        crmPicsShow(o);
+        return way;
+      }
+      crmPicsShow(o);
+    }
+  }
+  if(entries.every(x => x.state === 'failed')){
+    entries.forEach(x => crmPicsDrop(o, x.k)); crmPicsShow(o);
+    const err = new Error(entries[0].err || 'Sitniks не прийняв картинку');
+    err.log = crmPicLog; err.status = 400;
+    throw err;
+  }
+  return way;
+}
+async function crmSendPicOne(o, st, u, b, e){
   /* ПЕРЕВІРЕНИЙ СПОСІБ — ЗАВЖДИ ПЕРШИМ (15.10). Доти першим ішов
      «запамʼятований», а запамʼятовувався будь-який, що відповів 200. 14.10
      ліміт 20 с обірвав `attach-url`, перебір дійшов до способу, який Sitniks
@@ -1914,10 +1985,9 @@ async function crmSendPic(o, url, blob, local){
      ✓, а клієнт їх не бачив. Тепер `attach-url` першим завжди, а запамʼятати
      інший не можна. */
   const known = 'attach-url';
-  let ways = CRM_PIC_WAYS.filter(w => w.many || urls.length === 1);
+  let ways = CRM_PIC_WAYS.slice();
   const k = ways.findIndex(w => w.id === known);
-  if(k > 0){ ways = ways.slice(); ways.unshift(ways.splice(k, 1)[0]); }
-  crmPicLog = [];
+  if(k > 0){ ways.unshift(ways.splice(k, 1)[0]); }
   for(let i = 0; i < ways.length; i++){
     const w = ways[i];
     /* Пауза перед кожною наступною спробою: Sitniks рахує запити, і черга
@@ -1925,52 +1995,63 @@ async function crmSendPic(o, url, blob, local){
     if(i) await crmWait(CRM_PIC_GAP);
     let res = null, ok = false;
     for(let attempt = 0; attempt < 2 && !ok; attempt++){
-      try{ res = await crmPicTry(w, st.chatId, urls, blobs); ok = true; }
-      catch(e){
-        /* 429 — це не «спосіб не годиться», а «зачасто питаємо». Чекаємо
-           довше й пробуємо ЦЕЙ САМИЙ спосіб ще раз; не допоміг і вдруге —
-           зупиняємо перебір увесь, бо далі однаково відмовлятиме кожен. */
+      try{ res = await crmPicTry(w, st.chatId, [u], b ? [b] : []); ok = true; }
+      catch(err){
         /* Не відповів / обірвався звʼязок — Sitniks міг картинку вже
            прийняти. Перебирати інші способи тоді не можна: клієнт отримав
            би її двічі. Кажемо чесно й зупиняємось. */
-        if(e && !e.status){
-          crmPicLog.push(w.id + ' → ' + (e.message || 'немає відповіді'));
-          const stop = new Error((e.message || 'Sitniks не відповів') + ' — перевірте переписку, перш ніж надсилати ще раз');
+        if(err && !err.status){
+          crmPicLog.push(w.id + ' → ' + (err.message || 'немає відповіді'));
+          const stop = new Error((err.message || 'Sitniks не відповів') + ' — перевірте переписку, перш ніж надсилати ще раз');
           stop.log = crmPicLog; stop.status = 0;
           throw stop;
         }
-        if(e && e.status === 429){
+        /* 429 — це не «спосіб не годиться», а «зачасто питаємо». Чекаємо
+           довше й пробуємо ЦЕЙ САМИЙ спосіб ще раз; не допоміг і вдруге —
+           зупиняємо перебір увесь, бо далі однаково відмовлятиме кожен. */
+        if(err && err.status === 429){
           if(attempt === 0){ await crmWait(CRM_PIC_COOL); continue; }
           crmPicLog.push(w.id + ' → Sitniks обмежив частоту запитів');
           const stop = new Error('Sitniks обмежив частоту запитів — зачекайте хвилину й спробуйте ще раз');
           stop.log = crmPicLog; stop.status = 429;
           throw stop;
         }
-        crmPicLog.push(w.id + ' → ' + (e.message || 'відмова'));
+        crmPicLog.push(w.id + ' → ' + (err.message || 'відмова'));
       }
     }
     if(!ok) continue;
     crmPicLog.push(w.id + ' → ПРИЙНЯВ');
     crmFreshNow();
-    /* Не той, що перевірений, — у журнал, але НЕ запамʼятовуємо. */
     if(w.id !== known) console.warn('Sitniks: фото прийняв запасний спосіб ' + w.id + ' — перевірте, чи дійшло клієнту');
     /* Чим упізнати цю картинку в стрічці: відповідь тримає номер
        створеного повідомлення. Адреси Cloudinary тут марні — Sitniks їх не
        переказує (див. crmOutOwn). */
     const mid = crmOutSent(o, res, true);
-    /* Фото — у стрічку одразу, не чекаючи, поки Sitniks його поверне. */
     const rec = (crmOutList(o) || []).slice(-1)[0];
-    const e = local || crmPicsAdd(o, urls, 'pending');
-    e.state = 'sent'; e.urls = urls.slice(0, 10); e.t = (rec && rec.t) || (mid ? '#' + mid : '');
+    e.state = 'sent'; e.err = ''; e.urls = [u]; e.t = (rec && rec.t) || (mid ? '#' + mid : '');
     e.at = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    e.sentMs = Date.now(); e.way = w.id;
+    if(b && b.lqMeta) e.meta = b.lqMeta;
     crmPicsKeep(o, e);
     crmPicsShow(o);
     return w.id;
   }
   console.warn('Sitniks: жоден спосіб надіслати картинку не спрацював\n' + crmPicLog.join('\n'));
-  const err = new Error('Sitniks не прийняв картинку жодним із ' + ways.length + ' способів');
-  err.log = crmPicLog;
+  const err = new Error('Sitniks не прийняв картинку (' + ways.length + ' спроби)');
+  err.log = crmPicLog; err.status = 400;
   throw err;
+}
+/* Повторити одну картинку з її бульбашки (02.11): той самий файл з хмари,
+   нове повідомлення, стара бульбашка — геть. */
+async function crmPicRetry(o, e){
+  if(!e || e.state === 'pending') return;
+  const urls = (e.urls || []).slice(0, 1);
+  crmPicsDrop(o, e.k);
+  const fresh = crmPicsAdd(o, urls, 'pending');
+  fresh.meta = e.meta || null; fresh.pre = (e.pre || []).slice();
+  crmPicsShow(o);
+  try{ await crmSendPic(o, urls, [], fresh); }
+  catch(err){ toast('Не надіслалось: ' + String((err && err.message) || err)); }
 }
 /* ══════════ ЧЕРГА ВІДПРАВЛЕНОГО — ЯК У TELEGRAM (14.10) ══════════
 
@@ -2032,11 +2113,13 @@ function obVisible(o, kind){
 }
 async function obRetry(o, id){
   const x = obList(o).filter(y => y.id === id)[0];
-  if(!x || x.state === 'pending') return;
+  if(!x){ const e = crmPicsAll(o).filter(y => y.k === id)[0]; return e ? crmPicRetry(o, e) : undefined; }
+  if(x.state === 'pending') return;
   if(x.kind === 'tg') return tgSend(o, x.text, '', x);
   return crmSend(o, x.text, x);
 }
 function obDrop(o, id){
+  if(!obList(o).some(y => y.id === id)){ crmPicsDrop(o, id); crmPicsShow(o); return; }
   chatOutbox[o.id] = obList(o).filter(y => y.id !== id);
   obPaint(o);
 }
@@ -3065,13 +3148,17 @@ function chatMsgs(o, kind){
        16.10). Доставленим вважаємо, коли Sitniks дав повідомленню номер
        (воно є в його розмові й пішло в Instagram) або коли клієнт уже
        написав після нього. */
-    const дійшло = !!(m.local && !m.pending &&
+    /* КАРТИНКА — ✓✓ ЛИШЕ КОЛИ ПОВЕРНУЛАСЬ (02.11, Андрій: «показує, що
+       надіслано, а по факту не доходить»). Номер від Sitniks означає лише
+       «прийняв», не «передав в Instagram». Текст — як доти. */
+    const дійшло = !!(m.local && !m.pending && !m.obPic &&
       (String(m.lt || '').charAt(0) === '#' ||
        msgs.slice(i + 1).some(x => x && !x.local && !x.mine && !x.gone)));
     return {
       at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
       pending: !!m.pending, files: m.files || [], srv: !m.local || дійшло,
-      ob: (m.local && !m.pending && !дійшло) ? 'sent' : undefined
+      ob: m.ob || ((m.local && !m.pending && !дійшло) ? 'sent' : undefined),
+      obErr: m.obErr, obId: m.obId, obO: m.obO, obPic: !!m.obPic, picMeta: m.picMeta || null, picWay: m.picWay || ''
     };
   }).concat(черга);
 }
@@ -3347,10 +3434,13 @@ function chatRowsHtml(msgs){
           ? `<div class="od-crm-at ob-fail">не надіслано${m.obErr ? ' · ' + escapeHtml(String(m.obErr).slice(0, 90)) : ''}
                <button type="button" class="ob-b" data-ob-retry="${escapeHtml(m.obId)}" data-ob-o="${escapeHtml(m.obO)}">↻ Повторити</button>
                <button type="button" class="ob-b" data-ob-drop="${escapeHtml(m.obId)}" data-ob-o="${escapeHtml(m.obO)}">Прибрати</button></div>`
-          : (time || sign || m.pending || m.ob) ? `<div class="od-crm-at"${
+          : (time || sign || m.pending || m.ob) ? `<div class="od-crm-at${m.ob === 'late' ? ' ob-late' : ''}"${
           full ? ` title="${escapeHtml(full)}"` : ''}>${
           m.pending ? '<span class="ob-t" title="Надсилаю…">⏱</span> надсилаю…' + (sign ? ' · ' + escapeHtml(sign) : '')
-          : m.ob === 'sent' ? escapeHtml([crmKyiv(m.at).slice(11, 16), sign].filter(Boolean).join(' · ')) + ' <span class="ob-t" title="Sitniks прийняв — чекаємо, коли з\'явиться в переписці">✓</span>'
+          : m.ob === 'late' ? `${escapeHtml([crmKyiv(m.at).slice(11, 16), sign].filter(Boolean).join(' · '))} <span class="ob-t" title="${escapeHtml(crmPicMetaTxt(m.picMeta))}">✓</span> Sitniks не показує цю картинку в переписці — перевірте у клієнта
+               <button type="button" class="ob-b" data-ob-retry="${escapeHtml(m.obId)}" data-ob-o="${escapeHtml(m.obO)}">↻ Повторити</button>
+               <button type="button" class="ob-b" data-ob-drop="${escapeHtml(m.obId)}" data-ob-o="${escapeHtml(m.obO)}">Прибрати</button>`
+          : m.ob === 'sent' ? escapeHtml([crmKyiv(m.at).slice(11, 16), sign].filter(Boolean).join(' · ')) + ' <span class="ob-t" title="' + escapeHtml(m.obPic && m.picMeta ? 'Sitniks прийняв (' + crmPicMetaTxt(m.picMeta) + ') — чекаємо, коли зʼявиться в переписці' : 'Sitniks прийняв — чекаємо, коли з\'явиться в переписці') + '">✓</span>'
                     : escapeHtml([time, sign].filter(Boolean).join(' · ')) +
                       (m.mine && m.srv && !m.gone ? ' <span class="ob-t ob-2" title="У переписці клієнта">✓✓</span>' : '')}</div>` : ''}
       </div>`;
@@ -4966,16 +5056,23 @@ async function chatSend(o, text){
    формат стає тим, який приймач розуміє. Картки малюються в jpeg і цього
    рядка навіть не помічають. */
 function picSendable(blob){
-  if(!/webp/i.test((blob && blob.type) || '')) return Promise.resolve(blob);
+  const ty = String((blob && blob.type) || '');
+  if(!blob || !/^image\//i.test(ty) || /gif|svg/i.test(ty)) return Promise.resolve(blob);
   return new Promise(resolve => {
     const img = new Image();
     const src = URL.createObjectURL(blob);
     const done = b => { try{ URL.revokeObjectURL(src); }catch(e){} resolve(b || blob); };
     img.onload = ()=>{
+      const w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+      const k = Math.min(1, CRM_PIC_MAX_PX / Math.max(w, h));
+      const meta = b => { try{ b.lqMeta = { type: b.type, bytes: b.size, w: Math.round(w * k), h: Math.round(h * k) }; }catch(e){} return b; };
+      if(k === 1 && /jpe?g/i.test(ty)) return done(meta(blob));   // уже JPEG і не завеликий — як є
       const cv = document.createElement('canvas');
-      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-      cv.getContext('2d').drawImage(img, 0, 0);
-      cv.toBlob(done, 'image/png');
+      cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
+      const x = cv.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height);   // прозоре — на білому
+      x.drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(b => done(b ? meta(b) : null), 'image/jpeg', 0.85);
     };
     img.onerror = ()=> done(null);
     img.src = src;

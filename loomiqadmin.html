@@ -1720,6 +1720,8 @@
   .od-crm-msg.ob-failed{opacity:1;}
   .od-crm-msg.ob-failed .od-crm-txt{outline:2px solid #F87171;outline-offset:2px;border-radius:6px;}
   .od-crm-at.ob-fail{color:#FCA5A5 !important;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;}
+  .rd-f a.rd-open{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:zoom-in;} .rd-f a.rd-open:hover .rd-fn{text-decoration:underline;}
+  .od-crm-at.ob-late{color:#FCD34D !important;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;}
   .od-crm-msg:not(.mine) .od-crm-at.ob-fail{color:#B91C1C !important;}
   .ob-b{font:inherit;font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;border:1px solid rgba(255,255,255,.5);
     background:rgba(255,255,255,.12);color:#fff;cursor:pointer;}
@@ -8364,32 +8366,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e6431ec4d3"></script>
-<script src="loomiq-fingerprint.js?v=e6431ec4d3"></script>
-<script src="loomiq-pricing.js?v=e6431ec4d3"></script>
+<script src="loomiq-select.js?v=3a5aee3e8c"></script>
+<script src="loomiq-fingerprint.js?v=3a5aee3e8c"></script>
+<script src="loomiq-pricing.js?v=3a5aee3e8c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=e6431ec4d3"></script>
+<script src="loomiq-money-core.js?v=3a5aee3e8c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e6431ec4d3"></script>
-<script src="loomiq-mock.js?v=e6431ec4d3"></script>
+<script src="loomiq-design.js?v=3a5aee3e8c"></script>
+<script src="loomiq-mock.js?v=3a5aee3e8c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=e6431ec4d3"></script>
+<script src="imagetracer.js?v=3a5aee3e8c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=e6431ec4d3"></script>
-<script src="loomiq-threads.js?v=e6431ec4d3"></script>
+<script src="loomiq-chat.js?v=3a5aee3e8c"></script>
+<script src="loomiq-threads.js?v=3a5aee3e8c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e6431ec4d3"></script>
+<script src="loomiq-cards.js?v=3a5aee3e8c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8434,8 +8436,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'e6431ec4d3';
-var LQ_VER_AT = '2026-11-02T17:14:25Z';
+var LQ_VER = '3a5aee3e8c';
+var LQ_VER_AT = '2026-11-02T17:46:01Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -15450,7 +15452,13 @@ function rdArts(d){
   return l.filter(f => f && f.url);
 }
 function rdFilesHtml(l, key, img){
-  return (l || []).map((f, i) => `<span class="rd-f">${img && f.url ? `<img src="${escapeHtml(f.url)}" alt="">` : ''}<span class="rd-fn" title="${escapeHtml(f.name || '')}">${escapeHtml(f.name || 'файл')}</span><button type="button" data-rd-fdel="${key}:${i}" title="Прибрати">×</button></span>`).join('') || '<i>немає</i>';
+  /* КАРТИНКУ МОЖНА ВІДКРИТИ (02.11, Андрій: «щоб PNG чи JPEG можна було
+     зайти і відкрити, і подивитися, що там»): назва й мініатюра файлу-
+     картинки — посилання в нову вкладку. Вишивальні файли (EMB/DST) не
+     відкриваються — їх і нічим дивитись у браузері. */
+  const isPic = f => /\.(png|jpe?g|webp|gif)(\?|#|$)/i.test(String(f.name || '')) || /\.(png|jpe?g|webp|gif)(\?|#|$)/i.test(String(f.url || '')) || /image\/upload/.test(String(f.url || ''));
+  const open = (f, inner) => f.url && isPic(f) ? `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" class="rd-open" title="Відкрити ${escapeHtml(f.name || 'картинку')} у новій вкладці">${inner}</a>` : inner;
+  return (l || []).map((f, i) => `<span class="rd-f">${img && f.url ? open(f, `<img src="${escapeHtml(f.url)}" alt="">`) : ''}${open(f, `<span class="rd-fn" title="${escapeHtml(f.name || '')}">${escapeHtml(f.name || 'файл')}</span>`)}<button type="button" data-rd-fdel="${key}:${i}" title="Прибрати">×</button></span>`).join('') || '<i>немає</i>';
 }
 function readyDesigns(){
   const l = (contentData || {}).readyDesigns;
