@@ -183,7 +183,9 @@ ok(pics(r).length === 1 && !r.some(x => x.gone), 'Sitniks фото не пове
 /* 16.10, Андрій: фото в Direct дійшло, а в CRM вічно одна ✓. Sitniks
    своїх вкладень у стрічку часто не повертає — але дав повідомленню номер,
    тобто воно в його розмові й пішло клієнту. */
-ok(/✓✓/.test(pics(r)[0].at), 'Sitniks дав фото номер — ✓✓, хоч у стрічку він його й не повернув', 'позначка: «' + pics(r)[0].at + '»');
+/* 02.11, Андрій: «показує, що надіслано, а по факту не доходить». Номер від
+   Sitniks — лише «прийняв»: ✓. ✓✓ — коли картинка повернулась у переписку. */
+ok(/✓/.test(pics(r)[0].at) && !/✓✓/.test(pics(r)[0].at), 'Sitniks дав фото номер — одна ✓ («прийняв»), ✓✓ лише після повернення в переписку', 'позначка: «' + pics(r)[0].at + '»');
 
 console.log('');
 console.log('═══ Б. SITNIKS ПОВЕРНУВ ЗА КІЛЬКА ХВИЛИН — ЗІ СВОЇМ НОМЕРОМ ═══');
@@ -203,14 +205,18 @@ console.log('═══ В. ТРИ ФОТО, SITNIKS ПОВЕРТАЄ БЕЗ НО
 await send(3);
 await p.waitForTimeout(300);
 r = await feed();
-ok(pics(r).length === 2 && pics(r)[1].imgs.length === 3 && pics(r)[1].pending, 'три фото — одразу однією бульбашкою «надсилаю…»', JSON.stringify(pics(r)));
+/* 02.11: кожна картинка — своє повідомлення (Instagram бере одну на
+   повідомлення), тож три фото — три бульбашки «надсилаю…». */
+ok(pics(r).length === 4 && pics(r).slice(1).every(x => x.imgs.length === 1 && x.pending), 'три фото — три бульбашки «надсилаю…», по одній картинці', JSON.stringify(pics(r)));
 await p.waitForFunction(() => window.__sendDone, null, { timeout: 45000 });
-MSGS.push({ id:'srv-x', createdAt: posted[posted.length - 1].at, text:'',
-  attachments:['a','b','c'].map(x => ({ mediaType:'image', mediaUrl:'https://scontent.cdninstagram.com/v/' + x + '.jpg' })) });
+const троє = posted.slice(-3);
+ok(троє.length === 3 && троє.every(x => x.j && Array.isArray(x.j.attachments) && x.j.attachments.length === 1), 'у Sitniks пішло три повідомлення по одній картинці', JSON.stringify(троє.map(x => x.j)));
+['a','b','c'].forEach((x, i) => MSGS.push({ id:'srv-' + x, createdAt: троє[i].at, text:'',
+  attachments:[{ mediaType:'image', mediaUrl:'https://scontent.cdninstagram.com/v/' + x + '.jpg' }] }));
 await poll(); await p.waitForTimeout(400);
 r = await feed();
-ok(pics(r).length === 2 && /cdninstagram/.test(pics(r)[1].imgs[0]) && pics(r)[1].imgs.length === 3,
-  'повернуте без номера впізнано за часом і кількістю — одна бульбашка, не дві', JSON.stringify(pics(r)));
+ok(pics(r).length === 4 && pics(r).slice(1).every(x => /cdninstagram/.test(x.imgs[0]) && x.imgs.length === 1),
+  'повернуті без номера впізнано за часом — три бульбашки стали серверними, без дублів', JSON.stringify(pics(r)));
 
 console.log('');
 console.log('═══ Г. SITNIKS ВІДМОВИВ ═══');
@@ -223,7 +229,7 @@ await p.waitForFunction(() => window.__sendDone, null, { timeout: 60000 });
 await p.waitForTimeout(300);
 r = await feed();
 const смужка = await p.evaluate(() => (chatWin.pics || []).length);
-ok(pics(мить).length === 3 && pics(r).length === 2 && смужка === 1,
+ok(pics(мить).length === 5 && pics(r).length === 4 && смужка === 1,
   'не прийняв — бульбашка зникла, фото повернулось у смужку для повтору', JSON.stringify({ мить: pics(мить).length, після: pics(r).length, смужка }));
 POST_FAIL = false; POST_DELAY = 300;
 await p.evaluate(() => { chatWin.pics = []; renderChatWin(); });
@@ -234,7 +240,7 @@ MSGS = MSGS.filter(m => !/^out|^srv/.test(m.id));      // Sitniks «забув»
 await send(1);
 await p.waitForFunction(() => window.__sendDone, null, { timeout: 45000 });
 r = await feed();
-ok(pics(r).length === 3 && pics(r)[2].imgs.length === 1 && /cloudinary/.test(pics(r)[2].imgs[0]),
+ok(pics(r).length === 5 && pics(r)[4].imgs.length === 1 && /cloudinary/.test(pics(r)[4].imgs[0]),
   'нове фото через хвилину після попереднього — окремою бульбашкою, не «злипається» з уже показаним', JSON.stringify(pics(r).map(x => x.imgs.length)));
 const збережено = await p.evaluate(() => JSON.parse(JSON.stringify(orders[0].crmPicsOut || [])));
 const o2 = Object.assign({}, ORDER, { crmPicsOut: збережено });

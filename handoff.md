@@ -297,7 +297,13 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   вкладка колонки 0,3–0,6 с (повний render на одну видиму колонку), після
   чужої зміни картки через 1,5 с `priceLockAll` 1,2–1,5 с (+ `saveOrders`
   усіх карток і `renderBoard` B2B, якщо сума розійшлась — до 5 с) — крок 2.
-  `tests/prod-reg.mjs`. **02.11, КП**: «⇄ На спину / На перед» у діях шару
+  `tests/prod-reg.mjs`. **02.11, чати (LQ_CHAT=1)**: картинки в Instagram
+  по одній (`crmPicsSplit`/`crmSendPicOne`), JPEG ≤ 2000 px (`picSendable`,
+  `crmPicUrlIg`), ✓/✓✓/жовте «перевірте у клієнта»/червоне з «Повторити»
+  (`crmPicRetry`, `ob:'late'`, `CRM_PICS_LATE_MS`), запасних способів немає;
+  налаштування B2C → готовий дизайн: PNG/JPEG відкриваються в новій вкладці
+  (`rdFilesHtml`, `a.rd-open`). `tests/chat-pics-deliver.mjs`.
+  **02.11, КП**: «⇄ На спину / На перед» у діях шару
   (`copyLayerToSide`, `copySideFor`, `[data-copyto]`, `__lqCopyToSide`;
   `tests/copy-side.mjs`).
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
