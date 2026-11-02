@@ -66,7 +66,7 @@ fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
 fbstub = fbstub.replace("runTransaction:function(f){ return Promise.resolve(); },",
   "runTransaction:function(f){ var w=[]; var t={ get:function(ref){ return ref.get ? ref.get() : Promise.resolve({ exists:false, data:function(){ return null; } }); }," +
   " set:function(ref,d,opt){ w.push({ ref:ref, d:d, col:ref.__col||'' }); }, update:function(ref,d){ w.push({ ref:ref, d:d, col:ref.__col||'' }); }, delete:function(){} };" +
-  " if(window.__TX_DENY){ window.__TX_DENY=0; return Promise.reject(Object.assign(new Error('Missing or insufficient permissions.'), { code:'permission-denied' })); }" +
+  " if(window.__TX_DENY){ window.__TX_DENY--; return Promise.reject(Object.assign(new Error('Missing or insufficient permissions.'), { code:'permission-denied' })); }" +
   " return Promise.resolve(f(t)).then(function(){ (window.__TX=window.__TX||[]).push({ n:w.length, cols:w.map(function(x){ return x.col; }) });" +
   " return w.reduce(function(p,x){ return p.then(function(){ return x.ref.set(x.d); }); }, Promise.resolve()); }); },");
 fbstub = fbstub.replace(
@@ -258,7 +258,7 @@ ok(/НЕ СТВОРЕНО: .*не записалась у базу/.test(s3err.e
 await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
 
 console.log('');
-console.log('═══ 3в. БАЗА ЩЕ НЕ ПУСКАЄ ТРАНЗАКЦІЮ (правила не опубліковано) — СТАРИЙ ШЛЯХ, ВЛАСНИКУ СКАЗАНО (28.10) ═══');
+console.log('═══ 3в. БАЗА ВІДКИНУЛА ТРАНЗАКЦІЮ — НЕ СТАРИЙ ШЛЯХ: ПОВТОР З НАСТУПНИМ НОМЕРОМ, ДРУГА ВІДМОВА — ЧЕСНА ЗУПИНКА (02.11) ═══');
 await p.evaluate(() => { window.__ordW = []; window.__dzW = []; window.__TX = []; window.__TOASTS = []; window.__TX_DENY = 1; atomicOff = false;
   draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
 await ЖДИ(300);
@@ -274,10 +274,73 @@ const s3v = await p.evaluate(() => { const U = window.LQDesign.ui; const id = U.
   return { id, num: /^\d{7}$/.test(id), draft: !!o.draft, p6: x.orderId || '', ordW: window.__ordW.slice(), dzW: window.__dzW.slice(),
     txCard: (window.__TX || []).some(t => t.cols.indexOf('kanbanOrders') >= 0), off: atomicOff, toasts: window.__TOASTS.filter(m => /firestore\.rules/.test(m)) }; });
 console.log('   ' + JSON.stringify(s3v));
-ok(s3v.num && !s3v.draft && s3v.ordW.indexOf(s3v.id) >= 0 && s3v.dzW.indexOf(s3v.id) >= 0 && s3v.p6 === s3v.id && !s3v.txCard,
-  'замовлення створено старим шляхом (картка, картка відділу, платіж — окремими записами), нічого не зламалось', JSON.stringify(s3v));
-ok(s3v.off && s3v.toasts.length === 1, 'власнику сказано «опублікуйте firestore.rules», неподільний шлях на цій вкладці вимкнено до перезавантаження', JSON.stringify(s3v.toasts));
+/* 02.11: тихого старого шляху більше немає — він на повільному звʼязку лишав
+   картку без відділу й платежу («нові без привʼязок», #5000973). */
+ok(s3v.num && !s3v.draft && s3v.p6 === s3v.id && s3v.txCard,
+  'одна відмова бази — повтор з наступним номером ОДНІЄЮ транзакцією, замовлення створено', JSON.stringify(s3v));
+ok(!s3v.off, 'вкладка НЕ перемкнулась на старий покроковий шлях', JSON.stringify(s3v));
 await p.evaluate(() => { atomicOff = false; });
+await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
+
+console.log('');
+console.log('═══ 3г. ДВІ ВІДМОВИ ПОСПІЛЬ — НІЧОГО НЕ ЗАПИСАНО, ЧЕРНЕТКА ЛИШАЄТЬСЯ, ПРИЧИНА В КАРТЦІ (02.11) ═══');
+await p.evaluate(() => { window.__ordW = []; window.__dzW = []; window.__TX = []; window.__TOASTS = []; window.__TX_DENY = 2;
+  draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await ЖДИ(300);
+await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new3g'; d.crmChatName = 'Третя-г'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
+await ЖДИ(300);
+await p.click('.pp-row[data-pp="p2"] .pp-ck'); await p.click('[data-pp-go]'); await ЖДИ(400);
+await p.evaluate(() => { const U = window.LQDesign.ui; const d = orders.find(o => o.draft); const job = designJobs[d.orderId];
+  job.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1, note:'Лого' })];
+  U.render(document.getElementById('dzRoot')); });
+await ЖДИ(200);
+const draftKey3g = await p.evaluate(() => (orders.find(o => o.draft) || {}).id);
+await p.evaluate(() => { const b = document.querySelector('#dzRoot [data-do="order-create"]'); if(b) b.click(); });
+await ЖДИ(900);
+const s3g = await p.evaluate(k => { const d = orders.find(o => o.id === k) || {}; const bar = document.querySelector('#dzRoot .dz-panel .dz-write'); const e = bar && bar.querySelector('.dz-create-err');
+  const x = payments.find(q => q.id === 'p2');
+  return { draft: !!d.draft, ordW: window.__ordW.slice(), dzW: window.__dzW.slice(), tx: (window.__TX || []).length, off: atomicOff, err: e ? e.textContent : '', deny: window.__TX_DENY, p2: x.orderId || '' }; }, draftKey3g);
+console.log('   ' + JSON.stringify(s3g));
+ok(s3g.draft && !s3g.ordW.length && !s3g.dzW.length && !s3g.tx && !s3g.off && !s3g.p2 && /НЕ СТВОРЕНО: .*база не пустила/.test(s3g.err),
+  'дві відмови — нічого в базі, чернетка на місці, у картці «НЕ СТВОРЕНО: база не пустила…», старого шляху немає', JSON.stringify(s3g));
+await p.evaluate(() => { window.__TX_DENY = 0; });
+await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
+
+console.log('');
+console.log('═══ 3д. ТА САМА ЧЕРНЕТКА ВЖЕ СТВОРЕНА (відповідь бази загубилась) — НЕ ДУБЛЬ; НОМЕР У КАРТЦІ; ЗАЙНЯТИЙ ВІДДІЛОМ НОМЕР НЕ ВИДАЄТЬСЯ (02.11) ═══');
+await p.evaluate(() => { window.__ordW = []; window.__dzW = []; window.__TX = []; draftForget(); document.querySelector('#dzRoot [data-do="order-new"]').click(); });
+await ЖДИ(300);
+await p.evaluate(() => { const d = orders.find(o => o.draft); d.crmChatId = 'c-new3d'; d.crmChatName = 'Третя-д'; window.LQDesign.ui.render(document.getElementById('dzRoot')); });
+await p.evaluate(() => { document.querySelector('#dzRoot .dz-gate [data-do="pay-pick"]').click(); });
+await ЖДИ(300);
+await p.click('.pp-row[data-pp="p2"] .pp-ck'); await p.click('[data-pp-go]'); await ЖДИ(400);
+await p.evaluate(() => { const U = window.LQDesign.ui; const d = orders.find(o => o.draft); const job = designJobs[d.orderId];
+  job.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1, note:'Лого' })];
+  /* у базі вже лежить картка з ключем цієї чернетки — попередня спроба лягла */
+  const DocP = ORDERS_COL.doc('x').constructor.prototype; window.__get0 = DocP.get;
+  window.__ALREADY = Object.assign(JSON.parse(JSON.stringify(d)), { orderId:'5000999', no:'2000999', rev:1, arch:false });
+  delete window.__ALREADY.draft; delete window.__ALREADY.draftPays;
+  DocP.get = function(){ if(this.__col === 'kanbanOrders' && this.__id === window.__ALREADY.id){ const v = window.__ALREADY; return Promise.resolve({ exists:true, id:this.__id, data:() => JSON.parse(JSON.stringify(v)), metadata:{ fromCache:false } }); } return window.__get0.apply(this, arguments); };
+  U.render(document.getElementById('dzRoot')); });
+await ЖДИ(200);
+await p.click('#dzRoot [data-do="order-create"]'); await ЖДИ(900);
+const s3d = await p.evaluate(() => { const U = window.LQDesign.ui; const id = U.tabOpen(); const o = orders.find(x => x.id === window.__ALREADY.id) || {};
+  const r = { id, orderId: o.orderId, draft: !!o.draft, no: showNo(o), txWrites: (window.__TX || []).reduce((a, t) => a + (t.n || 0), 0), twins: orders.filter(x => x.crmChatId === 'c-new3d' && !x.draft).length };
+  ORDERS_COL.doc('x').constructor.prototype.get = window.__get0; return r; });
+console.log('   ' + JSON.stringify(s3d));
+ok(s3d.orderId === '5000999' && !s3d.draft && s3d.txWrites === 0 && s3d.twins === 1 && s3d.no === '2000999',
+  'повтор тієї самої чернетки взяв уже створену картку #2000999 — нічого не дописав удруге, дубля немає', JSON.stringify(s3d));
+const n3 = await p.evaluate(() => {
+  const no0 = showNo({ dir:'b2c', orderId:'5000888', no:'2000888' });
+  const next = String(orderSeqNow('b2c') + 1);
+  designJobs[next] = { orderId: next, units: [{ id:'old' }] };              // стара картка відділу під наступним номером
+  const got = String(makeOrderId('b2c'));
+  delete designJobs[next];
+  return { no0, next, got };
+});
+ok(n3.no0 === '2000888', 'картка без картки відділу показує номер з двійкою з самої картки, а не ключ із пʼятірки', JSON.stringify(n3));
+ok(n3.got !== n3.next, 'номер, під яким уже лежить картка відділу, новому замовленню не видається (' + n3.next + ' → ' + n3.got + ')', JSON.stringify(n3));
 await p.click('#dzRoot .dz-panel [data-close]'); await ЖДИ(300);
 
 console.log('');

@@ -7664,6 +7664,15 @@
       console.error(e); say('Не збереглось');
     });
   }
+  /* Те саме, що save, але після запису — лише тихе оновлення: поки людина
+     пише в полі картки, сторінку не перебудовуємо (02.11, форма доставки). */
+  function saveSoft(job, o){
+    job.updatedAt = new Date().toISOString();
+    var p = host().save ? host().save(job, o) : Promise.resolve();
+    return Promise.resolve(p).then(function(){
+      renderSoft(document.getElementById('dzRoot'));
+    }, function(e){ console.error(e); say('Не збереглось'); });
+  }
   function can(k){ return host().can ? !!host().can(k) : true; }
   /* ДІЯ НА СВІЖІЙ КАРТЦІ ВІДДІЛУ (29.10). Андрій: «дизайнери беруть
      замовлення — не береться, повертається назад». «Беру» писав усю картку зі
@@ -9867,6 +9876,7 @@
   }
   /* Кнопка, що чекає Нову пошту, показує секунди (02.11: «зависає просто» —
      25 с тиші з одним написом). Повертає функцію «стоп». */
+  var CREATING = false;
   function ttnBusy(b, label){
     if(!b) return function(){};
     var t0 = Date.now();
@@ -11712,7 +11722,9 @@
       var c = ctx();
       /* Дві посилки (29.10): форм може бути дві (перша й другий отримувач). */
       root.querySelectorAll('[data-shipform]').forEach(function(box){
-        if(c && c.o && host().shipWire) host().shipWire(box, c.o, function(){ return save(c.job, c.o, ''); });
+        /* Тихий запис (02.11): повний render після збереження перебудовував
+           форму, поки людина друкувала в наступному полі — набране зникало. */
+        if(c && c.o && host().shipWire) host().shipWire(box, c.o, function(){ return saveSoft(c.job, c.o); });
       });
       var two = root.querySelector('[data-ship-two]');
       if(two && c && c.o && host().shipTwo) two.onclick = function(){
@@ -13314,10 +13326,18 @@
     }
     if(what === 'order-create'){
       if(!o.draft) return say('Замовлення вже створено');
+      /* ОДИН НАТИСК — ОДНЕ СТВОРЕННЯ (02.11, «кілька нових без привʼязок»):
+         поки йде попереднє, другий натиск нічого не запускає, а кнопка
+         рахує секунди — видно, що працює, а не «висить». */
+      if(CREATING) return say('Створюю — зачекайте, натискати ще раз не треба');
+      CREATING = true;
+      var кнС = root.querySelector('[data-do="order-create"]');
+      var стопС = ttnBusy(кнС, кнС ? кнС.textContent : 'Створити замовлення');
       return Promise.resolve(host().draftCommit && host().draftCommit(o)).then(function(id){
+        CREATING = false; стопС();
         if(!id) return render(root);
         U.open(id); render(document.getElementById('dzRoot') || root);
-      });
+      }, function(e){ CREATING = false; стопС(); say('Не створено: ' + String((e && e.message) || e), 6000); render(root); });
     }
     if(what === 'prod-abroad-sent'){
       if(!D.shipAbroad(o)) return say('Це не відправка за кордон');

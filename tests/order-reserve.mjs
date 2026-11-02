@@ -241,6 +241,22 @@ const бн = await p.evaluate(async () => {
 });
 ok(бн.напис && бн.кнопка && бн.ключ && /^2\d{6}$/.test(String(бн.номер)) && !бн.після, 'без номера відділу — написано прямо, «Дати номер відділу» дає наступний номер 2…', JSON.stringify(бн));
 ok(!бн.свіжі && бн.усі, 'стара картка (не відновлена) — лише за «показати всі»; за замовчуванням останні 14 днів', JSON.stringify(бн));
+/* 02.11 (#5000973, «нові без привʼязок»): недописане створення — картка без
+   картки відділу, грошей і ТТН — власник прибирає однією кнопкою; картку з
+   грошима чи складом — ні. */
+const нд = await p.evaluate(async () => {
+  const at = new Date().toISOString();
+  const half = { id:'half1', orderId:'5000973', dir:'b2c', type:'client', name:'', crmChatId:'c-rita', crmChatName:'Pita', status:'new', createdAt: at, touchedAt: at, payments:[], hist:[], items:[] };
+  orders.push(half);
+  renderFinIncomplete();
+  const box = document.getElementById('fin-incomplete');
+  const r = { кнопка: !!box.querySelector('[data-fi-drop="half1"]'), чужої: !!box.querySelector('[data-fi-drop]:not([data-fi-drop="half1"])') };
+  window.confirm = () => true;
+  await finIncompleteDrop('half1');
+  r.зникла = !orders.some(x => x.id === 'half1');
+  return r;
+});
+ok(нд.кнопка && !нд.чужої && нд.зникла, 'недописане створення (без відділу, грошей і ТТН) — «Прибрати недописану» лише для неї, прибрано', JSON.stringify(нд));
 
 console.log('');
 console.log('═══ 5б. ФОНОВИЙ ЗАПИС НЕ ВИДАЛЯЄ КАРТКУ, ЩО ЗʼЯВИЛАСЬ ПІД ЧАС ЗАПИСУ (аудит 28.10) ═══');
