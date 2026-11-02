@@ -204,6 +204,15 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
   }
   echo "✓ телефон: цех знімає й надсилає фото; компʼютер як був"
 fi
+# 02.11: випадайки не крутять коло в простої (швидкість, крок 1).
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.js|tests/select-loop\.mjs)'; then
+  node tests/select-loop.mjs >/tmp/lq-select-loop.log 2>&1 || {
+    echo "✗ Випадайки знову переписують DOM у простої (коло спостерігач → обхід → підпис) або перестали оновлюватись — коміт зупинено. Подробиці: /tmp/lq-select-loop.log"
+    grep '✗' /tmp/lq-select-loop.log
+    exit 1
+  }
+  echo "✓ у простої випадайки мовчать, підписи оновлюються"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.js|tests/phone-all\.mjs)'; then
   node tests/phone-all.mjs >/tmp/lq-phone-all.log 2>&1 || {
     echo "✗ На телефоні щось знову вилазить за екран або розмова/вікно платежу не на весь екран — коміт зупинено. Подробиці: /tmp/lq-phone-all.log"
@@ -211,6 +220,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.
     exit 1
   }
   echo "✓ телефон: усі розділи в екрані; компʼютер як був"
+fi
+# 02.11: у «Реєстр» переносять завжди (кнопка «Перенести в реєстр»), негодяща ТТН горить там; «Перестворити ТТН» не мовчить.
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/prod-reg\.mjs)'; then
+  node tests/prod-reg.mjs >/tmp/lq-prod-reg.log 2>&1 || {
+    echo "✗ Цех знову не може перенести картку в «Реєстр», негодяща ТТН там не горить, реєстр її бере, або «Перестворити ТТН» мовчить — коміт зупинено. Подробиці: /tmp/lq-prod-reg.log"
+    grep '✗' /tmp/lq-prod-reg.log
+    exit 1
+  }
+  echo "✓ цех: у «Реєстр» завжди, негодяща ТТН горить; перестворити ТТН не мовчить"
 fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/prod-state\.mjs)'; then
   node tests/prod-state.mjs >/tmp/lq-prod-state.log 2>&1 || {
@@ -294,11 +312,20 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
 fi
 if git diff --cached --name-only | grep -qE '^(loomiq-cards\.js|offer-edit\.html|tests/card-tiers\.mjs)'; then
   node tests/card-tiers.mjs >/tmp/lq-card-tiers.log 2>&1 || {
-    echo "✗ Пороги тиражу таблетками на скачуваних картках зламані (три пороги, вимкнення поля, порівняння) — коміт зупинено. Подробиці: /tmp/lq-card-tiers.log"
+    echo "✗ Пороги тиражу плитками на скачуваних картках зламані (сім плиток, вимкнення поля, порівняння) — коміт зупинено. Подробиці: /tmp/lq-card-tiers.log"
     grep '✗' /tmp/lq-card-tiers.log
     exit 1
   }
-  echo "✓ картки: пороги тиражу таблетками"
+  echo "✓ картки: пороги тиражу плитками"
+fi
+# 02.11: той самий дизайн на інший бік однією кнопкою («⇄ На спину / На перед»).
+if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|index\.html|tests/copy-side\.mjs)'; then
+  node tests/copy-side.mjs >/tmp/lq-copy-side.log 2>&1 || {
+    echo "✗ Кнопка «На спину / На перед» у конструкторі КП не кладе копію дизайну на інший бік (файл, колір нитки, відбиток, ціна) — коміт зупинено. Подробиці: /tmp/lq-copy-side.log"
+    grep '✗' /tmp/lq-copy-side.log
+    exit 1
+  }
+  echo "✓ КП: дизайн копіюється на інший бік однією кнопкою"
 fi
 if git diff --cached --name-only | grep -qE '^(loomiq-constructor\.js|index\.html|tests/recolor-part\.mjs)'; then
   node tests/recolor-part.mjs >/tmp/lq-recolor-part.log 2>&1 || {

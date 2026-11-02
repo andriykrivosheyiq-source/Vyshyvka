@@ -308,16 +308,25 @@
       sel.addEventListener('change', function(){ dress(sel); });
     }
     /* Кнопка має вміщати найдовший пункт списку, а не тільки поточний:
-       інакше вибір довшої назви обріже її одразу після натиску. */
-    box.querySelector('.lq-sel-v').textContent = label(sel);
+       інакше вибір довшої назви обріже її одразу після натиску.
+
+       ПИШЕМО ЛИШЕ ТЕ, ЩО ЗМІНИЛОСЬ. Запис textContent — це зміна DOM, яку
+       бачить наш же спостерігач унизу; він планував новий обхід, обхід знову
+       переписував той самий підпис — і так без кінця, кожні 60 мс, у кожній
+       вкладці, навіть коли ніхто нічого не робить (02.11: 2000 переписувань
+       за 10 с у простої, на телефоні — помітна частка процесора). Однаковий
+       підпис не чіпаємо — і коло не замикається. */
+    var v = box.querySelector('.lq-sel-v');
+    var txt = label(sel);
+    if(v.textContent !== txt) v.textContent = txt;
     var longest = '';
     for(var i = 0; i < sel.options.length; i++){
       var t = String(sel.options[i].textContent || '');
       if(t.length > longest.length) longest = t;
     }
-    box.querySelector('.lq-sel-v').setAttribute('data-longest', longest);
-    box.classList.toggle('is-off', !!sel.disabled);
-    box.hidden = !!sel.hidden;
+    if(v.getAttribute('data-longest') !== longest) v.setAttribute('data-longest', longest);
+    if(box.classList.contains('is-off') !== !!sel.disabled) box.classList.toggle('is-off', !!sel.disabled);
+    if(box.hidden !== !!sel.hidden) box.hidden = !!sel.hidden;
     return box;
   }
 
@@ -337,10 +346,21 @@
     tid = setTimeout(function(){ tid = null; scan(document); }, 60);
   }
 
+  /* Чи є серед змін щось, крім наших власних підписів. Свій запис у
+     .lq-sel-v (другий замок від кола, якщо колись знову зʼявиться запис без
+     перевірки) обходу не вартий: списків він не додає й не міняє. */
+  function foreign(recs){
+    for(var i = 0; i < recs.length; i++){
+      var t = recs[i].target;
+      if(!(t && t.nodeType === 1 && t.classList && t.classList.contains('lq-sel-v'))) return true;
+    }
+    return false;
+  }
+
   function start(){
     scan(document);
     try{
-      new MutationObserver(function(){ later(); })
+      new MutationObserver(function(recs){ if(foreign(recs)) later(); })
         .observe(document.body, { childList:true, subtree:true });
     }catch(e){}
     document.addEventListener('click', function(e){

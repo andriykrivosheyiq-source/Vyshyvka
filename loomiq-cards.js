@@ -60,14 +60,27 @@
   /* Висота нижньої смуги. Характеристик більше трьох — смуга підростає під
      них. А якщо «Про товар» переїхав у вільну клітинку сітки, рости нема
      чому: внизу лишились тільки ціна й примітка. */
-  /* ПОРОГИ ТИРАЖУ — ТАБЛЕТКАМИ ПІД УСІМ (30.10). Андрій: «щоб на картці
-     було видно, що при більшій кількості ще будуть знижки… маленькими
-     таблетками під всім». Під нижньою смугою — рядок маленьких таблеток:
-     «від 20 шт · 2 530 грн/шт · −20 %», до трьох порогів, лише вищих за
-     тираж, за яким порахована ціна. Числа — ті, що адмінка поклала в
-     документ КП (`tiers`, той самий рушій, що й ціна): картка нічого не
-     вигадує. Аркуш під них росте на PILLS_H, галерея не меншає. */
-  var PILLS_H = 56, PILL_H = 34;
+  /* ПОРОГИ ТИРАЖУ — КВАДРАТНИМИ ПЛИТКАМИ ПІД УСІМ (30.10). Андрій: «щоб на
+     картці було видно, що при більшій кількості ще будуть знижки…
+     маленькими… саме плитками квадратними і шт 7». Під нижньою смугою —
+     рядок квадратних плиток: «від 20 шт / 2 530 / грн/шт / −20 %», до семи
+     порогів, лише вищих за тираж, за яким порахована ціна. Числа — ті, що
+     адмінка поклала в документ КП (`tiers`, той самий рушій, що й ціна):
+     картка нічого не вигадує. Аркуш під них росте на PILLS_H, галерея не
+     меншає. У колонці порівняння плитки менші й переносяться по чотири в
+     рядок, смуга виробу росте під них (`cmpExtra`). */
+  /* ПЛИТКИ ОДИН В ОДИН З КОНСТРУКТОРА (30.10). Андрій: «ось такі таблетки
+     один в один вони в нас вже є, і суму там саме тягнем». Ряд порогів
+     (`tierRow`: діапазон «2–3 шт», ціна, відсоток, який з них поточний)
+     конструктор кладе на позицію, адмінка — в документ КП, картка малює як
+     є: підпис діапазону зверху, ціна, темна таблетка з відсотком у правому
+     верхньому куті, поточний тираж — темною рамкою. «1 шт» — без відсотка.
+     Картка позиції: усі плитки одним рядком на всю ширину (TILE_WH
+     заввишки). Порівняння: CMP_TILES квадратних (TILE_S) — «1 шт»,
+     поточний діапазон і два наступні. Старі позиції без `tierRow` — з
+     порогів `tiers`, як доти. */
+  var TILE_WH = 100, TILE_S = 86, TILE_GAP = 12, TILES_MAX = 7, CMP_TILES = 4;
+  var PILLS_H = TILE_WH + 34, PILL_H = TILE_WH;
   function pillsOf(card){ return (card && card.tiers && card.tiers.length) ? card.tiers : []; }
   function footOf(card, moved){
     var extra = pillsOf(card).length ? PILLS_H : 0;
@@ -739,7 +752,7 @@
         var c = card('variant:' + r.i, 'variant', r.it);
         return { id: c.id, name: c.name, sub: c.sub, shots: c.allShots || c.shots,
                  specs: c.specs, unit: c.unit, base: c.base, qty: c.qty, tier: c.tier,
-                 tiers: c.tiers, lost: c.lost };
+                 tiers: cmpPick(c.tiers), lost: c.lost };
       });
       /* ЯКІ РЯДИ КАДРІВ ПОКАЗУВАТИ. У таблиці сторони — це рядки, і знімає
          менеджер саме РЯД, а не окремий кадр: прибрати спину в одного
@@ -1184,39 +1197,100 @@
      Застереження стоїть третьою колонкою праворуч, а не рядком упоперек
      аркуша. Це виноска: збоку дрібним вона читається як виноска, а на всю
      ширину під числами — як попередження, яке ми чомусь кричимо. */
-  /* Пороги з документа КП: лише вищі за тираж ціни, з ціною за штуку, до трьох. */
+  /* Пороги з документа КП: першою «1 шт» за роздрібною ціною (та сама
+     `baseUnitPrice`, що й у перекресленої), далі лише вищі за тираж ціни,
+     до TILES_MAX. Немає жодного вищого порогу — плиток немає зовсім. */
   function tiersOf(it){
     var cur = (it.parts && +it.parts.groupQty) || (+it.qty || 0);
-    return (it.tiers || [])
+    var row = Array.isArray(it.tierRow) ? it.tierRow.filter(function(r){ return r && +r.price > 0; }) : [];
+    if(row.length){
+      var hasNow = row.some(function(r){ return r.now; });
+      return row.map(function(r){
+        var from = +r.from || 1, to = (r.to == null ? null : +r.to);
+        var one = from === 1 && (to === 1 || to == null && row.length === 1);
+        var now = hasNow ? !!r.now : (cur >= from && (to == null || cur <= to));
+        var label = one ? '1 шт' : (String(r.label || '') || (from + (to == null ? '+' : '–' + to) + ' шт')).replace(/^(\d+)-(\d+)/, '$1–$2');
+        return { qty: from, to: to, label: label, unit: Math.round(+r.price), pct: one ? 0 : Math.round(+r.pct || 0), one: one, now: now };
+      });
+    }
+    var up = (it.tiers || [])
       .filter(function(t){ return t && !t.now && +t.qty > cur && +t.unit > 0; })
       .sort(function(a, b){ return a.qty - b.qty; })
-      .slice(0, 3)
+      .slice(0, TILES_MAX)
       .map(function(t){ return { qty: +t.qty, unit: Math.round(+t.unit) }; });
+    if(!up.length) return [];
+    var base = +it.baseUnitPrice || 0;
+    return (base > 0 && cur > 1 ? [{ qty: 1, unit: Math.round(base), one: true }] : []).concat(up);
   }
-  /* Рядок таблеток. Повертає нижній край. `small` — для колонки
-     порівняння, де місця менше. Таблетка: «від N шт» сірим, ціна чорнилом,
-     відсоток тепло-рудим — ті самі три речі, що й у самої ціни. */
+  /* Чотири плитки для порівняння: «1 шт», поточний діапазон і два наступні
+     (Андрій, 30.10). Поточного немає (старі пороги) — перші після «1 шт». */
+  function cmpPick(tiers){
+    var t = tiers || [];
+    if(!t.length) return [];
+    var one = t.filter(function(r){ return r.one; }).slice(0, 1);
+    var rest = t.filter(function(r){ return !r.one; });
+    var k = rest.findIndex(function(r){ return r.now; });
+    if(k < 0) k = 0;
+    return one.concat(rest.slice(k, k + (CMP_TILES - one.length)));
+  }
+  /* Рядок плиток. Повертає нижній край. Картка позиції (`small` хибне):
+     плитки розтягнуті на всю ширину в один рядок, три рядки тексту —
+     «від N шт» сірим, «2 530 грн/шт» чорнилом, «−20 %» тепло-рудим.
+     Порівняння (`small`): квадратні, по чотири в рядок, текст стовпчиком.
+     Плитка «1 шт» — без відсотка: це роздрібна ціна, від неї й рахують. */
   function pillsRow(x, t, tiers, base, X, Y, w, small){
-    var h = small ? 30 : PILL_H, gap = 10, px = X, py = Y;
-    var fq = (small ? 13 : 15) + 'px ', fp = (small ? 14 : 16) + 'px ', fo = (small ? 13 : 15) + 'px ';
-    tiers.forEach(function(r){
-      var q = 'від ' + r.qty + ' шт', p = money(r.unit) + '/шт';
-      var off = (base > r.unit) ? '−' + Math.round((base - r.unit) / base * 100) + '%' : '';
-      x.font = '400 ' + fq + t.body; var qw = x.measureText(q).width;
-      x.font = '600 ' + fp + t.body; var pw = x.measureText(p).width;
-      x.font = '700 ' + fo + t.body; var ow = off ? x.measureText(off).width : 0;
-      var pad = small ? 12 : 14, sp = small ? 7 : 9;
-      var pwid = pad + qw + sp + pw + (off ? sp + ow : 0) + pad;
-      if(px > X && px + pwid > X + w){ px = X; py += h + 8; }   // не влазить — наступний рядок
-      x.fillStyle = t.panel; x.strokeStyle = t.line; x.lineWidth = 1.5;
-      rr(x, px, py, pwid, h, h / 2); x.fill(); x.stroke();
-      var ty = py + h / 2 + (small ? 5 : 6), cx = px + pad;
-      x.fillStyle = t.dim; x.font = '400 ' + fq + t.body; x.fillText(q, cx, ty); cx += qw + sp;
-      x.fillStyle = t.ink; x.font = '600 ' + fp + t.body; x.fillText(p, cx, ty); cx += pw;
-      if(off){ cx += sp; x.fillStyle = SALE; x.font = '700 ' + fo + t.body; x.fillText(off, cx, ty); }
-      px += pwid + gap;
+    var n = tiers.length, gap = small ? 8 : TILE_GAP;
+    var S = small ? TILE_S : Math.floor((w - (n - 1) * gap) / Math.max(1, n));
+    var h = small ? TILE_S : TILE_WH;
+    var per = small ? Math.max(1, Math.floor((w + gap) / (S + gap))) : n;
+    var px = X, py = Y;
+    tiers.forEach(function(r, i){
+      if(i > 0 && i % per === 0){ px = X; py += h + gap; }
+      var label = r.label || (r.one ? '1 шт' : 'від ' + r.qty + ' шт');
+      var pct = r.one ? 0 : (r.pct != null ? r.pct : (base > r.unit ? Math.round((base - r.unit) / base * 100) : 0));
+      /* Плитка як у конструкторі: біла, тонка рамка; поточний тираж —
+         темна рамка в два пікселі. */
+      x.fillStyle = t.panel; x.strokeStyle = r.now ? t.ink : t.line; x.lineWidth = r.now ? 2 : 1;
+      rr(x, px, py, S, h, small ? 12 : 14); x.fill(); x.stroke();
+      var cx = px + S / 2;
+      x.textAlign = 'center';
+      if(small){
+        /* У малій плитці «3 475 грн» одним рядком не вміщається: число
+           окремо, «грн» дрібним під ним. */
+        x.fillStyle = t.dim; x.font = '400 12px ' + t.body; x.fillText(label, cx, py + 28);
+        x.fillStyle = t.ink; x.font = '700 17px ' + t.body; x.fillText(money(r.unit).replace(/ грн$/, ''), cx, py + 54);
+        x.fillStyle = t.dim; x.font = '400 11px ' + t.body; x.fillText('грн', cx, py + 70);
+      } else {
+        x.fillStyle = t.dim; x.font = '400 14px ' + t.body; x.fillText(label, cx, py + 40);
+        x.fillStyle = t.ink; x.font = '700 21px ' + t.body; x.fillText(money(r.unit), cx, py + 72);
+      }
+      /* Відсоток — темною таблеткою в правому верхньому куті, поверх
+         рамки, як у конструкторі. */
+      if(pct > 0){
+        var s = '−' + pct + '%';
+        x.font = '700 ' + (small ? 11 : 12) + 'px ' + t.body;
+        var bw = x.measureText(s).width + (small ? 14 : 16), bh = small ? 20 : 22;
+        var bx = px + S - bw + 6, by = py - bh / 2 + 2;
+        x.fillStyle = t.ink; rr(x, bx, by, bw, bh, bh / 2); x.fill();
+        x.fillStyle = '#fff'; x.fillText(s, bx + bw / 2, by + bh / 2 + (small ? 4 : 4.5));
+      }
+      x.textAlign = 'left';
+      px += S + gap;
     });
     return py + h;
+  }
+  /* На скільки росте смуга виробу в картці порівняння під плитки. Плитки
+     йдуть по чотири в рядок; рахуємо, де закінчиться текстова колонка
+     (назва, ціна, умова, плитки, характеристики), і ростемо лише на те, що
+     не вмістилось у висоту кадру, — а не на цілі рядки плиток: інакше під
+     кожним виробом зяяла порожнеча. */
+  function cmpExtra(card){
+    var m = 0;
+    (card.cols || []).forEach(function(c){ m = Math.max(m, pillsOf(c).length); });
+    if(!m) return 0;
+    var rows = Math.ceil(m / CMP_TILES);
+    var need = 200 + 16 + rows * (TILE_S + 8) - 8 + 44 + Math.min(5, (card.rows || []).length) * 29 + 16;
+    return Math.max(0, need - CMP_PH);
   }
   function oldPrice(card, show){
     if(!show('old')) return null;
@@ -2152,7 +2226,7 @@
     var n = Math.max(1, (card.cols || []).length);
     /* Смуга + розділювач під нею. Під останньою смугою розділювача немає —
        його місце займає сама примітка. */
-    return HEAD + 24 + n * (CMP_PH + 34) + 130;
+    return HEAD + 24 + n * (CMP_PH + 34 + cmpExtra(card)) + 130;
   }
   function paintCmp(x, card, t, shots, show, o, W){
     topBar(x, t, W);
@@ -2247,7 +2321,7 @@
         ряд.forEach(function(ln, li){ x.fillText(ln, tx + lw + 14, ty + li * 24); });
         ty += 29 + Math.max(0, ряд.length - 1) * 24;
       });
-      y += CMP_PH;
+      y += CMP_PH + cmpExtra(card);
       /* Розділювач між смугами. Під останньою його немає: далі йде
          примітка, і дві лінії поспіль читались би як порожній блок. */
       if(ci < cols.length - 1){

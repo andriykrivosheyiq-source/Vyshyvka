@@ -1751,6 +1751,24 @@
     if(o && abroadManual(o) && from !== to && PROD_IDX[from] >= PROD_IDX.ship && PROD_IDX[to] >= PROD_IDX.ship) return true;
     return (PROD_MOVES[from] || []).indexOf(to) >= 0;
   }
+  /* ЧОМУ НЕ МОЖНА — СЛОВАМИ (02.11, відео цеху: тягнуть #2000198 у «Реєстр»,
+     а у відповідь «картку вже рушили — показано свіжу», хоч її ніхто не
+     рушив: стара ТТН до переробки). Порожній рядок — можна. Ті самі
+     умови, що в prodMove, лише з поясненням. */
+  function prodMoveWhy(from, to, o){
+    if(from === to) return '';
+    if(!prodCanMove(from, to, o)) return 'Так перенести не можна';
+    return '';
+  }
+  /* ЧОМУ ТТН НЕ ГОДИТЬСЯ ДЛЯ РЕЄСТРУ — словами, або порожньо (02.11). У
+     «Реєстрі» горить на плитці й у картці; «Створити реєстр» такі не бере. */
+  function ttnBad(o){
+    if(!o || shipAbroad(o)) return '';
+    var t = String(o.ttn || '').trim();
+    if(!t) return 'ТТН ще немає';
+    if(o.shipOld && t === o.shipOld) return 'ТТН стара, до переробки — перестворіть';
+    return '';
+  }
   function prodMove(job, o, to, by){
     var from = prodAt(job, o);
     if(!prodCanMove(from, to, o)) return null;
@@ -1768,8 +1786,10 @@
       if(o.prodQc) o.prodQc = null;
     }
     if(to === 'reg' || to === 'ship'){
-      if(to === 'reg' && !String(o.ttn || '').trim()) return null;      // у реєстр — лише з ТТН
-      if(to === 'reg' && o.shipOld && o.ttn === o.shipOld) return null;  // стара ТТН до переробки
+      /* У «РЕЄСТР» — ЗАВЖДИ (02.11, Андрій: «він так сортує їх, а потім воно
+         горить, і він переходить по них»). Без ТТН чи зі старою ТТН до
+         переробки картка в «Реєстрі» горить червоним (ttnBad), «Створити
+         реєстр» її не бере й каже чому. Доти такий хід мовчки відкидався. */
       o.shipCol = to === 'reg' ? 'reg' : '';
       return prodAt(job, o);
     }
@@ -3134,7 +3154,7 @@
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, PROD_IDX: PROD_IDX, prodAt: prodAt, shipAbroad: shipAbroad, abroadManual: abroadManual, npWhyUa: npWhyUa, ttnDays: ttnDays, dniTxt: dniTxt, regFailOf: regFailOf, shipKnown: shipKnown, ship2Live: ship2Live, ship2Ttn: ship2Ttn, npStageOf: npStageOf, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
-    prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, reprintOpen: reprintOpen,
+    prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, prodMoveWhy: prodMoveWhy, ttnBad: ttnBad, reprintOpen: reprintOpen,
     npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
     taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
@@ -3524,6 +3544,7 @@
                пошта не взяла в реєстр — причина прямо на плитці. */
             (c.ttnOld ? '<span class="dz-c-row"><em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні — перестворіть ТТН у картці">ТТН уже ' + esc(dniTxt(c.ttnOld)) + '</em></span>' : '') +
             (c.two ? '<span class="dz-c-row"><em class="dz-c-stk dz-c-two" title="Замовлення їде двома посилками двом отримувачам — дві накладні, дві бирки">📦 2 посилки</em></span>' : '') +
+            (c.ttnBad ? '<span class="dz-c-row"><em class="dz-c-stk late dz-c-ttnold dz-c-ttnbad" title="«Створити реєстр» цю посилку не візьме">' + esc(c.ttnBad) + '</em></span>' : '') +
             (c.regFail ? '<i class="dz-c-state dz-c-regfail">НП не взяла в реєстр: ' + esc(c.regFail) + '</i>' : '') +
           '</span>' +
         '</span>' +
@@ -9180,6 +9201,7 @@
     if(D.shipAbroad(o) && !o.ttn && at !== 'done' && at !== 'refused' && D.PROD_IDX[at] >= D.PROD_IDX.ready)
       b.push('<button type="button" class="dz-b pri" data-do="prod-abroad-sent">✈ За кордон → Виконано</button>');
     if(at === 'ready') b.push('<button type="button" class="dz-b pri" data-do="prod-move" data-to="run">На станки</button>');
+    else if(at === 'ship' && !D.shipAbroad(o)) b.push('<button type="button" class="dz-b pri" data-do="prod-move" data-to="reg">Перенести в реєстр</button>');
     else if(at === 'run' && D.jobTech(job) === 'dtf') b.push('<button type="button" class="dz-b pri" data-do="prod-print-done">✓ Надруковано</button>',
       '<button type="button" class="dz-b dz-b-warn" data-do="prod-redo">🔁 Передрук</button>');
     else if(at === 'run') b.push('<button type="button" class="dz-b pri" data-do="prod-done">📷 Готово — фото</button>',
@@ -9247,6 +9269,7 @@
             : 'ТТН: ' + (o.ttn ? '<b>' + esc(o.ttn) + '</b>' : '<span class="dz-miss">ще немає</span>')) +
           (o.reg && o.reg.no ? ' · реєстр №' + esc(o.reg.no) : '') +
           (at === 'reg' && D.ttnDays(o) >= 3 ? ' <em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні">ТТН уже ' + esc(D.dniTxt(D.ttnDays(o))) + '</em>' : '') +
+          (at === 'reg' && D.ttnBad(o) ? ' <em class="dz-c-stk late dz-c-ttnold dz-c-ttnbad" title="«Створити реєстр» цю посилку не візьме">' + esc(D.ttnBad(o)) + '</em>' : '') +
           /* ↻ Перестворити ТТН — і в картці цеху (27.10, Андрій: «ще в самому
              виробництві»), поки посилка не поїхала: «Можна відправляти» й «Реєстр». */
           (o.ttn && !D.shipAbroad(o) && (at === 'ship' || at === 'reg') && host().ttnRemake ? ' <button type="button" class="dz-b dz-quiet dz-ttn-re" data-do="ttn-remake" title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
@@ -9256,12 +9279,20 @@
         (at === 'reg' && D.regFailOf(o) ? '<div class="dz-miss dz-no-ttn dz-regfail">Нова пошта не взяла в реєстр: ' + esc(D.regFailOf(o)) + (as === 'acct' ? ' — перестворіть ТТН у блоці «Відправка»' : ' — менеджер перестворить ТТН') + '</div>' : '') +
         /* Погоджено без ТТН (26.10) — червоним, поки накладної немає. */
         (at === 'ship' && !D.shipAbroad(o) && D.shipNeedsTtn(o)
-          ? '<div class="dz-miss dz-no-ttn">ТТН ще немає — створіть накладну' + (as === 'acct' ? '' : ' (менеджер)') + '</div>' +
+          ? '<div class="dz-miss dz-no-ttn">' + (String(o.ttn || '').trim()
+              /* Стара ТТН до переробки (02.11): не «немає», а яка саме й що робити. */
+              ? 'ТТН ' + esc(o.ttn) + ' стара, до переробки — натисніть «↻ Перестворити ТТН»'
+              : 'ТТН ще немає — створіть накладну' + (as === 'acct' ? '' : ' (менеджер)')) + '</div>' +
             (as === 'acct' ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="ship">Створити ТТН</button></div>' : '')
           : '') +
         (D.shipAbroad(o) && !o.ttn && at !== 'done' && at !== 'refused' && D.PROD_IDX[at] >= D.PROD_IDX.ready
             ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-abroad-sent" title="Посилка за кордон відправлена — картка одразу у «Виконано», без реєстру">✈ Відправлено за кордон → Виконано</button></div>'
-            : (at === 'ship' && as === 'prod' ? '<div class="dz-miss is-calm">Перетягніть у «Реєстр», коли посилка готова до відправки.</div>' : '')) +
+            /* КНОПКА «У РЕЄСТР» У КАРТЦІ (02.11, Андрій: «додати всередині ще
+               кнопку перетягнути в реєстр… щоб не було цього вискакування»):
+               те саме, що перетягнути плитку, без питань. Не можна — чому. */
+            : (at === 'ship' && as === 'prod' && !D.shipAbroad(o)
+                ? '<div class="dz-prod-acts"><button type="button" class="dz-b pri" data-do="prod-move" data-to="reg" title="Посилка готова до відправки — у колонку «Реєстр»">Перенести в реєстр</button></div>'
+                : '')) +
         /* РЕЄСТР УЖЕ Є, А В КАРТЦІ ЙОГО НЕМАЄ (26.10, Володимир: «реєстр
            роздрукований… злетіла з Передано курʼєру… перемістити не можу»):
            реєстр у Новій пошті створили, а запис у картку не ліг — картка
@@ -9518,7 +9549,7 @@
     /* Без ТТН (погоджено без накладної, 26.10) у реєстр не йде — кажемо, хто. */
     var безТТН = всіР.filter(function(p){ return D.shipNeedsTtn(p.o) || !String(p.o.ttn || '').trim() || (D.ship2Live(p.o) && !D.ship2Ttn(p.o)); });
     var там = всіР.filter(function(p){ return безТТН.indexOf(p) < 0; });
-    if(!там.length) return say(безТТН.length ? 'У «Реєстр» лише посилки без ТТН: ' + безТТН.map(function(p){ return U.jobNo(p.job); }).join(', ') + ' — спершу створіть накладні'
+    if(!там.length) return say(безТТН.length ? 'У «Реєстр» лише посилки без ТТН або зі старою: ' + безТТН.map(function(p){ return U.jobNo(p.job) + ' (' + (D.ttnBad(p.o) || 'немає ТТН') + ')'; }).join(', ')
                                              : 'У колонці «Реєстр» порожньо — перетягніть сюди посилки з ТТН');
     if(!host().npRegistry) return say('Реєстр Нової пошти недоступний');
     var групи = {};
@@ -9528,7 +9559,7 @@
       (Object.keys(групи).length > 1 ? ', ' + Object.keys(групи).length + ' відправники — у кожного свій' : '') + '?'); }catch(e){}
     if(!ок) return;
     say('Створюю реєстр…');
-    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = безТТН.map(function(p){ return { no: U.jobNo(p.job), why: 'немає ТТН' }; }), номери = [], неЗапис = [];
+    var me = (host().me && host().me()) || '', зроблено = 0, збій = '', не = безТТН.map(function(p){ return { no: U.jobNo(p.job), why: D.ttnBad(p.o) || 'немає ТТН' }; }), номери = [], неЗапис = [];
     for(var k in групи){
       var r;
       /* Дві посилки (29.10): у реєстр ідуть обидві накладні картки. */
@@ -9834,6 +9865,15 @@
       function(x){ return D.prodAt(job, x) === to; });
     return r;
   }
+  /* Кнопка, що чекає Нову пошту, показує секунди (02.11: «зависає просто» —
+     25 с тиші з одним написом). Повертає функцію «стоп». */
+  function ttnBusy(b, label){
+    if(!b) return function(){};
+    var t0 = Date.now();
+    b.disabled = true; b.classList.add('is-busy'); b.textContent = 'Створюю… 0 с';
+    var tm = setInterval(function(){ if(b.isConnected) b.textContent = 'Створюю… ' + Math.round((Date.now() - t0) / 1000) + ' с'; }, 1000);
+    return function(){ clearInterval(tm); if(b.isConnected){ b.disabled = false; b.classList.remove('is-busy'); b.textContent = label; } };
+  }
   function prodMoveSay(root, job, o, to, r){
     if(r === true){
       render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
@@ -9914,6 +9954,7 @@
         two: D.ship2Live(p.o),
         abroad: D.shipAbroad(p.o),
         ttnOld: днівТ >= 3 ? днівТ : 0,
+        ttnBad: крокП === 'reg' ? D.ttnBad(p.o) : '',
         regFail: крокП === 'reg' ? D.regFailOf(p.o) : '',
         pic: cardPic(p.job),
         chain: stageMarks(p.job, p.o, всі),
@@ -11589,7 +11630,8 @@
             if(ord != null) p.job.boardOrd = ord;
             return save(p.job, p.o, 'Поставлено вручну: «' + D.pinLabel(to) + '» · 📌');
           }
-          if(!D.prodCanMove(from, to, p.o)) return say('Так перенести не можна');
+          var чомуD = D.prodMoveWhy(from, to, p.o);
+          if(чомуD) return say(чомуD, 6000);
           /* Порядок у новій колонці — лише в памʼяті: окремий запис картки
              відділу (читання + запис) робив кожен хід удвічі довшим на
              телефоні (28.10, «тормозить»); ляже з наступним записом картки. */
@@ -11704,13 +11746,14 @@
       var tre = root.querySelector('[data-ship-ttn-re]');
       if(tre && c && c.o && host().ttnRemake) tre.onclick = async function(){
         var стараТ = String(c.o.ttn || '').trim();
+        if(!стараТ) return say('Накладної ще немає');
         var ок = true;
         try{ ок = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
         if(!ок) return;
-        tre.disabled = true; tre.textContent = 'Створюю…';
+        var стоп = ttnBusy(tre, '↻ Перестворити ТТН');
         var rr;
         try{ rr = await host().ttnRemake(c.o); }catch(e){ rr = String((e && e.message) || e); }
-        tre.disabled = false; tre.textContent = '↻ Перестворити ТТН';
+        стоп();
         if(rr === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(c.o.ttn || '')); }
         say('Накладну не перестворено: ' + (rr || 'Нова пошта відмовила'));
       };
@@ -13028,7 +13071,8 @@
     /* ── Цех: рух, «Готово», передрук, погодження, Telegram (06.10) ── */
     if(what === 'prod-move'){
       var до = String((data && data.to) || '');
-      if(!D.prodCanMove(D.prodAt(job, o), до, o)) return say('Так перенести не можна');
+      var чомуM = D.prodMoveWhy(D.prodAt(job, o), до, o);
+      if(чомуM) return say(чомуM, 6000);
       var rM = await prodMoveApply(job, o, до, m);
       if(rM === true && до === 'run') prodToTelegram(job, o, true);     // карта — у Telegram цеху автоматично
       return prodMoveSay(root, job, o, до, rM);
@@ -13064,12 +13108,18 @@
       if(!host().ttnRemake) return say('Перестворення накладної недоступне');
       var стараТ = String(o.ttn || '').trim();
       if(!стараТ) return say('Накладної ще немає');
+      /* Питання «Перестворити?» лишається (02.11, Андрій: «спливне питання
+         повинно бути, чи він підтверджує»); далі кнопка рахує секунди, а в
+         кінці каже, що вийшло — без 25 с тиші. */
       var окТ = true;
       try{ окТ = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
       if(!окТ) return;
+      var кнТ = root.querySelector('[data-do="ttn-remake"]');
+      var стопТ = ttnBusy(кнТ, '↻ Перестворити ТТН');
       say('Створюю нову накладну…');
       var rrT;
       try{ rrT = await host().ttnRemake(o); }catch(e){ rrT = String((e && e.message) || e); }
+      стопТ();
       if(rrT === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(o.ttn || '')); }
       return say('Накладну не перестворено: ' + (rrT || 'Нова пошта відмовила'));
     }

@@ -267,9 +267,39 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   (`pm.recolorMode`/`pm.recolorSrc`, `logoColors`/`LOGO_PAL`,
   `recolorLogoPart`, `layer.recolorMap`, `[data-rc-mode]`/`[data-rc-src]`,
   `.pm-rc-*` в `index.html`; `__lqLayerInfo` віддає `recolorMap`, `url`).
-  `tests/recolor-part.mjs`. Скачувані картки: пороги тиражу таблетками
-  (`loomiq-cards.js`: `tiersOf`, `pillsOf`, `pillsRow`, `PILLS_H`, поле
-  `tiers` у `FIELDS`; `tests/card-tiers.mjs`).
+  `tests/recolor-part.mjs`. Скачувані картки: ряд порогів один в один
+  з конструктора (`tierRowsNow`/`__lqTierRows` → `item.tierRow` → адмінка
+  зберігає й кладе в КП → `loomiq-cards.js` `tiersOf`/`cmpPick`/`pillsRow`:
+  усі на ширину в позиції, 4 квадратні в порівнянні, поточний — рамкою,
+  «−N%» таблеткою; `TILE_WH`/`TILE_S`/`CMP_TILES`, `PILLS_H`, `cmpExtra`, поле
+  `tiers` у `FIELDS`; адмінка `offerTiers` до 8 рядків; `tests/card-tiers.mjs`).
+  **02.11, швидкість, крок 1**: випадайки (`loomiq-select.js`) крутили коло
+  «спостерігач → обхід → переписати той самий підпис → спостерігач» кожні
+  60 мс у кожній вкладці назавжди (2000 змін DOM за 10 с у простої; на
+  телефонному стенді ×4 — 10 с зайнятості з 12). `dress` пише лише те, що
+  змінилось (підпис, `data-longest`, `is-off`, `hidden`), спостерігач свій
+  запис у `.lq-sel-v` обходом не вважає (`foreign`). Після: 2 зміни за 10 с,
+  довгі задачі в простої 104 → 6 (10,2 с → 3,4 с; решта — таймери
+  адмінки, крок 2). Стенд — `perf-admin.mjs`/`perf-loop2.mjs`/`perf-prof.mjs`
+  (сесія, не в репо). `tests/select-loop.mjs` (у pre-commit). Кроки 2–4
+  (фіксація цін після знімка, тихе оновлення дошки лише по змінених,
+  обхід чатів однією вкладкою — окремою задачею по чатах) — лише з «так».
+  **02.11, цех (відео #2000198)**: у «Реєстр» переносять завжди (`prodMove`
+  без перевірки ТТН), кнопка «Перенести в реєстр» у картці цеху й `prodMbar`
+  (`prod-move` `data-to="reg"`), негодяща ТТН горить у «Реєстрі»
+  (`D.ttnBad`, `c.ttnBad`, `.dz-c-ttnbad`; `regMake` не бере й каже чому),
+  `D.prodMoveWhy` (причина замість «вже рушили»), «↻ Перестворити ТТН» з
+  `confirm` (Андрій: «питання повинно бути») і лічильником секунд
+  (`ttnBusy`), `npCall` — людський текст на таймаут.
+  Стенд цеху `perf-prod.mjs` (роль production, 700 карток): компʼютер —
+  render 0,14 с, пошук по буквах 1,3 с (7 довгих задач, розкладка 400
+  плиток на кожну букву), простій 0,2 с/12 с; телефон ×4 — render 0,4 с,
+  вкладка колонки 0,3–0,6 с (повний render на одну видиму колонку), після
+  чужої зміни картки через 1,5 с `priceLockAll` 1,2–1,5 с (+ `saveOrders`
+  усіх карток і `renderBoard` B2B, якщо сума розійшлась — до 5 с) — крок 2.
+  `tests/prod-reg.mjs`. **02.11, КП**: «⇄ На спину / На перед» у діях шару
+  (`copyLayerToSide`, `copySideFor`, `[data-copyto]`, `__lqCopyToSide`;
+  `tests/copy-side.mjs`).
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото

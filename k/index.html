@@ -41,7 +41,7 @@
   /* Пошук угорі */
   .k-top{position:sticky;top:0;z-index:20;background:#fff;padding:10px 16px 10px;}
   .k-top .k-wrap{display:flex;align-items:center;gap:10px;}
-  .k-search{flex:1;display:flex;align-items:center;gap:10px;background:#F2F2F3;border-radius:14px;padding:0 14px;height:46px;}
+  .k-search{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:#F2F2F3;border-radius:14px;padding:0 14px;height:46px;}  /* min-width:0 (02.11): без нього поле пошуку тримало свою вроджену ширину і на 380 px шапка вилазила за екран на 21 px */
   .k-search svg{flex:none;color:#8A8D93;}
   .k-search input{flex:1;border:0;background:none;outline:none;font-size:17px;min-width:0;}
   .k-me{width:46px;height:46px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;}
@@ -180,11 +180,11 @@
 </div></nav>
 
 <script src="/catalog-base.js"></script>
-<script src="/loomiq-pricing.js?v=52ba5c753f"></script>
+<script src="/loomiq-pricing.js?v=e6431ec4d3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/an.js"></script>
-<script src="/loomiq-kit.js?v=52ba5c753f"></script>
+<script src="/loomiq-kit.js?v=e6431ec4d3"></script>
 <script>
 (function(){
   'use strict';

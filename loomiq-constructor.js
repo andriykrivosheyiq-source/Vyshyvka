@@ -4559,6 +4559,46 @@
        Ціну перераховуємо: на самому виробі це справді друге нанесення, і
        площа зросла. На вітрині «На моделі» ціна не зрушить — той ракурс у
        підрахунках не бере участі взагалі. */
+    /* ТОЙ САМИЙ ДИЗАЙН НА ІНШИЙ БІК (02.11, Вікторія: «як однаковий дизайн
+       продублювати на спині в мобільній версії? чи другий раз витягувати
+       через ШІ?»). Доти: мініатюра з іншого боку лише перемикала на нього,
+       «Дублювати» клало копію на той самий бік, і для дизайну з ШІ лишалось
+       генерувати заново — інший результат. Тепер копія шару (той самий
+       файл, колір нитки, прибраний фон, вид дизайну, відбиток) лягає в
+       центр зони нанесення іншого боку, розмір той самий у частках; людина
+       одразу бачить той бік. Ціна — як за друге нанесення, як і при
+       ручному додаванні. */
+    function copyLayerToSide(src, toSide){
+      if(!src || !toSide) return null;
+      ensureLogoSides();
+      var fromSide = sideOfLayer(src.id) || pm.side;
+      if(toSide === fromSide || getViews().indexOf(toSide) < 0) return null;
+      stopTextEdit();
+      setSide(toSide);
+      renderGarment();
+      var l = JSON.parse(JSON.stringify(src));
+      l.id = newLayerId();
+      var anc = printAreaAnchorPx() || { x:0, y:0 };
+      l.x = anc.x; l.y = anc.y;
+      var b = wrapBox();
+      if(+l.frac > 0 && b.w) l.scale = Math.max(0.04, Math.min(5, (l.frac * b.w) / 120));
+      layerSaveFrac(l);
+      (pm.logos[toSide] = pm.logos[toSide] || []).push(l);
+      pm.activeLogoId = l.id;
+      if(window.lqAn) window.lqAn.track('logo_copy_side', { garment: pm.garmentId, from: fromSide, to: toSide });
+      goTab('photo');
+      renderGarment(); renderTabPanel(); updatePriceBar();
+      return l;
+    }
+    /* Куди пропонуємо копіювати: з переду — на спину, з будь-якого іншого
+       боку — на перед; на вітрині («на моделі») кнопки немає. */
+    function copySideFor(layerId){
+      var from = sideOfLayer(layerId) || pm.side;
+      if(from === MODEL_VIEW) return '';
+      var to = from === 'front' ? 'back' : 'front';
+      return getViews().indexOf(to) >= 0 ? to : '';
+    }
+    window.__lqCopyToSide = function(id, side){ var l = findLayerAnySide(id); return l ? !!copyLayerToSide(l, side || copySideFor(id)) : false; };
     function dupLayer(src){
       if(!src) return;
       var side = sideOfLayer(src.id) || pm.side;
@@ -5029,6 +5069,9 @@
                  щодня потрібне й на самому виробі: один знак на грудях і
                  такий самий на рукаві. */
               '<button class="pm-mgr-tool" data-dup="'+actL.id+'">⧉ Дублювати</button>' +
+              (copySideFor(actL.id)
+                ? '<button class="pm-mgr-tool" data-copyto="'+actL.id+'" data-side="'+copySideFor(actL.id)+'" title="Копія цього дизайну на інший бік виробу">⇄ На '+(copySideFor(actL.id) === 'back' ? 'спину' : 'перед')+'</button>'
+                : '') +
               '<button class="pm-mgr-tool" data-crop="'+actL.id+'">✂ Обрізати</button>' +
               '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Колір нитки</button>' +
               (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
@@ -5327,6 +5370,12 @@
         el.addEventListener('click', function(){
           var layer = findLayerAnySide(Number(el.dataset.dup));
           if(layer) dupLayer(layer);
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-copyto]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var layer = findLayerAnySide(Number(el.dataset.copyto));
+          if(layer) copyLayerToSide(layer, el.dataset.side);
         });
       });
       pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
@@ -5733,28 +5782,37 @@
       }
       renderTabPanel(); updatePriceBar();
     }
-    function renderTiers(){
+    /* РЯД ПОРОГІВ ЯК ДАНІ (30.10). Андрій: «ось такі таблетки один в один
+       вони в нас вже є, і суму там саме тягнем». Ті самі рядки, що стоять
+       під ціною в конструкторі, їдуть з позицією в замовлення (`tierRow`)
+       і далі в документ КП та на скачувані картки — щоб картка показувала
+       рівно ті числа, що бачив менеджер. */
+    function tierRowsNow(){
       var pt = pricingTiers();
-      var rows;
       if(pt){
         var actT = activeCoefTier();
         /* Визначальна ціна = ефективна ціна за 1 шт із ПОВНОЮ разовою
            оплатою, тобто ця позиція сама по собі. Від неї й рахуються
            знижки: саме стільки коштувала б одна штука, замовлена окремо. */
         var base1 = effUnitPriceCoef(pt[0].coef, pt[0].min, true);
-        rows = pt.map(function(t){
+        return pt.map(function(t){
           // ефективна ціна порогу: коеф на базу+вишивку (+ DTF за тираж порогу) + частка разової оплати
           var price = effUnitPriceCoef(t.coef, t.min);
           var pct = base1 > 0 ? Math.round((1 - price / base1) * 100) : 0;
           // Порівнюємо за порогом, а не за посиланням: activeCoefTier() будує свій
           // масив, тож t===actT не збігалося ніколи й активний поріг не визначався.
-          return {label:t.label, min:t.min, badge: pct > 0 ? ('−'+pct+'%') : null, price:price,
-                  isActive: !!actT && t.min === actT.min};
+          return {label:t.label, min:t.min, max: t.max >= 99999 ? null : t.max, badge: pct > 0 ? ('−'+pct+'%') : null,
+                  pct: pct > 0 ? pct : 0, price:price, isActive: !!actT && t.min === actT.min};
         });
-      } else {
-        var active = activeTier();
-        rows = TIERS.map(function(t){ return {label:t.label, min:t.min, badge:t.badge, price:t.price, isActive: !!active && t.min === active.min}; });
       }
+      var active = activeTier();
+      return TIERS.map(function(t){ return {label:t.label, min:t.min, max: t.max == null ? null : t.max, badge:t.badge,
+        pct: t.badge ? (parseInt(String(t.badge).replace(/[^0-9]/g, ''), 10) || 0) : 0,
+        price:t.price, isActive: !!active && t.min === active.min}; });
+    }
+    window.__lqTierRows = function(){ try{ return tierRowsNow(); }catch(e){ return null; } };
+    function renderTiers(){
+      var rows = tierRowsNow();
       // Показуємо саму градацію, а не речення про неї: три найближчі пороги
       // з відсотком і ціною за штуку. Так одразу видно, наскільки дешевшає
       // виріб і на скільки треба збільшити тираж. Тап — ставить цей тираж.
@@ -8349,6 +8407,13 @@
         var _gq = (_sd && _sd.parts && _sd.parts.groupQty) ? _sd.parts.groupQty : totalUnits();
         item.calcLines = calcLinesForItem(_gq);
       }catch(e){ item.calcLines = []; }
+      /* Ряд порогів з-під ціни — як є, з тими самими числами й відсотками:
+         він піде в КП і на скачувані картки (30.10, «один в один»). */
+      try{
+        item.tierRow = tierRowsNow().map(function(r){
+          return { from: r.min, to: r.max == null ? null : r.max, label: r.label, price: r.price, pct: r.pct || 0, now: !!r.isActive };
+        });
+      }catch(e){ item.tierRow = null; }
       // Редагування з кошика — перезаписуємо ту саму позицію на її місці,
       // щоб порядок не стрибав і не з'являвся дубль.
       var ei = window.__pmEditIndex;
