@@ -297,7 +297,9 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   вкладка колонки 0,3–0,6 с (повний render на одну видиму колонку), після
   чужої зміни картки через 1,5 с `priceLockAll` 1,2–1,5 с (+ `saveOrders`
   усіх карток і `renderBoard` B2B, якщо сума розійшлась — до 5 с) — крок 2.
-  `tests/prod-reg.mjs`.
+  `tests/prod-reg.mjs`. **02.11, КП**: «⇄ На спину / На перед» у діях шару
+  (`copyLayerToSide`, `copySideFor`, `[data-copyto]`, `__lqCopyToSide`;
+  `tests/copy-side.mjs`).
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото

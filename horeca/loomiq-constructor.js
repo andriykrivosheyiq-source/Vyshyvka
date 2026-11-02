@@ -4563,6 +4563,46 @@
        Ціну перераховуємо: на самому виробі це справді друге нанесення, і
        площа зросла. На вітрині «На моделі» ціна не зрушить — той ракурс у
        підрахунках не бере участі взагалі. */
+    /* ТОЙ САМИЙ ДИЗАЙН НА ІНШИЙ БІК (02.11, Вікторія: «як однаковий дизайн
+       продублювати на спині в мобільній версії? чи другий раз витягувати
+       через ШІ?»). Доти: мініатюра з іншого боку лише перемикала на нього,
+       «Дублювати» клало копію на той самий бік, і для дизайну з ШІ лишалось
+       генерувати заново — інший результат. Тепер копія шару (той самий
+       файл, колір нитки, прибраний фон, вид дизайну, відбиток) лягає в
+       центр зони нанесення іншого боку, розмір той самий у частках; людина
+       одразу бачить той бік. Ціна — як за друге нанесення, як і при
+       ручному додаванні. */
+    function copyLayerToSide(src, toSide){
+      if(!src || !toSide) return null;
+      ensureLogoSides();
+      var fromSide = sideOfLayer(src.id) || pm.side;
+      if(toSide === fromSide || getViews().indexOf(toSide) < 0) return null;
+      stopTextEdit();
+      setSide(toSide);
+      renderGarment();
+      var l = JSON.parse(JSON.stringify(src));
+      l.id = newLayerId();
+      var anc = printAreaAnchorPx() || { x:0, y:0 };
+      l.x = anc.x; l.y = anc.y;
+      var b = wrapBox();
+      if(+l.frac > 0 && b.w) l.scale = Math.max(0.04, Math.min(5, (l.frac * b.w) / 120));
+      layerSaveFrac(l);
+      (pm.logos[toSide] = pm.logos[toSide] || []).push(l);
+      pm.activeLogoId = l.id;
+      if(window.lqAn) window.lqAn.track('logo_copy_side', { garment: pm.garmentId, from: fromSide, to: toSide });
+      goTab('photo');
+      renderGarment(); renderTabPanel(); updatePriceBar();
+      return l;
+    }
+    /* Куди пропонуємо копіювати: з переду — на спину, з будь-якого іншого
+       боку — на перед; на вітрині («на моделі») кнопки немає. */
+    function copySideFor(layerId){
+      var from = sideOfLayer(layerId) || pm.side;
+      if(from === MODEL_VIEW) return '';
+      var to = from === 'front' ? 'back' : 'front';
+      return getViews().indexOf(to) >= 0 ? to : '';
+    }
+    window.__lqCopyToSide = function(id, side){ var l = findLayerAnySide(id); return l ? !!copyLayerToSide(l, side || copySideFor(id)) : false; };
     function dupLayer(src){
       if(!src) return;
       var side = sideOfLayer(src.id) || pm.side;
@@ -5033,6 +5073,9 @@
                  щодня потрібне й на самому виробі: один знак на грудях і
                  такий самий на рукаві. */
               '<button class="pm-mgr-tool" data-dup="'+actL.id+'">⧉ Дублювати</button>' +
+              (copySideFor(actL.id)
+                ? '<button class="pm-mgr-tool" data-copyto="'+actL.id+'" data-side="'+copySideFor(actL.id)+'" title="Копія цього дизайну на інший бік виробу">⇄ На '+(copySideFor(actL.id) === 'back' ? 'спину' : 'перед')+'</button>'
+                : '') +
               '<button class="pm-mgr-tool" data-crop="'+actL.id+'">✂ Обрізати</button>' +
               '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Колір нитки</button>' +
               (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
@@ -5331,6 +5374,12 @@
         el.addEventListener('click', function(){
           var layer = findLayerAnySide(Number(el.dataset.dup));
           if(layer) dupLayer(layer);
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-copyto]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var layer = findLayerAnySide(Number(el.dataset.copyto));
+          if(layer) copyLayerToSide(layer, el.dataset.side);
         });
       });
       pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
