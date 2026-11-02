@@ -32565,17 +32565,33 @@ async function priceLockAll(){
     for(const id of Object.keys(designJobs || {})){
       const job = designJobs[id];
       if(!job || !job.orderId || designDirty[id]) continue;
-      /* Лише свої зміни (02.11): чужу картку доводить та вкладка, що її змінила. */
-      if(!ownTouched(job.orderId)) continue;
       const o = byNo.get(String(job.orderId));
       if(!o || orderDir(o) !== 'b2c' || o.status === 'cancel') continue;
-      if(U.priceLockJob(job)){
+      /* Свої й чужі (02.11). Свою картку (змінила людина в цій вкладці) фон
+         доводить повністю. Чужу — лише те, що в усіх вкладках виходить
+         однаково: першу фіксацію ціни з прайсу (раз на позицію) і суму до
+         оплати (від неї рахує грошове ядро). Собівартість і маржа залежать
+         від середніх ставок, які кожна вкладка рахує зі своїх даних, — через
+         них вкладки й переписували одна одну картку по колу. */
+      const своя = ownTouched(job.orderId);
+      const перша = (Array.isArray(job.units) ? job.units : []).some(u => u && u.gid && !u.priceAt);
+      if((своя || перша) && U.priceLockJob(job)){
         try{ await designPut(job, { quiet:true }); }
         catch(e){ console.warn('фіксація ціни', job.orderId, e); }
       }
       /* Сума замовлення (totalPrice) — та сама, що в «Гроші»: інакше картка
          на дошці й грошове ядро бачать застарілу (15.10: 2 570 проти 1 790). */
-      try{ if(b2cSumWrite(job, o)){ змін++; змінені.push(o.id); } }catch(e){ console.warn('сума B2C', e); }
+      try{
+        const бул = своя ? null : { totalCost:o.totalCost, margin:o.margin, marginPct:o.marginPct };
+        const гроші0 = [o.totalPrice, o.grossPrice, o.discountSum].map(v => Math.round(+v || 0)).join();
+        if(b2cSumWrite(job, o)){
+          if(бул){
+            Object.keys(бул).forEach(k => { if(бул[k] === undefined) delete o[k]; else o[k] = бул[k]; });
+            const гроші1 = [o.totalPrice, o.grossPrice, o.discountSum].map(v => Math.round(+v || 0)).join();
+            if(гроші1 !== гроші0){ змін++; змінені.push(o.id); }
+          } else { змін++; змінені.push(o.id); }
+        }
+      }catch(e){ console.warn('сума B2C', e); }
     }
     /* Пишемо лише змінені картки, по одній (02.11): доти після кожної зміни суми
        йшов запис УСІХ карток (серіалізація сотень) і перемальовування дошки B2B. */

@@ -44,7 +44,7 @@ const errs = [], dialogs = [];
 const iso = d => new Date(Date.now() - d * 864e5).toISOString();
 const CONTENT = { team: [{ email:'test@loomiq', name:'Юлія', role:'owner' }], b2c: {} };
 const card = (id, no, extra) => Object.assign({ id, orderId: no, type:'client', dir:'b2c', name:'Клієнт ' + no, phone:'', status:'design', site:'main',
-  createdAt: iso(1), touchedAt: iso(0.5), rev: 4, totalPrice: 1, items:[], hist:[], trackHist:[], payments:[], arch:false }, extra);
+  createdAt: iso(1), touchedAt: iso(0.5), rev: 4, totalPrice: 1000, grossPrice: 1000, discountSum: 0, totalCost: 1, margin: 999, items:[], hist:[], trackHist:[], payments:[], arch:false }, extra);
 const ORDERS = [ card('5100001', '5100001'), card('5100002', '5100002'), card('5100003', '5100003') ];
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={', 'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n' +
@@ -71,7 +71,7 @@ await p.route('**://**', r => { const u = r.request().url(); if(/gstatic\.com\/f
 await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await p.waitForFunction(() => typeof ordersLoaded !== 'undefined' && ordersLoaded, null, { timeout: 60000 });
 await p.waitForTimeout(2500);
-/* картки відділу: позиції з зафіксованою ціною 500 × 2 — сума 1000, а в картці замовлення 1 */
+/* картки відділу: позиції з зафіксованою ціною 500 × 2 — сума 1000 (у картці теж), а собівартість у картці «не та» — 1 */
 await p.evaluate(() => {
   const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none';
   const at = new Date().toISOString();
@@ -85,11 +85,24 @@ console.log('═══ 1. ЧУЖА КАРТКА — ФОН НЕ ПИШЕ ══�
 await p.evaluate(() => priceLockAll());
 await p.waitForTimeout(1500);
 const w1 = await p.evaluate(() => Object.assign({}, window.__W));
-ok(!w1['kanbanOrders/5100001'] && !w1['kanbanOrders/5100002'] && !w1['kanbanOrders/5100003'], 'фон не записав жодної чужої картки, хоч суми «не ті»', 'фон пише чужі картки: ' + JSON.stringify(w1));
+ok(!w1['kanbanOrders/5100001'] && !w1['kanbanOrders/5100002'] && !w1['kanbanOrders/5100003'], 'фон не записав жодної чужої картки, хоч собівартість «не та» (середні ставки в кожної вкладки свої)', 'фон пише чужі картки: ' + JSON.stringify(w1));
 /* знімок: картку змінили на іншому пристрої — і знову нічого */
 await p.evaluate(() => { const o = window.__ORDERS[0]; o.rev = 5; o.touchedAt = new Date().toISOString(); window.__DB['kanbanOrders/' + o.id] = JSON.parse(JSON.stringify(o)); window.__ORD_CB(window.__mkSnap(window.__ORDERS, [o])); });
 await p.waitForTimeout(2500);
 ok(!(await writes('5100001')), 'після чужої зміни (знімок бази) фон картку не переписує', 'після чужого знімка фон переписав картку: ' + await writes('5100001'));
+/* сума до оплати застаріла (як #2000058): у вкладці й у базі однаково 1 — гроші однакові в усіх вкладках, тож виправляє один раз */
+await p.evaluate(() => { const o = orders.find(x => x.orderId === '5100001'); o.totalPrice = 1; o.grossPrice = 1;
+  window.__DB['kanbanOrders/' + o.id] = JSON.parse(JSON.stringify(o)); ordersSaved.set(o.id, JSON.stringify(o)); });
+await p.evaluate(() => priceLockAll());
+await p.waitForTimeout(1500);
+const w1b = await p.evaluate(() => ({ n: window.__W['kanbanOrders/5100001'] || 0, db: (window.__DB['kanbanOrders/5100001'] || {}).totalPrice, cost: (window.__DB['kanbanOrders/5100001'] || {}).totalCost, other: (window.__W['kanbanOrders/5100002'] || 0) + (window.__W['kanbanOrders/5100003'] || 0) }));
+console.log('  ' + JSON.stringify(w1b));
+ok(w1b.n === 1 && w1b.db === 1000 && w1b.other === 0, 'чужа картка з застарілою сумою до оплати — виправлена одним записом, решта не чіпана', 'застаріла сума: ' + JSON.stringify(w1b));
+ok(w1b.cost === 1, 'собівартість чужої картки при цьому не переписано', 'чужу собівартість переписано: ' + JSON.stringify(w1b));
+await p.evaluate(() => priceLockAll());
+await p.waitForTimeout(1200);
+ok((await writes('5100001')) === 1, 'повторний прохід фону — нуль записів', 'фон пише по колу: ' + await writes('5100001'));
+await p.evaluate(() => { window.__W = {}; });
 
 console.log('═══ 2. СВОЯ КАРТКА — ДОВОДИТЬ І ПИШЕ ЛИШЕ ЇЇ ═══');
 /* людина щойно натиснула в цій вкладці — і змінила картку */
