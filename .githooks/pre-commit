@@ -204,6 +204,15 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.ht
   }
   echo "✓ телефон: цех знімає й надсилає фото; компʼютер як був"
 fi
+# 02.11: випадайки не крутять коло в простої (швидкість, крок 1).
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.js|tests/select-loop\.mjs)'; then
+  node tests/select-loop.mjs >/tmp/lq-select-loop.log 2>&1 || {
+    echo "✗ Випадайки знову переписують DOM у простої (коло спостерігач → обхід → підпис) або перестали оновлюватись — коміт зупинено. Подробиці: /tmp/lq-select-loop.log"
+    grep '✗' /tmp/lq-select-loop.log
+    exit 1
+  }
+  echo "✓ у простої випадайки мовчать, підписи оновлюються"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.js|tests/phone-all\.mjs)'; then
   node tests/phone-all.mjs >/tmp/lq-phone-all.log 2>&1 || {
     echo "✗ На телефоні щось знову вилазить за екран або розмова/вікно платежу не на весь екран — коміт зупинено. Подробиці: /tmp/lq-phone-all.log"

@@ -273,6 +273,17 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   усі на ширину в позиції, 4 квадратні в порівнянні, поточний — рамкою,
   «−N%» таблеткою; `TILE_WH`/`TILE_S`/`CMP_TILES`, `PILLS_H`, `cmpExtra`, поле
   `tiers` у `FIELDS`; адмінка `offerTiers` до 8 рядків; `tests/card-tiers.mjs`).
+  **02.11, швидкість, крок 1**: випадайки (`loomiq-select.js`) крутили коло
+  «спостерігач → обхід → переписати той самий підпис → спостерігач» кожні
+  60 мс у кожній вкладці назавжди (2000 змін DOM за 10 с у простої; на
+  телефонному стенді ×4 — 10 с зайнятості з 12). `dress` пише лише те, що
+  змінилось (підпис, `data-longest`, `is-off`, `hidden`), спостерігач свій
+  запис у `.lq-sel-v` обходом не вважає (`foreign`). Після: 2 зміни за 10 с,
+  довгі задачі в простої 104 → 6 (10,2 с → 3,4 с; решта — таймери
+  адмінки, крок 2). Стенд — `perf-admin.mjs`/`perf-loop2.mjs`/`perf-prof.mjs`
+  (сесія, не в репо). `tests/select-loop.mjs` (у pre-commit). Кроки 2–4
+  (фіксація цін після знімка, тихе оновлення дошки лише по змінених,
+  обхід чатів однією вкладкою — окремою задачею по чатах) — лише з «так».
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото
