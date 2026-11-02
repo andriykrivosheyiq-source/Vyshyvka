@@ -250,6 +250,27 @@ ok(c1 && +c1.cod === сумаB2C && сумаB2C > 0, 'контроль опла�
 ok(c1 && !c1.lock && c1.dis, 'B2C: замку до погодження немає; кнопка спить, поки не обрані місто й відділення', 'ворота: ' + JSON.stringify(c1));
 
 console.log('');
+console.log('═══ НАБРАНЕ НЕ ЗНИКАЄ: ЗАПИС ПОВІЛЬНИЙ, ЛЮДИНА ДРУКУЄ ДАЛІ (02.11) ═══');
+/* «Дані для доставки не вносяться нормально»: після імені форма чекала базу й
+   перебудовувалась — набране в наступному полі зникало. */
+await p.evaluate(async () => {
+  window.__so0 = window.saveOrders; window.saveOrders = function(){ const a = arguments; return new Promise(r => setTimeout(r, 2500)).then(() => window.__so0.apply(this, a)); }; });
+await p.waitForTimeout(600);
+const F = '#dzPanel [data-shipform]';             // картка B2C, як у Юлії
+const box0 = await p.evaluate(F => { const b = document.querySelector(F); if(b) b.__lqMark = 1; return !!b; }, F);
+await p.fill(F + ' [data-shf="name"]', 'Петренко Іван');
+await p.focus(F + ' [data-shf="phone"]');                             // ім'я «змінилось», фокус пішов далі
+await p.keyboard.press('Control+A'); await p.keyboard.type('+380501234567', { delay: 30 });
+await p.waitForTimeout(3200);                                          // повільний запис закінчився
+const nf = await p.evaluate(F => { const b = document.querySelector(F); const o = orders.filter(x => x.ship && x.ship.name === 'Петренко Іван')[0] || {};
+  const a = document.activeElement;
+  return { same: !!(b && b.__lqMark), phone: ((b && b.querySelector('[data-shf="phone"]')) || {}).value, focus: !!(a && a.dataset && a.dataset.shf === 'phone'), name: (o.ship || {}).name }; }, F);
+await p.evaluate(() => { window.saveOrders = window.__so0; });
+console.log('   ' + JSON.stringify(nf));
+ok(box0 && nf.same && nf.phone === '+380501234567' && nf.focus && nf.name === 'Петренко Іван',
+  'імʼя записалось у фоні, форма не перебудувалась: телефон, набраний під час запису, на місці, фокус там само', JSON.stringify(nf));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'ТТН створюється з картки B2B і B2C за налаштуваннями відправки');
 await browser.close(); srv.close();

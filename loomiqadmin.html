@@ -7023,6 +7023,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="card fin-audit" id="fin-audit"></div>
       <!-- Неповні картки (28.10, Андрій: «усі замовлення, де немає діалогу,
            платежу чи складу… окрема колонка, щоб підправити»). -->
+      <div class="card fin-audit" id="fin-health"></div>
       <div class="card fin-audit" id="fin-incomplete"></div>
       <!-- Відкат карток на стан у минулому (власник, 23.10): читає базу «як
            було о …» (point-in-time recovery) і повертає картку відділу. -->
@@ -8366,32 +8367,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3a5aee3e8c"></script>
-<script src="loomiq-fingerprint.js?v=3a5aee3e8c"></script>
-<script src="loomiq-pricing.js?v=3a5aee3e8c"></script>
+<script src="loomiq-select.js?v=41ec304365"></script>
+<script src="loomiq-fingerprint.js?v=41ec304365"></script>
+<script src="loomiq-pricing.js?v=41ec304365"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=3a5aee3e8c"></script>
+<script src="loomiq-money-core.js?v=41ec304365"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3a5aee3e8c"></script>
-<script src="loomiq-mock.js?v=3a5aee3e8c"></script>
+<script src="loomiq-design.js?v=41ec304365"></script>
+<script src="loomiq-mock.js?v=41ec304365"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=3a5aee3e8c"></script>
+<script src="imagetracer.js?v=41ec304365"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=3a5aee3e8c"></script>
-<script src="loomiq-threads.js?v=3a5aee3e8c"></script>
+<script src="loomiq-chat.js?v=41ec304365"></script>
+<script src="loomiq-threads.js?v=41ec304365"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3a5aee3e8c"></script>
+<script src="loomiq-cards.js?v=41ec304365"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8436,8 +8437,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3a5aee3e8c';
-var LQ_VER_AT = '2026-11-02T17:46:01Z';
+var LQ_VER = '41ec304365';
+var LQ_VER_AT = '2026-11-02T20:01:46Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -10085,6 +10086,7 @@ async function saveOrders(opts){
     cur.set(o.id, json);
   });
   const failed = [];
+  const повтор = [];
   const pre = (opts && opts.pre && opts.pre.doc) ? opts.pre : null;
   for(const [id, json] of cur){
     if(ordersSaved.get(id) === json) continue;
@@ -10209,11 +10211,26 @@ async function saveOrders(opts){
       }
       ordersSaved.set(id, body);
     }catch(e){
+      /* ВІДМОВА ЗА ЛІЧИЛЬНИКОМ — ПОВТОР (02.11). Між нашим читанням і записом
+         картку встиг записати хтось інший — база відкидає наш запис
+         (permission-denied за revOk). Доти менеджерка бачила «НЕ ЗБЕРЕЖЕНО…
+         покажіть розробнику». Тепер — один повтор: свіже читання, злиття по
+         полях, новий лічильник. Не вийшло й удруге — тоді вже кажемо. */
+      if(prevJson && !(opts && opts._retry) && /permission|PERMISSION/i.test(String((e && (e.code || e.message)) || e))){
+        повтор.push(id);
+        console.warn('запис відкинуто — повторю на свіжій версії', id, e);
+        continue;
+      }
       console.error('order save failed', id, size, e);
       failed.push({ id, size, e, parts: (function(){
         try{ return orderWeigh(JSON.parse(body)); }catch(e2){ return []; }
       })() });
     }
+  }
+  for(const rid of повтор){
+    const f2 = await saveOrders(Object.assign({}, opts || {}, { quiet: true, only: rid, pre: null, _retry: true }));
+    (Array.isArray(f2) ? f2 : []).forEach(x => { if(x && x.id !== '*') failed.push(x); });
+    try{ accLog('save-retry', 'картка #' + noOf(((orders || []).find(x => x && x.id === rid) || {}).orderId || rid) + ': запис відкинула база (лічильник) — повтор ' + ((Array.isArray(f2) && f2.length) ? 'НЕ вдався' : 'вдався') + ' · ' + deviceShort()); }catch(e){}
   }
   for(const id of (onlyId ? [] : [...зналиНаСтарті])){   // одна картка — решту не чіпаємо й не видаляємо
     if(cur.has(id) || !ordersSaved.has(id)) continue;
@@ -10230,6 +10247,9 @@ async function saveOrders(opts){
     if(!quiet) toast('Картку #' + застарілі.join(', #') + ' уже змінили з іншого пристрою після того, як ви її відкрили. Показано свіжу версію — повторіть правку.');
   }
   if(відкладені.length) saveDeferred(відкладені, quiet);
+  failed.forEach(f => { if(!f || !f.e || f.id === '*') return;
+    const no = noOf(((orders || []).find(x => x && x.id === f.id) || {}).orderId || f.id);
+    accFail('save-fail', f.id, 'картка #' + no + ' не записалась: ' + String(f.e.code || f.e.message || f.e).slice(0, 80)); });
   const зламана = failed.find(x => x && x.e && /failed-precondition/i.test(String(x.e.code || x.e.message || '')));
   if(зламана){
     dbLinkStale(зламана.e);
@@ -10441,6 +10461,7 @@ let currentApps = [];     // apps being built in calculator before save
    ранку дошка знову читається за своїм звичайним порядком. */
 let movedSeq = 0;
 const movedOrder = new Map();
+window.__lqOwnTouched = id => ownTouched(id);
 /* Коротка підсвітка щойно перенесеної картки. Вона й так лягає першою, але
    в довгій колонці погляд усе одно шукає, куди саме вона поділась. */
 function flashTicket(id){
@@ -10477,8 +10498,29 @@ function touchOrder(o){
   if(!o) return o;
   o.touchedAt = new Date().toISOString();
   movedOrder.set(o.id, ++movedSeq);
+  ownTouch(o.orderId);
   return o;
 }
+/* СВОЇ ЗМІНИ ВКЛАДКИ (02.11). Фонове доведення цін і сум (priceLockAll) доти
+   йшло по ВСІХ картках у КОЖНІЙ вкладці після кожного знімка бази. Середня
+   ставка дизайнера за 30 днів у різних вкладках виходить різна — і вкладки
+   по черзі переписували одна одній ту саму картку: щойно створена картка
+   отримувала вісім записів одночасно, сім із них база відкидала за
+   лічильником (permission-denied у менеджерки), а кожен прийнятий будив
+   перемальовування в усіх. Тепер фон доводить лише ті картки, які змінила
+   людина саме в цій вкладці, і лише годину після зміни. */
+const OWN_TOUCH = new Map();
+const OWN_TOUCH_MS = 3600000;
+/* «Своя» — лише зміна, яку зробила ЛЮДИНА: натиск чи клавіша щойно, у цій
+   вкладці. Автоматичні записи (доведення статусів, знімки, обхід розмов)
+   картку своєю не роблять — інакше кожна вкладка знову доводила б усе. */
+let LQ_USER_AT = 0;
+['pointerdown', 'keydown', 'input', 'change', 'drop'].forEach(ev => {
+  try{ document.addEventListener(ev, e => { if(e && e.isTrusted !== false) LQ_USER_AT = Date.now(); }, true); }catch(e){}
+});
+function userActing(){ return Date.now() - LQ_USER_AT < 4000; }
+function ownTouch(orderId, force){ const k = String(orderId || ''); if(k && (force || userActing())) OWN_TOUCH.set(k, Date.now()); }
+function ownTouched(orderId){ const t = OWN_TOUCH.get(String(orderId || '')); return !!t && Date.now() - t < OWN_TOUCH_MS; }
 function offerBorn(o){
   if(!o) return;
   if(!o.offerToken){ o.offerToken = makeOfferToken(); o.offerState = 'created'; }
@@ -13641,7 +13683,10 @@ function finIncompleteRows(all){
        номер картки відділу; його немає (картка відділу без номера або
        взагалі без картки відділу) — кажемо прямо й даємо кнопку. */
     const номер = showNo(o), безНомера = !jExists || !j.no;
-    out.push({ o, бракує, як, хто, коли: коли(o.createdAt), sent: sent.sort().map(коли), плат, схожі, номер, безНомера, безКартки: !jExists,
+    /* Недописане створення (02.11, #5000973): ні картки відділу, ні грошей, ні
+       ТТН, з часів чернеток — його можна прибрати; номер лишається вибулим. */
+    const порожня = !jExists && !(гроші > 0) && !плат.length && !ттн && String(o.createdAt || '') >= '2026-10-22';
+    out.push({ o, бракує, як, хто, коли: коли(o.createdAt), sent: sent.sort().map(коли), плат, схожі, номер, безНомера, безКартки: !jExists, порожня,
       стан: [o.status || '', ттн ? 'ТТН ' + ттн : '', sent.length ? 'дизайн надсилали' : ''].filter(Boolean).join(' · '),
       вага: (o.restoredAt ? 0 : 1) * 10 + (sent.length || ттн ? 0 : 1) });
   });
@@ -13649,6 +13694,24 @@ function finIncompleteRows(all){
 }
 /* Дати номер відділу картці, у якої його немає (власник): картки відділу
    немає — заводимо; номер — наступний вільний (makeDesignNo). */
+/* ПРИБРАТИ НЕДОПИСАНЕ СТВОРЕННЯ (02.11). Лише власник, лише порожню картку
+   (без картки відділу, грошей і ТТН). Бронь номера не чіпаємо — номер
+   лишається вибулим і більше не видається (правило 23.10). */
+async function finIncompleteDrop(id, btn){
+  const o = (orders || []).find(x => x && x.id === id);
+  if(!o || !canSetup()) return;
+  const r = finIncompleteRows(true).find(x => x.o === o);
+  if(!r || !r.порожня) return toast('Ця картка вже не порожня — прибрати не можна');
+  if(!confirm('Прибрати недописане створення ' + (o.crmChatName || o.name || '') + ' від ' + dmyOf(o.createdAt) + '?\nУ ній немає ні складу, ні грошей, ні ТТН. Номер більше не видаватиметься.')) return;
+  if(btn) btn.disabled = true;
+  try{
+    await ORDERS_COL.doc(id).delete();
+    orders = (orders || []).filter(x => x !== o); ordersSaved.delete(id);
+    try{ accLog('del-half', 'прибрано недописане створення (' + (o.crmChatName || o.name || id) + ', ' + dmyOf(o.createdAt) + ') · ' + deviceShort()); }catch(e){}
+    toast('Недописану картку прибрано');
+  }catch(e){ toast('Не прибрано: ' + String((e && (e.code || e.message)) || e)); if(btn) btn.disabled = false; return; }
+  try{ renderFinIncomplete(); repaintAfterOrders(); }catch(e){}
+}
 async function finIncompleteNo(orderId){
   const o = (orders || []).find(x => x && String(x.orderId) === String(orderId));
   if(!o) return toast('Картки немає в памʼяті');
@@ -13664,7 +13727,41 @@ function finIncompleteText(rows){
     (r.стан ? ' · ' + r.стан : '') + (r.плат.length ? ' · платіж: ' + r.плат.join('; ') : '') +
     (r.sent.length ? ' · клієнту надсилали: ' + r.sent.join(', ') : '') + (r.схожі.length ? ' · схожі: ' + r.схожі.join(', ') : '')).join('\n');
 }
+/* СТАН СИСТЕМИ (02.11, план стабільності, етап 5). Андрій: «щоб ми не
+   дізнавались від менеджерів». За добу: невдалі записи, повтори, відмови бази
+   на створенні, спроби стерти склад, напівстворені картки. Бачить власник. */
+const HEALTH_KINDS = {
+  'save-fail': 'картка замовлення не записалась', 'job-fail': 'картка відділу не записалась',
+  'save-retry': 'запис відкинула база — повтор', 'atomic-deny': 'база відмовила у створенні',
+  'units-keep': 'стара копія хотіла стерти склад', 'rollback': 'стара копія хотіла відкотити цех',
+  'order-new-again': 'повтор створення без дубля', 'del-auto': 'фоновий запис прибрав картку', 'del-half': 'прибрано недописане створення' };
+function finHealthRows(){
+  const від = new Date(Date.now() - 864e5).toISOString();
+  const by = {};
+  accLogList().forEach(r => { if(!r || !HEALTH_KINDS[r.kind] || String(r.at || '') < від) return;
+    (by[r.kind] = by[r.kind] || []).push(r); });
+  let half = 0; try{ half = finIncompleteRows(false).filter(x => x.безКартки).length; }catch(e){}
+  return { by, half };
+}
+function renderFinHealth(){
+  const box = document.getElementById('fin-health');
+  if(!box) return;
+  if(!canSetup()){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = '';
+  const E = escapeHtml, h = finHealthRows();
+  const kinds = Object.keys(h.by);
+  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto'].filter(k => h.by[k]).length + (h.half ? 1 : 0);
+  const рядки = kinds.map(k => {
+    const l = h.by[k]; const ост = l[l.length - 1];
+    return `<div class="fa-i ${['save-retry', 'order-new-again', 'del-half'].indexOf(k) >= 0 ? 'amber' : 'red'}"><div class="fa-x"><b>${E(HEALTH_KINDS[k])}</b> · ${l.length} за добу<br><small>${E(String(ост.text || '').slice(0, 140))} · ${E(String(ост.by || '').split('@')[0])} · ${E(dmyOf(ост.at))}</small></div></div>`;
+  });
+  if(h.half) рядки.push(`<div class="fa-i red"><div class="fa-x"><b>напівстворені картки (без картки відділу)</b> · ${h.half}<br><small>нижче, у «Неповних картках» — «Дати номер відділу» або «Прибрати недописану»</small></div></div>`);
+  box.innerHTML = `<div class="fa-h"><b>Стан системи</b>${погані ? `<span class="fa-n red">${погані}</span>` : '<span class="fa-ok">✓ за добу без збоїв запису</span>'}<span>невдалі записи, відмови бази, захисти, що спрацювали — за останню добу</span></div>` +
+    (рядки.length ? `<div class="fa-list">${рядки.join('')}</div>` : '');
+}
+window.__lqHealth = () => finHealthRows();
 function renderFinIncomplete(){
+  try{ renderFinHealth(); }catch(e){ console.warn('стан системи', e); }
   const box = document.getElementById('fin-incomplete');
   if(!box) return;
   let rows = [], усіх = 0;
@@ -13681,11 +13778,12 @@ function renderFinIncomplete(){
           ${r.плат.length ? '<br>платіж: ' + E(r.плат.join('; ')) : ''}
           ${r.sent.length ? '<br>дизайн надсилали клієнту: ' + E(r.sent.join(', ')) : ''}
           ${r.схожі.length ? '<br>схожі картки (імʼя чи нік): ' + E(r.схожі.join(', ')) : ''}</div>
-        <div class="fa-b">${r.безНомера && canSetup() ? `<button class="pri" data-fi-no="${E(r.o.orderId)}" title="Завести картку відділу (якщо її немає) і дати наступний вільний номер">Дати номер відділу</button>` : ''}<button data-fi-open="${E(r.o.orderId)}">Відкрити</button></div></div>`).join('')}</div>` : '');
+        <div class="fa-b">${r.безНомера && canSetup() ? `<button class="pri" data-fi-no="${E(r.o.orderId)}" title="Завести картку відділу (якщо її немає) і дати наступний вільний номер">Дати номер відділу</button>` : ''}${r.порожня && canSetup() ? `<button data-fi-drop="${E(r.o.id)}" title="Недописане створення: без картки відділу, без грошей і без ТТН — прибрати з дошки">Прибрати недописану</button>` : ''}<button data-fi-open="${E(r.o.orderId)}">Відкрити</button></div></div>`).join('')}</div>` : '');
   box.onclick = e => {
     if(e.target.closest('[data-fi-toggle]')){ finInc.open = !finInc.open; return renderFinIncomplete(); }
     if(e.target.closest('[data-fi-all]')){ finInc.all = !finInc.all; return renderFinIncomplete(); }
     const nb = e.target.closest('[data-fi-no]'); if(nb){ nb.disabled = true; finIncompleteNo(nb.dataset.fiNo); return; }
+    const db0 = e.target.closest('[data-fi-drop]'); if(db0){ finIncompleteDrop(db0.dataset.fiDrop, db0); return; }
     const op = e.target.closest('[data-fi-open]'); if(op){ openByNo(op.dataset.fiOpen); return; }
     if(e.target.closest('[data-fi-copy]')){
       const txt = finIncompleteText(rows);
@@ -17289,6 +17387,9 @@ function showNo(o){
   if(orderDir(o) === 'b2c'){
     const j = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
     if(j && j.no) return String(j.no);
+    /* Номер лежить і в самій картці (02.11): картки відділу ще/вже немає —
+       показуємо номер з двійкою, а не ключ із пʼятірки. */
+    if(o.no) return String(o.no);
   }
   return String(o.orderId || '');
 }
@@ -17396,6 +17497,9 @@ function makeOrderId(dir){
      саме вона не дає двом карткам зійтись на одному номері. */
   const busy = {};
   (orders || []).forEach(o => { const v = orderIdNum(o.orderId); if(v) busy[v] = 1; });
+  /* І номери, під якими вже лежить картка відділу (02.11): видати такий —
+     означало б або відмову бази на створенні, або затерти чужу роботу. */
+  try{ Object.keys((typeof designJobs === 'object' && designJobs) || {}).forEach(k => { const v = orderIdNum(k); if(v) busy[v] = 1; }); }catch(e){}
   while(busy[next]) next++;
   if(dirIsC(dir)) orderSeqC = next; else orderSeq = next;
   /* Пишемо одразу, не чекаючи збереження самої картки: якщо вкладку
@@ -26433,7 +26537,8 @@ function shipVals(o){
     codOn: cod1 > 5, cod: cod1 > 5 ? cod1 : 0,
     left, payer: sh.payer === 'sender' ? 'sender' : 'recipient',
     total: +o.totalPrice || 0,
-    unitsN: orderDir(o) === 'b2c' ? (((designJobs || {})[o.orderId] || {}).units || []).filter(u => u && u.gid).length : 0
+    unitsN: orderDir(o) === 'b2c' ? (((designJobs || {})[o.orderId] || {}).units || []).filter(u => u && u.gid).length : 0,
+    b2c, abroad: !!sh.abroad
   };
 }
 /* Значення форми другого отримувача (29.10): свої імʼя, телефон, місто,
@@ -26522,6 +26627,9 @@ function shipMissing(v){
   /* 29.10 (після нічного відкату накладні створювались без контролю оплати:
      ціна в картці була нуль): є одяг, а ціни немає — накладну не створюємо. */
   if(v.unitsN > 0 && !(v.total > 0)) m.push('ціна замовлення (нуль — накладна була б без контролю оплати)');
+  /* B2C без одягу (02.11, #2000452) — накладна на порожню картку: цеху нічого
+     відправляти, а гроші за нею лягли б на картку без складу. */
+  if(v.b2c && !(v.unitsN > 0) && !v.abroad) m.push('одяг у замовленні (у картці немає жодної позиції)');
   /* Другий отримувач є (29.10): спершу поділ позицій, і в першій посилці має щось лишитись. */
   if(v.split && v.split.on && !v.split.live) m.push('позиції другого отримувача (поставте галочки у «посилка 2» або приберіть його)');
   if(v.split && v.split.live && !v.weight.qty) m.push('позиції для першої посилки (усе віддано другому отримувачу)');
@@ -26621,6 +26729,20 @@ function wireShipForm(box, o, persist){
     wireShipForm(fresh, o, persist);
   };
   const keep = async () => { try{ await persist(o); }catch(e){ console.error(e); } };
+  /* НАБРАНЕ НЕ ЗНИКАЄ (02.11, «дані для доставки не вносяться нормально»).
+     Доти після імені чи телефону форма чекала запис у базу (1–3 с) і
+     перебудовувалась цілком — усе, що людина встигла набрати в наступному
+     полі, зникало, фокус злітав. Тепер запис іде у фоні, а перебудова (лише
+     коли вона справді потрібна) чекає, поки людина вийде з форми. */
+  const redrawSoon = () => {
+    const a = document.activeElement;
+    if(!(a && box.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return redraw();
+    if(box.__lqRedrawWait) return;
+    box.__lqRedrawWait = true;
+    const off = e => { if(e.relatedTarget && box.contains(e.relatedTarget)) return;
+      box.removeEventListener('focusout', off); box.__lqRedrawWait = false; setTimeout(() => { if(box.isConnected) redraw(); }, 0); };
+    box.addEventListener('focusout', off);
+  };
   /* ── Друга посилка (29.10) ── */
   const two = box.querySelector('[data-shf-two]');
   if(two) two.addEventListener('click', async () => { o.ship2 = { on: true, units: [], at: new Date().toISOString(), by: myEmail() || '' }; touchOrder(o); await keep(); redraw(); });
@@ -26685,9 +26807,8 @@ function wireShipForm(box, o, persist){
       sh()[k] = v;
       if(k === 'sender'){ delete sh().format; }
       if(k === 'weightKg'){ delete sh().format; }
-      await keep();
-      if(k === 'sender' || k === 'weightKg' || k === 'format') redraw();
-      else if(k === 'name' || k === 'phone') redraw();
+      keep();                                                     // у фоні, не чекаємо
+      if(k === 'sender' || k === 'weightKg' || k === 'format') redrawSoon();
     });
   });
   const cityI = box.querySelector('[data-shf-city]'), whI = box.querySelector('[data-shf-wh]');
@@ -26698,12 +26819,12 @@ function wireShipForm(box, o, persist){
       async x => {
         Object.assign(sh(), x ? { cityRef: x.ref, cityName: x.name } : { cityRef: '', cityName: '' },
                       { whRef: '', whName: '', whNumber: '' });
-        if(x){ await keep(); redraw(); }
+        if(x){ redraw(); keep(); }                                // одразу показуємо, пишемо у фоні
       },
       async x => {
         if(!x) return;
         Object.assign(sh(), { whRef: x.ref, whName: x.name, whNumber: x.number || '', postomat: !!x.postomat });
-        await keep(); redraw();
+        redraw(); keep();
       });
   }
   box.querySelectorAll('[data-shf-abroad]').forEach(b => b.addEventListener('click', async () => {
@@ -31627,6 +31748,19 @@ async function designPut(job, opt){
   /* ЛІЧИЛЬНИК ЗАПИСІВ (29.10, як у saveOrders): на одиницю більший за той, що
      в базі й у баченій версії. Правило бази (jobRevOk) запізнілий запис із
      меншим чи тим самим rev не пускає — стара копія з черги не ляже. */
+  /* СКЛАД НЕ СТИРАЄТЬСЯ САМ (02.11, #2000452: оплачене, з ТТН — і без одягу).
+     У базі є позиції, а запис несе порожній склад, і людина саме зараз нічого
+     не видаляла — це стара чи автоматична копія. Склад беремо з бази, решту
+     пишемо; спроба — у журнал. Видалити останню позицію руками можна, як і доти. */
+  try{
+    const вБазі = ((було.doc || {}).units || []).filter(u => u && u.gid);
+    const тут = (job.units || []).filter(u => u && u.gid);
+    if(вБазі.length && !тут.length && !userActing() && !(opt && opt.unitsDrop)){
+      job.units = JSON.parse(JSON.stringify((було.doc || {}).units || []));
+      console.warn('запис без складу поверх картки зі складом — склад узято з бази', id);
+      try{ accLog('units-keep', 'картка #' + noOf(id) + ': запис без складу хотів стерти ' + вБазі.length + ' поз. — не пустили · ' + deviceShort()); }catch(e){}
+    }
+  }catch(e){ console.warn('захист складу', e); }
   job.rev = Math.max(+((було.doc || {}).rev || 0) || 0, +(job.rev || 0) || 0, designBase[id] ? revOfJson(designBase[id]) : 0) + 1;
   const body = JSON.stringify(job);
   const prev = було.doc ? JSON.stringify(було.doc) : '';
@@ -32067,6 +32201,18 @@ async function draftCommit(o){
        є вже цей нік під таким-то замовленням, дублювати чи ні — і все». */
     const нік = String(o.crmNick || дв.crmNick || '').replace(/^@/, '');
     const хто = [нік ? '@' + нік : '', дв.name || дв.crmChatName || o.crmChatName || ''].filter(Boolean).join(' · ');
+    /* Близнюк без картки відділу — не замовлення, а недописана спроба
+       (02.11, #5000973): кажемо саме так, а не «уже під замовленням #5…». */
+    /* Лише картки з часів чернеток (від 22.10): старіші B2C могли жити без
+       картки відділу законно. */
+    const недописано = !(designJobs || {})[дв.orderId] && !дв.no && String(дв.createdAt || '') >= '2026-10-22';
+    if(недописано){
+      if(!confirm('Цей нік' + (хто ? ' (' + хто + ')' : '') + ' уже має НЕДОПИСАНЕ створення від ' + dmyOf(дв.createdAt) +
+          ' — картка без складу й дизайну (попередня спроба не дописалась).\n\n«OK» — створити замовлення зараз (недописану потім приберіть: Фінанси → Неповні картки).\n«Скасувати» — не створювати.')){
+        draftLastErr = 'цей нік уже має недописане створення від ' + dmyOf(дв.createdAt);
+        return '';
+      }
+    } else
     if(!confirm('Цей нік' + (хто ? ' (' + хто + ')' : '') + ' уже під замовленням #' + showNo(дв) +
         ' (створено ' + dmyOf(дв.createdAt) + ').\n\nЗаповнити ще одне замовлення з цим ніком?\n\n«OK» — так, це інше замовлення тієї ж людини.\n«Скасувати» — ні, працюйте в #' + showNo(дв) + '.')){
       draftLastErr = 'цей нік уже під #' + showNo(дв) + ' — відкрийте ту картку';
@@ -32114,6 +32260,7 @@ async function draftCommit(o){
   }
   draftForget();
   DRAFT_JUST[fin] = 1;
+  ownTouch(fin, true);
   try{ accLog('order-new', 'створив замовлення B2C #' + showNo(o) + (разом ? ' (неподільно)' : '')); }catch(e){}
   toast('Замовлення ' + showNo(o) + ' створено');
   return fin;
@@ -32151,12 +32298,16 @@ async function orderCreateAtomic(o, job, pays){
   if(window.LQ_UPD_STALE) throw new Error('вийшло оновлення адмінки — натисніть «Оновити»');
   const by = myEmail() || '', dir = orderDir(o);
   pays = (pays || []).filter(Boolean);
+  let відмов = 0;
   for(let k = 0; k < 40; k++){
     const no = String(o.orderId);
     const at = new Date().toISOString();
-    let ran = false, taken = false;
+    let ran = false, taken = false, already = null;
     const body = JSON.parse(JSON.stringify(o));
     body.orderId = no; body.arch = false; body.rev = 1; body.touchedAt = at;
+    /* Номер з двійкою — і в саму картку (02.11, Андрій: «скільки можна ці
+       помилки з номерами»): навіть без картки відділу на екрані він, а не ключ. */
+    if(job && job.no) body.no = String(job.no);
     body.payments = Array.isArray(body.payments) ? body.payments : [];
     const payDocs = pays.map((p, i) => {
       const d = { orderId: no, tag: i ? 'final' : 'prepay', linkedBy: by, linkedAt: at,
@@ -32170,10 +32321,19 @@ async function orderCreateAtomic(o, job, pays){
     try{
       await fbDb.runTransaction(async t => {
         ran = true;
+        /* Ця сама чернетка вже створилась попередньою спробою (відповідь бази
+           загубилась, сторінку перезавантажили, натиснули ще раз) — не дубль,
+           а та сама картка: віддаємо її (02.11). */
+        const own = await t.get(ORDERS_COL.doc(o.id));
+        if(own && own.exists){ already = own.data() || {}; return; }
         const nos = await t.get(ORDER_NOS.doc(no));
         if(nos && nos.exists){ const d = nos.data() || {}; if(d.id !== o.id){ taken = true; return; } }
-        const own = await t.get(ORDERS_COL.doc(o.id));
-        if(own && own.exists) throw new Error('картка з таким ключем уже є в базі');
+        /* Під номером уже лежить картка відділу (стара, без броні) — номер не
+           наш (02.11, емулятор: інакше база відкидала ВСЮ транзакцію, вкладка
+           назавжди йшла старим шляхом і на повільному звʼязку лишала картку
+           без відділу й платежу — «нові без привʼязок», #5000973). */
+        const jx = await t.get(DESIGN_COL.doc(no));
+        if(jx && jx.exists){ taken = true; return; }
         for(const x of payDocs){
           const s = await t.get(PAY_COL.doc(x.p.id));
           const d = (s && s.exists) ? (s.data() || {}) : null;
@@ -32187,16 +32347,38 @@ async function orderCreateAtomic(o, job, pays){
     }catch(e){
       const code = String((e && (e.code || e.message)) || e);
       if(/permission-denied|PERMISSION_DENIED|insufficient permissions/i.test(code)){
-        atomicOff = true;
-        console.warn('неподільне створення: база не пустила — старий шлях', e);
-        try{ if(canSetup()) toast('Неподільне створення замовлення ще не ввімкнене в базі — опублікуйте firestore.rules'); }catch(e2){}
-        return null;
+        /* БЕЗ ТИХОГО СТАРОГО ШЛЯХУ (02.11). Доти тут вкладка назавжди
+           перемикалась на покрокове створення, а воно на повільному звʼязку
+           лишало картку без відділу й платежу. Тепер: у журнал, ще одна
+           спроба з наступним номером (номер міг бути зайнятий не броню), і
+           чесна зупинка — нічого не записано, чернетка лишається. */
+        відмов++;
+        console.warn('неподільне створення: база не пустила', no, e);
+        try{ accLog('atomic-deny', 'створення #' + (job && job.no ? job.no : no) + ': база відмовила (' + code.slice(0, 80) + ') · спроба ' + відмов + ' · ' + deviceShort()); }catch(e2){}
+        if(відмов < 2){
+          const next = String(makeOrderId(dir));
+          delete designJobs[no]; designJobs[next] = job; job.orderId = next; o.orderId = next;
+          continue;
+        }
+        throw new Error('база не пустила створення замовлення — нічого не записано, чернетка лишається. Скажіть власнику (' + code.slice(0, 60) + ')');
       }
       if(e && e.lqPay) throw e;
       if(/already|ALREADY|aborted|ABORTED/i.test(code)) taken = true;
       else throw new Error('картка замовлення не записалась у базу — перевірте звʼязок і натисніть «Створити» ще раз (' + code + ')');
     }
     if(!ran) return null;                           // стуб без транзакції — старий шлях
+    if(already){
+      const fin = String(already.orderId || no);
+      Object.keys(o).forEach(kk => { if(!(kk in already)) delete o[kk]; });
+      Object.assign(o, already);
+      ordersSaved.set(o.id, JSON.stringify(o));
+      delete designJobs[no];
+      job.orderId = fin; job.arch = false; delete job.draft;
+      if(already.no) job.no = String(already.no);           // номер — той, що вже лежить у базі
+      designJobs[fin] = job; designSeen[fin] = ''; delete designDirty[fin];
+      try{ accLog('order-new-again', 'чернетка вже була створена як #' + showNo(o) + ' — повтор не дублював · ' + deviceShort()); }catch(e){}
+      return fin;
+    }
     if(taken){
       const next = String(makeOrderId(dir));
       delete designJobs[no]; designJobs[next] = job; job.orderId = next; o.orderId = next;
@@ -32377,10 +32559,15 @@ async function priceLockAll(){
   priceLockBusy = true;
   let змін = 0;
   try{
+    const byNo = new Map();
+    (orders || []).forEach(x => { if(x && x.orderId) byNo.set(String(x.orderId), x); });
+    const змінені = [];
     for(const id of Object.keys(designJobs || {})){
       const job = designJobs[id];
       if(!job || !job.orderId || designDirty[id]) continue;
-      const o = (orders || []).find(x => x && x.orderId === job.orderId);
+      /* Лише свої зміни (02.11): чужу картку доводить та вкладка, що її змінила. */
+      if(!ownTouched(job.orderId)) continue;
+      const o = byNo.get(String(job.orderId));
       if(!o || orderDir(o) !== 'b2c' || o.status === 'cancel') continue;
       if(U.priceLockJob(job)){
         try{ await designPut(job, { quiet:true }); }
@@ -32388,9 +32575,12 @@ async function priceLockAll(){
       }
       /* Сума замовлення (totalPrice) — та сама, що в «Гроші»: інакше картка
          на дошці й грошове ядро бачать застарілу (15.10: 2 570 проти 1 790). */
-      try{ if(b2cSumWrite(job, o)) змін++; }catch(e){ console.warn('сума B2C', e); }
+      try{ if(b2cSumWrite(job, o)){ змін++; змінені.push(o.id); } }catch(e){ console.warn('сума B2C', e); }
     }
-    if(змін){ try{ await saveOrders({ quiet:true }); renderBoard(); }catch(e){ console.warn('сума B2C', e); } }
+    /* Пишемо лише змінені картки, по одній (02.11): доти після кожної зміни суми
+       йшов запис УСІХ карток (серіалізація сотень) і перемальовування дошки B2B. */
+    for(const oid of змінені){ try{ await saveOrders({ quiet:true, only: oid }); }catch(e){ console.warn('сума B2C', e); } }
+    if(змін){ try{ repaintAfterOrders(); }catch(e){} }
   }finally{ priceLockBusy = false; }
 }
 /* ПЕРЕЇЗД КАРТОК, ЗАВЕДЕНИХ ДО ПОЯВИ НАПРЯМІВ.
@@ -32530,6 +32720,7 @@ async function designSave(job, o){
     try{ draftPersist(); }catch(e){}
     return;
   }
+  ownTouch(job.orderId);
   try{ b2cSumWrite(job, o); }catch(e){ console.warn('сума B2C', e); }
   /* СТАРА КОПІЯ В ЗАМИКАННІ (аудит 28.10, B.3): екран тримає обʼєкт картки,
      знімок тим часом замінив її в памʼяті новішою — записати старий означало
@@ -32547,6 +32738,7 @@ async function designSave(job, o){
     записано = await designPut(job);
   }catch(e){
     console.error('design save', e);
+    accFail('job-fail', job.orderId, 'картка відділу #' + noOf(job.orderId) + ' не записалась: ' + String((e && (e.code || e.message)) || e).slice(0, 80));
     toast('Задача дизайну не збереглась: ' + ((e && e.message) || e));
     throw e;
   }finally{
@@ -33779,6 +33971,16 @@ const ACC_LOG_MAX = 3000;
 function accLogList(){
   const a = (contentData || {}).accessLog;
   return Array.isArray(a) ? a : [];
+}
+/* НЕВДАЧІ — У ЖУРНАЛ, АЛЕ НЕ ЧАСТІШЕ РАЗУ НА 10 ХВ НА КАРТКУ (02.11, план
+   стабільності, етап 5): журнал лежить у спільному документі, і кожен рядок
+   будить усі вкладки — тож однакова невдача пишеться один раз. */
+const ACC_FAIL_SEEN = new Map();
+function accFail(kind, key, text){
+  const k = kind + '|' + key, t = ACC_FAIL_SEEN.get(k) || 0;
+  if(Date.now() - t < 600000) return;
+  ACC_FAIL_SEEN.set(k, Date.now());
+  try{ accLog(kind, text + ' · ' + deviceShort()); }catch(e){}
 }
 async function accLog(kind, text){
   /* НЕ ПИШЕМО ТЕ, ЧОГО НЕ ЧИТАЛИ.

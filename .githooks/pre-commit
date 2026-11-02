@@ -221,6 +221,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.
   }
   echo "✓ телефон: усі розділи в екрані; компʼютер як був"
 fi
+# 02.11 (план стабільності, етапи 1–5): фон не воює між вкладками, повтор при відмові
+# лічильника, склад не стирається, ТТН без одягу — ні, журнал невдач і «Стан системи».
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/bg-writes\.mjs)'; then
+  node tests/bg-writes.mjs >/tmp/lq-bg-writes.log 2>&1 || {
+    echo "✗ Фонові записи знову пишуть чужі картки, відмова лічильника не повторюється, склад стирається або «Стан системи» мовчить — коміт зупинено. Подробиці: /tmp/lq-bg-writes.log"
+    grep '✗' /tmp/lq-bg-writes.log
+    exit 1
+  }
+  echo "✓ фон пише лише свої картки; повтор при відмові; склад не стирається"
+fi
 # 02.11: у «Реєстр» переносять завжди (кнопка «Перенести в реєстр»), негодяща ТТН горить там; «Перестворити ТТН» не мовчить.
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/prod-reg\.mjs)'; then
   node tests/prod-reg.mjs >/tmp/lq-prod-reg.log 2>&1 || {
