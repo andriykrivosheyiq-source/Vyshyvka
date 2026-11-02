@@ -284,6 +284,17 @@ destroyed» — це Chromium «Promise was collected» на await усеред�
   (сесія, не в репо). `tests/select-loop.mjs` (у pre-commit). Кроки 2–4
   (фіксація цін після знімка, тихе оновлення дошки лише по змінених,
   обхід чатів однією вкладкою — окремою задачею по чатах) — лише з «так».
+  **02.11, цех (відео #2000198)**: `D.prodMoveWhy` (причина замість «вже
+  рушили»), кнопка «→ У реєстр» у картці цеху й `prodMbar`
+  (`prod-move` `data-to="reg"`), «↻ Перестворити ТТН» без `confirm` з
+  лічильником секунд (`ttnBusy`), `npCall` — людський текст на таймаут.
+  Стенд цеху `perf-prod.mjs` (роль production, 700 карток): компʼютер —
+  render 0,14 с, пошук по буквах 1,3 с (7 довгих задач, розкладка 400
+  плиток на кожну букву), простій 0,2 с/12 с; телефон ×4 — render 0,4 с,
+  вкладка колонки 0,3–0,6 с (повний render на одну видиму колонку), після
+  чужої зміни картки через 1,5 с `priceLockAll` 1,2–1,5 с (+ `saveOrders`
+  усіх карток і `renderBoard` B2B, якщо сума розійшлась — до 5 с) — крок 2.
+  `tests/prod-reg.mjs`.
   `draftTwinOf` + `confirm` у `draftCommit`. Звірка: `orphanTwins`,
   `orphanMergeInto`, `[data-fa-merge]`, рядок `orphan_job.twins`.
   `getWithin`/`dbKick` (`LQ_GET_MS`) у `orderApply` і `dbNewer`; вікно фото
