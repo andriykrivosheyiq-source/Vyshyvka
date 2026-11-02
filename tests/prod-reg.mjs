@@ -1,20 +1,21 @@
-/* «У РЕЄСТР» КНОПКОЮ В КАРТЦІ; ПЕРЕСТВОРИТИ ТТН БЕЗ ПИТАННЯ Й НЕ «ЗАВИСАЄ» (02.11).
+/* У «РЕЄСТР» ПЕРЕНОСЯТЬ ЗАВЖДИ; НЕГОДЯЩА ТТН ГОРИТЬ ТАМ; ПЕРЕСТВОРИТИ ТТН НЕ МОВЧИТЬ (02.11).
 
    Відео цеху: тягнуть #2000198 у «Реєстр» — у відповідь «картку вже рушили —
-   показано свіжу», хоч її ніхто не рушив (стара ТТН до переробки);
-   «Перестворити ТТН» — питання «Перестворити?» і 25 с тиші з одним написом,
-   потім «signal is aborted without reason». Андрій: «додати всередині ще
-   кнопку перетягнути в реєстр… щоб не було цього вискакування, і це
-   питання з вискакуванням потрібно забрати».
+   показано свіжу», хоч її ніхто не рушив (стара ТТН до переробки мовчки
+   відкидала хід); «Перестворити ТТН» — 25 с тиші з одним написом, потім
+   «signal is aborted without reason». Андрій: «головне, щоб можна було
+   пересунути в реєстр, бо він так сортує їх, а потім воно горіло, і він
+   буде переходити по них; спливне питання [«Перестворити?»] повинно бути».
 
-   1. Стара ТТН (до переробки): у картці словами, що саме стара й що робити;
-      кнопки «→ У реєстр» немає; перенесення в «Реєстр» каже причину, а не
-      «вже рушили».
-   2. «↻ Перестворити ТТН» — без confirm, кнопка рахує секунди; нова ТТН —
-      у картці зʼявляється «→ У реєстр», вона переносить картку без питань.
+   1. Стара ТТН (до переробки): у «Можна відправляти» словами, що стара й що
+      робити; «Перенести в реєстр» є і переносить; у «Реєстрі» плитка й
+      картка горять «ТТН стара, до переробки — перестворіть»; «Створити
+      реєстр» її не бере й каже чому. Без ТТН — так само, «ТТН ще немає».
+   2. «↻ Перестворити ТТН» — питання «Перестворити накладну?» є, далі кнопка
+      рахує секунди; нова ТТН — червоне в «Реєстрі» гасне.
    3. Нова пошта мовчить — через 25 с людські слова, кнопка повертається;
       картку в цей час можна закрити.
-   4. Телефон: «→ У реєстр» і в нижній панелі картки цеху.
+   4. Телефон: «Перенести в реєстр» у нижній панелі картки цеху.
 
    Запуск:  node tests/prod-reg.mjs  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -60,7 +61,8 @@ const ORDERS = [
   card('5100198', '2000198', { ttn: OLD, ttnAt: iso(4), ttnRef:'ref-old', ttnCod: 2000, shipOld: OLD,
     reprints: [{ at: iso(2), by:'p@loomiq', blame:'operator', note:'перешити', from:'after', open:false, closedAt: iso(1) }] }),
   card('5100433', '2000433', { ttn:'20451500000433', ttnAt: iso(0.5), ttnRef:'r433', ttnCod: 2000, ship: Object.assign({}, ship, { phone:'+380670000433' }) }),
-  card('5100361', '2000361', { ttn:'20451500000361', ttnAt: iso(0.5), ttnRef:'r361', ttnCod: 2000 })
+  card('5100361', '2000361', { ttn:'20451500000361', ttnAt: iso(0.5), ttnRef:'r361', ttnCod: 2000 }),
+  card('5100500', '2000500', { ttn:'', ttnCod: 0 })
 ];
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={', 'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
@@ -96,20 +98,45 @@ const openCard = async (p, no) => { await p.evaluate(no => document.querySelecto
 const cardInfo = (p) => p.evaluate(() => { const r = document.getElementById('dzRoot'); return {
   ttn: ((r.querySelector('.dz-ttn') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
   miss: [...r.querySelectorAll('.dz-miss')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
-  reg: !!r.querySelector('[data-do="prod-move"][data-to="reg"]'), mbar: [...r.querySelectorAll('.dz-mbar button')].map(b => b.textContent.trim()) }; });
+  reg: ((r.querySelector('.dz-panel [data-do="prod-move"][data-to="reg"], .dz-prod-acts [data-do="prod-move"][data-to="reg"]') || {}).textContent || '').trim(),
+  bad: [...r.querySelectorAll('.dz-panel .dz-c-ttnbad, .dz-ttn .dz-c-ttnbad')].map(x => x.textContent.trim()),
+  mbar: [...r.querySelectorAll('.dz-mbar button')].map(b => b.textContent.trim()) }; });
+const tileBad = (p, no) => p.evaluate(no => { const el = document.querySelector('#dzRoot [data-open="' + no + '"]'); const w = el && (el.closest('.dz-card-w') || el); const b = w && w.querySelector('.dz-c-ttnbad'); return b ? b.textContent.trim() : ''; }, no);
 
 const p = await page(false);
-console.log('═══ 1. СТАРА ТТН ДО ПЕРЕРОБКИ — СЛОВАМИ, БЕЗ «ВЖЕ РУШИЛИ» ═══');
+console.log('═══ 1. СТАРА ТТН: ПЕРЕНЕСТИ МОЖНА, У «РЕЄСТРІ» ГОРИТЬ, РЕЄСТР НЕ БЕРЕ ═══');
 ok(await colOf(p, '2000198') === 'ship', '#2000198 у «Можна відправляти»', 'колонка: ' + await colOf(p, '2000198'));
 await openCard(p, '2000198');
 let c = await cardInfo(p);
 ok(c.miss.some(m => /ТТН 20451573586187 стара, до переробки/.test(m) && /Перестворити ТТН/.test(m)), 'у картці: «ТТН … стара, до переробки — натисніть «Перестворити ТТН»»', 'написи: ' + JSON.stringify(c.miss));
-ok(!c.reg, 'кнопки «→ У реєстр» зі старою ТТН немає', 'кнопка «→ У реєстр» є зі старою ТТН');
-let r = await p.evaluate(async () => { window.__TOASTS = []; await window.LQDesign.ui.act('prod-move', document.getElementById('dzRoot'), { to:'reg' }); return window.__TOASTS.slice(); });
-ok(r.some(t => /стара, до переробки/.test(t)) && !r.some(t => /вже рушили/.test(t)), 'перенесення в «Реєстр» каже причину: ' + (r[0] || ''), 'перенесення каже: ' + JSON.stringify(r));
-ok(await colOf(p, '2000198') === 'ship', 'картка лишилась у «Можна відправляти»', 'картка поїхала: ' + await colOf(p, '2000198'));
+ok(c.reg === 'Перенести в реєстр', 'кнопка «Перенести в реєстр» є і зі старою ТТН', 'кнопка: «' + c.reg + '»');
+dialogs.length = 0;
+await p.evaluate(() => { window.__TOASTS = []; document.querySelector('[data-do="prod-move"][data-to="reg"]').click(); });
+await p.waitForTimeout(1200);
+let r = await p.evaluate(() => window.__TOASTS.slice());
+ok(await colOf(p, '2000198') === 'reg' && r.some(t => /Перенесено/.test(t)) && !r.some(t => /вже рушили|не можна/.test(t)) && dialogs.length === 0, 'перенесено в «Реєстр» без питань: ' + (r[0] || ''), 'колонка=' + await colOf(p, '2000198') + ' toasts=' + JSON.stringify(r) + ' діалоги=' + dialogs.length);
+const tb = await tileBad(p, '2000198');
+ok(/ТТН стара, до переробки — перестворіть/.test(tb), 'на плитці в «Реєстрі» горить: «' + tb + '»', 'на плитці: «' + tb + '»');
+c = await cardInfo(p);
+ok(c.bad.some(x => /стара, до переробки/.test(x)), 'у картці в «Реєстрі» теж горить', 'у картці: ' + JSON.stringify(c.bad));
+/* без ТТН — так само */
+await p.evaluate(() => { const x = document.querySelector('[data-close]'); if(x) x.click(); });
+await p.waitForTimeout(300);
+await openCard(p, '2000500');
+await p.evaluate(() => { document.querySelector('[data-do="prod-move"][data-to="reg"]').click(); });
+await p.waitForTimeout(1200);
+ok(await colOf(p, '2000500') === 'reg' && /ТТН ще немає/.test(await tileBad(p, '2000500')), 'без ТТН теж переноситься, горить «ТТН ще немає»', 'колонка=' + await colOf(p, '2000500') + ' плитка=«' + await tileBad(p, '2000500') + '»');
+/* «Створити реєстр» — не бере, каже чому */
+dialogs.length = 0;
+r = await p.evaluate(async () => { window.__TOASTS = []; await window.LQDesign.ui.act('reg-make', document.getElementById('dzRoot'), {}); return window.__TOASTS.slice(); });
+ok(r.some(t => /без ТТН або зі старою/.test(t) && /стара, до переробки/.test(t) && /ТТН ще немає/.test(t)) && dialogs.length === 0 && npLog.indexOf('registry') < 0,
+  '«Створити реєстр»: не бере обидві й каже чому', 'toasts=' + JSON.stringify(r) + ' діалоги=' + dialogs.length + ' ops=' + npLog.join(','));
+ok(await colOf(p, '2000198') === 'reg' && await colOf(p, '2000500') === 'reg', 'обидві лишились у «Реєстрі»', 'колонки: ' + await colOf(p, '2000198') + ' ' + await colOf(p, '2000500'));
 
-console.log('═══ 2. ПЕРЕСТВОРИТИ ТТН — БЕЗ ПИТАННЯ, З СЕКУНДАМИ; ПОТІМ «→ У РЕЄСТР» ═══');
+console.log('═══ 2. ПЕРЕСТВОРИТИ ТТН — З ПИТАННЯМ, ІЗ СЕКУНДАМИ; ЧЕРВОНЕ ГАСНЕ ═══');
+await p.evaluate(() => { const x = document.querySelector('[data-close]'); if(x) x.click(); });
+await p.waitForTimeout(300);
+await openCard(p, '2000198');
 dialogs.length = 0;
 await p.evaluate(() => { window.__TOASTS = []; document.querySelector('[data-do="ttn-remake"]').click(); });
 await p.waitForTimeout(150);
@@ -117,18 +144,12 @@ const busy = await p.evaluate(() => ((document.querySelector('[data-do="ttn-rema
 const busyToast = await p.evaluate(() => window.__TOASTS.join(' | '));
 await p.waitForTimeout(2500);
 let end = await p.evaluate(() => ({ ttn: (orders.find(o => o.orderId === '2000198') || {}).ttn, toasts: window.__TOASTS.slice(), btn: ((document.querySelector('[data-do="ttn-remake"]') || {}).textContent || '').trim() }));
-ok(dialogs.length === 0, 'питання «Перестворити?» не вискакує', 'діалог: ' + dialogs.join(' | '));
+ok(dialogs.length === 1 && /^confirm: Перестворити накладну 20451573586187/.test(dialogs[0]), 'питання «Перестворити накладну …?» є', 'діалоги: ' + dialogs.join(' | '));
 ok(/^Створюю… \d+ с$/.test(busy) || /Накладну перестворено/.test(busyToast), 'кнопка під час роботи: «' + busy + '»' + (busy === '↻ Перестворити ТТН' ? ' (стуб відповів миттєво)' : ''), 'кнопка під час роботи: «' + busy + '»');
 ok(end.ttn === '20451599999999' && end.toasts.some(t => /Накладну перестворено/.test(t)), 'нова ТТН у картці, напис «Накладну перестворено»', 'ttn=' + end.ttn + ' toasts=' + JSON.stringify(end.toasts));
 ok(end.btn === '↻ Перестворити ТТН', 'кнопка повернулась', 'кнопка: ' + end.btn);
 c = await cardInfo(p);
-ok(c.reg && !c.miss.some(m => /ТТН ще немає|стара, до переробки/.test(m)), 'тепер у картці є «→ У реєстр» і немає червоного про ТТН', 'reg=' + c.reg + ' miss=' + JSON.stringify(c.miss));
-dialogs.length = 0;
-await p.evaluate(() => { window.__TOASTS = []; document.querySelector('[data-do="prod-move"][data-to="reg"]').click(); });
-await p.waitForTimeout(1200);
-r = await p.evaluate(() => window.__TOASTS.slice());
-ok(dialogs.length === 0 && await colOf(p, '2000198') === 'reg' && r.some(t => /Перенесено/.test(t)), '«→ У реєстр» переніс картку в «Реєстр» без питань', 'діалоги=' + dialogs.length + ' колонка=' + await colOf(p, '2000198') + ' toasts=' + JSON.stringify(r));
-ok((orders => true)(0) && await p.evaluate(() => (orders.find(o => o.orderId === '2000198') || {}).shipCol === 'reg'), 'у картці shipCol = reg', 'shipCol не reg');
+ok(!c.bad.length && !(await tileBad(p, '2000198')) && await colOf(p, '2000198') === 'reg', 'червоне в «Реєстрі» згасло, картка там же', 'bad=' + JSON.stringify(c.bad) + ' плитка=«' + await tileBad(p, '2000198') + '» колонка=' + await colOf(p, '2000198'));
 
 console.log('═══ 3. НОВА ПОШТА МОВЧИТЬ — ЛЮДСЬКІ СЛОВА ЧЕРЕЗ 25 С, КАРТКА ЗАКРИВАЄТЬСЯ ═══');
 await p.evaluate(() => { const x = document.querySelector('[data-close]'); if(x) x.click(); });
@@ -142,20 +163,19 @@ const closed = await p.evaluate(() => { const x = document.querySelector('[data-
 ok(closed === 'закрилась', 'картку можна закрити, поки чекаємо Нову пошту', 'закрити: ' + closed);
 await p.waitForTimeout(25000);
 end = await p.evaluate(() => ({ ttn: (orders.find(o => o.orderId === '2000433') || {}).ttn, toasts: window.__TOASTS.slice() }));
-ok(end.toasts.some(t => /не перестворено: Нова пошта не відповіла за 25 с/.test(t)), 'через 25 с: «' + (end.toasts.filter(t => /не перестворено/.test(t))[0] || '') + '»', 'напису немає: ' + JSON.stringify(end.toasts));
+ok(end.toasts.some(t => /не перестворено: Нова пошта не відповідає — спробуйте ще раз за хвилину/.test(t)), 'через 25 с: «' + (end.toasts.filter(t => /не перестворено/.test(t))[0] || '') + '»', 'напису немає: ' + JSON.stringify(end.toasts));
 ok(end.ttn === '20451500000433', 'стара ТТН у картці лишилась', 'ttn=' + end.ttn);
 
-console.log('═══ 4. ТЕЛЕФОН: «→ У РЕЄСТР» У НИЖНІЙ ПАНЕЛІ ═══');
+console.log('═══ 4. ТЕЛЕФОН: «ПЕРЕНЕСТИ В РЕЄСТР» У НИЖНІЙ ПАНЕЛІ ═══');
 const m = await page(true);
 await openCard(m, '2000361');
 c = await cardInfo(m);
-ok(c.mbar.indexOf('→ У реєстр') >= 0 && c.reg, 'на телефоні внизу картки «→ У реєстр»', 'mbar=' + JSON.stringify(c.mbar) + ' reg=' + c.reg);
+ok(c.mbar.indexOf('Перенести в реєстр') >= 0 && c.reg === 'Перенести в реєстр', 'на телефоні внизу картки «Перенести в реєстр»', 'mbar=' + JSON.stringify(c.mbar) + ' reg=«' + c.reg + '»');
 await m.evaluate(() => document.querySelector('.dz-mbar [data-do="prod-move"][data-to="reg"]').click());
 await m.waitForTimeout(1200);
 ok(await m.evaluate(() => (orders.find(o => o.orderId === '2000361') || {}).shipCol === 'reg'), 'з телефона картка пішла в «Реєстр»', 'shipCol не reg');
 
 ok(errs.length === 0, 'без помилок сторінки', 'помилки: ' + errs.join(' | '));
-ok(dialogs.length === 0, 'жодного питання за весь прогін', 'діалоги: ' + dialogs.join(' | '));
 await browser.close(); srv.close();
 console.log(bad ? '\n✗ ' + bad + ' перевірок не пройшло' : '\n✓ prod-reg: усі перевірки пройшли');
 process.exit(bad ? 1 : 0);

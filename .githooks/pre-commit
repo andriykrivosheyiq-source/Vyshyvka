@@ -221,14 +221,14 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.
   }
   echo "✓ телефон: усі розділи в екрані; компʼютер як був"
 fi
-# 02.11: «→ У реєстр» кнопкою в картці цеху; «Перестворити ТТН» без питання й без тиші.
+# 02.11: у «Реєстр» переносять завжди (кнопка «Перенести в реєстр»), негодяща ТТН горить там; «Перестворити ТТН» не мовчить.
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/prod-reg\.mjs)'; then
   node tests/prod-reg.mjs >/tmp/lq-prod-reg.log 2>&1 || {
-    echo "✗ Цех знову не може перенести картку в «Реєстр» з картки, стара ТТН каже «вже рушили», або «Перестворити ТТН» питає/мовчить — коміт зупинено. Подробиці: /tmp/lq-prod-reg.log"
+    echo "✗ Цех знову не може перенести картку в «Реєстр», негодяща ТТН там не горить, реєстр її бере, або «Перестворити ТТН» мовчить — коміт зупинено. Подробиці: /tmp/lq-prod-reg.log"
     grep '✗' /tmp/lq-prod-reg.log
     exit 1
   }
-  echo "✓ цех: «→ У реєстр» з картки; перестворити ТТН без питання, з секундами"
+  echo "✓ цех: у «Реєстр» завжди, негодяща ТТН горить; перестворити ТТН не мовчить"
 fi
 if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/prod-state\.mjs)'; then
   node tests/prod-state.mjs >/tmp/lq-prod-state.log 2>&1 || {
