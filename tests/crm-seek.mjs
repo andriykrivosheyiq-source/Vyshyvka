@@ -248,10 +248,12 @@ ok(!bound.seek,
    'блок привʼязки закрився — розмова знайдена, робити тут більше нічого',
    'блок привʼязки лишився відкритим');
 const шапка = await p.evaluate(() => { const r = document.querySelector('.od-who-row');
+  const a = r.querySelector('.od-ig-who a.od-crm-ig');
   return { who: ((r.querySelector('.od-ig-who') || {}).textContent || '').trim(), go: !!r.querySelector('[data-chan-go]'),
-           link: !!r.querySelector('.od-ig-link'), find: !!r.querySelector('.od-ig-find') }; });
-ok(/@asia_dera · Асія Дерещук/.test(шапка.who) && шапка.go && !шапка.link && шапка.find,
-   'у шапці замість поля — «@asia_dera · Асія Дерещук», 💬 відкриває розмову, 🔗 — замінити чи відвʼязати',
+           link: !!r.querySelector('.od-ig-link'), find: !!r.querySelector('.od-ig-find'), href: a && a.getAttribute('href') }; });
+/* 03.11: нік — кнопкою «@нік ↗» на сторінку клієнта в Instagram. */
+ok(/@asia_dera ↗ · Асія Дерещук/.test(шапка.who) && шапка.href === 'https://instagram.com/asia_dera' && шапка.go && !шапка.link && шапка.find,
+   'у шапці замість поля — «@asia_dera ↗ · Асія Дерещук» (профіль в Instagram), 💬 відкриває розмову, 🔗 — замінити чи відвʼязати',
    'шапка після привʼязки: ' + JSON.stringify(шапка));
 console.log('');
 console.log('═══ ПОМИЛКОВУ АДРЕСУ МОЖНА СКАСУВАТИ ═══');

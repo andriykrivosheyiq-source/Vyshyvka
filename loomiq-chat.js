@@ -288,8 +288,9 @@ function igLinkMode(o){
 }
 function igLinkHtml(o){
   if(o.crmChatId){
-    return `<div class="od-f od-chan-h od-ig-who" title="Розмова в Sitniks">${
-        escapeHtml(crmWhoLabel(o) || ('чат ' + o.crmChatId))}</div>
+    /* Нік — посиланням на профіль клієнта в Instagram (03.11, Андрій:
+       «кнопку переходу в Instagram, саме сторінки клієнта»). */
+    return `<div class="od-f od-chan-h od-ig-who" title="Розмова в Sitniks">${crmWhoHtml(o)}</div>
       <button class="od-who-go" data-chan-go title="Відкрити розмову">💬</button>`;
   }
   const було = String(o.ig || '').replace(/^@/, '').trim();
@@ -370,6 +371,32 @@ function crmListOf(data){
    то у вкладеному `client`/`contact` — залежно від того, який це ендпоінт.
    Тому дивимось в обидва місця: інакше імʼя в відповіді є, але не читається,
    і картка лишається підписаною шістнадцятковим номером чату. */
+/* ЗАГЛУШКА «чат <номер>» — НЕ ІМʼЯ (03.11, B2B #1000306: «нік не
+   підтягує, діалог не веде на переписку»). Коли Sitniks у мить привʼязки не
+   віддав імені, в картку лягало «чат 68ee…» — і далі вже ніщо його не
+   міняло. Тепер заглушка рахується порожнім місцем: імʼя й нік із Sitniks
+   лягають поверх неї, хай би коли приїхали. */
+function crmStubName(v){ return /^чат [0-9a-f]{8,}$/i.test(String(v || '').trim()); }
+/* Те, що Sitniks сказав про співрозмовника, — у картку: порожнє й заглушку
+   заповнюємо, правлене руками не чіпаємо. Повертає, чи щось змінилось. */
+function crmWhoFill(o, who){
+  if(!o || !who) return false;
+  const пусто = v => { v = String(v || '').trim(); return !v || crmStubName(v); };
+  const нік = String(who.nick || '').replace(/^@/, '').trim();
+  const нікОк = !!нік && /^[\w.\-]+$/.test(нік);
+  const імʼя = String(who.name || '').trim();
+  const підпис = імʼя || (нікОк ? нік : '');
+  let ch = false;
+  if(нікОк && нік !== String(o.crmNick || '')){ o.crmNick = нік; ch = true; }
+  if(підпис && пусто(o.crmChatName)){ o.crmChatName = підпис; ch = true; }
+  if(підпис && пусто(o.name)){ o.name = підпис; ch = true; }
+  if(нікОк && пусто(o.ig) && !/^(Telegram|Viber|WhatsApp|Facebook)$/.test(who.channel || '')){ chanSet(o, 'ig', нік); ch = true; }
+  return ch;
+}
+/* Розмова, якої Sitniks не знає (404 на саму розмову й на її стрічку), —
+   у памʼяті вкладки, щоб сказати людині словами, а не «код 404». */
+const crmWhoTry = {};
+function crmChatMissing(id){ const t = crmWhoTry[String(id || '')]; return !!(t && t.nf); }
 function crmWho(r){
   return [r, r && r.client, r && r.contact, r && r.chat]
     .filter(x => x && typeof x === 'object');
@@ -442,31 +469,51 @@ async function crmBindUrl(o, text){
   }
   delete crmSeek[o.id];
   await crmPickChat(o, { chatId:id, name:'', nick:'', channel:'' });
-  toast('Розмову привʼязано — імʼя підтягнеться з Sitniks');
-  crmWhoLater(o, id);
-}
-async function crmWhoLater(o, id){
-  let who = null;
-  for(const path of ['/chats/' + encodeURIComponent(id),
-                     '/chats/' + encodeURIComponent(id) + '/messages']){
-    try{
-      const data = await crmFetch(path);
-      /* Відповідь зі списком ({items:[…]}) читаємо як список, а один обʼєкт
-         (сама розмова) — як запис. */
-      const list = crmNormFound((Array.isArray(data) || crmListOf(data).length) ? data : [data], true);
-      const one = list.find(r => r.name || r.nick);
-      if(one){ who = one; break; }
-    }catch(e){ /* закрито — лишаємось привʼязаними за самим номером */ }
+  /* Адреса діалогу — щоб з картки відкрити саму розмову в Sitniks, коли
+     ніка ще немає. Лише справжня адреса діалогу. */
+  if(/^https:\/\/[\w.-]*sitniks\.com\/.*\/dialog\/[0-9a-f]{8,}/i.test(String(text || '').trim())){
+    o.crmUrl = String(text).trim().split(/\s/)[0];
+    try{ await saveOrderMeta(o); }catch(e){}
   }
-  if(!who || String(o.crmChatId || '') !== String(id)) return;
-  /* Поки імені не було, chanFill міг поставити заглушку «чат <номер>» — її
-     вважаємо порожнім місцем, а не правкою руками. */
-  const порожнє = v => { v = String(v || '').trim(); return !v || v === 'чат ' + id; };
-  if(who.nick) o.crmNick = String(who.nick).replace(/^@/, '');
-  if(порожнє(o.crmChatName)) o.crmChatName = who.name || who.nick || '';
-  if(who.name && порожнє(o.name)) o.name = who.name;
-  if(who.nick && порожнє(o.ig) && !/^(Telegram|Viber|WhatsApp|Facebook)$/.test(who.channel || ''))
-    chanSet(o, 'ig', who.nick);
+  toast('Розмову привʼязано — імʼя підтягнеться з Sitniks');
+  crmWhoLater(o, id, { bind:true });
+}
+async function crmWhoLater(o, id, opt){
+  id = String(id || '');
+  const t = crmWhoTry[id] || (crmWhoTry[id] = { n:0, at:0, nf:false });
+  if(t.busy) return;
+  t.busy = true;
+  let who = null, нема = 0, спроб = 0;
+  try{
+    for(const path of ['/chats/' + encodeURIComponent(id),
+                       '/chats/' + encodeURIComponent(id) + '/messages']){
+      спроб++;
+      try{
+        const data = await crmFetch(path);
+        /* Відповідь зі списком ({items:[…]}) читаємо як список, а один обʼєкт
+           (сама розмова) — як запис. */
+        const list = crmNormFound((Array.isArray(data) || crmListOf(data).length) ? data : [data], true);
+        const one = list.find(r => r.name || r.nick);
+        if(one){ who = one; break; }
+      }catch(e){ if(e && e.status === 404) нема++; /* інше — спробуємо пізніше */ }
+    }
+  }finally{ t.busy = false; }
+  t.n++; t.at = Date.now(); t.nf = !who && нема === спроб;
+  if(String(o.crmChatId || '') !== id) return;
+  if(!who){
+    /* Не відповів (пауза, тайм-аут) — ще раз за пів хвилини, потім за три;
+       далі підхопить обхід розмов. Не знає такої розмови — кажемо одразу. */
+    if(t.nf){
+      if(opt && opt.bind) toast('Sitniks не знайшов цю розмову (404). Відкрийте діалог у Sitniks і вставте адресу з рядка браузера (…/chats/dialog/…)');
+      try{ renderOrderDrawer(); }catch(e){}
+      if(chatWin && chatWin.id === o.id) try{ renderChatWin(); }catch(e){}
+    } else if(t.n < 3){
+      setTimeout(() => { crmWhoLater(o, id).catch(() => {}); }, t.n === 1 ? 30000 : 180000);
+    }
+    return;
+  }
+  t.nf = false;
+  crmWhoFill(o, who);
   chanFill(o);
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
   try{ renderOrderDrawer(); }catch(e){}
@@ -2520,8 +2567,9 @@ async function crmSweepOnce(){
       }
       /* Справжній нік зі списку Sitniks (28.10): картка, привʼязана без
          ніка (лише імʼя), отримує його, щойно список його дав. */
-      const нікС = crmNick(r);
-      if(нікС && !/\s/.test(нікС) && /^[\w.\-]+$/.test(нікС) && нікС !== String(o.crmNick || '')){ o.crmNick = нікС; touched = true; }
+      /* І імʼя (03.11): картка із заглушкою «чат …» чи без імені отримує
+         імʼя й нік, щойно список їх дав. */
+      if(crmWhoFill(o, { name: crmName(r), nick: crmNick(r), channel: crmChannelOf(r) })){ chanFill(o); touched = true; }
       if(!info || info.at <= String(o.crmAt || '')) return;
       o.crmAt = info.at;
       o.crmLast = info.text.slice(0, 160);
@@ -2585,6 +2633,16 @@ async function crmSweepOnce(){
         catch(e){ if(e && e.status === 429) break; }
       }
     }
+    /* Заглушка «чат …», а розмови в перших сторінках списку немає — питаємо
+       саму розмову: дві картки за такт, кожну не частіше ніж раз на 15 хв,
+       не більше пʼяти разів і не ту, якої Sitniks не знає. */
+    try{
+      (orders || []).filter(o => o && o.crmChatId && !уСписку.has(String(o.crmChatId)) &&
+          (crmStubName(o.name) || crmStubName(o.crmChatName) || !String(o.crmChatName || o.crmNick || '').trim()))
+        .filter(o => { const t = crmWhoTry[String(o.crmChatId)]; return !t || (!t.nf && !t.busy && t.n < 5 && Date.now() - t.at > 15 * 60000); })
+        .slice(0, 2)
+        .forEach(o => { crmWhoLater(o, String(o.crmChatId)).catch(() => {}); });
+    }catch(e){}
     crmSweepInfo = { at: new Date().toISOString(), rows: rows.length, way: crmChatsWay || '', pages: crmSweepPages };
     try{ paintSweepInfo(); }catch(e){}
     if(touched){
@@ -4348,6 +4406,8 @@ function renderChatWin(toBottom){
     feed = `<div class="cw-empty cw-load${cst.loading ? ' is-busy' : ''}" data-cw-state="${cst.loading ? 'loading' : (cst.noHistory ? 'error' : 'idle')}">` +
       (cst.loading ? 'Завантажуємо переписку…'
         : пауза ? `Sitniks обмежив запити — повторимо за ${Math.ceil(пауза / 1000)} с.`
+        : (cst.noHistory && /404/.test(cst.noHistory)) ? 'Sitniks не знайшов цю розмову (код 404) — найчастіше до картки привʼязали не те посилання. ' +
+            'Відкрийте діалог клієнта в Sitniks, скопіюйте адресу з рядка браузера (…/chats/dialog/…) і привʼяжіть заново через 🔗 у картці.'
         : cst.noHistory ? `Переписка не завантажилась: ${escapeHtml(cst.noHistory)}.` : 'Переписка ще не завантажена.') +
       (cst.loading ? '' : `<button type="button" class="cw-reload" data-cw-reload>Оновити</button>`) +
       `</div>`;
