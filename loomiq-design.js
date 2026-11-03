@@ -3230,6 +3230,44 @@
   function verPic(v){ return (v && (v.wilcom || v.photo)) || ''; }
   function nameOf(e){ return (host.name && host.name(e)) || e || '—'; }
   function say(m, ms){ if(host.toast) host.toast(m, ms); }
+  /* Плитці — картка з індексу цього такту (03.11): якщо його вже зібрано,
+     без повторної звірки з відділом на кожну плитку (`board-fast`). */
+  function tilePair(id){
+    id = String(id || '').split('|')[0];
+    var ti = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.tileIdx;
+    if(ti && ti[id]) return ti[id];
+    if(PAIR_IDX && PAIR_IDX[id]) return PAIR_IDX[id];
+    return pairOf(id);
+  }
+  /* Кому надано ескіз (03.11) — на плитці: «✏️ Петро · 🧵 Емма» (лише ті,
+     що ще в роботі чи на перевірці). */
+  function cardWhoTxt(id){
+    try{
+      var pr = tilePair(id);
+      if(!pr || !pr.job) return '';
+      var g = {}, st = {};
+      unitsOf(pr.job).forEach(function(u){
+        if(!u) return;
+        (D.graphicLive ? D.graphicLive(u) : D.dzList(u, 'graphic')).forEach(function(d){
+          if(d && d.who && !d.readyMade && d.status !== 'approved' && (d.sentAt || d.takenAt)) g[d.who] = 1; });
+        D.dzList(u, 'stitch').forEach(function(d){
+          if(d && d.who && !d.readyMade && d.status !== 'approved' && (d.sentAt || d.takenAt)) st[d.who] = 1; });
+      });
+      var ім = function(o){ return Object.keys(o).map(function(e){ return whoName(e); }).join(', '); };
+      var out = [];
+      if(Object.keys(g).length) out.push('✏️ ' + ім(g));
+      if(Object.keys(st).length) out.push('🧵 ' + ім(st));
+      return out.join(' · ');
+    }catch(e){ return ''; }
+  }
+  /* Примітка для всіх (03.11) — текст для плитки. */
+  function cardNoteTxt(id){
+    try{
+      var pr = tilePair(id);
+      var n = pr && pr.o && pr.o.cardNote;
+      return (n && String(n.text || '').trim()) ? String(n.text) : '';
+    }catch(e){ return ''; }
+  }
   function can(k){ return host.can ? !!host.can(k) : true; }
   /* ЧАС — КИЇВСЬКИЙ, А НЕ ТОЙ, ЩО НА ПРИСТРОЇ.
 
@@ -3528,6 +3566,10 @@
               (c.pin ? ' <i class="dz-c-pin" title="Поставлено вручну (власник)">📌</i>' : '') +
               (c.abroad ? ' <em class="dz-c-ab" title="Відправка за кордон — статусу Нової пошти немає, колонку ставить цех">✈ за кордон</em>' : '') + '</b>' +
             (c.nick && !c.chain ? '<span class="dz-card-nick">' + esc(c.nick) + '</span>' : '') +
+            /* Примітка для всіх (03.11) — на плитці будь-якої дошки. */
+            (function(){ var кт = cardWhoTxt(c.id); return кт ? '<span class="dz-c-assign" title="Кому надано ескіз">' + esc(кт) + '</span>' : ''; })() +
+            (function(){ var нт = cardNoteTxt(c.id); return нт ? '<span class="dz-c-note" title="' + esc(нт) + '">📝 ' +
+              esc(нт.length > 70 ? нт.slice(0, 68) + '…' : нт) + '</span>' : ''; })() +
             (стікер ? '<span class="dz-c-row">' + стікер + '</span>' : '') +
             гроші +
             (c.what && !c.chain ? '<span class="dz-c-what">' +
@@ -10304,6 +10346,173 @@
      перебудовує її, поки людина щось пише в полі — перемалюється, щойно
      вона вийде з поля. Дії самої людини малюють як доти. */
   var SOFT = false, softTimer = 0;
+  /* ══════════ ЧАСТКОВЕ ОНОВЛЕННЯ ЗАМІСТЬ ПЕРЕБУДОВИ (03.11) ══════════
+
+     Андрій, відео менеджерів: «пишу дизайнеру для правок — воно стирає все»,
+     «5 ескізів… скаче то вверх, то вниз», «кнопку відправити інколи треба
+     декілька раз натискати», «відділення й місто — декілька разів вводити».
+     Корінь один: на кожне оновлення з бази (вісім людей зберігають картки)
+     сторінка перевставлялась цілком — картинки вантажились наново, поле
+     правки малювалось порожнім, кнопка під пальцем мінялась на нову.
+
+     Тепер нова розмітка накладається на ту, що на екрані: міняється лише те,
+     що справді змінилось. Та сама картинка не вантажиться вдруге, та сама
+     кнопка лишається тією ж (натиск не губиться), прокрутка всередині картки
+     й смуг стоїть, набране в полі лишається — крім полів біля щойно
+     натиснутої кнопки (`MORPH_EAT`): їх дія й мала очистити («Надіслати
+     правку»), як і доти. Форма доставки (її оживляє робоче місце) не
+     латається по шматочку: та сама — стоїть, інша — ставиться цілком.
+     Кнопки випадайок (`loomiq-select.js`) не чіпаємо. Вимикач —
+     `contentData.noMorph === 1` (host `morphOff`): тоді як доти. */
+  var MORPH_EAT = null;
+  var MORPH_ON = ['onclick','onchange','oninput','onkeydown','onkeyup','onkeypress','onfocus','onblur',
+    'onpointerdown','onpointerup','onmousedown','onmouseup','ontouchstart','ontouchend','onpaste',
+    'ondragstart','ondragend','ondragover','ondragenter','ondragleave','ondrop','onscroll','onsubmit','oninvalid'];
+  function morphOff(){ try{ return !!(host().morphOff && host().morphOff()); }catch(e){ return false; } }
+  function morphKey(n){
+    if(!n || n.nodeType !== 1) return null;
+    var k = n.getAttribute('data-open') || n.getAttribute('data-col');
+    if(k) return n.tagName + ':' + k;
+    return n.id ? '#' + n.id : null;
+  }
+  function morphForeign(n){ return !!(n && n.nodeType === 1 && n.__lqSel); }
+  function morphFits(a, b){
+    if(a.nodeType !== b.nodeType) return false;
+    if(a.nodeType !== 1) return true;
+    if(a.tagName !== b.tagName) return false;
+    if(a.tagName === 'INPUT' && (a.getAttribute('type') || '') !== (b.getAttribute('type') || '')) return false;
+    return true;
+  }
+  function morphAttrs(o, n){
+    /* Розмітка тепер каже, яка кнопка: позначка «зайнята» знята. */
+    if(o.__lqBusy) o.__lqBusy = null;
+    var keepCls = o.tagName === 'SELECT' && o.__lqBox;
+    var i, a;
+    for(i = o.attributes.length - 1; i >= 0; i--){
+      a = o.attributes[i].name;
+      if(!n.hasAttribute(a) && !(keepCls && a === 'tabindex')) o.removeAttribute(a);
+    }
+    for(i = 0; i < n.attributes.length; i++){
+      a = n.attributes[i];
+      var v = a.value;
+      if(keepCls && a.name === 'class' && !/\blq-native\b/.test(v)) v = (v ? v + ' ' : '') + 'lq-native';
+      if(o.getAttribute(a.name) !== v) o.setAttribute(a.name, v);
+    }
+    if(keepCls && o.getAttribute('tabindex') !== '-1') o.setAttribute('tabindex', '-1');
+    if(keepCls && !n.hasAttribute('class') && !o.classList.contains('lq-native')) o.classList.add('lq-native');
+  }
+  function morphField(o, n, was){
+    var t = o.tagName;
+    if(t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT') return;
+    var focused = document.activeElement === o;
+    var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0);
+    if(t === 'SELECT'){
+      var want = null;
+      [].forEach.call(n.querySelectorAll('option'), function(op){ if(op.hasAttribute('selected')) want = op.getAttribute('value') != null ? op.getAttribute('value') : op.textContent; });
+      if(want == null){ var f = n.querySelector('option'); want = f ? (f.getAttribute('value') != null ? f.getAttribute('value') : f.textContent) : ''; }
+      if((!focused || eat) && o.value !== want) o.value = want;
+      return;
+    }
+    var type = (o.getAttribute('type') || '').toLowerCase();
+    if(type === 'checkbox' || type === 'radio'){
+      var ch = n.hasAttribute('checked');
+      if(o.checked !== ch) o.checked = ch;
+      return;
+    }
+    if(type === 'file') return;
+    var neu = t === 'TEXTAREA' ? n.value : (n.getAttribute('value') || '');
+    var cur = o.value;
+    /* Своє, ще не збережене (поле відрізняється від того, що було в розмітці),
+       а під ним нічого не змінилось — лишаємо набране. Під фокусом — завжди. */
+    /* Пошук — не чернетка: його значення живе в дошці, тож береться з розмітки. */
+    var draft = !o.hasAttribute('data-seek');
+    var keep = draft && !eat && (focused || (cur !== was && neu === was));
+    if(t === 'TEXTAREA' && o.defaultValue !== neu) o.defaultValue = neu;
+    if(!keep && cur !== neu) o.value = neu;
+    else if(keep && o.value !== cur) o.value = cur;
+  }
+  function morphNode(o, n){
+    if(o.nodeType !== 1){ if(o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
+    /* Форма доставки — цілком або ніяк. */
+    if(n.hasAttribute('data-shipform')){
+      var src = n.outerHTML;
+      if(o.__lqSrc === src) return;
+      if(SOFT && o.contains(document.activeElement)) return;
+      var fresh = n.cloneNode(true); fresh.__lqSrc = src;
+      o.parentNode.replaceChild(fresh, o);
+      return fresh;
+    }
+    var was = o.tagName === 'TEXTAREA' ? o.defaultValue : (o.tagName === 'INPUT' ? (o.getAttribute('value') || '') : null);
+    morphAttrs(o, n);
+    /* Обробники ставить wire наново; старі, яких тепер не має бути, — знімаємо. */
+    for(var i = 0; i < MORPH_ON.length; i++){ var p = MORPH_ON[i]; if(o[p] && !o.hasAttribute(p)) o[p] = null; }
+    if(o.isContentEditable && document.activeElement === o) return;
+    if(o.tagName === 'TEXTAREA'){ morphField(o, n, was); return; }
+    morphKids(o, n);
+    morphField(o, n, was);
+  }
+  function morphKids(from, to){
+    var olds = [].slice.call(from.childNodes).filter(function(x){ return !morphForeign(x); });
+    var keyed = {};
+    olds.forEach(function(x){ var k = morphKey(x); if(k && !keyed[k]) keyed[k] = x; });
+    var used = [], oi = 0, ref = from.firstChild;
+    var news = [].slice.call(to.childNodes);
+    for(var i = 0; i < news.length; i++){
+      var nn = news[i], k = morphKey(nn), m = null;
+      while(ref && morphForeign(ref)) ref = ref.nextSibling;
+      if(k){ m = keyed[k]; if(m && (used.indexOf(m) >= 0 || !morphFits(m, nn))) m = null; }
+      else {
+        while(oi < olds.length && (used.indexOf(olds[oi]) >= 0 || morphKey(olds[oi]))) oi++;
+        if(oi < olds.length && morphFits(olds[oi], nn)){ m = olds[oi]; oi++; }
+      }
+      var put;
+      if(m){
+        used.push(m);
+        if(m !== ref) from.insertBefore(m, ref); else ref = ref.nextSibling;
+        put = morphNode(m, nn) || m;
+        if(put !== m) used.push(put);
+      } else {
+        put = nn.cloneNode(true);
+        if(put.nodeType === 1 && put.hasAttribute('data-shipform')) put.__lqSrc = nn.outerHTML;
+        from.insertBefore(put, ref);
+      }
+    }
+    olds.forEach(function(x){ if(used.indexOf(x) < 0 && x.parentNode === from) from.removeChild(x); });
+    /* Кнопка випадайки — поруч зі своїм списком; список пішов — і вона. */
+    [].slice.call(from.childNodes).forEach(function(x){
+      if(!morphForeign(x)) return;
+      var sel = x.__lqSel;
+      if(!sel || sel.parentNode !== from) from.removeChild(x);
+      else if(x.nextSibling !== sel) from.insertBefore(x, sel);
+    });
+  }
+  function morphInto(el, html){
+    var tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    morphKids(el, tpl.content);
+    try{ if(window.LQSelect && LQSelect.scan) LQSelect.scan(); }catch(e){}
+  }
+  /* Поставити розмітку: накласти на наявну (є що накладати й не вимкнено) або
+     вставити цілком, як доти. */
+  function setHtml(el, html){
+    if(el.firstChild && !morphOff()){
+      try{ morphInto(el, html); return; }
+      catch(e){ console.warn('часткове оновлення — вставляю цілком', e); }
+    }
+    el.innerHTML = html;
+  }
+  /* Поля біля натиснутої кнопки — їх дія й мала спожити: найближчий предок
+     кнопки, у якому є поле. */
+  function morphEatFor(b){
+    var a = b && b.parentNode, сх = 0;
+    while(a && a.nodeType === 1 && сх++ < 6){
+      var f = a.querySelectorAll('textarea, input:not([type]), input[type="text"], input[type="number"], input[type="tel"], select');
+      if(f.length) return [].slice.call(f);
+      if(a.classList && (a.classList.contains('dz-panel-b') || a.id === 'dzRoot')) break;
+      a = a.parentNode;
+    }
+    return [];
+  }
   function softTyping(root){
     var a = document.activeElement;
     return !!(a && root.contains(a) && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable));
@@ -10331,7 +10540,10 @@
     try{ b = seekBoard(seat); }catch(e){ return false; }
     if(!b || !b.steps) return false;
     if(U.seek && U.seek()){ var idx = SEEK_B ? SEEK_B.idx : U.pairIndex(); b = { steps: b.steps, cards: b.cards.filter(function(c){ return U.seekHit(c, idx); }) }; }
-    bd.innerHTML = U.boardHtml(b.steps, b.cards, mcolOf(seat, b));
+    /* Плиткам — той самий індекс сеансу пошуку (03.11): примітка й виконавці
+       беруться з нього, без нового проходу по картках на кожну букву. */
+    U.tileIdx = SEEK_B ? SEEK_B.idx : null;
+    try{ bd.innerHTML = U.boardHtml(b.steps, b.cards, mcolOf(seat, b)); }finally{ U.tileIdx = null; }
     root.__lqHtml = ''; root.__lqTop = ''; root.__lqBoards = bd.innerHTML; root.__lqSeat = seat;
     var lab = root.querySelector('.dz-seek'), x = lab && lab.querySelector('.dz-seek-x');
     if(lab && U.seek() && !x){
@@ -10363,10 +10575,10 @@
     var _top = _p ? _p.scrollTop : 0;
     U.setTab('acct');
     U.open(SOLO.id);
-    var html = probBarHtml(SOLO.id) + panelFor('acct', SOLO.id);
+    var html = probBarHtml(SOLO.id) + noteBarHtml(SOLO.id) + panelFor('acct', SOLO.id);
     var full = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
     if(softSkip(root, full)) return !!html;
-    root.innerHTML = full;
+    setHtml(root, full);
     root.__lqHtml = full;
     wire(root);
     try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
@@ -10531,21 +10743,27 @@
          тільки власнику. */
       : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? newBtnHtml() : '') +
         (seekHtml(шук) + архів + графік + перемикач);
-    var _top = '<div class="dz-top">' + headHtml + '</div>';
-    var _boards = seat === 'supply' ? '' : U.boardHtml(b.steps, b.cards, mcolOf(seat, b));
-    root.__lqTop = _top; root.__lqBoards = _boards; root.__lqSeat = seat;
+    /* Не `_top` (03.11): так уже звалась прокрутка картки на початку цієї
+       функції — розмітка шапки її затирала, і в кінці картці ставилась
+       прокрутка «текст» = 0: на кожне оновлення вона злітала вгору. */
+    var _L = loadSeen(seat) ? dzLoad() : null;
+    if(WHO_F && (!_L || !_L[WHO_F.k] || !_L[WHO_F.k][WHO_F.who])) WHO_F = null;    // у людини вже нічого — фільтр знято
+    var _topHtml = '<div class="dz-top">' + headHtml + '</div>' + (_L ? loadHtml(seat, _L) : '');
+    var _cards = (WHO_F && _L) ? b.cards.filter(function(c){ return !!_L[WHO_F.k][WHO_F.who].ids[String(c.id).split('|')[0]]; }) : b.cards;
+    var _boards = seat === 'supply' ? '' : U.boardHtml(b.steps, _cards, mcolOf(seat, b));
+    root.__lqTop = _topHtml; root.__lqBoards = _boards; root.__lqSeat = seat;
     var _full =
-      _top +
+      _topHtml +
       /* Закупівля — без канбана: список «треба замовити», оформлені
          замовлення й склад. Андрій: «канбана тут немає». */
       (seat === 'supply' ? buyScreenHtml() :
       '<div class="dz-wrap">' +
         '<div class="dz-boards">' + _boards + '</div>' +
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
-          (openId ? probBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
+          (openId ? probBarHtml(openId) + noteBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
     if(softSkip(root, _full)) return;
-    root.innerHTML = _full;
+    setHtml(root, _full);
     root.__lqHtml = _full;
     wire(root);
     /* Аркуш добирається сам, уже після того, як екран намальовано: спершу
@@ -10608,7 +10826,7 @@
     try{ if(host().draftDrop) host().draftDrop(id); }catch(e){}
     U.open(id);
     var html;
-    try{ html = probBarHtml(id) + panelFor(seat, id); }catch(e){ console.warn('картка', e); return false; }
+    try{ html = probBarHtml(id) + noteBarHtml(id) + panelFor(seat, id); }catch(e){ console.warn('картка', e); return false; }
     if(!html) return false;
     pn.innerHTML = html;
     pn.classList.remove('hide');
@@ -11371,6 +11589,130 @@
      усіх: це одна картка, показана з різних місць роботи. */
   /* «!» — позначити проблему (20.10). Скільки ВІДКРИТИХ — бачить лише
      власник; іншим — лише сама кнопка й «позначено». */
+  /* ══════════ ХТО Й СКІЛЬКИ ЕСКІЗІВ У РОБОТІ (03.11) ══════════
+
+     Андрій: «щоб ми бачили, кому який ескіз надали, щоб підрахувати швидко,
+     у кого скільки ескізів в роботі» — для графічних і вишивальних. Над
+     дошкою (акаунт, графічна, вишивальна — для акаунтів і власника): по
+     людях «Петро 4 · +1 на перевірці»; натиснули імʼя — дошка показує лише
+     його ескізи (`WHO_F`), ще раз — усі. «В роботі» — передано людині, ще
+     не на перевірці й не затверджено; «на перевірці» — здано, чекає
+     погодження. Готовий дизайн і зайвий рядок графіки не рахуються. */
+  var WHO_F = null;
+  function dzLoad(){
+    var out = { graphic: {}, stitch: {} };
+    (U.pairsLive ? U.pairsLive() : U.pairs()).forEach(function(p){
+      if(!p || !p.o || !p.job || p.o.draft || p.o.status === 'cancel') return;
+      U.unitsOf(p.job).forEach(function(u){
+        if(!u) return;
+        var списки = { graphic: D.graphicLive ? D.graphicLive(u) : D.dzList(u, 'graphic'), stitch: D.dzList(u, 'stitch') };
+        ['graphic', 'stitch'].forEach(function(k){
+          (списки[k] || []).forEach(function(d){
+            if(!d || !d.who || d.readyMade || d.status === 'approved') return;
+            if(!d.sentAt && !d.takenAt) return;
+            var b = out[k][d.who] || (out[k][d.who] = { work: 0, review: 0, ids: {} });
+            if(d.status === 'review' && !d.pend) b.review++; else b.work++;
+            b.ids[String(p.o.orderId)] = 1;
+          });
+        });
+      });
+    });
+    return out;
+  }
+  function loadSeen(seat){
+    if(['acct', 'graphic', 'stitch', 'dtf'].indexOf(seat) < 0) return false;
+    try{ return !!(host().refuseOk && host().refuseOk()); }catch(e){ return false; }
+  }
+  function loadHtml(seat, L){
+    if(!loadSeen(seat)) return '';
+    var ряд = function(k, підп){
+      var люди = Object.keys(L[k]).sort(function(a, b){ return (L[k][b].work - L[k][a].work) || (L[k][b].review - L[k][a].review); });
+      if(!люди.length) return '<span class="dz-load-r"><b class="dz-load-h">' + підп + '</b><i class="dz-load-0">нікому не передано</i></span>';
+      return '<span class="dz-load-r"><b class="dz-load-h">' + підп + '</b>' + люди.map(function(w){
+        var x = L[k][w], on = WHO_F && WHO_F.k === k && WHO_F.who === w;
+        return '<button type="button" class="dz-load-b' + (on ? ' on' : '') + '" data-do="load-who" data-k="' + k + '" data-who="' + esc(w) +
+          '" title="' + esc('В роботі: ' + x.work + (x.review ? ' · на перевірці: ' + x.review : '') + ' — показати лише ці') + '">' +
+          esc(nameOf ? nameOf(w) : w) + ' <b>' + x.work + '</b>' + (x.review ? ' <i>+' + x.review + ' на перевірці</i>' : '') + '</button>';
+      }).join('') + '</span>';
+    };
+    var фільтр = WHO_F ? '<span class="dz-load-f">показано лише ескізи: ' + esc(nameOf ? nameOf(WHO_F.who) : WHO_F.who) +
+      ' · <button type="button" class="dz-load-off" data-do="load-who" data-k="" data-who="">показати всі</button></span>' : '';
+    return '<div class="dz-load">' + ряд('graphic', '✏️ Графічні') + ряд('stitch', '🧵 Вишивальні') + фільтр + '</div>';
+  }
+  /* ══════════ ПРИМІТКА НА КАРТЦІ — ДЛЯ ВСІХ (03.11) ══════════
+
+     Андрій: «щоб менеджери могли писати примітку на самій картці… і це
+     бачили далі вже всі, кому це потрібно — виробництво, дизайнери… в
+     реальному часі». Пишуть лише акаунти й власник (вигляд менеджера,
+     host.refuseOk); бачать усі ролі — над карткою, поруч із «! Проблема»,
+     і на плитці дошки (📝). Лежить у картці замовлення (`o.cardNote`
+     {text, by, at}, історія — `o.cardNoteHist`), пишеться через
+     orderApply (свіжа картка з бази, повтор, перевірка, що лягло), тож
+     приходить до всіх тим самим знімком, що й статуси. */
+  var NOTE_EDIT = {};
+  function noteOf(o){ var n = o && o.cardNote; return (n && String(n.text || '').trim()) ? n : null; }
+  function noteCan(){ try{ return !!(host().refuseOk && host().refuseOk()); }catch(e){ return false; } }
+  function noteTxtOf(id){
+    try{ var pr = U.pairOf(String(id || '').split('|')[0]); var n = pr && noteOf(pr.o); return n ? String(n.text) : ''; }
+    catch(e){ return ''; }
+  }
+  function noteBarHtml(id){
+    var pr = U.pairOf(String(id).split('|')[0]);
+    if(!pr || !pr.o || pr.o.draft) return '';
+    var n = noteOf(pr.o), can = noteCan(), key = esc(String(pr.o.orderId));
+    if(can && NOTE_EDIT[pr.o.orderId]){
+      return '<div class="dz-note is-edit" data-note="' + key + '">' +
+        '<b class="dz-note-h">📝 Примітка — побачать усі: дизайнери, цех, закупівля</b>' +
+        '<textarea class="dz-note-t" rows="3" data-note-t="' + key + '" placeholder="Що мають знати всі: «шити на 2 см нижче», «клієнт просить до пʼятниці»…">' +
+          esc(n ? n.text : '') + '</textarea>' +
+        '<span class="dz-note-b">' +
+          '<button type="button" class="dz-b pri" data-do="note-save" data-id="' + key + '">Зберегти</button>' +
+          '<button type="button" class="dz-b" data-do="note-cancel" data-id="' + key + '">Скасувати</button>' +
+          (n ? '<button type="button" class="dz-b" data-do="note-clear" data-id="' + key + '">Прибрати примітку</button>' : '') +
+        '</span></div>';
+    }
+    if(!n) return can ? '<div class="dz-note is-empty"><button type="button" class="dz-note-add" data-do="note-edit" data-id="' + key +
+      '" title="Примітку побачать усі, хто працює з цим замовленням">📝 Додати примітку для всіх</button></div>' : '';
+    return '<div class="dz-note" data-note="' + key + '">' +
+      '<span class="dz-note-x"><b class="dz-note-h">📝 Примітка</b> ' + esc(n.text).replace(/\n/g, '<br>') + '</span>' +
+      '<i class="dz-note-w">' + esc(nameOf ? nameOf(n.by) : n.by) + ' · ' + esc(dt(n.at)) + '</i>' +
+      (can ? '<button type="button" class="dz-note-ed" data-do="note-edit" data-id="' + key + '" title="Змінити примітку">✎</button>' : '') +
+      '</div>';
+  }
+  async function noteAct(what, root, data){
+    var id = String((data && data.id) || '');
+    var pr = U.pairOf(id);
+    if(!pr || !pr.o) return say('Картку не знайдено');
+    if(!noteCan()) return say('Примітку пишуть акаунт-менеджери й власник');
+    var reRender = function(){
+      var r = document.getElementById('dzRoot'); if(r) render(r);
+      if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+    };
+    if(what === 'note-edit'){
+      NOTE_EDIT[id] = true; reRender();
+      var ta = (root && root.querySelector('[data-note-t="' + id + '"]')) || document.querySelector('[data-note-t="' + id + '"]');
+      if(ta){ try{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }catch(e){} }
+      return;
+    }
+    if(what === 'note-cancel'){ delete NOTE_EDIT[id]; reRender(); return; }
+    var текст = '';
+    if(what === 'note-save'){
+      var el = (root && root.querySelector('[data-note-t="' + id + '"]')) || document.querySelector('[data-note-t="' + id + '"]');
+      текст = String((el && el.value) || '').trim().slice(0, 1000);
+      if(!текст) return say('Напишіть примітку або натисніть «Прибрати примітку»');
+    }
+    var хто = (host().me && host().me()) || '', штамп = new Date().toISOString();
+    var лягло = await orderApply(pr.o, function(x){
+        x.cardNote = текст ? { text: текст, by: хто, at: штамп } : null;
+        x.cardNoteHist = (Array.isArray(x.cardNoteHist) ? x.cardNoteHist : [])
+          .concat([{ text: текст, by: хто, at: штамп }]).slice(-30);
+      },
+      function(x){ return !!x && (текст ? !!(x.cardNote && x.cardNote.at === штамп) : !noteOf(x)); });
+    if(лягло !== true){ say('Примітка не записалась — немає звʼязку з базою, спробуйте ще раз'); return; }
+    delete NOTE_EDIT[id];
+    say(текст ? 'Примітку збережено — її бачать усі' : 'Примітку прибрано');
+    reRender();
+  }
   function probBarHtml(id){
     /* 22.10, Андрій: «знаки оклику забрати в дизайнерів — лишити тільки в
        акаунтів і виробництва». Дизайнерська роль (графічний, вишивальний,
@@ -11663,9 +12005,19 @@
         /* Кнопка одразу «зайнята» (28.10, Андрій: «зависає трохи»): дія читає
            й пише базу пів секунди-секунду, людина має бачити, що натиснулось. */
         b.classList.add('is-busy'); if('disabled' in b) b.disabled = true;
+        /* «Зайнята» — наша позначка, поки розмітка її не переписала (03.11:
+           кнопка тепер та сама й після дії — вмикати її назад можна лише
+           тоді, коли нове малювання її не чіпало, інакше сіра ставала б
+           активною). */
+        var мітка = {}; b.__lqBusy = мітка;
+        var їсть = morphEatFor(b);
+        MORPH_EAT = (MORPH_EAT || []).concat(їсть);
         var prA; try{ prA = act(b.dataset.do, root, b.dataset); }catch(err){ console.warn('дія', b.dataset.do, err); }
         Promise.resolve(prA).catch(function(err){ console.warn('дія', b.dataset.do, err); })
-          .then(function(){ if(b.isConnected){ b.classList.remove('is-busy'); if('disabled' in b) b.disabled = false; } }); };
+          .then(function(){
+            if(MORPH_EAT){ MORPH_EAT = MORPH_EAT.filter(function(x){ return їсть.indexOf(x) < 0; }); if(!MORPH_EAT.length) MORPH_EAT = null; }
+            if(b.isConnected && b.__lqBusy === мітка){ b.classList.remove('is-busy'); if('disabled' in b) b.disabled = false; }
+            if(b.__lqBusy === мітка) b.__lqBusy = null; }); };
       if(b.getAttribute('role') === 'button') b.onkeydown = function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); b.onclick(e); } };
     });
     /* Поля складу пишуться на «change», а не на кожну літеру: кожен натиск
@@ -11953,7 +12305,7 @@
         el.style.height = 'auto';
         el.style.height = Math.min(220, el.scrollHeight) + 'px';
       };
-      el.addEventListener('input', рости);
+      if(!el.__lqGrow){ el.__lqGrow = true; el.addEventListener('input', рости); }
       рости();
     });
     root.querySelectorAll('[data-fold]').forEach(function(b){
@@ -12652,6 +13004,14 @@
     /* ПРОБЛЕМА ПО ЗАМОВЛЕННЮ (20.10, Андрій): будь-хто позначає, що не
        розуміє чи не може зробити в CRM; бачить і знімає лише власник у
        розділі «Проблемні замовлення». На клієнта й роботу не впливає. */
+    if(what === 'load-who'){
+      var лk = String((data && data.k) || ''), лw = String((data && data.who) || '');
+      WHO_F = (!лk || !лw || (WHO_F && WHO_F.k === лk && WHO_F.who === лw)) ? null : { k: лk, who: лw };
+      render(document.getElementById('dzRoot'));
+      return;
+    }
+    if(what === 'note-edit' || what === 'note-cancel' || what === 'note-save' || what === 'note-clear')
+      return noteAct(what, root, data);
     if(what === 'problem-add'){
       var пр = U.pairOf(String((data && data.id) || '').split('|')[0]);
       if(!пр) return;

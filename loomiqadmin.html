@@ -6101,6 +6101,36 @@
      помилку означає привчити не читати червоне взагалі. */
   .dz-miss.is-calm{background:var(--canvas);border-color:var(--line);color:var(--ink-soft);}
   .dz-prob-bar{display:flex;align-items:center;gap:8px;padding:8px 12px 0;}
+  /* Примітка для всіх (03.11): жовта смужка над карткою, рядок на плитці. */
+  .dz-note{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin:8px 12px 0;padding:9px 12px;
+    border-radius:10px;background:#FFF6D6;border:1px solid #F0D98A;color:#5A4500;font-size:13px;line-height:1.45;}
+  .dz-note-x{flex:1 1 220px;min-width:0;white-space:normal;overflow-wrap:anywhere;}
+  .dz-note-h{font-weight:700;margin-right:4px;}
+  .dz-note-w{font-size:11.5px;color:#8A7330;font-style:normal;align-self:center;}
+  .dz-note-ed{all:unset;cursor:pointer;padding:2px 8px;border-radius:7px;color:#5A4500;}
+  .dz-note-ed:hover{background:#F6E7A8;}
+  .dz-note.is-empty{background:transparent;border:1px dashed #E3D08F;padding:4px 8px;}
+  .dz-note-add{all:unset;cursor:pointer;font-size:12.5px;color:#8A7330;padding:3px 4px;}
+  .dz-note-add:hover{color:#5A4500;}
+  .dz-note.is-edit{flex-direction:column;align-items:stretch;}
+  .dz-note-t{width:100%;box-sizing:border-box;min-height:64px;padding:8px 10px;border:1px solid #E3D08F;border-radius:8px;
+    font:inherit;background:#fff;color:var(--ink);resize:vertical;}
+  .dz-note-b{display:flex;gap:6px;flex-wrap:wrap;}
+  /* Хто й скільки ескізів у роботі (03.11). */
+  .dz-load{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:6px 2px 10px;font-size:12.5px;}
+  .dz-load-r{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+  .dz-load-h{font-weight:700;color:var(--ink-soft);margin-right:2px;}
+  .dz-load-0{color:var(--ink-soft);font-style:normal;}
+  .dz-load-b{all:unset;cursor:pointer;padding:3px 9px;border-radius:999px;background:var(--canvas,#F4F5F8);border:1px solid var(--line,#E3E6EC);}
+  .dz-load-b b{font-weight:700;}
+  .dz-load-b i{font-style:normal;color:var(--ink-soft);font-size:11.5px;}
+  .dz-load-b.on{background:var(--ink,#1C2333);color:#fff;border-color:var(--ink,#1C2333);}
+  .dz-load-b.on i{color:#D7DCE6;}
+  .dz-load-f{color:var(--ink-soft);}
+  .dz-load-off{all:unset;cursor:pointer;text-decoration:underline;}
+  .dz-c-assign{display:block;margin-top:3px;font-size:11.5px;color:var(--ink-soft);font-style:normal;white-space:normal;}
+  .dz-c-note{display:block;margin-top:4px;padding:3px 7px;border-radius:7px;background:#FFF6D6;color:#5A4500;
+    font-size:11.5px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;font-style:normal;}
   .dz-prob-b{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:#B42318;border:1px solid #FDA29B;background:#FEF3F2;border-radius:8px;padding:4px 10px;}
   .dz-prob-b:hover{background:#FEE4E2;}
   .dz-prob-n{font-style:normal;font-size:11.5px;color:#B42318;}
@@ -8369,32 +8399,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=42dbe53566"></script>
-<script src="loomiq-fingerprint.js?v=42dbe53566"></script>
-<script src="loomiq-pricing.js?v=42dbe53566"></script>
+<script src="loomiq-select.js?v=de3e795f21"></script>
+<script src="loomiq-fingerprint.js?v=de3e795f21"></script>
+<script src="loomiq-pricing.js?v=de3e795f21"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=42dbe53566"></script>
+<script src="loomiq-money-core.js?v=de3e795f21"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=42dbe53566"></script>
-<script src="loomiq-mock.js?v=42dbe53566"></script>
+<script src="loomiq-design.js?v=de3e795f21"></script>
+<script src="loomiq-mock.js?v=de3e795f21"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=42dbe53566"></script>
+<script src="imagetracer.js?v=de3e795f21"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=42dbe53566"></script>
-<script src="loomiq-threads.js?v=42dbe53566"></script>
+<script src="loomiq-chat.js?v=de3e795f21"></script>
+<script src="loomiq-threads.js?v=de3e795f21"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=42dbe53566"></script>
+<script src="loomiq-cards.js?v=de3e795f21"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8439,8 +8469,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '42dbe53566';
-var LQ_VER_AT = '2026-11-03T11:12:35Z';
+var LQ_VER = 'de3e795f21';
+var LQ_VER_AT = '2026-11-03T17:03:54Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -8857,6 +8887,65 @@ function presenceOther(id){
   if(!t || Date.now() - t > PRESENCE_TTL) return null;
   return { by: String(r.by).split('@')[0], at: r.t };
 }
+
+/* ══════════ ЕСТАФЕТА ФОНУ: ОДНА ВКЛАДКА НА КОМАНДУ (03.11) ══════════
+
+   Буря 02–03.11 (журнал: rollback 686, save-retry 773; Firestore: 3,5 млн
+   читань і 228 тис. записів за день): обхід чатів, фонова сума до оплати й
+   статуси Нової пошти йшли з КОЖНОЇ відкритої вкладки кожної людини. Усі
+   вони писали ті самі поля тих самих карток одночасно — база відкидала за
+   лічильником, вкладки повторювали, кожен запис розсилався всім.
+
+   Тепер фонові записи в чужі картки робить лише та вкладка, що тримає
+   естафету (`loomiq/bglead` {tab, em, t, dev}; окремий маленький документ,
+   не `photos`). Тримач оновлює мітку раз на bgEvery(); мітка старша за
+   BG_TTL (вкладку закрили, телефон приспав) — бере перша-ліпша видима
+   вкладка; телефон бере лише коли мітка застаріла вдвічі, а компʼютер
+   забирає естафету в телефона одразу (`ph`).
+   Дві одночасно взяли — лишається та, чий запис ліг останнім (знімок
+   покаже іншій, що не її). Решта вкладок лише читають. */
+const BG_DOC = fbDb.collection('loomiq').doc('bglead');
+const BG_TAB = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+let bgLease = null, bgWatching = false, bgTimer = null;
+function bgTtl(){ return +(window.LQ_BG_TTL || 0) || 75000; }
+function bgEvery(){ return +(window.LQ_BG_EVERY || 0) || 30000; }
+function bgPhone(){ try{ return (window.matchMedia && matchMedia('(max-width: 767px)').matches) || /Android|iPhone|iPad/i.test(navigator.userAgent || ''); }catch(e){ return false; } }
+function bgWatch(){
+  if(bgWatching) return;
+  bgWatching = true;
+  try{
+    BG_DOC.onSnapshot(sn => { const d = (sn && sn.exists && sn.data()) || null; if(d && d.tab) bgLease = d; },
+                      e => { bgWatching = false; console.warn('естафета фону', e); });
+  }catch(e){ bgWatching = false; }
+}
+function bgTick(){
+  if(!contentLoaded || !fbAuth || !fbAuth.currentUser) return;
+  if(document.hidden) return;
+  if(window.LQ_UPD_STALE) return;
+  try{ if(dbLinkDead()) return; }catch(e){}
+  const now = Date.now(), l = bgLease, t = l ? (Date.parse(l.t || '') || 0) : 0;
+  const мій = !!(l && l.tab === BG_TAB);
+  const старий = !l || now - t > (bgPhone() ? 2 : 1) * bgTtl();
+  /* Компʼютер забирає естафету в телефона: телефон слабший і засинає у фоні. */
+  const зТелефона = !!(l && l.ph && !bgPhone());
+  if(мій ? now - t < bgEvery() * 0.9 : !(старий || зТелефона)) return;
+  bgLease = { tab: BG_TAB, em: myEmail() || '', t: new Date().toISOString(), dev: deviceShort(), ph: bgPhone() };
+  try{ BG_DOC.set(bgLease).catch(e => console.warn('естафета фону', e)); }catch(e){ console.warn('естафета фону', e); }
+}
+function bgStart(){
+  bgWatch();
+  if(!bgTimer){ bgTimer = setInterval(() => { try{ bgTick(); }catch(e){} }, Math.min(10000, Math.max(500, Math.round(bgEvery() / 3)))); }
+  try{ bgTick(); }catch(e){}
+}
+/* Ця вкладка пише фон? Тести можуть задати LQ_BG_LEAD = 1 / 0. */
+function bgLead(){
+  if(window.LQ_BG_LEAD === 1) return true;
+  if(window.LQ_BG_LEAD === 0) return false;
+  const l = bgLease;
+  if(!l || l.tab !== BG_TAB) return false;
+  return Date.now() - (Date.parse(l.t || '') || 0) < bgTtl();
+}
+window.__lqBgLead = bgLead;
 
 /* Cloudinary — куди завантажуються фото товарів (той самий акаунт, що й для відгуків) */
 const CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };
@@ -10218,7 +10307,25 @@ async function saveOrders(opts){
          (permission-denied за revOk). Доти менеджерка бачила «НЕ ЗБЕРЕЖЕНО…
          покажіть розробнику». Тепер — один повтор: свіже читання, злиття по
          полях, новий лічильник. Не вийшло й удруге — тоді вже кажемо. */
-      if(prevJson && !(opts && opts._retry) && /permission|PERMISSION/i.test(String((e && (e.code || e.message)) || e))){
+      const відмова = /permission|PERMISSION/i.test(String((e && (e.code || e.message)) || e));
+      /* ФОНОВИЙ ЗАПИС ЧУЖОЇ КАРТКИ — БЕЗ КОЛА (03.11, буря save-retry 773 /
+         rollback 686). Людина цієї картки в цій вкладці не чіпала, а база
+         відкинула — значить, інша вкладка вже записала своє. Беремо версію з
+         бази в памʼять: картка більше не «незбережена» й не пробує знову на
+         кожному знімку. Повтор лишається лише для зміни людини. */
+      if(prevJson && відмова && !ownTouched(id) && !(opts && opts.pre)){
+        try{
+          const liveX = (orders || []).find(x => x && x.id === id), dbX = вБазі.doc;
+          if(liveX && dbX){
+            Object.keys(liveX).forEach(k => { if(k !== 'id' && !(k in dbX)) delete liveX[k]; });
+            Object.assign(liveX, JSON.parse(JSON.stringify(dbX)), { id });
+            ordersSaved.set(id, JSON.stringify(liveX));
+          }
+        }catch(e2){ console.warn('версія з бази після відмови', id, e2); }
+        console.warn('фоновий запис відкинуто — взято версію з бази', id);
+        continue;
+      }
+      if(prevJson && !(opts && opts._retry) && відмова){
         повтор.push(id);
         console.warn('запис відкинуто — повторю на свіжій версії', id, e);
         continue;
@@ -10232,7 +10339,9 @@ async function saveOrders(opts){
   for(const rid of повтор){
     const f2 = await saveOrders(Object.assign({}, opts || {}, { quiet: true, only: rid, pre: null, _retry: true }));
     (Array.isArray(f2) ? f2 : []).forEach(x => { if(x && x.id !== '*') failed.push(x); });
-    try{ accLog('save-retry', 'картка #' + noOf(((orders || []).find(x => x && x.id === rid) || {}).orderId || rid) + ': запис відкинула база (лічильник) — повтор ' + ((Array.isArray(f2) && f2.length) ? 'НЕ вдався' : 'вдався') + ' · ' + deviceShort()); }catch(e){}
+    /* Рядка в журнал на кожен повтор більше немає (03.11): журнал лежить у
+       спільному документі, і 773 таких рядки за 3.11 будили всі вкладки.
+       Не вдалось і вдруге — це вже save-fail (accFail, раз на 10 хв). */
   }
   for(const id of (onlyId ? [] : [...зналиНаСтарті])){   // одна картка — решту не чіпаємо й не видаляємо
     if(cur.has(id) || !ordersSaved.has(id)) continue;
@@ -26105,6 +26214,9 @@ let npPollAt = 0;
 const npPoll = { okAt: '', n: 0, err: '', errAt: '' };
 async function prodNpPoll(force){
   if(!force && Date.now() - npPollAt < 25 * 60000) return;
+  /* Сам, без кнопки — лише з вкладки з естафетою фону (03.11): доти кожна
+     відкрита вкладка писала ті самі статуси в ті самі картки. */
+  if(!force && !bgLead()) return;
   if(!npUrl()) return;
   npPollAt = Date.now();
   /* Усі B2C-картки з ТТН за останні 60 днів, не лише з реєстром (27.10):
@@ -26739,6 +26851,12 @@ function npPicker(cityI, whI, list, sender, onCity, onWh){
   }));
 }
 function wireShipForm(box, o, persist){
+  /* Та сама форма вдруге (03.11, часткове оновлення відділу лишає її на
+     місці, коли вона не змінилась): обробники вже стоять — лише переводимо
+     їх на свіжу картку й свіжий запис. Інакше кожне оновлення додавало б
+     ще один комплект і зміна писалась би двічі. */
+  if(box.__lqShipSet){ box.__lqShipSet(o, persist); return; }
+  box.__lqShipSet = (no, np) => { o = no; persist = np; };
   const sh = () => { if(!o.ship || typeof o.ship !== 'object') o.ship = {}; return o.ship; };
   const друга = box.dataset.shipform === '2';
   const s2 = () => { if(!o.ship2 || typeof o.ship2 !== 'object') o.ship2 = { on: true, units: [] }; if(!Array.isArray(o.ship2.units)) o.ship2.units = []; return o.ship2; };
@@ -32599,6 +32717,10 @@ async function priceLockAll(){
          від середніх ставок, які кожна вкладка рахує зі своїх даних, — через
          них вкладки й переписували одна одну картку по колу. */
       const своя = ownTouched(job.orderId);
+      /* Чужу картку доводить лише вкладка з естафетою фону й лише роль, якій
+         база дозволяє міняти суму (03.11: вкладки вишивальних без «edit»
+         упирались у відмову бази по колу). */
+      if(!своя && !(bgLead() && canEditItems())) continue;
       const перша = (Array.isArray(job.units) ? job.units : []).some(u => u && u.gid && !u.priceAt);
       if((своя || перша) && U.priceLockJob(job)){
         try{ await designPut(job, { quiet:true }); }
@@ -33089,6 +33211,8 @@ function designHostInit(){
       .map(p => ({ email:p.email, name:p.name || p.email })),
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
+    /* Вимикач часткового оновлення відділу (03.11): 1 — як доти, цілком. */
+    morphOff: () => !!(contentData && +contentData.noMorph === 1),
     /* Виробнича карта — у Telegram цеху. */
     prodBot: (caption, pngs) => prodBotSend(caption, pngs),
     /* Реєстри НП і борг клієнта (для «повної відмови»). */
@@ -34008,7 +34132,10 @@ function applySeeAsBar(){
    зробив» виникає саме тоді, коли подія вже старенька. Тримаємо більше:
    рядок важить десятки байтів, а відповідь на таке питання — набагато
    більше. */
-const ACC_LOG_MAX = 3000;
+/* 300, не 3000 (03.11): журнал лежить у спільному документі loomiq/photos,
+   на який дивиться кожна вкладка; 3000 рядків — ~650 КБ із 881 КБ документа,
+   і кожен новий рядок розсилався всім. */
+const ACC_LOG_MAX = 300;
 function accLogList(){
   const a = (contentData || {}).accessLog;
   return Array.isArray(a) ? a : [];
@@ -34023,6 +34150,8 @@ function accFail(kind, key, text){
   ACC_FAIL_SEEN.set(k, Date.now());
   try{ accLog(kind, text + ' · ' + deviceShort()); }catch(e){}
 }
+const ACC_NOISY = new Set(['rollback', 'save-retry', 'save-fail', 'job-fail', 'units-keep', 'del-auto']);
+const ACC_NOISY_SEEN = new Map(), ACC_NOISY_AT = new Map();
 async function accLog(kind, text){
   /* НЕ ПИШЕМО ТЕ, ЧОГО НЕ ЧИТАЛИ.
 
@@ -34034,10 +34163,32 @@ async function accLog(kind, text){
      Те саме стосується будь-якого списку, що живе одним полем: команди,
      заготовок, етапів. Правило одне на всі — не читали, не пишемо. */
   if(!contentLoaded){ console.warn('журнал: документ ще не прочитано, запис пропущено'); return; }
+  /* ШУМНІ ВИДИ — РІДШЕ (03.11): той самий вид по тій самій картці — раз на
+     10 хв, а кожного виду — не частіше рядка на хвилину з вкладки.
+     Кожен рядок переписує спільний документ і будить кожну вкладку. */
+  if(ACC_NOISY.has(String(kind || '')) && !window.LQ_ACC_ALL){
+    const now = Date.now(), картка = (String(text || '').match(/#?\d{7}/) || [''])[0];
+    const k = kind + '|' + картка;
+    if(now - (ACC_NOISY_SEEN.get(k) || 0) < 600000 || now - (ACC_NOISY_AT.get(kind) || 0) < 60000) return;
+    ACC_NOISY_SEEN.set(k, now); ACC_NOISY_AT.set(kind, now);
+  }
   try{
     const row = { at:new Date().toISOString(), by:(myEmail() || ''),
                   role:myRole(), kind:String(kind || ''), text:String(text || '').slice(0, 160) };
-    const next = accLogList().concat([row]).slice(-ACC_LOG_MAX);
+    const всі = accLogList();
+    /* СТАРЕ — В АРХІВ, НЕ В НІКУДИ (03.11): журнал довший за межу (3000 рядків
+       до 03.11) — перед обрізанням старі рядки лягають окремим документом
+       loomiq/accArch_<дата> (читає лише команда). Не вдалось зберегти — не
+       обрізаємо, лише не даємо рости далі. */
+    let межа = ACC_LOG_MAX;
+    if(всі.length >= ACC_LOG_MAX){
+      try{
+        const старі = всі.slice(0, всі.length - ACC_LOG_MAX + 1);
+        await fbDb.collection('loomiq').doc('accArch_' + new Date().toISOString().slice(0, 10)).set({
+          rows: firebase.firestore.FieldValue.arrayUnion(...старі), at: new Date().toISOString(), by: myEmail() || '' }, { merge: true });
+      }catch(e){ console.warn('архів журналу не записався — журнал не обрізаю', e); межа = Math.max(всі.length, ACC_LOG_MAX); }
+    }
+    const next = всі.concat([row]).slice(-межа);
     if(contentData) contentData.accessLog = next;
     if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
       await PHOTOS_DOC.set({ accessLog: next }, { merge:true });
@@ -38428,6 +38579,7 @@ async function init(){
     contentLoaded = true;
     perfNote('gate');
     try{ buildStampSync(); }catch(e){ console.warn('мітка збірки', e); }
+    try{ bgStart(); }catch(e){ console.warn('естафета фону', e); }
     try{ contentFirstRes && contentFirstRes(); }catch(e){}
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки

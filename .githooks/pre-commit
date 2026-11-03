@@ -223,6 +223,38 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.
 fi
 # 02.11 (план стабільності, етапи 1–5): фон не воює між вкладками, повтор при відмові
 # лічильника, склад не стирається, ТТН без одягу — ні, журнал невдач і «Стан системи».
+# 03.11: естафета фону — у картки пише одна вкладка на команду; без бурі журналу.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js|tests/bg-lead\.mjs)'; then
+  node tests/bg-lead.mjs >/tmp/lq-bg-lead.log 2>&1 || {
+    echo "✗ Фон знову пишуть кілька вкладок (відмови бази, буря журналу) — коміт зупинено. Подробиці: /tmp/lq-bg-lead.log"
+    grep '✗' /tmp/lq-bg-lead.log
+    exit 1
+  }
+  echo "✓ фон пише одна вкладка; без відмов і бурі журналу"
+fi
+# 03.11: примітка на картці B2C (пишуть акаунти, бачать усі, наживо) і хто скільки ескізів у роботі.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/card-note\.mjs|tests/dz-load\.mjs)'; then
+  node tests/card-note.mjs >/tmp/lq-card-note.log 2>&1 || {
+    echo "✗ Примітка на картці зламана (пишуть акаунти, бачать усі, наживо) — коміт зупинено. Подробиці: /tmp/lq-card-note.log"
+    grep '✗' /tmp/lq-card-note.log
+    exit 1
+  }
+  node tests/dz-load.mjs >/tmp/lq-dz-load.log 2>&1 || {
+    echo "✗ Підсумок «хто скільки ескізів у роботі» зламано — коміт зупинено. Подробиці: /tmp/lq-dz-load.log"
+    grep '✗' /tmp/lq-dz-load.log
+    exit 1
+  }
+  echo "✓ примітка для всіх; хто скільки ескізів у роботі"
+fi
+# 03.11: картка відділу не перебудовується під руками — набране, ескізи, прокрутка, кнопки.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/live-edit\.mjs)'; then
+  node tests/live-edit.mjs >/tmp/lq-live-edit.log 2>&1 || {
+    echo "✗ Картка знову перебудовується під руками: стирає набране, перевантажує ескізи, скидає прокрутку чи міняє кнопку під пальцем — коміт зупинено. Подробиці: /tmp/lq-live-edit.log"
+    grep '✗' /tmp/lq-live-edit.log
+    exit 1
+  }
+  echo "✓ картка не перебудовується під руками"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/bg-writes\.mjs)'; then
   node tests/bg-writes.mjs >/tmp/lq-bg-writes.log 2>&1 || {
     echo "✗ Фонові записи знову пишуть чужі картки, відмова лічильника не повторюється, склад стирається або «Стан системи» мовчить — коміт зупинено. Подробиці: /tmp/lq-bg-writes.log"

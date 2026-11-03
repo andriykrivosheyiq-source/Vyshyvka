@@ -69,6 +69,45 @@ function json(body, status, cors) {
 
 /* Один виклик до Нової пошти. Її API завжди відповідає 200, а помилки лежать
    у полі errors — тому перевіряємо success, а не код відповіді. */
+/* Уся відповідь Нової пошти, а не лише data (03.11, реєстр: «Нова пошта не
+   створила реєстр» без причини — причину НП поклала в загальні warnings /
+   errors при success:true, а np() їх відкидав). */
+async function npFull(env, model, method, props, key) {
+  const r = await fetch(NP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey: key || env.NP_API_KEY, modelName: model, calledMethod: method, methodProperties: props || {} })
+  });
+  const d = await r.json().catch(() => null);
+  if (!d) throw new Error('Нова пошта відповіла не JSON');
+  if (!d.success) {
+    const errs = [].concat(d.errors || [], d.warnings || []).filter(Boolean);
+    throw new Error(errs.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join('; ') || 'Нова пошта відмовила без пояснення');
+  }
+  return d;
+}
+/* Причини відмови — з будь-якої форми, у якій їх дає НП: список рядків,
+   список обʼєктів {Ref|Number, Error|Warning|Description}, або обʼєкт-мапа
+   {"<Ref чи номер>": "текст"}. */
+function npReasons(v) {
+  const out = [];
+  const add = (x, k) => {
+    if (x == null || x === '') return;
+    if (typeof x === 'string') { out.push(k ? { Ref: k, Number: k, Error: x } : { Error: x }); return; }
+    if (Array.isArray(x)) { x.forEach(y => add(y)); return; }
+    if (typeof x === 'object') {
+      const text = x.Error || x.error || x.Warning || x.warning || x.Description || x.Message || x.message || x.Text || '';
+      if (text || x.Ref || x.Number || x.DocumentRef || x.IntDocNumber) {
+        out.push(Object.assign({}, x, { Error: String(text || (typeof x === 'object' ? JSON.stringify(x) : x)).slice(0, 300) }));
+        return;
+      }
+      Object.keys(x).forEach(kk => add(x[kk], kk));
+    }
+  };
+  [].concat(v || []).forEach(x => add(x));
+  return out;
+}
+
 async function np(env, model, method, props, key) {
   const r = await fetch(NP_URL, {
     method: 'POST',
@@ -341,16 +380,23 @@ export default {
           }
         }
         if (!refs.length) return json({ ok: false, error: 'Жодної накладної цього відправника не знайдено' }, 200, cors);
-        const r = await np(env, 'ScanSheet', 'insertDocuments', { DocumentRefs: refs }, key);
-        const x = r[0] || {};
+        const full = await npFull(env, 'ScanSheet', 'insertDocuments', { DocumentRefs: refs }, key);
+        const x = (full.data || [])[0] || {};
         /* 25.10: які накладні справді лягли в реєстр (success) і чому решта
-           — ні; адмінка переносить у «Передано курʼєру» лише прийняті. */
-        const errors = [].concat((x.Data && x.Data.Errors) || [], x.Errors || []);
+           — ні; адмінка переносить у «Передано курʼєру» лише прийняті.
+           03.11: причини — звідусіль, де їх кладе НП (помилки й попередження
+           рядка реєстру, його Data, і загальні warnings/errors відповіді). */
+        const errors = npReasons([(x.Data && x.Data.Errors), x.Errors]);
+        const warns = npReasons([(x.Data && x.Data.Warnings), x.Warnings]);
+        const top = npReasons([full.errors, full.warnings]);
         const success = (x.Data && x.Data.Success) || [];
-        const why = errors.map(e => (e && (e.Error || e.Description)) || (typeof e === 'string' ? e : '')).filter(Boolean).join('; ');
+        const всі = errors.concat(x.Ref ? [] : warns, x.Ref ? [] : top);
+        const why = всі.map(e => e.Error).filter(Boolean).join('; ');
+        /* Нічого не сказала — показуємо, що саме відповіла, а не загальне «не створила». */
+        const сиро = () => { try{ return JSON.stringify({ data: full.data, errors: full.errors, warnings: full.warnings, info: full.info }).slice(0, 300); }catch(e){ return ''; } };
         return json({ ok: !!x.Ref, ref: String(x.Ref || ''), number: String(x.Number || ''), date: String(x.Date || ''),
-                      notFound: Object.keys(треба), errors, success,
-                      error: x.Ref ? '' : (why || 'Нова пошта не створила реєстр') }, 200, cors);
+                      notFound: Object.keys(треба), errors: x.Ref ? errors : всі, warnings: warns, success,
+                      error: x.Ref ? '' : (why || ('Нова пошта не створила реєстр і не сказала чому · відповідь НП: ' + сиро())) }, 200, cors);
       }
       /* PDF реєстру для друку. Адреса друку НП містить ключ, тож її віддавати
          в браузер не можна — тягнемо файл тут і віддаємо байти. */

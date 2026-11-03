@@ -270,6 +270,25 @@ console.log('   ' + JSON.stringify(nf));
 ok(box0 && nf.same && nf.phone === '+380501234567' && nf.focus && nf.name === 'Петренко Іван',
   'імʼя записалось у фоні, форма не перебудувалась: телефон, набраний під час запису, на місці, фокус там само', JSON.stringify(nf));
 
+console.log('═══ ФОНОВІ ОНОВЛЕННЯ: ФОРМА ТА САМА, ЗМІНА ПИШЕТЬСЯ ОДИН РАЗ (03.11) ═══');
+/* Часткове оновлення відділу лишає незмінну форму на місці — обробники в ній
+   не подвоюються (wireShipForm → __lqShipSet), набране не зникає. */
+const nf2 = await p.evaluate(async F => {
+  const b = document.querySelector(F); if(!b) return { нема: true };
+  b.__lqMark2 = 1;
+  for(let i = 0; i < 3; i++){ repaintAfterOrdersNow(); try{ openDesign(true); }catch(e){} }
+  await new Promise(r => setTimeout(r, 400));
+  const b2 = document.querySelector(F);
+  let n = 0; const s0 = window.saveOrders; window.saveOrders = function(){ n++; return s0.apply(this, arguments); };
+  const ph = b2 && b2.querySelector('[data-shf="phone"]');
+  if(ph){ ph.value = '+380509998877'; ph.dispatchEvent(new Event('change', { bubbles:true })); }
+  await new Promise(r => setTimeout(r, 1200));
+  window.saveOrders = s0;
+  return { same: !!(b2 && b2.__lqMark2), n };
+}, F);
+console.log('   ' + JSON.stringify(nf2));
+ok(nf2.same && nf2.n <= 1, 'три фонові оновлення — та сама форма; одна зміна телефону — один запис', JSON.stringify(nf2));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad : 'ТТН створюється з картки B2B і B2C за налаштуваннями відправки');

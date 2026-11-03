@@ -165,10 +165,62 @@ const r8 = await p.evaluate(() => {
   return { kinds, txt: box ? box.textContent.replace(/\s+/g, ' ') : '' };
 });
 console.log('  ' + JSON.stringify({ kinds: r8.kinds, txt: r8.txt.slice(0, 200) }));
-ok(r8.kinds.indexOf('save-retry') >= 0 && r8.kinds.indexOf('save-fail') >= 0 && r8.kinds.indexOf('units-keep') >= 0,
-  'у журналі: повтор запису, невдалий запис, спроба стерти склад', JSON.stringify(r8.kinds));
-ok(/Стан системи/.test(r8.txt) && /картка замовлення не записалась · 1 за добу/.test(r8.txt) && /запис відкинула база — повтор/.test(r8.txt) && /стара копія хотіла стерти склад/.test(r8.txt),
+/* 03.11: рядка на кожен повтор у журналі більше немає (773 таких за 3.11
+   будили всі вкладки); шумні види — не частіше раз на хвилину з вкладки, тож
+   у цьому прогоні лягає перший із них. */
+ok(r8.kinds.indexOf('save-retry') < 0 && r8.kinds.indexOf('save-fail') >= 0,
+  'у журналі: невдалий запис є, рядка на кожен повтор немає', JSON.stringify(r8.kinds));
+ok(/Стан системи/.test(r8.txt) && /картка замовлення не записалась · 1 за добу/.test(r8.txt),
   'блок «Стан системи» показує їх власнику', r8.txt.slice(0, 300));
+
+console.log('═══ 7. БУРЯ ЗАПИСІВ 02–03.11: ЖУРНАЛ РІДШЕ, ≤300; ВІДМОВА БЕЗ КОЛА; ЕСТАФЕТА ═══');
+const r9 = await p.evaluate(async () => {
+  const out = {};
+  /* журнал на 3000 рядків (як у базі 03.11) — перший новий рядок обрізає до 300 */
+  contentData.accessLog = Array.from({ length: 3000 }, (_, i) => ({ at: new Date(Date.now() - (3000 - i) * 60000).toISOString(), by: 'x', role: 'x', kind: 'order-new', text: 'r' + i }));
+  await accLog('role', 'перемкнув роль');
+  out.len = accLogList().length;
+  const арх = window.__DB['loomiq/accArch_' + new Date().toISOString().slice(0, 10)];
+  out.arch = арх && арх.rows ? ((арх.rows.__union || арх.rows).length) : 0;
+  /* той самий шумний вид по тій самій картці пʼять разів поспіль — один рядок */
+  const n0 = accLogList().filter(r => r.kind === 'rollback').length;
+  for(let i = 0; i < 5; i++) await accLog('rollback', 'картка #2000216: стара копія хотіла зняти «погоджено» — не пустили');
+  out.rb = accLogList().filter(r => r.kind === 'rollback').length - n0;
+  /* фоновий запис чужої картки відкинуто — без повтору, версія з бази в памʼять, картка більше не «незбережена» */
+  window.__W = {};
+  const o = orders.find(x => x.orderId === '5100001');
+  const бул = (JSON.parse(ordersSaved.get(o.id) || '{}') || {}).crmLast;
+  o.crmLast = 'стара копія вкладки';
+  window.__DENY['kanbanOrders/' + o.id] = 5;
+  const f = await saveOrders({ quiet: true });
+  out.failed = (f || []).length; out.leftDeny = window.__DENY['kanbanOrders/' + o.id];
+  out.mem = o.crmLast === бул ? 'з бази' : o.crmLast; out.dirty = ordersSaved.get(o.id) !== JSON.stringify(o);
+  await saveOrders({ quiet: true });
+  out.leftDeny2 = window.__DENY['kanbanOrders/' + o.id];
+  window.__DENY['kanbanOrders/' + o.id] = 0;
+  /* естафета: без неї фон чужих карток не доводить */
+  window.LQ_BG_LEAD = 0; window.__W = {};
+  designJobs['5100001'].units = [{ id:'u5100001b', gid:'tshirt', name:'Футболка', qty:2, price:500, cost:200, priceGid:'tshirt', priceKind:'', priceAt: new Date().toISOString(), color:'Чорний', size:'M' }];
+  const стара = () => { const x = orders.find(y => y.orderId === '5100001'); x.totalPrice = 7; x.grossPrice = 7;
+    window.__DB['kanbanOrders/' + x.id] = JSON.parse(JSON.stringify(x)); ordersSaved.set(x.id, JSON.stringify(x)); };
+  стара();
+  await priceLockAll(); await new Promise(r => setTimeout(r, 300));
+  out.noLeadW = Object.keys(window.__W).filter(k => /^kanbanOrders\//.test(k) && !__lqOwnTouched((orders.find(x => x.id === k.split('/')[1]) || {}).orderId)).length;
+  window.LQ_BG_LEAD = 1; стара();
+  await priceLockAll(); await new Promise(r => setTimeout(r, 600));
+  out.leadW = Object.keys(window.__W).filter(k => /^kanbanOrders\//.test(k) && !__lqOwnTouched((orders.find(x => x.id === k.split('/')[1]) || {}).orderId)).length;
+  delete window.LQ_BG_LEAD;
+  out.leaseMine = typeof bgLead === 'function' && bgLead();
+  return out;
+});
+console.log('  ' + JSON.stringify(r9));
+ok(r9.len === 300, 'журнал на 3000 рядків — новий рядок обрізає до 300 (документ худне з ~880 КБ)', 'рядків: ' + r9.len);
+ok(r9.arch === 2701, 'старі 2701 рядок перед обрізанням лягли в архів loomiq/accArch_<дата>', 'в архіві: ' + r9.arch);
+ok(r9.rb === 1, 'той самий «rollback» по тій самій картці пʼять разів — у журналі один рядок', 'рядків rollback: ' + r9.rb);
+ok(r9.failed === 0 && r9.leftDeny === 4 && r9.mem === 'з бази' && !r9.dirty && r9.leftDeny2 === 4,
+  'фоновий запис чужої картки відкинуто — без повтору, у памʼяті версія з бази, наступний запис картку вже не чіпає', JSON.stringify(r9));
+ok(r9.noLeadW === 0 && r9.leadW > 0, 'фонову суму чужих карток доводить лише вкладка з естафетою (свої — завжди)', JSON.stringify(r9));
+ok(r9.leaseMine, 'одна вкладка на стенді сама бере естафету', JSON.stringify(r9));
 
 ok(errs.length === 0, 'без помилок сторінки', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
