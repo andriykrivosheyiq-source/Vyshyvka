@@ -2551,6 +2551,12 @@ async function crmSweepOnce(){
     let touched = false;
     const recount = [];
     const уСписку = new Set(rows.map(r => String((r && (r.chatId || r.chat_id || r.id)) || '')));
+    /* ЕСТАФЕТА ФОНУ (03.11, буря записів 02–03.11). У картки пише лише одна
+       вкладка на команду (bgLead в адмінці) — решта бере ті самі поля з
+       бази знімком. Доти кожна відкрита вкладка кожної людини сама писала
+       crmAt / crmLast / crmUnread / нік у ті самі картки, база відкидала за
+       лічильником, і все йшло по колу. Список «Без картки» збирає кожна. */
+    const пише = (typeof bgLead === 'function') ? !!bgLead() : true;
     crmInbox = [];
     rows.forEach(r => {
       const id = String((r && (r.chatId || r.chat_id || r.id)) || '');
@@ -2565,6 +2571,7 @@ async function crmSweepOnce(){
                                  at:info.at, text:info.text, mine:info.mine });
         return;
       }
+      if(!пише) return;
       /* Справжній нік зі списку Sitniks (28.10): картка, привʼязана без
          ніка (лише імʼя), отримує його, щойно список його дав. */
       /* І імʼя (03.11): картка із заглушкою «чат …» чи без імені отримує
@@ -2601,8 +2608,8 @@ async function crmSweepOnce(){
     });
     /* Не більше трьох за такт: Sitniks рахує запити. Решту дорахує
        наступний такт або відкриття розмови. */
-    let впер = false;
-    for(const o of recount.slice(0, 3)){
+    let впер = !пише;
+    for(const o of (пише ? recount.slice(0, 3) : [])){
       try{ crmNormMsgs(await crmFetch('/chats/' + encodeURIComponent(o.crmChatId) + '/messages'), o); }
       catch(e){ if(e && e.status === 429){ впер = true; break; } }
     }
@@ -2636,7 +2643,7 @@ async function crmSweepOnce(){
     /* Заглушка «чат …», а розмови в перших сторінках списку немає — питаємо
        саму розмову: дві картки за такт, кожну не частіше ніж раз на 15 хв,
        не більше пʼяти разів і не ту, якої Sitniks не знає. */
-    try{
+    if(пише) try{
       (orders || []).filter(o => o && o.crmChatId && !уСписку.has(String(o.crmChatId)) &&
           (crmStubName(o.name) || crmStubName(o.crmChatName) || !String(o.crmChatName || o.crmNick || '').trim()))
         .filter(o => { const t = crmWhoTry[String(o.crmChatId)]; return !t || (!t.nf && !t.busy && t.n < 5 && Date.now() - t.at > 15 * 60000); })
@@ -2645,7 +2652,7 @@ async function crmSweepOnce(){
     }catch(e){}
     crmSweepInfo = { at: new Date().toISOString(), rows: rows.length, way: crmChatsWay || '', pages: crmSweepPages };
     try{ paintSweepInfo(); }catch(e){}
-    if(touched){
+    if(touched && пише){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
       renderBoard();
     }
