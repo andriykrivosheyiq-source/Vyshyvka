@@ -1921,7 +1921,9 @@
   .od-seek-go[disabled]{opacity:.5;cursor:default;}
   .od-seek-hint{font-size:10.5px;color:var(--muted);line-height:1.4;}
   .od-crm-linked{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
-  .od-crm-ig{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor;}
+  .od-crm-ig{display:inline-block;color:#C13584;text-decoration:none;font-weight:600;padding:1px 7px;border-radius:999px;background:rgba(193,53,132,.08);border:1px solid rgba(193,53,132,.22);line-height:1.5;white-space:nowrap;}
+  .od-crm-ig:hover{background:rgba(193,53,132,.16);}
+  .od-crm-wait{color:var(--ink-soft);font-style:italic;}
   .od-crm-ig:hover{color:#C13584;border-bottom-style:solid;}
   .od-crm-unlink{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
     padding:3px 8px;border-radius:7px;background:var(--canvas);}
@@ -8367,32 +8369,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=41ec304365"></script>
-<script src="loomiq-fingerprint.js?v=41ec304365"></script>
-<script src="loomiq-pricing.js?v=41ec304365"></script>
+<script src="loomiq-select.js?v=42dbe53566"></script>
+<script src="loomiq-fingerprint.js?v=42dbe53566"></script>
+<script src="loomiq-pricing.js?v=42dbe53566"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=41ec304365"></script>
+<script src="loomiq-money-core.js?v=42dbe53566"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=41ec304365"></script>
-<script src="loomiq-mock.js?v=41ec304365"></script>
+<script src="loomiq-design.js?v=42dbe53566"></script>
+<script src="loomiq-mock.js?v=42dbe53566"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=41ec304365"></script>
+<script src="imagetracer.js?v=42dbe53566"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=41ec304365"></script>
-<script src="loomiq-threads.js?v=41ec304365"></script>
+<script src="loomiq-chat.js?v=42dbe53566"></script>
+<script src="loomiq-threads.js?v=42dbe53566"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=41ec304365"></script>
+<script src="loomiq-cards.js?v=42dbe53566"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8437,8 +8439,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '41ec304365';
-var LQ_VER_AT = '2026-11-02T20:01:46Z';
+var LQ_VER = '42dbe53566';
+var LQ_VER_AT = '2026-11-03T11:12:35Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -11014,7 +11016,9 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
 let calcTarget = null;
 let calcEdit = null;      // індекс позиції, яку зараз редагують (null = додаємо нову)
 function calcTargetWho(o){
-  return (o.instagram || o.name || o.phone || o.orderId || 'клієнта');
+  /* Заглушка «чат <номер>» — не імʼя (03.11): тоді нік чи імʼя з розмови. */
+  const ok = v => (v && !crmStub(v)) ? v : '';
+  return (ok(o.instagram) || ok(o.name) || crmWhoLabel(o) || o.phone || showNo(o) || 'клієнта');
 }
 /* ── Логотипи замовлення ──────────────────────────────────────────────
    Логотип клієнта належить замовленню, а не окремій футболці. Раніше він
@@ -23756,9 +23760,11 @@ function chanMigrate(o){
 /* Як підписана привʼязана розмова: нік і, якщо є, імʼя профілю. Одне
    місце на всі екрани — інакше картка, шухляда й відділ підписують того
    самого клієнта по-різному. */
+/* Заглушка «чат <номер>» — не імʼя й не нік (03.11, B2B #1000306). */
+function crmStub(v){ return /^чат [0-9a-f]{8,}$/i.test(String(v || '').trim()); }
 function crmWhoLabel(o){
   const nick = String((o && o.crmNick) || '').trim();
-  const name = String((o && o.crmChatName) || '').trim();
+  const name = crmStub(o && o.crmChatName) ? '' : String((o && o.crmChatName) || '').trim();
   if(!nick && !name && o && o.crmChatId && designWhoWait[o.id]) return 'підтягую імʼя з Sitniks…';
   if(nick && name && name.toLowerCase() !== nick.toLowerCase()) return '@' + nick + ' · ' + name;
   if(nick) return '@' + nick;
@@ -23769,12 +23775,26 @@ function crmWhoLabel(o){
    знаємо з розмови Sitniks (crmNick) або з картки (ig). Рядок уже
    екранований — вставляти як HTML. */
 function crmWhoHtml(o){
-  const nick = String((o && (o.crmNick || o.ig)) || '').trim().replace(/^@/, '');
-  const name = String((o && o.crmChatName) || '').trim();
-  const link = nick ? `<a class="od-crm-ig" href="https://instagram.com/${encodeURIComponent(nick)}" target="_blank" rel="noopener" title="Відкрити профіль в Instagram">@${escapeHtml(nick)}</a>` : '';
+  /* Нік — лише справжній (без пробілів), не заглушка «чат …» (03.11): інакше
+     посилання вело на instagram.com/чат%2068ee… — у нікуди. */
+  const raw = String((o && o.crmNick) || '').trim() ||
+    (crmStub(o && o.ig) ? '' : String((o && o.ig) || '').trim());
+  const nick = raw.replace(/^@/, '');
+  const nickOk = /^[\w.\-]+$/.test(nick);
+  const name = crmStub(o && o.crmChatName) ? '' : String((o && o.crmChatName) || '').trim();
+  /* Профіль клієнта в Instagram — видимою кнопкою (03.11, Андрій: «щоб видно
+     нік клієнта, щоб можна було переходити до нього, дивитись, що там у
+     нього по сторінці»). */
+  const link = nickOk ? `<a class="od-crm-ig" href="https://instagram.com/${encodeURIComponent(nick)}" target="_blank" rel="noopener" title="Відкрити сторінку клієнта в Instagram">@${escapeHtml(nick)} ↗</a>` : '';
   if(link && name && name.toLowerCase() !== nick.toLowerCase()) return link + ' · ' + escapeHtml(name);
   if(link) return link;
-  return escapeHtml(name || ((o && o.crmChatId) ? 'чат ' + o.crmChatId : ''));
+  /* Ніка ще немає — сама розмова в Sitniks (адреса, яку вставили), там
+     видно профіль. */
+  const sit = (o && /^https:\/\/[\w.-]*sitniks\.com\//i.test(String(o.crmUrl || '')))
+    ? ` <a class="od-crm-ig" href="${escapeHtml(o.crmUrl)}" target="_blank" rel="noopener" title="Відкрити розмову в Sitniks">Sitniks ↗</a>` : '';
+  if(name) return escapeHtml(name) + sit;
+  if(o && o.crmChatId) return '<span class="od-crm-wait">імʼя з Sitniks ще не підтягнулось</span>' + sit;
+  return '';
 }
 /* ВІДВʼЯЗАТИ — ЛИШЕ ВЛАСНИК (21.10, Андрій: «забрати можливість, щоб він
    випадково не відвʼязувався»). Відвʼязана розмова — це загублений
@@ -23790,7 +23810,9 @@ function chanFallback(o, k){
     /* Нік попереду імені: саме за ним людину й знаходять. Імʼя профілю
        міняють, нік — майже ніколи, тож «чат 17293…» замість нього це
        втрачений контакт. */
-    return crmWhoLabel(o) || (o.crmChatId ? 'чат ' + o.crmChatId : '');
+    /* Без «чат <номер>» (03.11): заглушка в полі Instagram ставала «ніком»,
+       і вже ніщо її не міняло. Імʼя з Sitniks ляже, щойно приїде. */
+    return crmWhoLabel(o);
   }
   return '';
 }
@@ -32011,6 +32033,7 @@ async function designBindChat(o, text){
   const та = String(o.crmChatId || '') === id;
   if(o.crmChatId && !та){ crmForget(o); o.crmChatName = ''; delete o.crmNick; }
   o.crmChatId = id;
+  if(/^https:\/\/[\w.-]*sitniks\.com\/.*\/dialog\/[0-9a-f]{8,}/i.test(String(text || '').trim())) o.crmUrl = String(text).trim().split(/\s/)[0];
   designWhoWait[o.id] = id;
   const записано = saveOrderMeta(o).catch(e => console.warn('привʼязка розмови', e));
   toast('Розмову привʼязано — підтягую імʼя з Sitniks…');
@@ -32034,9 +32057,11 @@ async function designWhoFetch(o, id, після){
   delete designWhoWait[o.id];
   if(who && who.nick) o.crmNick = String(who.nick).replace(/^@/, '');
   const імʼя = (who && who.name) || '';
-  const підпис = імʼя || (who && who.nick) || o.crmChatName || ('чат ' + id);
+  /* Заглушки «чат <номер>» не пишемо (03.11): нічого не дізнались — імʼя
+     підтягне обхід розмов, щойно Sitniks його дасть. */
+  const підпис = імʼя || (who && who.nick) || (crmStub(o.crmChatName) ? '' : o.crmChatName) || '';
   o.crmChatName = підпис;
-  if(!o.name) o.name = підпис;
+  if(підпис && (!o.name || crmStub(o.name))) o.name = підпис;
   /* Нік із розмови Instagram — і в канал: за ним людину знаходять і з Канбану. */
   if(o.crmNick && !String(o.ig || '').trim() &&
      !/^(Telegram|Viber|WhatsApp|Facebook)$/.test((who && who.channel) || ''))
