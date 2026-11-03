@@ -232,6 +232,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js
   }
   echo "✓ фон пише одна вкладка; без відмов і бурі журналу"
 fi
+# 03.11: кольори худі з флісом — разова дія власника (6 кольорів, як у оверсайзу; Синій → Індіго).
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/fleece-colors\.mjs)'; then
+  node tests/fleece-colors.mjs >/tmp/lq-fleece.log 2>&1 || {
+    echo "✗ Кольори флісу: разова дія зламана (губить колір чи пише вдруге) — коміт зупинено. Подробиці: /tmp/lq-fleece.log"
+    grep '✗' /tmp/lq-fleece.log
+    exit 1
+  }
+  echo "✓ кольори флісу: разово, нічого не губить"
+fi
 # 03.11: примітка на картці B2C (пишуть акаунти, бачать усі, наживо) і хто скільки ескізів у роботі.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/card-note\.mjs|tests/dz-load\.mjs)'; then
   node tests/card-note.mjs >/tmp/lq-card-note.log 2>&1 || {

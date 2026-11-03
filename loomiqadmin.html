@@ -8399,32 +8399,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=de3e795f21"></script>
-<script src="loomiq-fingerprint.js?v=de3e795f21"></script>
-<script src="loomiq-pricing.js?v=de3e795f21"></script>
+<script src="loomiq-select.js?v=9f935470aa"></script>
+<script src="loomiq-fingerprint.js?v=9f935470aa"></script>
+<script src="loomiq-pricing.js?v=9f935470aa"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=de3e795f21"></script>
+<script src="loomiq-money-core.js?v=9f935470aa"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=de3e795f21"></script>
-<script src="loomiq-mock.js?v=de3e795f21"></script>
+<script src="loomiq-design.js?v=9f935470aa"></script>
+<script src="loomiq-mock.js?v=9f935470aa"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=de3e795f21"></script>
+<script src="imagetracer.js?v=9f935470aa"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=de3e795f21"></script>
-<script src="loomiq-threads.js?v=de3e795f21"></script>
+<script src="loomiq-chat.js?v=9f935470aa"></script>
+<script src="loomiq-threads.js?v=9f935470aa"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=de3e795f21"></script>
+<script src="loomiq-cards.js?v=9f935470aa"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8469,8 +8469,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'de3e795f21';
-var LQ_VER_AT = '2026-11-03T17:03:54Z';
+var LQ_VER = '9f935470aa';
+var LQ_VER_AT = '2026-11-03T19:46:46Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -36464,6 +36464,62 @@ async function moveColorTo(fromId, toId, col, shots){
   renderColorEditor();
   renderPhotoManager();
 }
+/* КОЛЬОРИ ФЛІСУ — РАЗОВА ДІЯ (03.11, Андрій: «у худі з флісом лишився
+   один синій… щоб там було 6 позицій, як у звичайного оверсайзу; синій не
+   видаляти, а перейменувати в Індіго»). Власник один раз: у «Худі оверсайз
+   з флісом» — ті самі кольори й у тому ж порядку, що в «Худі оверсайз», з
+   тими самими фото (посиланнями, файли не копіюються). Наявний колір флісу
+   з тією самою назвою лишається своїм (id і фото флісу); «Синій» флісу —
+   це «Індіго» (той самий id `blue`, тож заведені замовлення не губляться).
+   Кольори флісу, яким немає пари, лишаються в кінці — нічого не видаляємо.
+   Фото флісу, що вже лежить під ключем, не перезаписуємо. */
+const FLEECE_SRC = 'hoodieover', FLEECE_DST = 'hoodieoverfleece';
+function fleeceColorsPlan(src, dst, map){
+  src = (src || []).filter(c => c && c.id);
+  dst = (dst || []).filter(c => c && c.id);
+  map = map || {};
+  const norm = s => String(s || '').trim().toLowerCase();
+  const сини = n => norm(n) === 'синій' ? 'індіго' : norm(n);
+  const взято = new Set(), list = [], photos = {};
+  src.forEach(c => {
+    const мій = dst.find(d => !взято.has(d.id) && (d.id === c.id || сини(d.name) === norm(c.name)));
+    if(мій){ взято.add(мій.id); list.push({ id: мій.id, name: c.name, hex: c.hex || мій.hex || '#cccccc' }); return; }
+    if(list.some(x => x.id === c.id)) return;
+    list.push({ id: c.id, name: c.name, hex: c.hex || '#cccccc' });
+    const pre = FLEECE_SRC + '-' + c.id + '-';
+    Object.keys(map).forEach(k => {
+      if(k.indexOf(pre) !== 0 || !map[k]) return;
+      const nk = FLEECE_DST + '-' + c.id + '-' + k.slice(pre.length);
+      if(!map[nk]) photos[nk] = map[k];
+    });
+  });
+  dst.forEach(d => { if(!взято.has(d.id) && !list.some(x => x.id === d.id)) list.push({ id: d.id, name: d.name, hex: d.hex || '#cccccc' }); });
+  return { list, photos };
+}
+let fleeceSeeding = false;
+async function fleeceColorsOnce(){
+  if(fleeceSeeding || !contentLoaded || !canSetup() || window.LQ_UPD_STALE) return;
+  if(+(contentData.fleeceColors1 || 0) >= 1) return;
+  const src = effectiveColors(FLEECE_SRC);
+  if(!src.length) return;
+  fleeceSeeding = true;
+  try{
+    const plan = fleeceColorsPlan(src, effectiveColors(FLEECE_DST), contentData.map || {});
+    const patch = { productColors: {}, fleeceColors1: 1 };
+    patch.productColors[FLEECE_DST] = plan.list;
+    if(Object.keys(plan.photos).length) patch.map = plan.photos;
+    await PHOTOS_DOC.set(patch, { merge:true });
+    contentData.fleeceColors1 = 1;
+    contentData.productColors = contentData.productColors || {};
+    contentData.productColors[FLEECE_DST] = plan.list;
+    contentData.map = Object.assign({}, contentData.map || {}, plan.photos);
+    photosMap = Object.assign({}, photosMap || {}, plan.photos);
+    try{ syncSiteContent(); }catch(e){}
+    try{ accLog('colors', 'худі з флісом: кольори як у оверсайзу — ' + plan.list.map(c => c.name).join(', ')); }catch(e){}
+    toast('Худі оверсайз з флісом: ' + plan.list.length + ' кольорів, як у звичайного оверсайзу');
+  }catch(e){ console.warn('кольори флісу', e); }
+  finally{ fleeceSeeding = false; }
+}
 function colorIdFromHex(hex){ return 'h' + String(hex||'').replace('#','').toLowerCase(); }
 /* ПЕРЕЙМЕНУВАТИ КОЛІР (23.10, Андрій: «щоб можна було перейменовувати
    колір, як я захочу»). Міняється лише підпис: id кольору лишається, тож
@@ -38580,6 +38636,7 @@ async function init(){
     perfNote('gate');
     try{ buildStampSync(); }catch(e){ console.warn('мітка збірки', e); }
     try{ bgStart(); }catch(e){ console.warn('естафета фону', e); }
+    setTimeout(() => { try{ fleeceColorsOnce(); }catch(e){} }, 2500);
     try{ contentFirstRes && contentFirstRes(); }catch(e){}
     setTimeout(() => { try{ priceLockAll(); }catch(e){} }, 1500);
     syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки
