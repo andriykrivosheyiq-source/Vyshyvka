@@ -223,6 +223,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-select\.
 fi
 # 02.11 (план стабільності, етапи 1–5): фон не воює між вкладками, повтор при відмові
 # лічильника, склад не стирається, ТТН без одягу — ні, журнал невдач і «Стан системи».
+# 03.11: картка відділу не перебудовується під руками — набране, ескізи, прокрутка, кнопки.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/live-edit\.mjs)'; then
+  node tests/live-edit.mjs >/tmp/lq-live-edit.log 2>&1 || {
+    echo "✗ Картка знову перебудовується під руками: стирає набране, перевантажує ескізи, скидає прокрутку чи міняє кнопку під пальцем — коміт зупинено. Подробиці: /tmp/lq-live-edit.log"
+    grep '✗' /tmp/lq-live-edit.log
+    exit 1
+  }
+  echo "✓ картка не перебудовується під руками"
+fi
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/bg-writes\.mjs)'; then
   node tests/bg-writes.mjs >/tmp/lq-bg-writes.log 2>&1 || {
     echo "✗ Фонові записи знову пишуть чужі картки, відмова лічильника не повторюється, склад стирається або «Стан системи» мовчить — коміт зупинено. Подробиці: /tmp/lq-bg-writes.log"

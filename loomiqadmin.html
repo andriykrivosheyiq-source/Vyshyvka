@@ -8369,32 +8369,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=42dbe53566"></script>
-<script src="loomiq-fingerprint.js?v=42dbe53566"></script>
-<script src="loomiq-pricing.js?v=42dbe53566"></script>
+<script src="loomiq-select.js?v=85ddf7560d"></script>
+<script src="loomiq-fingerprint.js?v=85ddf7560d"></script>
+<script src="loomiq-pricing.js?v=85ddf7560d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=42dbe53566"></script>
+<script src="loomiq-money-core.js?v=85ddf7560d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=42dbe53566"></script>
-<script src="loomiq-mock.js?v=42dbe53566"></script>
+<script src="loomiq-design.js?v=85ddf7560d"></script>
+<script src="loomiq-mock.js?v=85ddf7560d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=42dbe53566"></script>
+<script src="imagetracer.js?v=85ddf7560d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=42dbe53566"></script>
-<script src="loomiq-threads.js?v=42dbe53566"></script>
+<script src="loomiq-chat.js?v=85ddf7560d"></script>
+<script src="loomiq-threads.js?v=85ddf7560d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=42dbe53566"></script>
+<script src="loomiq-cards.js?v=85ddf7560d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8439,8 +8439,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '42dbe53566';
-var LQ_VER_AT = '2026-11-03T11:12:35Z';
+var LQ_VER = '85ddf7560d';
+var LQ_VER_AT = '2026-11-03T12:40:29Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -26739,6 +26739,12 @@ function npPicker(cityI, whI, list, sender, onCity, onWh){
   }));
 }
 function wireShipForm(box, o, persist){
+  /* Та сама форма вдруге (03.11, часткове оновлення відділу лишає її на
+     місці, коли вона не змінилась): обробники вже стоять — лише переводимо
+     їх на свіжу картку й свіжий запис. Інакше кожне оновлення додавало б
+     ще один комплект і зміна писалась би двічі. */
+  if(box.__lqShipSet){ box.__lqShipSet(o, persist); return; }
+  box.__lqShipSet = (no, np) => { o = no; persist = np; };
   const sh = () => { if(!o.ship || typeof o.ship !== 'object') o.ship = {}; return o.ship; };
   const друга = box.dataset.shipform === '2';
   const s2 = () => { if(!o.ship2 || typeof o.ship2 !== 'object') o.ship2 = { on: true, units: [] }; if(!Array.isArray(o.ship2.units)) o.ship2.units = []; return o.ship2; };
@@ -33089,6 +33095,8 @@ function designHostInit(){
       .map(p => ({ email:p.email, name:p.name || p.email })),
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
+    /* Вимикач часткового оновлення відділу (03.11): 1 — як доти, цілком. */
+    morphOff: () => !!(contentData && +contentData.noMorph === 1),
     /* Виробнича карта — у Telegram цеху. */
     prodBot: (caption, pngs) => prodBotSend(caption, pngs),
     /* Реєстри НП і борг клієнта (для «повної відмови»). */

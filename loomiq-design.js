@@ -10304,6 +10304,173 @@
      перебудовує її, поки людина щось пише в полі — перемалюється, щойно
      вона вийде з поля. Дії самої людини малюють як доти. */
   var SOFT = false, softTimer = 0;
+  /* ══════════ ЧАСТКОВЕ ОНОВЛЕННЯ ЗАМІСТЬ ПЕРЕБУДОВИ (03.11) ══════════
+
+     Андрій, відео менеджерів: «пишу дизайнеру для правок — воно стирає все»,
+     «5 ескізів… скаче то вверх, то вниз», «кнопку відправити інколи треба
+     декілька раз натискати», «відділення й місто — декілька разів вводити».
+     Корінь один: на кожне оновлення з бази (вісім людей зберігають картки)
+     сторінка перевставлялась цілком — картинки вантажились наново, поле
+     правки малювалось порожнім, кнопка під пальцем мінялась на нову.
+
+     Тепер нова розмітка накладається на ту, що на екрані: міняється лише те,
+     що справді змінилось. Та сама картинка не вантажиться вдруге, та сама
+     кнопка лишається тією ж (натиск не губиться), прокрутка всередині картки
+     й смуг стоїть, набране в полі лишається — крім полів біля щойно
+     натиснутої кнопки (`MORPH_EAT`): їх дія й мала очистити («Надіслати
+     правку»), як і доти. Форма доставки (її оживляє робоче місце) не
+     латається по шматочку: та сама — стоїть, інша — ставиться цілком.
+     Кнопки випадайок (`loomiq-select.js`) не чіпаємо. Вимикач —
+     `contentData.noMorph === 1` (host `morphOff`): тоді як доти. */
+  var MORPH_EAT = null;
+  var MORPH_ON = ['onclick','onchange','oninput','onkeydown','onkeyup','onkeypress','onfocus','onblur',
+    'onpointerdown','onpointerup','onmousedown','onmouseup','ontouchstart','ontouchend','onpaste',
+    'ondragstart','ondragend','ondragover','ondragenter','ondragleave','ondrop','onscroll','onsubmit','oninvalid'];
+  function morphOff(){ try{ return !!(host().morphOff && host().morphOff()); }catch(e){ return false; } }
+  function morphKey(n){
+    if(!n || n.nodeType !== 1) return null;
+    var k = n.getAttribute('data-open') || n.getAttribute('data-col');
+    if(k) return n.tagName + ':' + k;
+    return n.id ? '#' + n.id : null;
+  }
+  function morphForeign(n){ return !!(n && n.nodeType === 1 && n.__lqSel); }
+  function morphFits(a, b){
+    if(a.nodeType !== b.nodeType) return false;
+    if(a.nodeType !== 1) return true;
+    if(a.tagName !== b.tagName) return false;
+    if(a.tagName === 'INPUT' && (a.getAttribute('type') || '') !== (b.getAttribute('type') || '')) return false;
+    return true;
+  }
+  function morphAttrs(o, n){
+    /* Розмітка тепер каже, яка кнопка: позначка «зайнята» знята. */
+    if(o.__lqBusy) o.__lqBusy = null;
+    var keepCls = o.tagName === 'SELECT' && o.__lqBox;
+    var i, a;
+    for(i = o.attributes.length - 1; i >= 0; i--){
+      a = o.attributes[i].name;
+      if(!n.hasAttribute(a) && !(keepCls && a === 'tabindex')) o.removeAttribute(a);
+    }
+    for(i = 0; i < n.attributes.length; i++){
+      a = n.attributes[i];
+      var v = a.value;
+      if(keepCls && a.name === 'class' && !/\blq-native\b/.test(v)) v = (v ? v + ' ' : '') + 'lq-native';
+      if(o.getAttribute(a.name) !== v) o.setAttribute(a.name, v);
+    }
+    if(keepCls && o.getAttribute('tabindex') !== '-1') o.setAttribute('tabindex', '-1');
+    if(keepCls && !n.hasAttribute('class') && !o.classList.contains('lq-native')) o.classList.add('lq-native');
+  }
+  function morphField(o, n, was){
+    var t = o.tagName;
+    if(t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT') return;
+    var focused = document.activeElement === o;
+    var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0);
+    if(t === 'SELECT'){
+      var want = null;
+      [].forEach.call(n.querySelectorAll('option'), function(op){ if(op.hasAttribute('selected')) want = op.getAttribute('value') != null ? op.getAttribute('value') : op.textContent; });
+      if(want == null){ var f = n.querySelector('option'); want = f ? (f.getAttribute('value') != null ? f.getAttribute('value') : f.textContent) : ''; }
+      if((!focused || eat) && o.value !== want) o.value = want;
+      return;
+    }
+    var type = (o.getAttribute('type') || '').toLowerCase();
+    if(type === 'checkbox' || type === 'radio'){
+      var ch = n.hasAttribute('checked');
+      if(o.checked !== ch) o.checked = ch;
+      return;
+    }
+    if(type === 'file') return;
+    var neu = t === 'TEXTAREA' ? n.value : (n.getAttribute('value') || '');
+    var cur = o.value;
+    /* Своє, ще не збережене (поле відрізняється від того, що було в розмітці),
+       а під ним нічого не змінилось — лишаємо набране. Під фокусом — завжди. */
+    /* Пошук — не чернетка: його значення живе в дошці, тож береться з розмітки. */
+    var draft = !o.hasAttribute('data-seek');
+    var keep = draft && !eat && (focused || (cur !== was && neu === was));
+    if(t === 'TEXTAREA' && o.defaultValue !== neu) o.defaultValue = neu;
+    if(!keep && cur !== neu) o.value = neu;
+    else if(keep && o.value !== cur) o.value = cur;
+  }
+  function morphNode(o, n){
+    if(o.nodeType !== 1){ if(o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
+    /* Форма доставки — цілком або ніяк. */
+    if(n.hasAttribute('data-shipform')){
+      var src = n.outerHTML;
+      if(o.__lqSrc === src) return;
+      if(SOFT && o.contains(document.activeElement)) return;
+      var fresh = n.cloneNode(true); fresh.__lqSrc = src;
+      o.parentNode.replaceChild(fresh, o);
+      return fresh;
+    }
+    var was = o.tagName === 'TEXTAREA' ? o.defaultValue : (o.tagName === 'INPUT' ? (o.getAttribute('value') || '') : null);
+    morphAttrs(o, n);
+    /* Обробники ставить wire наново; старі, яких тепер не має бути, — знімаємо. */
+    for(var i = 0; i < MORPH_ON.length; i++){ var p = MORPH_ON[i]; if(o[p] && !o.hasAttribute(p)) o[p] = null; }
+    if(o.isContentEditable && document.activeElement === o) return;
+    if(o.tagName === 'TEXTAREA'){ morphField(o, n, was); return; }
+    morphKids(o, n);
+    morphField(o, n, was);
+  }
+  function morphKids(from, to){
+    var olds = [].slice.call(from.childNodes).filter(function(x){ return !morphForeign(x); });
+    var keyed = {};
+    olds.forEach(function(x){ var k = morphKey(x); if(k && !keyed[k]) keyed[k] = x; });
+    var used = [], oi = 0, ref = from.firstChild;
+    var news = [].slice.call(to.childNodes);
+    for(var i = 0; i < news.length; i++){
+      var nn = news[i], k = morphKey(nn), m = null;
+      while(ref && morphForeign(ref)) ref = ref.nextSibling;
+      if(k){ m = keyed[k]; if(m && (used.indexOf(m) >= 0 || !morphFits(m, nn))) m = null; }
+      else {
+        while(oi < olds.length && (used.indexOf(olds[oi]) >= 0 || morphKey(olds[oi]))) oi++;
+        if(oi < olds.length && morphFits(olds[oi], nn)){ m = olds[oi]; oi++; }
+      }
+      var put;
+      if(m){
+        used.push(m);
+        if(m !== ref) from.insertBefore(m, ref); else ref = ref.nextSibling;
+        put = morphNode(m, nn) || m;
+        if(put !== m) used.push(put);
+      } else {
+        put = nn.cloneNode(true);
+        if(put.nodeType === 1 && put.hasAttribute('data-shipform')) put.__lqSrc = nn.outerHTML;
+        from.insertBefore(put, ref);
+      }
+    }
+    olds.forEach(function(x){ if(used.indexOf(x) < 0 && x.parentNode === from) from.removeChild(x); });
+    /* Кнопка випадайки — поруч зі своїм списком; список пішов — і вона. */
+    [].slice.call(from.childNodes).forEach(function(x){
+      if(!morphForeign(x)) return;
+      var sel = x.__lqSel;
+      if(!sel || sel.parentNode !== from) from.removeChild(x);
+      else if(x.nextSibling !== sel) from.insertBefore(x, sel);
+    });
+  }
+  function morphInto(el, html){
+    var tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    morphKids(el, tpl.content);
+    try{ if(window.LQSelect && LQSelect.scan) LQSelect.scan(); }catch(e){}
+  }
+  /* Поставити розмітку: накласти на наявну (є що накладати й не вимкнено) або
+     вставити цілком, як доти. */
+  function setHtml(el, html){
+    if(el.firstChild && !morphOff()){
+      try{ morphInto(el, html); return; }
+      catch(e){ console.warn('часткове оновлення — вставляю цілком', e); }
+    }
+    el.innerHTML = html;
+  }
+  /* Поля біля натиснутої кнопки — їх дія й мала спожити: найближчий предок
+     кнопки, у якому є поле. */
+  function morphEatFor(b){
+    var a = b && b.parentNode, сх = 0;
+    while(a && a.nodeType === 1 && сх++ < 6){
+      var f = a.querySelectorAll('textarea, input:not([type]), input[type="text"], input[type="number"], input[type="tel"], select');
+      if(f.length) return [].slice.call(f);
+      if(a.classList && (a.classList.contains('dz-panel-b') || a.id === 'dzRoot')) break;
+      a = a.parentNode;
+    }
+    return [];
+  }
   function softTyping(root){
     var a = document.activeElement;
     return !!(a && root.contains(a) && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable));
@@ -10366,7 +10533,7 @@
     var html = probBarHtml(SOLO.id) + panelFor('acct', SOLO.id);
     var full = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
     if(softSkip(root, full)) return !!html;
-    root.innerHTML = full;
+    setHtml(root, full);
     root.__lqHtml = full;
     wire(root);
     try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
@@ -10531,11 +10698,14 @@
          тільки власнику. */
       : ((seat === 'acct' && U.host.canNew && U.host.canNew()) ? newBtnHtml() : '') +
         (seekHtml(шук) + архів + графік + перемикач);
-    var _top = '<div class="dz-top">' + headHtml + '</div>';
+    /* Не `_top` (03.11): так уже звалась прокрутка картки на початку цієї
+       функції — розмітка шапки її затирала, і в кінці картці ставилась
+       прокрутка «текст» = 0: на кожне оновлення вона злітала вгору. */
+    var _topHtml = '<div class="dz-top">' + headHtml + '</div>';
     var _boards = seat === 'supply' ? '' : U.boardHtml(b.steps, b.cards, mcolOf(seat, b));
-    root.__lqTop = _top; root.__lqBoards = _boards; root.__lqSeat = seat;
+    root.__lqTop = _topHtml; root.__lqBoards = _boards; root.__lqSeat = seat;
     var _full =
-      _top +
+      _topHtml +
       /* Закупівля — без канбана: список «треба замовити», оформлені
          замовлення й склад. Андрій: «канбана тут немає». */
       (seat === 'supply' ? buyScreenHtml() :
@@ -10545,7 +10715,7 @@
           (openId ? probBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
     if(softSkip(root, _full)) return;
-    root.innerHTML = _full;
+    setHtml(root, _full);
     root.__lqHtml = _full;
     wire(root);
     /* Аркуш добирається сам, уже після того, як екран намальовано: спершу
@@ -11663,9 +11833,19 @@
         /* Кнопка одразу «зайнята» (28.10, Андрій: «зависає трохи»): дія читає
            й пише базу пів секунди-секунду, людина має бачити, що натиснулось. */
         b.classList.add('is-busy'); if('disabled' in b) b.disabled = true;
+        /* «Зайнята» — наша позначка, поки розмітка її не переписала (03.11:
+           кнопка тепер та сама й після дії — вмикати її назад можна лише
+           тоді, коли нове малювання її не чіпало, інакше сіра ставала б
+           активною). */
+        var мітка = {}; b.__lqBusy = мітка;
+        var їсть = morphEatFor(b);
+        MORPH_EAT = (MORPH_EAT || []).concat(їсть);
         var prA; try{ prA = act(b.dataset.do, root, b.dataset); }catch(err){ console.warn('дія', b.dataset.do, err); }
         Promise.resolve(prA).catch(function(err){ console.warn('дія', b.dataset.do, err); })
-          .then(function(){ if(b.isConnected){ b.classList.remove('is-busy'); if('disabled' in b) b.disabled = false; } }); };
+          .then(function(){
+            if(MORPH_EAT){ MORPH_EAT = MORPH_EAT.filter(function(x){ return їсть.indexOf(x) < 0; }); if(!MORPH_EAT.length) MORPH_EAT = null; }
+            if(b.isConnected && b.__lqBusy === мітка){ b.classList.remove('is-busy'); if('disabled' in b) b.disabled = false; }
+            if(b.__lqBusy === мітка) b.__lqBusy = null; }); };
       if(b.getAttribute('role') === 'button') b.onkeydown = function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); b.onclick(e); } };
     });
     /* Поля складу пишуться на «change», а не на кожну літеру: кожен натиск
@@ -11953,7 +12133,7 @@
         el.style.height = 'auto';
         el.style.height = Math.min(220, el.scrollHeight) + 'px';
       };
-      el.addEventListener('input', рости);
+      if(!el.__lqGrow){ el.__lqGrow = true; el.addEventListener('input', рости); }
       рости();
     });
     root.querySelectorAll('[data-fold]').forEach(function(b){

@@ -188,7 +188,10 @@ ok(версія.ролі === 'mock,orig,svg,work' && версія.нитки >= 
   'у версії: адаптована робота, оригінал, SVG під нитки, мокап і перелік ниток', 'версія: ' + JSON.stringify(версія));
 await p.evaluate(() => { const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); });
 const плитки = await p.evaluate(() => [...document.querySelectorAll('.dz-panel .dz-ch-m.is-ver .dz-tile-l')].map(x => x.textContent));
-ok(плитки.join() === 'мокап,оригінал',
+/* Картка для клієнта («картка») збирається у фоні після показу версії
+   (sheetAuto) — чи встигла вона до перевірки, залежить від швидкості машини.
+   Перевіряємо саме те, що мовлено 13.10: робота й SVG під нитки не видно. */
+ok(плитки.filter(x => x !== 'картка').join() === 'мокап,оригінал',
   'у розмові лише мокап і оригінал — «робота» й SVG під нитки не показуються (13.10), хоч у версії лежать', 'плитки: ' + JSON.stringify(плитки));
 
 console.log('');

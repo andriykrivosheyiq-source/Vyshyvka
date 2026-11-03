@@ -135,7 +135,7 @@ const r2 = await p.evaluate(async () => {
   const kept = window.__panel() === window.__p0 && document.activeElement === f;
   f.blur();
   await new Promise(r => setTimeout(r, 2800));
-  const pn = window.__panel(); return { field: true, kept, after: pn !== window.__p0 && /\bL\b/.test(pn.textContent) };
+  const pn = window.__panel(); return { field: true, kept, after: /\bL\b/.test(pn.textContent), same: pn === window.__p0 };
 });
 console.log('   ' + JSON.stringify(r2));
 ok(r2.field && r2.kept, 'фокус у полі: чужа зміна не перебудувала картку, курсор лишився в полі', JSON.stringify(r2));
@@ -147,14 +147,17 @@ const r3 = await p.evaluate(async () => {
   const p1 = window.__panel();
   designJobs['2000901'].units[0].size = 'XL';
   repaintAfterOrdersNow();
-  const changed = window.__panel() !== p1 && /XL/.test(window.__panel().textContent);
+  /* 03.11: часткове оновлення — картка та сама (не перевставлена), вміст свіжий. */
+  const changed = /XL/.test(window.__panel().textContent);
   const p2 = window.__panel();
+  designJobs['2000901'].units[0].size = 'S';
   window.LQDesign.ui.render(document.getElementById('dzRoot'));
-  return { changed, forced: window.__panel() !== p2 };
+  return { changed, forced: /\bS\b/.test(window.__panel().textContent), same: window.__panel() === p1 && window.__panel() === p2 };
 });
 console.log('   ' + JSON.stringify(r3));
 ok(r3.changed, 'розмір змінився — фонове оновлення показало XL', JSON.stringify(r3));
 ok(r3.forced, 'звичайне перемальовування (дія людини) малює завжди', JSON.stringify(r3));
+ok(r3.same, 'і картка лишилась тим самим елементом — оновилось лише змінене (без блимання й без перевантаження картинок)', JSON.stringify(r3));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
