@@ -17,7 +17,8 @@
    3. 1 500 B2C / 500 B2B / 6 000 платежів: «Аналітика» відкривається,
       «На рахунках» на екрані; за прохід renderAnAll форматувань дат не
       більше, ніж різних дат, toLocaleDateString — жодного, викликів
-      anDayOf — лінійно (не замовлення × платежі).
+      anDayOf — лінійно (не замовлення × платежі); оплата — через
+      LQMoney.batch (один індекс рухів на прохід, крок 2).
 
    Запуск:  node tests/an-heavy.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -163,20 +164,24 @@ await p.evaluate(() => {
   Date.prototype.toLocaleDateString = function(){ C.tlds++; return tl0.apply(this, arguments); };
   const day0 = anDayOf;
   anDayOf = function(t){ C.day++; if(t) C.dates.add(String(t)); return day0(t); };
+  const b0 = LQMoney.batch; C.batch = 0; C.paidOut = 0; C.inRender = 0;
+  LQMoney.batch = function(pays, fn){ if(Array.isArray(pays) && pays.length) C.batch++; return b0.apply(this, arguments); };
+  const p0 = LQMoney.paid; C.batchIn = 0;
   const r0 = renderAnAll;
-  renderAnAll = function(){ C.render++; const f = C.fmt, d = C.day, t = C.tlds; ANDAY_M.clear();
-    try{ return r0.apply(this, arguments); } finally { C.fmtIn = Math.max(C.fmtIn, C.fmt - f); C.dayIn = Math.max(C.dayIn, C.day - d); C.tldsIn = Math.max(C.tldsIn, C.tlds - t); } };
+  renderAnAll = function(){ C.render++; const f = C.fmt, d = C.day, t = C.tlds, b = C.batch; ANDAY_M.clear();
+    try{ return r0.apply(this, arguments); } finally { C.fmtIn = Math.max(C.fmtIn, C.fmt - f); C.dayIn = Math.max(C.dayIn, C.day - d); C.tldsIn = Math.max(C.tldsIn, C.tlds - t); C.batchIn = Math.max(C.batchIn, C.batch - b); } };
 });
 const t0 = Date.now();
 await p.click('[data-view="analytics"]', { timeout: 60000 });
 await p.waitForFunction(() => /На рахунках/.test((document.getElementById('an-all') || {}).textContent || ''), null, { timeout: 60000 }).catch(() => {});
 const dt = Date.now() - t0;
 const c = await p.evaluate(() => { const C = window.__C, n = orders.length + payments.length + orders.reduce((a, o) => a + ((o.payments || []).length), 0);
-  return { render: C.render, fmtIn: C.fmtIn, dayIn: C.dayIn, tldsIn: C.tldsIn, dates: C.dates.size, n,
+  return { render: C.render, batchIn: C.batchIn, fmtIn: C.fmtIn, dayIn: C.dayIn, tldsIn: C.tldsIn, dates: C.dates.size, n,
     shown: /На рахунках/.test((document.getElementById('an-all') || {}).textContent || '') }; });
 console.log('   ' + dt + ' мс · ' + JSON.stringify(c));
 ok(c.shown && c.render >= 1, '«Аналітика» відкрилась, «На рахунках» на екрані', 'не відкрилась: ' + JSON.stringify(c));
 ok(c.fmtIn <= c.dates + 1, 'форматувань дат за прохід ' + c.fmtIn + ' — не більше, ніж різних дат (' + c.dates + ')', 'форматувань ' + c.fmtIn + ' при ' + c.dates + ' різних датах');
+ok(c.batchIn >= 1, '«Загальна» рахує оплату одним індексом рухів (LQMoney.batch)', '«Загальна» без LQMoney.batch — paid() знову перебирає всі рухи для кожного замовлення');
 ok(c.tldsIn === 0, 'toLocaleDateString у «Загальній» — жодного', 'toLocaleDateString: ' + c.tldsIn);
 ok(c.dayIn <= 4 * c.n, 'викликів anDayOf ' + c.dayIn + ' — лінійно (≤ 4 × ' + c.n + ' замовлень і платежів), не замовлення × платежі',
   'викликів anDayOf ' + c.dayIn + ' при ' + c.n + ' — знову вкладений прохід');

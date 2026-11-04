@@ -340,7 +340,7 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/an-fast\.
   }
   echo "✓ аналітика: гроші одразу, важке — лише на своїх вкладках"
 fi
-if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/an-heavy\.mjs|tests/an-heavy-old\.js)'; then
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-money-core\.js|tests/an-heavy\.mjs|tests/an-heavy-old\.js)'; then
   node tests/an-heavy.mjs >/tmp/lq-an-heavy.log 2>&1 || {
     echo "✗ Аналітика на великих даних знову рахує вкладеним проходом або цифри розійшлись зі старими — коміт зупинено. Подробиці: /tmp/lq-an-heavy.log"
     grep '✗' /tmp/lq-an-heavy.log

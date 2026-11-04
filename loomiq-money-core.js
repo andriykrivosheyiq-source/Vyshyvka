@@ -92,6 +92,31 @@
     return 0;
   }
 
+  /* ОДИН ПРОХІД ПО РУХАХ НА ВЕСЬ ПІДРАХУНОК (04.11, Аналітика «не можу
+     навіть зайти»). paid() для кожного замовлення будував довідник усіх
+     рухів і перебирав їх усі — замовлення × рухи. batch(pays, fn): поки
+     йде fn (синхронно), paid() бере довідник і рухи замовлення з одного
+     індексу, побудованого раз, — ті самі рухи в тому самому порядку, тож і
+     результат той самий (tests/money-core.mjs §16). Поза batch — як доти.
+     Лише для читання: fn не міняє рухів. Змінилась довжина масиву — індекс
+     не береться, рахуємо по-старому. */
+  var IDX = null;
+  function indexOf(pays){
+    var map = {}, by = {};
+    pays.forEach(function(p){
+      if(!p) return;
+      if(p.id) map[p.id] = p;
+      var k = id(p.orderId);
+      (by[k] || (by[k] = [])).push(p);
+    });
+    return { pays: pays, len: pays.length, map: map, by: by };
+  }
+  function batch(pays, fn){
+    if(!Array.isArray(pays) || (IDX && IDX.pays === pays)) return fn();
+    var prev = IDX;
+    IDX = indexOf(pays);
+    try{ return fn(); } finally { IDX = prev; }
+  }
   /* СКІЛЬКИ СПЛАЧЕНО.
      pays — усі завантажені рухи Фінансів, або null, коли їх ще не
      завантажили (тоді рахуємо лише записи картки — як було). */
@@ -99,7 +124,9 @@
     var oid = id(o && o.orderId);
     var rows = [];
     var map = null;
-    if(Array.isArray(pays)){
+    var ix = (IDX && IDX.pays === pays && pays.length === IDX.len) ? IDX : null;
+    if(ix) map = ix.map;
+    else if(Array.isArray(pays)){
       map = {};
       pays.forEach(function(p){ if(p && p.id) map[p.id] = p; });
     }
@@ -121,7 +148,7 @@
                   owner: !e.payId && !!e.ownerDone, note: e.note || '' });
     });
     if(map && oid){
-      pays.forEach(function(p){
+      (ix ? (ix.by[oid] || []) : pays).forEach(function(p){
         if(!p || id(p.orderId) !== oid) return;
         var s = r(p.amount);
         if(s <= 0) return;   // витрата, привʼязана до замовлення, — не оплата клієнта
@@ -188,6 +215,9 @@
      opt: { now, np: { <ttn>: {code, status, at} }, totalOf(o), accs:[{id,bank}],
             ordersLoaded:true } */
   function audit(orders, pays, opt){
+    return batch(pays, function(){ return auditRun(orders, pays, opt); });
+  }
+  function auditRun(orders, pays, opt){
     opt = opt || {};
     /* Номер для тексту пункту — як у картці (opt.noOf); ключ лишається orderId. */
     var no = typeof opt.noOf === 'function' ? function(k){ return opt.noOf(k) || k; } : id;
@@ -394,7 +424,7 @@
 
   var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
               COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
-              paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, codOfTtn:codOfTtn, audit:audit,
+              paid:paid, batch:batch, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, codOfTtn:codOfTtn, audit:audit,
               ttnsOf:ttnsOf, ttnOf:ttnOf, isBank:isBank, keyOf:keyOf };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LQMoney = api;

@@ -1,0 +1,404 @@
+/* ЕТАЛОН для tests/money-core.mjs §16: грошове ядро таким, як воно було до
+   індексу рухів (04.11, коміт c32f465). Не правити й не підключати до сторінок:
+   рахує «сплачено» лише loomiq-money-core.js; цей файл — тільки мірка. */
+/* ══════════ ГРОШОВЕ ЯДРО (04.10) ══════════
+
+   Андрій: «закласти в основну логіку, щоб платежі ніяк ніде нікуди не
+   утікали, щоб ми на рівному місці не втрачали кошти».
+
+   ЦЕЙ ФАЙЛ — ЄДИНЕ МІСЦЕ, ДЕ РАХУЄТЬСЯ «СКІЛЬКИ СПЛАЧЕНО».
+   Картка B2B, картка B2C, сума контролю оплати в ТТН, аналітика й Звірка —
+   усі питають тут. Доти в B2B і B2C було два різні «оплачено»: наложка,
+   яка сама привʼязалась у Фінансах, у картці B2B не рахувалась, і картка
+   показувала борг за вже отримані гроші.
+
+   ПРАВИЛА (їх стереже tests/money-core.mjs; хук перед комітом не пустить
+   зміну, яка їх ламає):
+     1. Банківський рух (payments/<id>) рахується в замовленні, до якого він
+        привʼязаний (orderId), — і лише там. Один рух — одне замовлення.
+     2. Запис оплати в картці (o.payments) із payId — лише копія банківського
+        руху. Коли рух завантажено, правда — сам рух: відвʼязали чи
+        перенесли в інше замовлення — копія не рахується (і Звірка про неї
+        каже). Коли руху в завантаженому вікні немає (старший за пів року),
+        рахується копія — щоб давні оплати не перетворились на борг.
+     3. Запис руками без payId (готівка, переказ, якого банк не бачить)
+        рахується як є.
+     4. Нічого не зникає мовчки: усе, що не сходиться, — пункт Звірки.
+
+   Чисті функції: ні бази, ні сторінки. Тому їх можна перевіряти тестом
+   за пів секунди. */
+(function(root){
+  'use strict';
+
+  /* Звідки беруться банківські рухи. Їх пише лише грошовий воркер; адмінка
+     їх не створює, не видаляє й суму не править (так само в firestore.rules). */
+  var BANK_SRC = ['mono', 'privat', 'np', 'novapay'];
+  /* ОПЛАТА НА КАРТУ (21.10). Андрій: «оплату на карту може вписувати
+     будь-який менеджер… зі скріном; підтверджують лише Андрій або
+     Володимир; замовлення йде по ланцюгу, а на ньому знак «!», поки не
+     перевірено». Такий рух (src 'card') лежить у Фінансах на рахунку
+     картки, привʼязується до замовлення як будь-який інший і має
+     check.state: 'wait' — не перевірено (рахується як сплачено, щоб робота
+     не стояла, але Звірка й картка показують «!»), 'ok' — підтверджено,
+     'no' — не дійшло (не рахується; Звірка червоним). */
+  var CARD_SRC = 'card';
+  /* Після отримання посилки з контролем оплати — стільки днів чекаємо гроші,
+     далі Звірка бʼє тривогу (Андрій: «2 дні звичайні»). */
+  var COD_DAYS = 2;
+  /* Коди Нової пошти: забрали — гроші мають бути; відмова й повернення —
+     грошей не буде, треба стежити за товаром. */
+  var NP_GOT = ['9', '10', '11', '106'];
+  var NP_BACK = ['102', '103', '105', '108'];
+  var DAY = 864e5;
+
+  function id(v){ return String(v == null ? '' : v).trim(); }
+  function ttnOf(v){ return String(v || '').replace(/\D/g, ''); }
+  function r(n){ return Math.round(+n || 0); }
+  function isBank(p){ return !!p && BANK_SRC.indexOf(String(p.src || '')) >= 0; }
+  function isCard(p){ return !!p && String(p.src || '') === CARD_SRC; }
+  /* Стан перевірки оплати на карту: '' для всього, що не з карти. */
+  function cardCheck(p){
+    if(!isCard(p)) return '';
+    var st = p.check && p.check.state;
+    return (st === 'ok' || st === 'no') ? st : 'wait';
+  }
+  function грн(n){ return String(r(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴'; }
+  function time(s){ var t = Date.parse(s || ''); return isNaN(t) ? 0 : t; }
+
+  /* Усі ТТН замовлення: поточна і ті, що були замінені (o.ttnHist). Гроші за
+     стару накладну з контролем оплати інакше нікуди б не привʼязались. */
+  function ttnsOf(o){
+    var out = [];
+    var t = ttnOf(o && o.ttn); if(t) out.push(t);
+    ((o && o.ttnHist) || []).forEach(function(h){ var x = ttnOf(h && h.ttn); if(x && out.indexOf(x) < 0) out.push(x); });
+    /* Друга посилка (29.10): її накладна й замінені — теж цього замовлення. */
+    var s2 = o && o.ship2;
+    if(s2 && typeof s2 === 'object'){
+      var t2 = ttnOf(s2.ttn); if(t2 && out.indexOf(t2) < 0) out.push(t2);
+      (s2.ttnHist || []).forEach(function(h){ var x = ttnOf(h && h.ttn); if(x && out.indexOf(x) < 0) out.push(x); });
+    }
+    return out;
+  }
+  /* Контроль оплати саме цієї накладної: головна, замінена, друга посилка. */
+  function codOfTtn(o, t){
+    var r = function(v){ return Math.round(+v || 0); };
+    if(!o) return 0;
+    if(ttnOf(o.ttn) === t) return r(o.ttnCod);
+    var h = (o.ttnHist || []).filter(function(x){ return x && ttnOf(x.ttn) === t; })[0];
+    if(h) return r(h.cod);
+    var s2 = o.ship2;
+    if(s2 && typeof s2 === 'object'){
+      if(ttnOf(s2.ttn) === t) return r(s2.ttnCod);
+      var h2 = (s2.ttnHist || []).filter(function(x){ return x && ttnOf(x.ttn) === t; })[0];
+      if(h2) return r(h2.cod);
+    }
+    return 0;
+  }
+
+  /* СКІЛЬКИ СПЛАЧЕНО.
+     pays — усі завантажені рухи Фінансів, або null, коли їх ще не
+     завантажили (тоді рахуємо лише записи картки — як було). */
+  function paid(o, pays){
+    var oid = id(o && o.orderId);
+    var rows = [];
+    var map = null;
+    if(Array.isArray(pays)){
+      map = {};
+      pays.forEach(function(p){ if(p && p.id) map[p.id] = p; });
+    }
+    var bySel = {};
+    ((o && o.payments) || []).forEach(function(e, i){
+      if(!e) return;
+      var s = r(e.sum);
+      if(e.payId && map){
+        var p = map[e.payId];
+        if(p){
+          if(id(p.orderId) === oid && oid) bySel[e.payId] = i;   // рахуємо нижче, із самого руху
+          else rows.push({ src:'stale', idx:i, payId:e.payId, sum:s, at:e.at, kind:e.kind, counted:false,
+                           elsewhere: id(p.orderId) });
+          return;
+        }
+      }
+      rows.push({ src: e.payId ? 'cache' : 'hand', idx:i, payId:e.payId || '', sum:s, at:e.at,
+                  kind:e.kind, by:e.by, acc:e.acc, counter:e.counter, counted:true,
+                  owner: !e.payId && !!e.ownerDone, note: e.note || '' });
+    });
+    if(map && oid){
+      pays.forEach(function(p){
+        if(!p || id(p.orderId) !== oid) return;
+        var s = r(p.amount);
+        if(s <= 0) return;   // витрата, привʼязана до замовлення, — не оплата клієнта
+        var chk = cardCheck(p);
+        rows.push({ src: chk ? 'card' : 'bank', idx: bySel[p.id] == null ? -1 : bySel[p.id], payId:p.id, sum:s, at:p.at,
+                    kind: p.tag === 'cod' ? 'cod' : (p.tag || 'prepay'), acc:p.acc, counter:p.counter,
+                    ttn: p.ttn || '', by: p.by || '', check: chk, shot: p.shot || '',
+                    /* «Не дійшло» — не рахується; «не перевірено» — рахується. */
+                    counted: chk !== 'no' });
+      });
+    }
+    rows.sort(function(a, b){ return String(a.at || '').localeCompare(String(b.at || '')); });
+    var sum = rows.reduce(function(a, x){ return a + (x.counted ? x.sum : 0); }, 0);
+    return { sum: sum, rows: rows };
+  }
+  /* ЗНИЖКА ЗАМОВЛЕННЯ (15.10, Андрій: «знижка в двох форматах — гривнями
+     або відсотком»). o.discount = { v, kind:'uah'|'pct' }. Не більша за саму
+     суму й не відʼємна. Сума до оплати = вартість − знижка; саме її B2C пише
+     в o.totalPrice, тож due / state / Звірка рахують уже від неї. */
+  function discountOf(o, gross){
+    var d = o && o.discount, g = Math.max(0, r(gross));
+    if(!d || !(+d.v > 0)) return 0;
+    var v = d.kind === 'pct' ? g * Math.min(100, +d.v) / 100 : +d.v;
+    return Math.max(0, Math.min(g, r(v)));
+  }
+  function due(o, pays, total){
+    var t = total == null ? (+(o && o.totalPrice) || 0) : (+total || 0);
+    return Math.max(0, r(t - paid(o, pays).sum));
+  }
+  function state(o, pays, total){
+    var t = total == null ? (+(o && o.totalPrice) || 0) : (+total || 0);
+    var s = paid(o, pays).sum;
+    if(s <= 0) return 'none';
+    return (s + 0.5 >= t && t > 0) ? 'full' : 'part';
+  }
+
+  /* ЧИ МОЖНА ПРИВʼЯЗАТИ рух до замовлення. Привʼязаний рух не перекидається
+     в інше замовлення мовчки — тільки свідомим «перенести» (move). */
+  function linkCheck(p, orderId, opt){
+    if(!p || !p.id) return 'Платежу немає';
+    var cur = id(p.orderId), to = id(orderId);
+    /* Номер для людини — той, що в картці (22.10): ключ і показ різні в B2C. */
+    var no = (opt && typeof opt.noOf === 'function') ? opt.noOf : id;
+    if(to && cur && cur !== to && !(opt && opt.move))
+      return 'Цей платіж уже привʼязаний до #' + no(cur) + '. Спершу відвʼяжіть його там.';
+    if(to && p.tag === 'own') return 'Це переказ між своїми рахунками — до замовлення його не привʼязують.';
+    /* Пул наложок NovaPay: ці гроші вже лежать у замовленнях поштучно, за
+       ТТН. Привʼязати пул до замовлення — порахувати їх двічі. */
+    if(to && p.flow === 'pool') return 'Це пул наложок NovaPay — гроші за ці посилки вже пораховані поштучно, за ТТН.';
+    return '';
+  }
+
+  /* Непідтверджені оплати на карту в замовленні — для знака «!» на картці. */
+  function unverified(o, pays){
+    var l = paid(o, pays).rows.filter(function(x){ return x.check === 'wait'; });
+    return { n: l.length, sum: l.reduce(function(a, x){ return a + x.sum; }, 0), rows: l };
+  }
+  /* Сума контролю оплати для нової ТТН — рівно залишок; більше не можна. */
+  function codFor(o, pays, total){ return due(o, pays, total); }
+
+  /* ══════════ ЗВІРКА ══════════
+     Усе, де гроші можуть загубитись з поля зору. Кожен пункт:
+       { kind, sev:'red'|'amber', orderId, payId, ttn, sum, text, fix }
+     opt: { now, np: { <ttn>: {code, status, at} }, totalOf(o), accs:[{id,bank}],
+            ordersLoaded:true } */
+  function audit(orders, pays, opt){
+    opt = opt || {};
+    /* Номер для тексту пункту — як у картці (opt.noOf); ключ лишається orderId. */
+    var no = typeof opt.noOf === 'function' ? function(k){ return opt.noOf(k) || k; } : id;
+    var now = opt.now || Date.now();
+    var np = opt.np || {};
+    var totalOf = opt.totalOf || function(o){ return +o.totalPrice || 0; };
+    var out = [];
+    var ordersById = {}, byTtn = {};
+    (orders || []).forEach(function(o){
+      if(!o || !o.orderId) return;
+      ordersById[id(o.orderId)] = o;
+      ttnsOf(o).forEach(function(t){ byTtn[t] = o; });
+    });
+    pays = Array.isArray(pays) ? pays : [];
+    var payMap = {};
+    pays.forEach(function(p){ if(p && p.id) payMap[p.id] = p; });
+    var bankAcc = {};
+    (opt.accs || []).forEach(function(a){ if(a && a.id) bankAcc[a.id] = a.bank || ''; });
+    var дн = function(ms){ return Math.floor(ms / DAY); };
+    var дата = function(t){ var d = new Date(t); return isNaN(d) ? '' :
+      ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2); };
+
+    /* ДВА ЗАМОВЛЕННЯ З ОДНИМ НОМЕРОМ (22.10). Платежі й накладні шукають
+       замовлення за номером — на двох картках вони лягають не туди. */
+    var заНомером = {};
+    (orders || []).forEach(function(o){ if(o && o.orderId && !o.draft) (заНомером[id(o.orderId)] = заНомером[id(o.orderId)] || []).push(o); });
+    Object.keys(заНомером).forEach(function(k){
+      var l = заНомером[k]; if(l.length < 2) return;
+      out.push({ kind:'dup_no', sev:'red', orderId:k, n:l.length, ids: l.map(function(o){ return o.id || ''; }),
+        text: 'Два замовлення з одним номером #' + no(k) + ': ' + l.map(function(o){ return (o.name || o.company || 'без імені') + ' від ' + дата(o.createdAt); }).join(' і ') +
+              ' (' + l.length + ' картках). Платіж чи накладна з цим номером можуть потрапити в іншу з них. «Перенумерувати новішу» дасть новішій картці свій номер.' });
+    });
+    (orders || []).forEach(function(o){
+      if(!o || !o.orderId || o.status === 'cancel') return;
+      var oid = id(o.orderId);
+      var total = r(totalOf(o));
+      var pd = paid(o, pays);
+      var лишилось = Math.max(0, total - pd.sum);
+
+      /* Контроль оплати: посилку забрали, а грошей у замовленні немає. */
+      ttnsOf(o).forEach(function(t, i){
+        var cod = codOfTtn(o, t);
+        if(cod <= 0) return;
+        var гроші = pays.some(function(p){ return ttnOf(p.ttn) === t && r(p.amount) > 0 && id(p.orderId) === oid; });
+        var st = np[t] || null;
+        var code = st ? String(st.code || '') : '';
+        var коли = st ? time(st.at) : 0;
+        if(!st && i === 0 && /отриман/i.test(String(o.ttnStatus || ''))){ code = '9'; коли = time(o.ttnStatusAt); }
+        if(гроші) return;
+        if(NP_GOT.indexOf(code) >= 0 && коли && now - коли >= COD_DAYS * DAY){
+          var вільні = pays.filter(function(p){ return ttnOf(p.ttn) === t && r(p.amount) > 0 && !id(p.orderId); })[0];
+          out.push({ kind:'cod_late', sev:'red', orderId:oid, ttn:t, sum:cod, payId: вільні ? вільні.id : '',
+            fix: вільні ? 'link' : '',
+            text: 'Посилку ТТН ' + t + ' забрали ' + дата(коли) + ', контроль оплати ' + грн(cod) + ' — ' +
+              (вільні ? 'гроші прийшли, але до замовлення не привʼязані'
+                      : 'грошей немає вже ' + дн(now - коли) + ' дн.') });
+        } else if(NP_BACK.indexOf(code) >= 0){
+          out.push({ kind:'cod_back', sev:'amber', orderId:oid, ttn:t, sum:cod,
+            text: 'ТТН ' + t + ': ' + (st.status || 'відмова / повернення') + ' — контролю оплати ' + грн(cod) +
+              ' не буде. Перевірте, що товар повернувся.' });
+        }
+      });
+
+      /* Контроль оплати = залишок (±5 ₴). Більший — клієнт переплатить;
+         менший (або без контролю) — посилку віддадуть, а гроші недоотримаємо. */
+      var t0 = ttnOf(o.ttn), COD_TOL = 5;
+      /* Дві посилки (29.10): контроль оплати ділиться між накладними —
+         порівнюємо з залишком їхню суму, а не одну. */
+      var t2 = (o.ship2 && typeof o.ship2 === 'object') ? ttnOf(o.ship2.ttn) : '';
+      if(t0 && total > 0 && o.ttnCod != null && o.ttnCod !== '' &&
+         !(np[t0] && (NP_GOT.concat(NP_BACK)).indexOf(String(np[t0].code)) >= 0)){
+        var свій = pays.some(function(p){ return (ttnOf(p.ttn) === t0 || (t2 && ttnOf(p.ttn) === t2)) && id(p.orderId) === oid && r(p.amount) > 0; });
+        var кк = r(o.ttnCod) + (t2 ? r(o.ship2.ttnCod) : 0);
+        if(!свій && кк > 0 && кк > лишилось + COD_TOL)
+          out.push({ kind:'cod_over', sev:'red', orderId:oid, ttn:t0, sum:кк - лишилось,
+            text: 'Контроль оплати ТТН ' + t0 + ' — ' + грн(кк) + ', а лишилось сплатити ' + грн(лишилось) +
+              '. Клієнт переплатить ' + грн(кк - лишилось) + ' — змініть суму в кабінеті НП.' });
+        else if(!свій && лишилось > кк + COD_TOL)
+          out.push({ kind:'cod_under', sev:'red', orderId:oid, ttn:t0, sum:лишилось - кк,
+            text: (кк > 0 ? 'Контроль оплати ТТН ' + t0 + ' — ' + грн(кк)
+                          : 'ТТН ' + t0 + ' без контролю оплати') + ', а лишилось сплатити ' + грн(лишилось) +
+              '. Недоотримаємо ' + грн(лишилось - кк) + ' — змініть суму в кабінеті НП.' });
+      }
+
+      /* Велика знижка — щоб її бачили: так гроші й «губляться» з поля зору. */
+      var зн = r(o.discountSum), бр = r(o.grossPrice);
+      if(зн > 0 && бр > 0 && зн * 2 >= бр)
+        out.push({ kind:'discount', sev:'amber', orderId:oid, sum:зн,
+          text: 'Знижка ' + грн(зн) + ' — половина й більше від суми ' + грн(бр) + '. Перевірте, що так і домовлялись.' });
+
+      if(total > 0 && pd.sum > total + 1)
+        out.push({ kind:'overpay', sev:'amber', orderId:oid, sum:pd.sum - total,
+          text: 'Переплата ' + грн(pd.sum - total) + ': сплачено ' + грн(pd.sum) + ' при сумі ' + грн(total) + '.' });
+
+      pd.rows.forEach(function(x){
+        if(x.src === 'stale')
+          out.push({ kind:'stale', sev:'red', orderId:oid, payId:x.payId, sum:x.sum,
+            text: 'У картці записано оплату ' + грн(x.sum) + ' з банку, а у Фінансах цей платіж ' +
+              (x.elsewhere ? 'привʼязаний до #' + no(x.elsewhere) : 'відвʼязаний') + '. Її не рахуємо.' });
+      });
+      /* «ВИКОНАНО» ВЛАСНИКОМ, ОПЛАЧЕНО ПОЗА СИСТЕМОЮ (04.11). Запис руками
+         рахується, як будь-яка готівка (правило 3), але руху в банку за ним
+         немає — тож кожен такий видно окремим пунктом: хто, коли, як. Закрити
+         можна «Перевірено, все гаразд» (moneyOk), як і решту. */
+      pd.rows.forEach(function(x){
+        if(x.src !== 'hand' || !x.owner || !(x.sum > 0)) return;
+        out.push({ kind:'owner_off', sev:'amber', orderId:oid, sum:x.sum, idx:x.idx,
+          text: 'Виконано вручну: оплату ' + грн(x.sum) + ' записано поза системою' + (x.note ? ' («' + String(x.note).slice(0, 80) + '»)' : '') +
+            (x.by ? ' · ' + x.by : '') + (x.at ? ' · ' + дата(time(x.at)) : '') + '. Руху в банку немає — переконайтесь, що гроші справді отримано.' });
+      });
+      /* Те саме двічі: записали руками, а потім прийшло з банку. */
+      var руками = pd.rows.filter(function(x){ return x.src === 'hand' && x.sum > 0; });
+      var банк = pd.rows.filter(function(x){ return x.src === 'bank'; });
+      руками.forEach(function(h){
+        var пара = банк.filter(function(b){ return b.sum === h.sum && Math.abs(time(b.at) - time(h.at)) <= 7 * DAY; })[0];
+        if(пара) out.push({ kind:'dup', sev:'amber', orderId:oid, payId:пара.payId, sum:h.sum, idx:h.idx,
+          text: 'Можливий дубль: ' + грн(h.sum) + ' записано руками і такий самий платіж прийшов з банку. Якщо це одні гроші — приберіть запис руками.' });
+      });
+    });
+
+    pays.forEach(function(p){
+      if(!p || !p.id) return;
+      var s = r(p.amount);
+      /* Оплата на карту: не перевірена — жовтим, поки власник не скаже
+         «Підтверджено» чи «Не дійшло»; без скріна чи «не дійшло» — червоним. */
+      if(isCard(p)){
+        var chk = cardCheck(p), де = id(p.orderId) ? ' у #' + no(id(p.orderId)) : ' (нікуди не привʼязана)';
+        var хто = p.by ? ' · вписав ' + p.by : '';
+        if(!p.shot && chk !== 'no')
+          out.push({ kind:'card_noshot', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s,
+            text: 'Оплата на карту ' + грн(s) + де + ' вписана без скріна переказу' + хто + '. Попросіть скрін або позначте «Не дійшло».' });
+        if(chk === 'wait')
+          out.push({ kind:'card_wait', sev:'amber', payId:p.id, orderId:id(p.orderId), sum:s, fix:'check',
+            text: 'Оплата на карту ' + грн(s) + де + хто + ' — ще не підтверджена; рахується як сплачено. Звірте зі скріном: «Підтверджено» або «Не дійшло».' });
+        if(chk === 'no')
+          out.push({ kind:'card_no', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s,
+            text: 'Оплату на карту ' + грн(s) + де + ' позначено «не дійшло» — вона не рахується, у замовленні борг. Домовтесь із клієнтом або приберіть запис.' });
+      }
+      /* Привʼязаний до замовлення, якого немає. */
+      /* Архівна картка (23.10) в памʼяті не лежить — її номер відомий з opt.archived. */
+      if(opt.ordersLoaded !== false && id(p.orderId) && !ordersById[id(p.orderId)] && !(opt.archived && opt.archived[id(p.orderId)]) && s > 0)
+        out.push({ kind:'lost_order', sev:'red', payId:p.id, orderId:id(p.orderId), sum:s, fix:'unlink',
+          text: 'Платіж ' + грн(s) + ' (' + (p.counter || '—') + ') привʼязаний до #' + no(id(p.orderId)) +
+            ', а такого замовлення немає. Відвʼяжіть і привʼяжіть до правильного.' });
+      if(id(p.orderId) || s <= 0 || p.tag === 'own' || p.tag === 'notown' || p.flow) return;
+      /* Переказ із NovaPay на банк: гроші за наложки вже пораховані на
+         NovaPay; не позначений «між своїми» — порахується вдруге. */
+      if(bankAcc[p.acc] !== 'np' && /nova\s*pay|нова\s*пей|новапей|нова\s*пошта|nova\s*poshta/i.test((p.counter || '') + ' ' + (p.desc || '')))
+        out.push({ kind:'np_in', sev:'amber', payId:p.id, sum:s, fix:'own',
+          text: 'Схоже на переказ з NovaPay ' + грн(s) + ' (' + дата(time(p.at)) + '). Позначте «між своїми», щоб не порахувати двічі.' });
+    });
+
+    /* Гроші за ТТН, якої в CRM немає, — одним пунктом, бо їх буває сотні
+       (накладні, створені в кабінеті НП повз CRM). */
+    var сироти = pays.filter(function(p){ return p && ttnOf(p.ttn) && !id(p.orderId) && r(p.amount) > 0 &&
+      !byTtn[ttnOf(p.ttn)] && now - time(p.at) >= COD_DAYS * DAY; });
+    if(сироти.length)
+      out.push({ kind:'cod_orphan', sev:'amber', sum: сироти.reduce(function(a, p){ return a + r(p.amount); }, 0),
+        list: сироти.map(function(p){ return p.id; }),
+        text: сироти.length + ' надходж. на ' + грн(сироти.reduce(function(a, p){ return a + r(p.amount); }, 0)) + ' за ТТН, яких немає в жодній картці CRM. Привʼяжіть їх у Фінансах або впишіть ТТН у замовлення.' });
+
+    /* РАХУНОК НЕ ОНОВЛЮВАВСЯ (17.10, Андрій: «рахунки не підвʼязались
+       повністю»). Приват і NovaPay сервер питає сам щокілька хвилин; коли
+       банк відмовляє (протермінований ключ), рухи перестають приходити, і
+       гроші зникають з поля зору тихо. Монобанк сам шле рухи, коли вони є, —
+       його тиша не помилка, тож його тут немає. Джерело — стан перевірки
+       (opt.sync, пише сервер) або, поки його ще немає, дата залишку від
+       банку (opt.bal). */
+    var ПИТАЄМО = { privat: 1, novapay: 1, privat24: 1 };
+    (opt.accs || []).forEach(function(a){
+      if(!a || !a.id || !ПИТАЄМО[a.bank]) return;
+      var st = (opt.sync || {})[a.id], b = (opt.bal || {})[a.id];
+      var коли = st && st.at ? time(st.at) : (b && b.at ? time(b.at) : 0);
+      var помилка = st && st.error ? String(st.error) : '';
+      var назва = a.name || a.id;
+      if(помилка)
+        out.push({ kind:'acc_err', sev:'red', acc:a.id,
+          text: 'Рахунок «' + назва + '»: банк відмовляє — ' + помилка.slice(0, 160) + '. Рухи з нього не приходять.' });
+      else if(st && st.skip)
+        out.push({ kind:'acc_off', sev:'amber', acc:a.id,
+          text: 'Рахунок «' + назва + '» не підключено: ' + String(st.skip).slice(0, 120) + '.' });
+      else if(коли && now - коли > DAY)
+        out.push({ kind:'acc_stale', sev:'red', acc:a.id,
+          text: 'Рахунок «' + назва + '» не оновлювався з ' + дата(коли) + ' — рухи з банку не приходять. Перевірте ключ банку.' });
+    });
+
+    /* «Перевірено, все гаразд» — людина подивилась і закрила пункт
+       (товар повернувся, переплату повернули). Позначка живе в самому
+       замовленні (o.moneyOk) або в русі (p.auditOk), а не в памʼяті сторінки. */
+    out = out.filter(function(x){
+      var k = keyOf(x);
+      var o = x.orderId ? ordersById[x.orderId] : null;
+      if(o && o.moneyOk && o.moneyOk[k]) return false;
+      var p = x.payId ? payMap[x.payId] : null;
+      if(p && Array.isArray(p.auditOk) && p.auditOk.indexOf(k) >= 0) return false;
+      return true;
+    });
+    var ваги = { red:0, amber:1 };
+    out.sort(function(a, b){ return (ваги[a.sev] - ваги[b.sev]) || ((b.sum || 0) - (a.sum || 0)); });
+    return out;
+  }
+
+  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || ((x.kind === 'dup_no' || x.kind === 'owner_off') ? x.orderId : '') || '') ; }
+
+  var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
+              COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
+              paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, codOfTtn:codOfTtn, audit:audit,
+              ttnsOf:ttnsOf, ttnOf:ttnOf, isBank:isBank, keyOf:keyOf };
+  if(typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.LQMoney = api;
+})(typeof window !== 'undefined' ? window : this);

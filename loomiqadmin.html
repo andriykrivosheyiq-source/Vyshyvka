@@ -8425,32 +8425,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=433d120553"></script>
-<script src="loomiq-fingerprint.js?v=433d120553"></script>
-<script src="loomiq-pricing.js?v=433d120553"></script>
+<script src="loomiq-select.js?v=fc35ae253e"></script>
+<script src="loomiq-fingerprint.js?v=fc35ae253e"></script>
+<script src="loomiq-pricing.js?v=fc35ae253e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=433d120553"></script>
+<script src="loomiq-money-core.js?v=fc35ae253e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=433d120553"></script>
-<script src="loomiq-mock.js?v=433d120553"></script>
+<script src="loomiq-design.js?v=fc35ae253e"></script>
+<script src="loomiq-mock.js?v=fc35ae253e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=433d120553"></script>
+<script src="imagetracer.js?v=fc35ae253e"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=433d120553"></script>
-<script src="loomiq-threads.js?v=433d120553"></script>
+<script src="loomiq-chat.js?v=fc35ae253e"></script>
+<script src="loomiq-threads.js?v=fc35ae253e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=433d120553"></script>
+<script src="loomiq-cards.js?v=fc35ae253e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8495,8 +8495,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '433d120553';
-var LQ_VER_AT = '2026-11-04T18:50:52Z';
+var LQ_VER = 'fc35ae253e';
+var LQ_VER_AT = '2026-11-04T19:11:53Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -12979,7 +12979,8 @@ function anPaidOf(o){ return paidSum(o); }
 function anInOf(o, set){
   return paidRows(o).reduce((a, x) => a + ((x.counted && set[anDayOf(x.at)]) ? x.sum : 0), 0);
 }
-function renderAnAll(days, month, spend){
+function renderAnAll(days, month, spend){ return payBatch(() => renderAnAllRun(days, month, spend)); }
+function renderAnAllRun(days, month, spend){
   const box = document.getElementById('an-all');
   if(!box) return;
   try{ watchPayments(); }catch(e){}
@@ -24184,6 +24185,9 @@ function paidRows(o){ return LQMoney.paid(o, payPays()).rows; }
 function paidSum(o){ return LQMoney.paid(o, payPays()).sum; }
 function dueSum(o){ return LQMoney.due(o, payPays()); }
 function payState(o){ return LQMoney.state(o, payPays()); }
+/* Важкий підрахунок по всіх замовленнях (Аналітика) — одним індексом рухів
+   на весь прохід (LQMoney.batch, 04.11). Лише для читання, синхронно. */
+function payBatch(fn){ return (LQMoney.batch ? LQMoney.batch(payPays(), fn) : fn()); }
 /* ОПЛАТА НА КАРТУ (21.10). Андрій: «оплату на карту може вписувати будь-який
    менеджер… зі скріном; підтверджують лише Андрій або Володимир; замовлення
    йде по ланцюгу, а на ньому «!», поки не перевірено». Рахує все ядро
