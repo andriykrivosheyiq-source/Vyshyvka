@@ -1,5 +1,7 @@
 # Handoff — Loomiq CRM (станом на 21.10.2026, вечір)
 
+**04.11.2026: робота передана — спершу прочитай `docs/HANDOFF-2026-11-04.md`.**
+
 Репозиторій: `andriykrivosheyiq-source/Vyshyvka`. Робоча гілка цієї сесії
 `claude/dazzling-ramanujan-mqaw2e`; після кожного зеленого повного прогону —
 `git merge --no-ff` у `main` і пуш обох. `main` публікується GitHub Pages на

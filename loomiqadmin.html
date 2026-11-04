@@ -8425,32 +8425,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=396840dfd2"></script>
-<script src="loomiq-fingerprint.js?v=396840dfd2"></script>
-<script src="loomiq-pricing.js?v=396840dfd2"></script>
+<script src="loomiq-select.js?v=5bf788a39f"></script>
+<script src="loomiq-fingerprint.js?v=5bf788a39f"></script>
+<script src="loomiq-pricing.js?v=5bf788a39f"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=396840dfd2"></script>
+<script src="loomiq-money-core.js?v=5bf788a39f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=396840dfd2"></script>
-<script src="loomiq-mock.js?v=396840dfd2"></script>
+<script src="loomiq-design.js?v=5bf788a39f"></script>
+<script src="loomiq-mock.js?v=5bf788a39f"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=396840dfd2"></script>
+<script src="imagetracer.js?v=5bf788a39f"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=396840dfd2"></script>
-<script src="loomiq-threads.js?v=396840dfd2"></script>
+<script src="loomiq-chat.js?v=5bf788a39f"></script>
+<script src="loomiq-threads.js?v=5bf788a39f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=396840dfd2"></script>
+<script src="loomiq-cards.js?v=5bf788a39f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8495,8 +8495,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '396840dfd2';
-var LQ_VER_AT = '2026-11-04T16:22:10Z';
+var LQ_VER = '5bf788a39f';
+var LQ_VER_AT = '2026-11-04T18:09:43Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -12191,12 +12191,29 @@ async function finAdSet(month, dir, sum){
    грошей справді прийшло. Це різні числа, і саме різниця між ними і є
    «лишилось отримати». */
 /* День замовлення чи платежу за Києвом — так само, як рахує решта аналітики. */
+/* ШВИДКО (04.11, Андрій: «аналітика глючить… не можу навіть зайти»):
+   toLocaleDateString з часовим поясом щоразу будує новий календар ICU —
+   на 1 000 замовлень × 5 000 платежів це хвилини, і сторінка не відповідала.
+   Тепер календар один (ANDAY_F), а кожна дата рахується раз (ANDAY_M). Той
+   самий результат: РРРР-ММ-ДД за Києвом. */
+let ANDAY_F = null;
+const ANDAY_M = new Map();
 function anDayOf(t){
   if(!t) return '';
+  const k = typeof t === 'string' ? t : String(t);
+  const v0 = ANDAY_M.get(k);
+  if(v0 !== undefined) return v0;
   const d = new Date(t);
-  if(isNaN(d)) return '';
-  try{ return d.toLocaleDateString('sv-SE', { timeZone:'Europe/Kyiv' }); }
-  catch(e){ return d.toISOString().slice(0, 10); }
+  let v = '';
+  if(!isNaN(d)){
+    try{
+      if(!ANDAY_F) ANDAY_F = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Kyiv', year:'numeric', month:'2-digit', day:'2-digit' });
+      v = ANDAY_F.format(d);
+    }catch(e){ v = d.toISOString().slice(0, 10); }
+  }
+  if(ANDAY_M.size > 50000) ANDAY_M.clear();
+  ANDAY_M.set(k, v);
+  return v;
 }
 /* Реклама вписана по місяцях; за довільні дні беремо частку місяця. */
 function finAdIn(days, dir){
@@ -13003,15 +13020,18 @@ function renderAnAll(days, month, spend){
     if(n > 0 && !ids[String(p.orderId || '')]){ безПривʼязки += n; день(d).in += n; }
     if(n < 0){ витрачено += -n; день(d).out += -n; if(p.src === 'salary') зарплати += -n; }
   });
-  /* Надходження по замовленнях — у рух по днях теж. */
+  /* Надходження по замовленнях — у рух по днях теж. Платежі розкладено по
+     замовленнях один раз (04.11): доти для кожного замовлення перебирались
+     усі платежі бази — замовлення × платежі, і Аналітика висла. */
+  const платежіЗа = {};
+  (payments || []).forEach(p => { const k = String((p && p.orderId) || ''); if(k) (платежіЗа[k] = платежіЗа[k] || []).push(p); });
   живі.forEach(o => {
     if(orderDir(o) === 'b2b' && payList(o).length){
       payList(o).forEach(p => { const d = anDayOf(p.at); if(set[d]) день(d).in += Math.round(+p.sum || 0); });
     } else {
-      const id = String(o.orderId || '');
-      (payments || []).forEach(p => {
+      (платежіЗа[String(o.orderId || '')] || []).forEach(p => {
         const d = anDayOf(p.at);
-        if(set[d] && String(p.orderId || '') === id && (+p.amount || 0) > 0) день(d).in += Math.round(+p.amount);
+        if(set[d] && (+p.amount || 0) > 0) день(d).in += Math.round(+p.amount);
       });
     }
   });
