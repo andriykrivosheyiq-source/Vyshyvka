@@ -5368,6 +5368,14 @@
     border-radius:12px;padding:10px;cursor:pointer;display:flex;flex-direction:column;
     align-items:center;gap:7px;color:var(--ink);}
   .dz-pick-c:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(15,32,52,.08);}
+  /* Кілька версій разом (04.11): позначена — рамка й галочка, унизу «Надіслати обрані (N)». */
+  .dz-pick.is-multi .dz-pick-c{position:relative;}
+  .dz-pick.is-multi .dz-pick-c::after{content:'';position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:6px;
+    border:2px solid var(--line);background:#fff;}
+  .dz-pick.is-multi .dz-pick-c.is-on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;}
+  .dz-pick.is-multi .dz-pick-c.is-on::after{content:'✓';color:#fff;background:var(--accent);border-color:var(--accent);
+    font-size:14px;line-height:20px;text-align:center;font-weight:800;}
+  .dz-pick-f{padding:10px 16px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;}
   .dz-pick-i{display:block;width:100%;aspect-ratio:1;display:flex;align-items:center;
     justify-content:center;background:#F4F6F9;border-radius:9px;overflow:hidden;}
   .dz-pick-i img{max-width:100%;max-height:100%;object-fit:contain;}
@@ -8406,32 +8414,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f3800f6dc9"></script>
-<script src="loomiq-fingerprint.js?v=f3800f6dc9"></script>
-<script src="loomiq-pricing.js?v=f3800f6dc9"></script>
+<script src="loomiq-select.js?v=e33cacd7de"></script>
+<script src="loomiq-fingerprint.js?v=e33cacd7de"></script>
+<script src="loomiq-pricing.js?v=e33cacd7de"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=f3800f6dc9"></script>
+<script src="loomiq-money-core.js?v=e33cacd7de"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f3800f6dc9"></script>
-<script src="loomiq-mock.js?v=f3800f6dc9"></script>
+<script src="loomiq-design.js?v=e33cacd7de"></script>
+<script src="loomiq-mock.js?v=e33cacd7de"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=f3800f6dc9"></script>
+<script src="imagetracer.js?v=e33cacd7de"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=f3800f6dc9"></script>
-<script src="loomiq-threads.js?v=f3800f6dc9"></script>
+<script src="loomiq-chat.js?v=e33cacd7de"></script>
+<script src="loomiq-threads.js?v=e33cacd7de"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f3800f6dc9"></script>
+<script src="loomiq-cards.js?v=e33cacd7de"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8476,8 +8484,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f3800f6dc9';
-var LQ_VER_AT = '2026-11-04T09:25:11Z';
+var LQ_VER = 'e33cacd7de';
+var LQ_VER_AT = '2026-11-04T10:26:07Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і

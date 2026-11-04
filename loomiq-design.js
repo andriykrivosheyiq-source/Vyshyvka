@@ -4025,20 +4025,39 @@
     if(PICK && PICK.el && PICK.el.parentNode) PICK.el.parentNode.removeChild(PICK.el);
     PICK = null;
   }
-  function pickOpen(title, hint, cardsHtml, onPick){
+  /* opt.multi (04.11, Андрій: «декілька версій на вибір — обирати відразу
+     декілька й відправляти разом»): картка не закриває вікно, а
+     позначається (`is-on`); унизу «opt.go (N)» — onPick отримує список у
+     порядку карток. */
+  function pickOpen(title, hint, cardsHtml, onPick, opt){
     pickClose();
+    opt = opt || {};
     var el = document.createElement('div');
-    el.className = 'dz-pick';
+    el.className = 'dz-pick' + (opt.multi ? ' is-multi' : '');
     el.innerHTML = '<div class="dz-pick-w">' +
       '<div class="dz-pick-h"><b>' + esc(title) + '</b>' +
         (hint ? '<i>' + esc(hint) + '</i>' : '') +
         '<button class="dz-x" data-pick-x>×</button></div>' +
       '<div class="dz-pick-b">' + cardsHtml + '</div>' +
+      (opt.multi ? '<div class="dz-pick-f"><button type="button" class="dz-b pri" data-pick-go disabled>' + esc(opt.go || 'Обрати') + '</button></div>' : '') +
     '</div>';
+    var обрані = function(){ return Array.prototype.slice.call(el.querySelectorAll('[data-pick].is-on')).map(function(c){ return c.getAttribute('data-pick'); }); };
     el.addEventListener('click', function(e){
       if(e.target === el || e.target.hasAttribute('data-pick-x')) return pickClose();
+      if(opt.multi && e.target.closest && e.target.closest('[data-pick-go]')){
+        var l = обрані(); if(!l.length) return;
+        pickClose(); return onPick(l);
+      }
       var card = e.target.closest ? e.target.closest('[data-pick]') : null;
       if(!card) return;
+      if(opt.multi){
+        card.classList.toggle('is-on');
+        card.setAttribute('aria-pressed', card.classList.contains('is-on') ? 'true' : 'false');
+        var n = обрані().length, go = el.querySelector('[data-pick-go]');
+        go.disabled = !n;
+        go.textContent = (opt.go || 'Обрати') + (n ? ' (' + n + ')' : '');
+        return;
+      }
       var v = card.getAttribute('data-pick');
       pickClose();
       onPick(v);
@@ -15070,10 +15089,13 @@
         if(vs.length === 1) return погодити(vs[0].n);
         /* Фіксація — тієї версії, яку клієнт уже погодив: питати вдруге нема про що. */
         if(дія === 'dz-ok' && dk === 'graphic' && D.sketchOk(dd)) return погодити(+dd.sketchOk);
+        /* Надіслати — можна кілька версій разом (04.11): клієнт обирає з них. */
+        var кілька = дія === 'dz-tell';
         return U.pickOpen(
           дія === 'dz-ok' ? (dk === 'stitch' ? 'Яку версію вишивки погоджуєте' : 'Яку версію погодив клієнт')
-                          : 'Яку версію надіслати',
-          'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
+                          : 'Які версії надіслати',
+          кілька ? 'Версій ' + vs.length + ' — позначте одну чи кілька, підуть разом'
+                 : 'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
           vs.slice().reverse().map(function(v){
             var vpp = D.verParts(v);
             var f = vpp.sheet || vpp.mock[0] || vpp.work[0] || {};
@@ -15084,7 +15106,12 @@
                 (v.sentToClient ? ' · надіслано' : '') + '</i></span>' +
             '</button>';
           }).join(''),
-          function(n){ погодити(n); });
+          кілька ? function(l){
+              var ns = l.map(Number).filter(function(x){ return x > 0; }).sort(function(a, b){ return a - b; });
+              if(ns.length === 1) return погодити(ns[0]);
+              return act('dz-tell', root, { dz: dkey, vs: ns });
+            } : function(n){ погодити(n); },
+          кілька ? { multi: true, go: 'Надіслати обрані' } : null);
       }
       /* ══════════ НАДІСЛАТИ КЛІЄНТУ ══════════
 
@@ -15107,6 +15134,49 @@
            клієнту, а потім тільки зберігала карточку»): замовлення ще не в
            базі — надіслане не мало б куди лягти. Спершу «Створити замовлення». */
         if(o && o.draft) return say('Спершу натисніть «Створити замовлення» — тоді надсилайте клієнту', 6000);
+        /* КІЛЬКА ВЕРСІЙ РАЗОМ (04.11, #2000337: дизайнер зробив кілька
+           варіантів ескізу — клієнт обирає). Один текст (скрипт першої чи
+           наступної версії, {версія} → «v1, v2, v3»), одне підтвердження з
+           усіма аркушами, далі кожен аркуш — окремою картинкою (Instagram
+           бере одну на повідомлення); кожна версія, що дійшла, — «Надіслано». */
+        var обр = (data && Array.isArray(data.vs)) ? (dd.vers || []).filter(function(x){ return data.vs.indexOf(+x.n) >= 0; }) : [];
+        if(обр.length > 1){
+          if(!host().tellPic) return say('Надсилання картинок недоступне');
+          var аркуші = [];
+          for(var mi = 0; mi < обр.length; mi++){
+            var mv = обр[mi], ма = D.verParts(mv).sheet;
+            if((!ма || !ма.url) && !D.verParts(mv).mock.length && D.verParts(mv).work.length) ма = D.verParts(mv).work[0];
+            if(!ма || !ма.url){
+              say('Збираю аркуш v' + mv.n + '…');
+              ма = await sheetGet(job, o, du, mv);
+              if(!ма || !ма.url) return say('Аркуш версії ' + mv.n + ' не зібрався — нема чого слати клієнту');
+              await save(job, o, '');
+            }
+            аркуші.push({ v: mv, url: ма.url });
+          }
+          var першаM = !(dd.vers || []).some(function(x){ return x.sentToClient; });
+          var ключM = dd.readyMade && першаM ? 'ready' : першаM ? 'design1' : 'design2';
+          /* {версія} у скрипті стає «v» + номер — тож передаємо «1, v2, v3». */
+          var номери = аркуші.map(function(x){ return 'v' + x.v.n; }).join(', ');
+          var txtM = '';
+          try{ txtM = (host().script && host().script(o, ключM, { v: номери.slice(1) })) || ''; }catch(e){}
+          var остM = await tellConfirm(аркуші[0].url, txtM, U.unitNo(job, du) + ' · версії ' + номери,
+            host().scriptSave ? function(t){ return host().scriptSave(o, ключM, t, { v: номери.slice(1) }); } : null,
+            аркуші.slice(1).map(function(x){ return x.url; }));
+          if(остM === null) return;
+          say('Надсилаю ' + аркуші.length + ' версії…');
+          var дійшли = [], недійшли = [];
+          for(var mx = 0; mx < аркуші.length; mx++){
+            var okM = false;
+            try{ okM = await host().tellPic(o, аркуші[mx].url, mx === 0 ? остM : ''); }catch(e){ console.error(e); }
+            if(okM){ аркуші[mx].v.sentToClient = new Date().toISOString(); D.dzTold(dd, m, аркуші[mx].v.n); дійшли.push('v' + аркуші[mx].v.n); }
+            else{ недійшли.push('v' + аркуші[mx].v.n); if(mx === 0) break; }
+          }
+          if(!дійшли.length) return say('Не надіслалось — перевірте привʼязку розмови');
+          return save(job, o, недійшли.length
+            ? 'Надіслано ' + дійшли.join(', ') + ', але не дійшли: ' + недійшли.join(', ') + ' — надішліть їх ще раз'
+            : 'Надіслано клієнту ' + дійшли.length + ' версії: ' + дійшли.join(', '));
+        }
         var tv = (dd.vers || []).filter(function(x){ return +x.n === +(data && data.v); })[0]
                  || dd.vers[dd.vers.length - 1];
         if(!tv) return say('Версії ще немає');

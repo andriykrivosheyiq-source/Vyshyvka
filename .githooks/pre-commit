@@ -232,6 +232,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js
   }
   echo "✓ фон пише одна вкладка; без відмов і бурі журналу"
 fi
+# 04.11: кілька версій дизайну — одним надсиланням.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/multi-send\.mjs)'; then
+  node tests/multi-send.mjs >/tmp/lq-multi-send.log 2>&1 || {
+    echo "✗ Надсилання кількох версій зламане — коміт зупинено. Подробиці: /tmp/lq-multi-send.log"
+    grep '✗' /tmp/lq-multi-send.log
+    exit 1
+  }
+  echo "✓ кілька версій дизайну — одним надсиланням"
+fi
 # 04.11: власник ставить картку куди хоче («Виконано», «Відмова», шпилька цеху) — однаково в усіх, гроші чесно.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-money-core\.js|tests/owner-move\.mjs|tests/owner-pin\.mjs)'; then
   node tests/owner-move.mjs >/tmp/lq-owner-move.log 2>&1 || {
