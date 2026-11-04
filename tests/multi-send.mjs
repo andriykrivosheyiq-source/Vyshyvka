@@ -7,6 +7,7 @@
       картинкою, текст (скрипт, {версія} → «v1, v3») — один раз; обрані — «Надіслано».
    3. Одна позначена — звичне надсилання.
    4. «Погоджено» — як доти, одна версія.
+   5. «↩ Скасувати узгодження» (#2000172) — до фіксації, з історією.
 
    Запуск:  node tests/multi-send.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -204,6 +205,27 @@ const пг = await p.evaluate(async () => {
   return r;
 });
 ok(пг === 'одна', '«Погоджено» питає одну версію, без галочок', пг);
+
+console.log('');
+console.log('═══ 5. «↩ СКАСУВАТИ УЗГОДЖЕННЯ» (#2000172) ═══');
+const ск = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const d = D.dzList(designJobs['2000921'].units[0], 'graphic')[0];
+  const кн = t => [...document.querySelectorAll('.dz-panel .dz-b')].filter(x => t.test(x.textContent))[0];
+  кн(/Погоджено/).click(); await new Promise(r => setTimeout(r, 300));
+  const w = document.querySelector('.dz-pick'); [...w.querySelectorAll('[data-pick]')].filter(c => /v2/.test(c.textContent))[0].click();
+  await new Promise(r => setTimeout(r, 500));
+  const після = { ok: d.sketchOk, фікс: !!кн(/Фіксація/), undo: !!document.querySelector('.dz-panel [data-do="dz-sketch-undo"]') };
+  document.querySelector('.dz-panel [data-do="dz-sketch-undo"]').click();
+  await new Promise(r => setTimeout(r, 500));
+  const хіст = window.LQDesign.ui.histHtml(designJobs['2000921'], orders.find(x => x.orderId === '2000921')).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  return { після, тепер: { ok: d.sketchOk || null, погод: !!кн(/Погоджено/), фікс: !!кн(/Фіксація/), undo: !!document.querySelector('.dz-panel [data-do="dz-sketch-undo"]'), слід: (d.sketchUndo || []).length },
+    хіст: /узгодження ескізу скасовано/.test(хіст) };
+});
+console.log('   ' + JSON.stringify(ск));
+ok(ск.після.ok === 2 && ск.після.фікс && ск.після.undo, '«Погоджено» v2 → «Ескіз узгоджено», поруч із «Фіксація» — «↩ Скасувати узгодження»', JSON.stringify(ск.після));
+ok(!ск.тепер.ok && ск.тепер.погод && !ск.тепер.фікс && !ск.тепер.undo && ск.тепер.слід === 1 && ск.хіст,
+  'скасовано: знову «✓ Погоджено», в історії «узгодження ескізу скасовано»', JSON.stringify(ск));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));

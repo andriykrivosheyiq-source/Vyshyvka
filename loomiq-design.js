@@ -670,6 +670,16 @@
   var ACCT_MOVES = { new: ['queue'], queue: ['new'], sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client', 'stitchq'] };
   /* «✓ Погоджено» у клієнта (14.10): клієнт погодив ЕСКІЗ — позначаємо саме
      це (Ескіз узгоджено), без вікна одягу. Фіксація — наступним кроком. */
+  /* СКАСУВАТИ «ЕСКІЗ УЗГОДЖЕНО» (04.11, #2000172: «випадково натиснула на
+     погоджено — було б добре змінювати»). Лише до фіксації (d.ok); слід —
+     у x.sketchUndo (історія картки), бо sketchOkAt зникає разом із позначкою. */
+  function sketchOkClear(x, by){
+    if(!x || !x.sketchOk || x.ok) return false;
+    (x.sketchUndo = Array.isArray(x.sketchUndo) ? x.sketchUndo : []).push({ at: nowIso(), by: String(by || ''), n: +x.sketchOk, was: x.sketchOkAt || '' });
+    if(x.sketchUndo.length > 20) x.sketchUndo = x.sketchUndo.slice(-20);
+    delete x.sketchOk; delete x.sketchOkBy; delete x.sketchOkAt;
+    return true;
+  }
   function sketchOkMark(x, n, by){
     if(!x) return null;
     var l = x.vers || [], last = l[l.length - 1];
@@ -3204,7 +3214,7 @@
     ttnValid: ttnValid, readyStray: readyStray, readyStrayRetire: readyStrayRetire, graphicLive: graphicLive, readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
-    dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
+    dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok, sketchOkClear: sketchOkClear,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
     offDay: offDay, setDayOff: setDayOff,
     stageLeft: stageLeft, trackFrom: trackFrom, STAGE: STAGE,
@@ -4287,6 +4297,9 @@
           що: 'перенесено вручну: «У клієнта на погодженні»', де: (ui + 1) + ' · графіка', текст: 'версія ' + (d.clientManual || '') });
         if(d.sketchOkAt) out.push({ at: d.sketchOkAt, by: d.sketchOkBy, kind: 'move',
           що: 'перенесено вручну: «Ескіз узгоджено»', де: (ui + 1) + ' · графіка', текст: 'версія ' + (d.sketchOk || '') });
+        (d.sketchUndo || []).forEach(function(h){
+          if(h && h.at) out.push({ at: h.at, by: h.by, kind: 'move', що: 'узгодження ескізу скасовано', де: (ui + 1) + ' · графіка', текст: 'версія ' + (h.n || '') });
+        });
       });
     });
     ((o && o.reprints) || []).forEach(function(r){
@@ -5243,7 +5256,9 @@
           : (kind === 'graphic' && D.sketchOk(d))
           ? '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
             '" title="Фіксація: підтвердити модель, колір, розмір і кількість — далі черга вишивки й закупівля">' +
-            '✓ Фіксація</button>'
+            '✓ Фіксація</button>' +
+            '<button class="dz-b" data-do="dz-sketch-undo" data-dz="' + key +
+            '" title="Натиснули «Погоджено» помилково — повернути ескіз «У клієнта на погодженні»">↩ Скасувати узгодження</button>'
           : '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
             '" title="' + (kind === 'graphic' ? 'Клієнт погодив ескіз — «Ескіз узгоджено»; фіксація — наступним кроком'
                                               : 'Вишивку погоджено — у виробництво') + '">' +
@@ -12720,7 +12735,7 @@
        йому дали, ні повернути те, чого не потягне. */
     'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art-only':'', 'dz-stitch-up':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
     'dz-msg':'', 'dz-msg-file':'', 'dz-swap':'', 'dz-reply':'art',
-    'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art',
+    'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art', 'dz-sketch-undo':'art',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
@@ -14423,7 +14438,7 @@
        what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' || what === 'dz-art-only' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
-       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place'){
+       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place' || what === 'dz-sketch-undo'){
       var dp = String((data && data.dz) || '').split('|');
       /* Розміщення готового дизайну — тут, бо його збирач (workVer) живе в
          цьому блоці; запису графіки ще може не бути, тож до пошуку `dd`. */
@@ -14457,6 +14472,20 @@
         U.DZ_OPEN[dkey] = 1;
         if(D.dzUnseen(dd, m, asRole(), dk)){ D.dzSeen(dd, m, asRole()); return save(job, o, ''); }
         return render(root);
+      }
+      /* «↩ Скасувати узгодження» (04.11): до фіксації. Той самий ескіз на
+         інших товарах узгоджувався разом — і знімається разом. */
+      if(what === 'dz-sketch-undo'){
+        if(!D.sketchOk(dd) || dd.ok) return say('Узгодження вже немає');
+        var nU = +dd.sketchOk;
+        if(!window.confirm('Скасувати «Ескіз узгоджено» (v' + nU + ')?\nЕскіз повернеться «У клієнта на погодженні».')) return;
+        D.sketchOkClear(dd, m);
+        var лU = 0;
+        D.linksOf(job, du).forEach(function(lu){
+          var lg = D.dzList(lu, 'graphic').filter(function(x){ return x.readyMade; })[0];
+          if(lg && D.sketchOk(lg) && !lg.ok && D.sketchOkClear(lg, m)) лU++;
+        });
+        return save(job, o, 'Узгодження ескізу скасовано · v' + nU + (лU ? ' (і на ' + лU + ' товар(ах) з цим ескізом)' : ''));
       }
       /* Передача — на свіжій картці з бази (29.10, jobApply). */
       if(what === 'dz-send'){
