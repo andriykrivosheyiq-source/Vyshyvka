@@ -419,9 +419,14 @@ const oe = await p.evaluate(() => ({
   out: offerShareText(offerEdOrder()),
   link: offerUrl(offerEdOrder())
 }));
-ok(oe.copy && !oe.msg && !oe.pen,
-  'у шапці КП лишились дії з посиланням, а тексту повідомлення там немає',
-  'у КП лишилось редагування тексту: ' + JSON.stringify(oe));
+/* 04.11: КП лише картками — кнопок посилання в шапці немає (вимикач
+   contentData.offerLinks = 1 повертає їх); сама адреса всередині лишилась. */
+ok(!oe.copy && !oe.msg && !oe.pen && !!oe.link,
+  'у шапці КП немає ні посилання, ні тексту повідомлення (КП лише картками); адреса всередині лишилась',
+  'у КП лишились дії з посиланням: ' + JSON.stringify(oe));
+const наз = await p.evaluate(() => { contentData.offerLinks = 1; renderOfferEd();
+  const r = !!document.querySelector('#offerEd [data-oe="copy"]'); delete contentData.offerLinks; renderOfferEd(); return r; });
+ok(наз, 'вимикач offerLinks = 1 повертає «Скопіювати посилання»', 'вимикач не повернув кнопку');
 ok(oe.out.indexOf(oe.link) >= 0,
   'кнопка «💬» на картці бере текст із заготовки, з живим посиланням',
   'посилання не підставилось: ' + JSON.stringify(oe.out.slice(0, 80)));

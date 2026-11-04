@@ -1058,7 +1058,10 @@
       <button class="tab on" data-view="build">Збирання</button>
       <!-- Коротко: у вузькій панелі три довгі назви не вміщаються в рядок,
            а «Сайт» і є те, що там відкривається. -->
-      <button class="tab" data-view="client">Сайт</button>
+      <!-- «Сайт» прибрано (04.11, Андрій: «зона, де посилання, взагалі не
+           потрібна» — КП лише картками). Кадр і код лишились: повернути —
+           розкоментувати кнопку. -->
+      <!-- <button class="tab" data-view="client">Сайт</button> -->
       <!-- Той самий склад, виведений картинками для листування. Нічого
            окремого тут не заводять: картки збираються з позицій вище. -->
       <button class="tab" data-view="cards">Картки</button>
@@ -1131,24 +1134,24 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=b270a44348',
+    ['loomiq-select.js?v=396840dfd2',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=b270a44348'].forEach(function(src){
+     'loomiq-cards.js?v=396840dfd2'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=b270a44348';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=b270a44348';
-  var CTOR_JS   = 'loomiq-constructor.js?v=b270a44348';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=396840dfd2';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=396840dfd2';
+  var CTOR_JS   = 'loomiq-constructor.js?v=396840dfd2';
   /* Внутрішнє прибирання фону (нейромережа в браузері, 07.10): без нього
      конструктор КП різав би лише швидким алгоритмом. Не завантажився —
      не біда, конструктор працює й без нього. */
-  var CTOR_CSS  = 'loomiq-constructor.css?v=b270a44348';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=396840dfd2';
 
   function send(msg){
     if(window.parent === window) return;

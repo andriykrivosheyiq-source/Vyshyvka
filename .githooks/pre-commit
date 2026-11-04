@@ -232,6 +232,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js
   }
   echo "✓ фон пише одна вкладка; без відмов і бурі журналу"
 fi
+# 04.11: КП лише картками; картки на телефоні — у галерею.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|offer-edit\.html|tests/kp-cards-phone\.mjs)'; then
+  node tests/kp-cards-phone.mjs >/tmp/lq-kp-cards.log 2>&1 || {
+    echo "✗ КП: картки чи телефонне скачування зламані — коміт зупинено. Подробиці: /tmp/lq-kp-cards.log"
+    grep '✗' /tmp/lq-kp-cards.log
+    exit 1
+  }
+  echo "✓ КП лише картками; на телефоні — у галерею"
+fi
 # 04.11: кілька версій дизайну — одним надсиланням.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/multi-send\.mjs)'; then
   node tests/multi-send.mjs >/tmp/lq-multi-send.log 2>&1 || {

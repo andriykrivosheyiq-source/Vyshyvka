@@ -5728,6 +5728,17 @@
   .dz-pin-off{all:unset;cursor:pointer;text-decoration:underline;font-size:12px;color:#92400e;}
   /* «Виконано вручну» власника (04.11) — зеленим; вікно «Виконано» — залишок над варіантами. */
   .dz-pin.is-done{color:#166534;background:#dcfce7;}
+  /* Картки КП на телефоні (04.11): вікно знизу — картки й «Зберегти в галерею». */
+  .cards-sheet{position:fixed;inset:0;z-index:9990;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center;}
+  .cards-sheet-w{background:#fff;width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 16px 18px;box-sizing:border-box;}
+  .cards-sheet-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:15px;}
+  .cards-sheet-x{all:unset;cursor:pointer;font-size:18px;padding:4px 8px;}
+  .cards-sheet-l{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+  .cards-sheet-l img{width:100%;border-radius:8px;border:1px solid #e5e7eb;display:block;}
+  .cards-sheet-go,.cards-sheet-b{display:block;width:100%;box-sizing:border-box;padding:13px;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
+  .cards-sheet-go{background:#111827;color:#fff;border:0;}
+  .cards-sheet-b{background:#fff;color:#111827;border:1px solid #d1d5db;}
+  .cards-sheet-n{font-size:12px;color:#6b7280;margin-top:8px;text-align:center;}
   .dz-pin.is-done .dz-pin-off{color:#166534;}
   .dz-od-due{font-size:14px;margin:4px 0 10px;}
   .dz-odw .dz-ref-t{display:block;width:100%;box-sizing:border-box;margin:4px 0 8px;}
@@ -8414,32 +8425,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b270a44348"></script>
-<script src="loomiq-fingerprint.js?v=b270a44348"></script>
-<script src="loomiq-pricing.js?v=b270a44348"></script>
+<script src="loomiq-select.js?v=396840dfd2"></script>
+<script src="loomiq-fingerprint.js?v=396840dfd2"></script>
+<script src="loomiq-pricing.js?v=396840dfd2"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=b270a44348"></script>
+<script src="loomiq-money-core.js?v=396840dfd2"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b270a44348"></script>
-<script src="loomiq-mock.js?v=b270a44348"></script>
+<script src="loomiq-design.js?v=396840dfd2"></script>
+<script src="loomiq-mock.js?v=396840dfd2"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=b270a44348"></script>
+<script src="imagetracer.js?v=396840dfd2"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=b270a44348"></script>
-<script src="loomiq-threads.js?v=b270a44348"></script>
+<script src="loomiq-chat.js?v=396840dfd2"></script>
+<script src="loomiq-threads.js?v=396840dfd2"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b270a44348"></script>
+<script src="loomiq-cards.js?v=396840dfd2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8484,8 +8495,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b270a44348';
-var LQ_VER_AT = '2026-11-04T15:08:22Z';
+var LQ_VER = '396840dfd2';
+var LQ_VER_AT = '2026-11-04T16:22:10Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -17443,6 +17454,13 @@ function makeOfferToken(){
 // Адреса персональної пропозиції. Сайт статичний, тож розбір адреси —
 // через параметр: гарантовано працює і нормально показує прев'ю в месенджерах.
 const OFFER_BASE = 'https://loomiq.net/offer.html';
+/* КП — ЛИШЕ КАРТКИ (04.11, Андрій: «зона, де посилання, взагалі не
+   потрібна… головне, щоб не поламались карточки; ті, що вже отримали, хай
+   будуть, просто щоб знову відправляти не було можливості»). Сторінка КП і
+   її адреса всередині лишаються (з неї картки беруть обкладинку, вже
+   надіслані посилання працюють), прибрано лише кнопки посилання й вкладку
+   «Сайт». Повернути — contentData.offerLinks = 1. */
+function offerLinksOn(){ return !!(contentData && +contentData.offerLinks === 1); }
 function offerUrl(o){
   return o && o.offerToken ? OFFER_BASE + '?o=' + o.offerToken : '';
 }
@@ -21499,6 +21517,45 @@ function docAttachUrl(u){
   if(/\/upload\/[^/]*fl_attachment/.test(s)) return s;
   return s.replace('/upload/', '/upload/fl_attachment/');
 }
+function cardsPhone(){
+  if(window.LQ_CARDS_PHONE != null) return !!window.LQ_CARDS_PHONE;
+  try{ return matchMedia('(max-width:767px)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent || ''); }catch(e){ return false; }
+}
+function cardsPhoneSheet(files, o){
+  const old = document.getElementById('cards-sheet'); if(old) old.remove();
+  const blobs = files.map(f => new Blob([f.data], { type: /\.jpe?g$/i.test(f.name) ? 'image/jpeg' : 'image/png' }));
+  const urls = blobs.map(b => URL.createObjectURL(b));
+  const ff = (() => { try{ return files.map((f, i) => new File([blobs[i]], docAsciiName(f.name), { type: blobs[i].type })); }catch(e){ return null; } })();
+  const можна = !!(ff && navigator.canShare && (() => { try{ return navigator.canShare({ files: ff }); }catch(e){ return false; } })());
+  const d = document.createElement('div');
+  d.id = 'cards-sheet'; d.className = 'cards-sheet';
+  d.innerHTML = '<div class="cards-sheet-w"><div class="cards-sheet-h"><b>Картки КП · ' + files.length + '</b><button type="button" class="cards-sheet-x" data-cs="x" aria-label="Закрити">✕</button></div>' +
+    '<div class="cards-sheet-l">' + urls.map(u => '<img src="' + u + '" alt="">').join('') + '</div>' +
+    (можна ? '<button type="button" class="cards-sheet-go" data-cs="share">📲 Зберегти в галерею / поділитися</button>' : '') +
+    '<button type="button" class="cards-sheet-b" data-cs="each">⤓ Скачати по одній</button>' +
+    (можна ? '<div class="cards-sheet-n">У меню телефона — «Зберегти зображення», або одразу Instagram, Telegram, Viber.</div>'
+           : '<div class="cards-sheet-n">Можна й так: натисніть і утримуйте картку — «Зберегти в Фото».</div>') +
+    '</div>';
+  const закрити = () => { d.remove(); setTimeout(() => urls.forEach(u => { try{ URL.revokeObjectURL(u); }catch(e){} }), 60000); };
+  d.addEventListener('click', async e => {
+    const b = e.target.closest ? e.target.closest('[data-cs]') : null;
+    if(e.target === d || (b && b.dataset.cs === 'x')) return закрити();
+    if(!b) return;
+    if(b.dataset.cs === 'share'){
+      try{ await navigator.share({ files: ff, title: 'КП ' + (o && o.orderId ? '#' + showNo(o) : '') }); }
+      catch(err){ if(!(err && err.name === 'AbortError')) toast('Меню телефона не відкрилось — «Скачати по одній»'); }
+      return;
+    }
+    if(b.dataset.cs === 'each'){
+      for(let i = 0; i < files.length; i++){
+        docDownload(urls[i], files[i].name);
+        if(i < files.length - 1) await new Promise(r => setTimeout(r, 400));
+      }
+      toast(files.length === 1 ? 'Картку збережено' : files.length + ' карток — по одній');
+    }
+  });
+  document.body.appendChild(d);
+}
 function docDownload(href, filename){
   filename = docAsciiName(filename);
   // data: URL перетворюємо на blob — інакше браузер може зберегти файл
@@ -21818,7 +21875,8 @@ function wireDocsBlock(el, o){
       await storeSet('orders', orders);
       await offerSave(o);
       const link = offerUrl(o);
-      if(copyFallback(link)) toast('КП створено, посилання скопійовано');
+      /* КП лише картками (04.11) — посилання саме в буфер не кладемо. */
+      if(offerLinksOn() && copyFallback(link)) toast('КП створено, посилання скопійовано');
       else toast('КП створено');
       renderBoard();
       renderOrderDrawer();
@@ -28395,7 +28453,7 @@ function renderOrderDrawer(){
         <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
         ${/* Дві дії поруч: готове повідомлення (те, що надсилають) і сама
              адреса (коли текст уже написаний у переписці). */''}
-        ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copymsg"
+        ${(offerLinksOn() && offerUrl(o)) ? `<button class="od-kp-link" data-doc="copymsg"
           title="Скопіювати повідомлення клієнту разом із посиланням">💬</button>
         <button class="od-kp-link" data-doc="copylink"
           title="Скопіювати лише посилання">🔗</button>` : ''}
@@ -29636,6 +29694,11 @@ async function offerEdApply(msg){
                    data: (f && f.data) ? new Uint8Array(f.data) : new Uint8Array(0) }))
       .filter(f => f.data.length);
     if(!files.length){ toast('Нема чого завантажувати'); return; }
+    /* ТЕЛЕФОН (04.11, Андрій: «щоб зручно скачувати… одразу в галерею й
+       розсилати в інші месенджери»): архів на телефоні в галерею не
+       розпакуєш — вікно з картками й «Зберегти в галерею / поділитися»
+       (системне меню телефона) або «Скачати по одній». */
+    if(cardsPhone()) return cardsPhoneSheet(files, o);
     if(files.length === 1)
       docDownload(URL.createObjectURL(new Blob([files[0].data])), files[0].name);
     else
@@ -30467,9 +30530,9 @@ function renderOfferEd(){
          пропозиції — його надсилають у діалозі, і правити текст треба там
          само, у заготовках. Тут лишаються дві дії з посиланням: узяти його
          й подивитись, що за ним лежить. */''}
-    <button class="oe-btn oe-btn--main" data-oe="copy"
+    ${offerLinksOn() ? `<button class="oe-btn oe-btn--main" data-oe="copy"
       title="Скопіювати посилання на пропозицію">📎 Скопіювати посилання</button>
-    <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>
+    <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>` : ''}
     <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
     <span class="oe-save is-ok">Збережено ✓</span>
     </div>
