@@ -181,6 +181,16 @@ ok(!(await can(setDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'), 
 ok(!(await can(deleteDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z')))), 'менеджер версію не стирає', 'менеджер стер версію');
 ok(await can(deleteDoc(doc(own, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'))), 'власник (прибирання старих) — може', 'власник не зміг');
 
+console.log('');
+console.log('═══ ЖУРНАЛ (04.11): ДОПИСУЄ КОЖЕН, НЕ МЕНШАЄ; ОБРІЗАЄ ЛИШЕ ВЛАСНИК ═══');
+const рядки = n => Array.from({ length: n }, (_, i) => ({ at: 't' + i, by: 'x', kind: 'role', text: 'r' + i }));
+await env.withSecurityRulesDisabled(async c => { await setDoc(doc(c.firestore(), 'loomiq/photos'), { accessLog: рядки(10) }, { merge: true }); });
+ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(11) }, { merge: true })), 'менеджер дописує рядок', 'менеджер не дописав');
+ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(12).slice(-11) }, { merge: true })), 'менеджер — новий рядок, найстаріший геть (довжина та сама)', 'не пустило при тій самій довжині');
+ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(3) }, { merge: true }))), 'менеджер журнал не скоротить', 'менеджер скоротив журнал!');
+ok(await can(setDoc(doc(own, 'loomiq/photos'), { accessLog: рядки(3) }, { merge: true })), 'власник обрізає (старе перед тим — в архів)', 'власник не зміг обрізати');
+ok(await can(setDoc(doc(mgr, 'loomiq/accArch_2026-11-04'), { rows: рядки(2) }, { merge: true })), 'архів журналу пише команда', 'архів не записався');
+
 await env.cleanup();
 emu.kill();
 console.log('');
