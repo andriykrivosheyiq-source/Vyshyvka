@@ -5718,6 +5718,13 @@
   .dz-c-pin{font-style:normal;font-size:12px;margin-left:2px;}
   .dz-pin{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#92400e;background:#fef3c7;border-radius:999px;padding:2px 8px;margin-left:6px;}
   .dz-pin-off{all:unset;cursor:pointer;text-decoration:underline;font-size:12px;color:#92400e;}
+  /* «Виконано вручну» власника (04.11) — зеленим; вікно «Виконано» — залишок над варіантами. */
+  .dz-pin.is-done{color:#166534;background:#dcfce7;}
+  .dz-pin.is-done .dz-pin-off{color:#166534;}
+  .dz-od-due{font-size:14px;margin:4px 0 10px;}
+  .dz-odw .dz-ref-t{display:block;width:100%;box-sizing:border-box;margin:4px 0 8px;}
+  .dz-od-off{display:block;}
+  .dz-od-off[hidden]{display:none;}
   .dz-hv-w{margin-top:14px;padding-top:10px;border-top:1px solid var(--line);}
   .dz-hv-h{font-weight:700;font-size:13px;margin-bottom:6px;}
   .dz-hv{display:flex;flex-direction:column;gap:8px;}
@@ -8399,32 +8406,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9f935470aa"></script>
-<script src="loomiq-fingerprint.js?v=9f935470aa"></script>
-<script src="loomiq-pricing.js?v=9f935470aa"></script>
+<script src="loomiq-select.js?v=f3800f6dc9"></script>
+<script src="loomiq-fingerprint.js?v=f3800f6dc9"></script>
+<script src="loomiq-pricing.js?v=f3800f6dc9"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=9f935470aa"></script>
+<script src="loomiq-money-core.js?v=f3800f6dc9"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9f935470aa"></script>
-<script src="loomiq-mock.js?v=9f935470aa"></script>
+<script src="loomiq-design.js?v=f3800f6dc9"></script>
+<script src="loomiq-mock.js?v=f3800f6dc9"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=9f935470aa"></script>
+<script src="imagetracer.js?v=f3800f6dc9"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=9f935470aa"></script>
-<script src="loomiq-threads.js?v=9f935470aa"></script>
+<script src="loomiq-chat.js?v=f3800f6dc9"></script>
+<script src="loomiq-threads.js?v=f3800f6dc9"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9f935470aa"></script>
+<script src="loomiq-cards.js?v=f3800f6dc9"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8469,8 +8476,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9f935470aa';
-var LQ_VER_AT = '2026-11-03T19:46:46Z';
+var LQ_VER = 'f3800f6dc9';
+var LQ_VER_AT = '2026-11-04T09:25:11Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -32951,6 +32958,76 @@ async function b2cRefuse(o, job, r){
   accLog('refuse', 'відмова ' + showNo(o) + ': ' + label);
   try{ repaintAfterOrders(); }catch(e){}
 }
+/* «ВИКОНАНО» ВЛАСНИКОМ (04.11, Андрій: «перетягнув — щоб воно там і було,
+   в усіх однаково… якщо там накладка — рахується як накладка»). Лише
+   власник; запис — через orderApply (свіжа картка з бази, повтор). Гроші
+   чесно, без нового «сплачено» поза ядром:
+     ttn  — накладка: номер стає ТТН картки (немає своєї) чи лягає в ttnHist
+            (картка вже має іншу) — гроші за нею знайдуть замовлення самі
+            (payAutoLinkTtn → payLinkSet), і за вже прийдешні теж;
+     off  — оплачено поза системою: запис руками в o.payments (як готівка в
+            addPayment — правило 3 ядра) з ownerDone і поясненням; у Звірці —
+            окремий пункт owner_off, щоб такі закриття було видно;
+     debt — борг лишається, Фінанси й Звірка бачать його, як доти;
+     paid — боргу й так немає.
+   Повертає true / 'stale' (уже виконане) / текст причини / false. */
+async function b2cOwnerDone(o, job, r){
+  if(!o || !o.id || myRole() !== 'owner') return 'Виконано вручну ставить лише власник';
+  r = r || {};
+  const how = ['ttn', 'off', 'debt', 'paid'].indexOf(r.how) >= 0 ? r.how : '';
+  if(!how) return false;
+  const ttn = String(r.ttn || '').replace(/\D/g, '');
+  if(how === 'ttn' && !/^\d{11,20}$/.test(ttn)) return 'Впишіть номер ТТН';
+  const чужа = how === 'ttn' ? (orders || []).find(x => x && x.id !== o.id && !x.draft && LQMoney.ttnsOf(x).indexOf(ttn) >= 0) : null;
+  if(чужа) return 'ТТН ' + ttn + ' уже в замовленні #' + showNo(чужа) + ' — перевірте номер';
+  const борг = dueSum(o);
+  const sum = Math.round(+r.sum || 0), note = String(r.note || '').trim().slice(0, 120);
+  if(how === 'off' && (!(sum > 0) || !note)) return 'Вкажіть суму і як оплатили';
+  const at = new Date().toISOString(), by = myEmail() || '';
+  const H = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host;
+  if(!H || !H.orderApply) return false;
+  const res = await H.orderApply(o.id, x => {
+    if(x.ownerDone && x.ownerDone.at) return false;
+    const d = { at, by, how };
+    if(how === 'ttn'){
+      d.ttn = ttn;
+      if(LQMoney.ttnsOf(x).indexOf(ttn) < 0){
+        if(!String(x.ttn || '').trim()){ x.ttn = ttn; x.ttnAt = at; x.ttnBy = by; x.ttnOutside = true; }
+        else x.ttnHist = (Array.isArray(x.ttnHist) ? x.ttnHist : []).concat([{ ttn, cod: 0, at, by, outside: true }]).slice(-10);
+      }
+    }
+    if(how === 'off'){
+      d.sum = sum; d.note = note;
+      x.payments = (Array.isArray(x.payments) ? x.payments : []).concat([{ at, sum, kind: 'other', by, note, ownerDone: true, acc: 'поза системою' }]);
+    }
+    if(how === 'debt' || how === 'ttn') d.due = борг;
+    x.ownerDone = d;
+    x.ownerDoneHist = (Array.isArray(x.ownerDoneHist) ? x.ownerDoneHist : []).concat([Object.assign({}, d)]).slice(-20);
+  }, s2 => !!(s2 && s2.ownerDone && s2.ownerDone.at === at));
+  if(res === true){
+    accLog('owner-done', 'виконано вручну ' + showNo(o) + ': ' + how + (ttn ? ' · ТТН ' + ttn : '') + (how === 'off' ? ' · ' + sum + ' ₴ · ' + note : '') + (how === 'debt' ? ' · борг ' + борг + ' ₴' : ''));
+    try{ if(how === 'ttn') payAutoLinkTtn(); }catch(e){ console.warn('привʼязка за ТТН', e); }
+    try{ repaintAfterOrders(); }catch(e){}
+  }
+  return res;
+}
+async function b2cOwnerDoneOff(o, job){
+  if(!o || !o.id || myRole() !== 'owner') return false;
+  const H = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host;
+  if(!H || !H.orderApply) return false;
+  const at = new Date().toISOString(), by = myEmail() || '';
+  const res = await H.orderApply(o.id, x => {
+    if(!(x.ownerDone && x.ownerDone.at)) return false;
+    x.ownerDoneHist = (Array.isArray(x.ownerDoneHist) ? x.ownerDoneHist : []).concat([{ off: true, at, by, was: x.ownerDone.how || '' }]).slice(-20);
+    delete x.ownerDone;
+  }, s2 => !(s2 && s2.ownerDone));
+  if(res === true || res === 'stale'){
+    accLog('owner-done', 'знято «виконано вручну» ' + showNo(o));
+    try{ repaintAfterOrders(); }catch(e){}
+    return true;
+  }
+  return res;
+}
 async function b2cRefuseBack(o, job){
   if(!o || o.status !== 'cancel') return;
   const at = new Date().toISOString(), by = myEmail() || '';
@@ -33347,6 +33424,9 @@ function designHostInit(){
     refuseOk: ()=> myUi() === 'manager',
     refuse: (o, job, r)=> b2cRefuse(o, job, r),
     refuseBack: (o, job)=> b2cRefuseBack(o, job),
+    ownerDone: (o, job, r)=> b2cOwnerDone(o, job, r),
+    ownerDoneOff: (o, job)=> b2cOwnerDoneOff(o, job),
+    dueOf: o => dueSum(o),
     boardMe: ()=> seeAsPerson() || myEmail() || '',
     /* НАДІСЛАТИ КАРТИНКУ КЛІЄНТУ, НЕ ВІДКРИВАЮЧИ РОЗМОВИ.
 

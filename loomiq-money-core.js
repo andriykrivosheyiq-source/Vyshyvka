@@ -117,7 +117,8 @@
         }
       }
       rows.push({ src: e.payId ? 'cache' : 'hand', idx:i, payId:e.payId || '', sum:s, at:e.at,
-                  kind:e.kind, by:e.by, acc:e.acc, counter:e.counter, counted:true });
+                  kind:e.kind, by:e.by, acc:e.acc, counter:e.counter, counted:true,
+                  owner: !e.payId && !!e.ownerDone, note: e.note || '' });
     });
     if(map && oid){
       pays.forEach(function(p){
@@ -287,6 +288,16 @@
             text: 'У картці записано оплату ' + грн(x.sum) + ' з банку, а у Фінансах цей платіж ' +
               (x.elsewhere ? 'привʼязаний до #' + no(x.elsewhere) : 'відвʼязаний') + '. Її не рахуємо.' });
       });
+      /* «ВИКОНАНО» ВЛАСНИКОМ, ОПЛАЧЕНО ПОЗА СИСТЕМОЮ (04.11). Запис руками
+         рахується, як будь-яка готівка (правило 3), але руху в банку за ним
+         немає — тож кожен такий видно окремим пунктом: хто, коли, як. Закрити
+         можна «Перевірено, все гаразд» (moneyOk), як і решту. */
+      pd.rows.forEach(function(x){
+        if(x.src !== 'hand' || !x.owner || !(x.sum > 0)) return;
+        out.push({ kind:'owner_off', sev:'amber', orderId:oid, sum:x.sum, idx:x.idx,
+          text: 'Виконано вручну: оплату ' + грн(x.sum) + ' записано поза системою' + (x.note ? ' («' + String(x.note).slice(0, 80) + '»)' : '') +
+            (x.by ? ' · ' + x.by : '') + (x.at ? ' · ' + дата(time(x.at)) : '') + '. Руху в банку немає — переконайтесь, що гроші справді отримано.' });
+      });
       /* Те саме двічі: записали руками, а потім прийшло з банку. */
       var руками = pd.rows.filter(function(x){ return x.src === 'hand' && x.sum > 0; });
       var банк = pd.rows.filter(function(x){ return x.src === 'bank'; });
@@ -379,7 +390,7 @@
     return out;
   }
 
-  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || (x.kind === 'dup_no' ? x.orderId : '') || '') ; }
+  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || ((x.kind === 'dup_no' || x.kind === 'owner_off') ? x.orderId : '') || '') ; }
 
   var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
               COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,

@@ -324,8 +324,27 @@
     if(r === 2) return (s1 === 'stuck' || s2 === 'stuck') ? 'stuck' : 'arrived';
     return r === 1 ? 'way' : 'done';
   }
+  /* «ВИКОНАНО» І «ВРУЧНУ» ВІД ВЛАСНИКА — ОДНАКОВО В УСІХ (04.11, Андрій:
+     «перетягнув від правила — щоб воно там і було… і в менеджерів, і в
+     цеху»). Обидва лежать у самій картці замовлення, тож кожна дошка й
+     кожна вкладка бачать одне й те саме:
+       o.ownerDone {at, by, how:'ttn'|'off'|'debt', ttn?, sum?, note?} —
+         замовлення виконане: у цеху «Виконано», в акаунта «Відправлено»;
+       o.prodPin {to, by, at} — картка цеху стоїть у колонці, куди її
+         поставив власник (не «Виконано» й не «Відмова» — для них свої дії).
+     Тримають, доки власник не зніме; жодна подія (статус НП, галочка цеху)
+     картку не зсуває. Гроші — лише чесно: ТТН, за якою прийде накладка,
+     або запис «оплачено поза системою», який Звірка показує окремо. */
+  function ownerDoneOf(o){ return (o && o.ownerDone && o.ownerDone.at) ? o.ownerDone : null; }
+  var PROD_PIN_NO = { done: 1, refused: 1 };
+  function prodPinOf(o){
+    var p = o && o.prodPin;
+    return (p && p.to && PROD_IDX[p.to] != null && !PROD_PIN_NO[p.to]) ? p : null;
+  }
   function prodAt(job, o){
     o = o || {};
+    if(ownerDoneOf(o)) return 'done';
+    if(prodPinOf(o)) return o.prodPin.to;
     if(trk(o, 'qc') === 'bad') return 'redo';
     /* СТАТУС НОВОЇ ПОШТИ ГОЛОВНІШИЙ ЗА ГАЛОЧКИ ЦЕХУ (27.10, Андрій: «в
        дорозі, прибуло, понад 3 дні, виконано, відмова — усе по статусу
@@ -598,7 +617,9 @@
     return x ? x.label : String(key || '');
   }
   function chainAt(job, o){
+    if(ownerDoneOf(o)) return 'shipped';
     if(job && job.pin && job.pin.to && PIN_OK[job.pin.to]) return job.pin.to;
+    if(prodPinOf(o)) return CHAIN_OF_PROD[o.prodPin.to] || 'prod';
     var ш = trk(o, 'ship');
     if((ш === 'sent' || (o && o.ttn && ш === 'ttn')) && !(o && o.prodQc) && !trk(o, 'qc') &&
        !trk(o, 'prod') && String((o && o.ttnAt) || '') < '2026-10-07') return 'shipped';
@@ -3151,7 +3172,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, ownerDoneOf: ownerDoneOf, prodPinOf: prodPinOf, PROD_PIN_NO: PROD_PIN_NO, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, PROD_IDX: PROD_IDX, prodAt: prodAt, shipAbroad: shipAbroad, abroadManual: abroadManual, npWhyUa: npWhyUa, ttnDays: ttnDays, dniTxt: dniTxt, regFailOf: regFailOf, shipKnown: shipKnown, ship2Live: ship2Live, ship2Ttn: ship2Ttn, npStageOf: npStageOf, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, prodMoveWhy: prodMoveWhy, ttnBad: ttnBad, reprintOpen: reprintOpen,
@@ -4080,6 +4101,70 @@
     PICK = el;
     return el;
   }
+  /* ВІКНО «ВИКОНАНО» ВЛАСНИКА (04.11). Гроші — лише чесно: залишок або
+     закриває накладка за ТТН (гроші Нова пошта перерахує, рух сам
+     привʼяжеться за номером), або запис «оплачено поза системою» (сума і
+     як — Звірка покаже його окремим рядком), або борг лишається видимим.
+     info: { no, due, ttn }; onGo({ how, ttn, sum, note }). */
+  function ownerDoneOpen(info, onGo){
+    pickClose();
+    info = info || {};
+    var борг = Math.max(0, Math.round(+info.due || 0));
+    var гр = function(n){ return String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴'; };
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-fixw dz-refw dz-odw';
+    el.innerHTML = '<div class="dz-fix-w">' +
+      '<div class="dz-fix-h"><b>Виконано · ' + esc(info.no || '') + '</b><button class="dz-x" data-fix-x>×</button></div>' +
+      (борг > 0
+        ? '<div class="dz-od-due">Лишилось сплатити: <b>' + esc(гр(борг)) + '</b></div>' +
+          '<div class="dz-ref-l">' +
+            '<label class="dz-ref-o"><input type="radio" name="dz-od" value="ttn" checked> Накладка — ТТН, якою реально відправили</label>' +
+            '<input class="dz-ref-t" data-od-ttn type="text" inputmode="numeric" maxlength="20" placeholder="Номер ТТН, 14 цифр" value="' + esc(info.ttn || '') + '">' +
+            '<label class="dz-ref-o"><input type="radio" name="dz-od" value="off"> Оплачено поза системою</label>' +
+            '<span class="dz-od-off" hidden><input class="dz-ref-t" data-od-sum type="text" inputmode="numeric" maxlength="9" placeholder="Сума, ₴" value="' + борг + '">' +
+            '<input class="dz-ref-t" data-od-note type="text" maxlength="120" placeholder="Як оплатили: готівка, на ФОП…"></span>' +
+            '<label class="dz-ref-o"><input type="radio" name="dz-od" value="debt"> Борг лишається (' + esc(гр(борг)) + ' — видно у Фінансах)</label>' +
+          '</div>'
+        : '<div class="dz-od-due">Сплачено повністю — боргу немає.</div>') +
+      '<div class="dz-fix-b"><button class="dz-b pri" data-od-go>Поставити у «Виконано»</button></div>' +
+    '</div>';
+    var закрити = function(){
+      document.removeEventListener('keydown', esk, true);
+      if(el.parentNode) el.parentNode.removeChild(el);
+      PICK = null;
+    };
+    var esk = function(ev){ if(ev.key === 'Escape') закрити(); };
+    var q = function(s){ return el.querySelector(s); };
+    var обрано = function(){ var c = q('input[name="dz-od"]:checked'); return c ? c.value : 'paid'; };
+    el.addEventListener('change', function(){
+      var h = обрано();
+      if(q('[data-od-ttn]')) q('[data-od-ttn]').hidden = h !== 'ttn';
+      if(q('.dz-od-off')) q('.dz-od-off').hidden = h !== 'off';
+    });
+    el.addEventListener('click', async function(ev){
+      if(ev.target === el || (ev.target.closest && ev.target.closest('[data-fix-x]'))) return закрити();
+      if(!(ev.target.closest && ev.target.closest('[data-od-go]'))) return;
+      var how = борг > 0 ? обрано() : 'paid', r = { how: how };
+      if(how === 'ttn'){
+        r.ttn = String((q('[data-od-ttn]') || {}).value || '').replace(/\D/g, '');
+        if(!/^\d{11,20}$/.test(r.ttn)){ q('[data-od-ttn]').focus(); return say('Впишіть номер ТТН — за ним накладка знайде замовлення'); }
+      }
+      if(how === 'off'){
+        r.sum = Math.round(+String((q('[data-od-sum]') || {}).value || '').replace(/[^\d]/g, '') || 0);
+        r.note = String((q('[data-od-note]') || {}).value || '').trim();
+        if(!(r.sum > 0)){ q('[data-od-sum]').focus(); return say('Вкажіть суму'); }
+        if(r.sum > борг){ q('[data-od-sum]').focus(); return say('Сума більша за залишок ' + гр(борг)); }
+        if(!r.note){ q('[data-od-note]').focus(); return say('Напишіть, як оплатили'); }
+      }
+      закрити();
+      await onGo(r);
+    });
+    document.addEventListener('keydown', esk, true);
+    document.body.appendChild(el);
+    PICK = el;
+    var f = q('[data-od-ttn]'); if(f && !f.value) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 30);
+    return el;
+  }
   function fixOpen(onSend, opt){
     opt = opt || {};
     pickClose();
@@ -4195,6 +4280,22 @@
       out.push(h.off
         ? { at: h.at, by: h.by, kind: 'move', що: 'шпильку знято — картка стоїть за роботою', де: '', текст: h.was ? 'була: ' + D.pinLabel(h.was) : '' }
         : { at: h.at, by: h.by, kind: 'move', що: 'поставлено вручну: «' + D.pinLabel(h.to) + '» 📌', де: '', текст: '' });
+    });
+    /* «Виконано» і «вручну в цеху» від власника (04.11) — поставив / зняв. */
+    var ЯК = { ttn: 'накладка за ТТН', off: 'оплачено поза системою', debt: 'борг лишається', paid: 'сплачено' };
+    ((o && o.ownerDoneHist) || []).forEach(function(h){
+      if(!h || !h.at) return;
+      out.push(h.off
+        ? { at: h.at, by: h.by, kind: 'move', що: '«Виконано вручну» знято', де: '', текст: '' }
+        : { at: h.at, by: h.by, kind: 'move', що: 'виконано вручну (власник) ✓', де: '',
+            текст: (ЯК[h.how] || '') + (h.ttn ? ' · ТТН ' + h.ttn : '') + (h.sum ? ' · ' + String(Math.round(+h.sum)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴' : '') + (h.note ? ' · ' + String(h.note).slice(0, 80) : '') });
+    });
+    ((o && o.prodPinHist) || []).forEach(function(h){
+      if(!h || !h.at) return;
+      var л = (D.PROD.filter(function(x){ return x.key === (h.to || h.was); })[0] || {}).label || '';
+      out.push(h.off
+        ? { at: h.at, by: h.by, kind: 'move', що: 'цех: шпильку знято — картка стоїть за роботою', де: '', текст: л ? 'була: ' + л : '' }
+        : { at: h.at, by: h.by, kind: 'move', що: 'цех: поставлено вручну «' + л + '» 📌', де: '', текст: '' });
     });
     /* Відмова й повернення в роботу (22.10) — хто, коли, чому. */
     ((o && o.refuseHist) || []).forEach(function(h){
@@ -7250,7 +7351,7 @@
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen, gate: b2cGate,
     waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
-    pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, histHtml: histHtml, histSub: histSub,
+    pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, ownerDoneOpen: ownerDoneOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen, picNoHtml: picNoHtml, picCapHtml: picCapHtml, prodView: prodView,
     DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName, SIDE_AT: SIDE_AT,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
@@ -7777,7 +7878,7 @@
          губилось найчастіше. */
       var правки = col === 'fixes';
       return { id: p.o.orderId, step: col, v2: true, tech: D.jobTech(p.job),
-        pin: !!(p.job && p.job.pin),
+        pin: !!((p.job && p.job.pin) || D.ownerDoneOf(p.o) || D.prodPinOf(p.o)),
         pic: cardPic(p.job),
         /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
         what: whatOf(p.job, p.o),
@@ -8404,6 +8505,7 @@
           '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' +
           (job && job.pin ? '<span class="dz-pin" title="Поставлено вручну ' + esc(dt(job.pin.at)) + '">📌 вручну · ' + esc(String(job.pin.by || '').replace(/@.*/, '') || '—') +
             (((U.host.role && U.host.role()) === 'owner') ? ' <button type="button" class="dz-pin-off" data-do="pin-off">зняти</button>' : '') + '</span>' : '') +
+          ownerMarksHtml(o) +
           (уЦеху ? '' : clothChip(job, o)) +
           (b2c ? U.waitSelHtml(job, o) : '') + '</span>' +
           (b2c ? '<span class="dz-panel-who">' + U.clientHtml(o, job) + '</span>' : '') +
@@ -9231,7 +9333,7 @@
     var job = p.job, o = p.o;
     var шп = U.shipInfo(job, D.prodAt(job, o));
     return '<div class="dz-panel-h">' + U.jobNo(job) +
-        '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' +
+        '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' + ownerMarksHtml(o) +
         (шп ? '<span class="dz-ship-due' + (шп.late ? ' late' : шп.soon ? ' soon' : '') + '" title="' + esc(шп.title || '') + '">📦 ' + esc(шп.txt) + '</span>' : '') +
         clockHtml(D.stageLeft(job, o, 'prod', termHours('prod'))) +
         '<button class="dz-x" data-close>×</button>' +
@@ -9907,6 +10009,88 @@
      поверталась. Тепер хід застосовується до свіжої картки з бази з
      повтором (orderApply) і пише лише стан цеху; «stale» — картку вже рушили
      деінде, показуємо свіжу. */
+  /* ПЕРЕТЯГУВАННЯ ВЛАСНИКА (04.11, Андрій: «перетягнув від правила — щоб
+     воно там і було, в усіх однаково… якщо там накладка — рахується як
+     накладка»). «Виконано» (цех) / «Відправлено» (акаунт) — вікно грошей
+     (U.ownerDoneOpen) → host.ownerDone; «Відмова» — та сама причина, що й
+     кнопкою (host.refuse); з відмови чи з «Виконано вручну» — спершу
+     повертаємо, з питанням. Інша колонка: в акаунта — шпилька картки
+     відділу, як доти; у цеху — звичайний хід, коли він дозволений, інакше
+     o.prodPin (лежить у замовленні, тож видно всім). */
+  /* Позначки власника в шапці картки (04.11) — видно всім; «зняти» — лише власнику. */
+  function ownerMarksHtml(o){
+    var я = (U.host.role && U.host.role()) === 'owner', out = '';
+    var хто = function(e){ return String(e || '').replace(/@.*/, '') || '—'; };
+    var od = D.ownerDoneOf(o);
+    if(od) out += '<span class="dz-pin is-done" title="Виконано вручну ' + esc(dt(od.at)) + '">✓ виконано вручну · ' + esc(хто(od.by)) +
+      (я ? ' <button type="button" class="dz-pin-off" data-do="owner-done-off">зняти</button>' : '') + '</span>';
+    var pp = !od && D.prodPinOf(o);
+    if(pp) out += '<span class="dz-pin" title="Цех: поставлено вручну ' + esc(dt(pp.at)) + '">📌 цех вручну: «' + esc(D.stepLabel(D.PROD, pp.to)) + '» · ' + esc(хто(pp.by)) +
+      (я ? ' <button type="button" class="dz-pin-off" data-do="prod-pin-off">зняти</button>' : '') + '</span>';
+    return out;
+  }
+  async function ownerDrop(root, p, from, to, цех, me, ord){
+    var job = p.job, o = p.o, h = host();
+    var кінець = цех ? 'done' : 'shipped';
+    var назваК = цех ? D.stepLabel(D.PROD, to) : D.pinLabel(to);
+    var перемалювати = function(){
+      render(root);
+      if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+    };
+    if(to === 'refused'){
+      if(o.status === 'cancel') return;
+      return U.refuseOpen(D.refuseGuess(job, o), async function(k, txt){
+        var назва = k === 'other' ? txt : D.refuseLabel(k);
+        if(!window.confirm('Перенести замовлення ' + U.jobNo(job) + ' у відмову?\nПричина: ' + назва)) return;
+        if(D.ownerDoneOf(o)){
+          if(!h.ownerDoneOff || await h.ownerDoneOff(o, job) !== true) return say('Не записалось — повторіть');
+        }
+        if(!h.refuse) return say('Відмову не записано');
+        await h.refuse(o, job, { reason: k, text: txt, stage: D.chainAt(job, o) });
+        say('Замовлення у відмові: ' + назва);
+        перемалювати();
+      });
+    }
+    if(o.status === 'cancel'){
+      if(!window.confirm('Повернути ' + U.jobNo(job) + ' з відмови в роботу й поставити в «' + назваК + '»?')) return;
+      if(!h.refuseBack) return say('Повернути не вдалось');
+      await h.refuseBack(o, job);
+    }
+    if(to === кінець){
+      if(D.ownerDoneOf(o)) return перемалювати();
+      var борг = 0; try{ борг = h.dueOf ? +h.dueOf(o) || 0 : 0; }catch(e){}
+      return U.ownerDoneOpen({ no: U.jobNo(job), due: борг, ttn: String(o.ttn || '').trim() }, async function(r){
+        if(!h.ownerDone) return say('Недоступно');
+        var res = await h.ownerDone(o, job, r);
+        if(res === true) say('Виконано · ' + U.jobNo(job) + (r.how === 'ttn' ? ' · накладка за ТТН ' + r.ttn + ' привʼяжеться сама' :
+          r.how === 'off' ? ' · оплату поза системою записано' : r.how === 'debt' ? ' · борг лишається у Фінансах' : ''), 5000);
+        else if(res === 'stale') say('Замовлення вже виконане — показано свіжу');
+        else say(typeof res === 'string' && res ? res : 'Не записалось — база не відповіла. Повторіть', 6000);
+        перемалювати();
+      });
+    }
+    if(D.ownerDoneOf(o)){
+      if(!window.confirm('Зняти «Виконано вручну» з ' + U.jobNo(job) + ' і поставити в «' + назваК + '»?\nЗаписана оплата лишається.')) return;
+      if(!h.ownerDoneOff || await h.ownerDoneOff(o, job) !== true) return say('Не записалось — повторіть');
+    }
+    if(ord != null) job.boardOrd = ord;
+    if(!цех){
+      if(to === 'stitchq' && D.acctCanMove(from, to) && !job.pin) return fixAll(root, p, me);
+      if(D.acctCanMove(from, to) && !job.pin && D.acctMove(job, o, to, me))
+        return save(job, o, to === 'client' ? 'У клієнта на погодженні' : to === 'sketchok' ? 'Ескіз узгоджено' : 'Готовий графічний ескіз');
+      if(!D.pinSet(job, to, me)) return say('У цю колонку поставити не можна');
+      return save(job, o, 'Поставлено вручну: «' + D.pinLabel(to) + '» · 📌');
+    }
+    var r2;
+    if(!D.prodPinOf(o) && D.prodCanMove(D.prodAt(job, o), to, o)) r2 = await prodMoveApply(job, o, to, me);
+    else r2 = await orderApply(o, function(x){
+        var at = new Date().toISOString();
+        x.prodPin = { to: String(to), by: String(me || ''), at: at };
+        x.prodPinHist = (Array.isArray(x.prodPinHist) ? x.prodPinHist : []).concat([{ to: String(to), by: String(me || ''), at: at }]).slice(-40);
+      }, function(x){ return !!(x.prodPin && x.prodPin.to === to); });
+    if(r2 === true && to === 'run') prodToTelegram(job, o, true);
+    prodMoveSay(root, job, o, to, r2);
+  }
   async function prodMoveApply(job, o, to, by){
     var r = await orderApply(o, function(x){
         var from = D.prodAt(job, x);
@@ -10003,6 +10187,7 @@
       var зебра = (String(p.o.ttn || '').trim() && ZEBRA_COLS.indexOf(крокП) >= 0) ? { ttn: String(p.o.ttn).trim() + (ттн2 ? ',' + ттн2 : ''), sender: String(p.o.ttnSender || ''), n: ттн2 ? 2 : 1 } : null;
       var днівТ = крокП === 'reg' ? D.ttnDays(p.o) : -1;
       return { id: p.o.orderId, step: крокП, v2: true, zebra: зебра,
+        pin: !!(D.ownerDoneOf(p.o) || D.prodPinOf(p.o)),
         two: D.ship2Live(p.o),
         abroad: D.shipAbroad(p.o),
         ttnOld: днівТ >= 3 ? днівТ : 0,
@@ -11925,12 +12110,14 @@
        куди не можна, не підсвічується й нічого не приймає. */
     if(U.tab() === 'prod' || U.tab() === 'print' || U.tab() === 'acct'){
       var цех = U.tab() === 'prod' || U.tab() === 'print';
-      var власник = !цех && (U.host.role && U.host.role()) === 'owner';
-      /* Власник на дошці акаунта тягне будь-яку картку в будь-яку колонку —
-         шпилька (23.10). Решта — лише дозволені ручні переходи. */
+      /* Власник тягне будь-яку картку в будь-яку колонку — на дошці акаунта
+         (шпилька, 23.10) і в цеху (04.11), разом із «Виконано» й «Відмова».
+         Решта — лише дозволені ручні переходи. */
+      var власник = (U.host.role && U.host.role()) === 'owner';
       var тягну = null;
-      var можна = цех ? function(f, t){ var pp = тягну && U.pairOf(тягну.id); return D.prodCanMove(f, t, pp && pp.o); }
-                : власник ? function(f, t){ return !!D.PIN_OK[t]; } : D.acctCanMove;
+      var можна = власник ? function(f, t){ return f !== t && (цех ? D.PROD_IDX[t] != null : (!!D.PIN_OK[t] || t === 'refused')); }
+                : цех ? function(f, t){ var pp = тягну && U.pairOf(тягну.id); return D.prodCanMove(f, t, pp && pp.o); }
+                : D.acctCanMove;
       root.querySelectorAll('.dz-board .dz-col [data-open]').forEach(function(c){
         var w = c.closest('.dz-card-w') || c;
         var звідки = (c.closest('.dz-col') || {}).dataset;
@@ -11968,6 +12155,7 @@
             p.job.boardOrd = ord;
             return save(p.job, p.o, '');
           }
+          if(власник) return ownerDrop(root, p, from, to, цех, me0, ord);
           if(!цех){
             if(D.acctCanMove(from, to) && !(p.job && p.job.pin)){
               if(to === 'stitchq') return fixAll(root, p, me0);
@@ -13618,6 +13806,23 @@
     if(what === 'arch-open'){
       if(host().archOpen) host().archOpen();
       return;
+    }
+    if(what === 'owner-done-off' || what === 'prod-pin-off'){
+      if((U.host.role && U.host.role()) !== 'owner') return say('Знімає лише власник');
+      if(what === 'owner-done-off'){
+        if(!window.confirm('Зняти «Виконано вручну» з ' + U.jobNo(job) + '? Картка стане туди, де вона за роботою.\nЗаписана оплата лишається.')) return;
+        var rO = host().ownerDoneOff ? await host().ownerDoneOff(o, job) : false;
+        say(rO === true ? '«Виконано вручну» знято' : 'Не записалось — повторіть');
+        return render(root);
+      }
+      var rP = await orderApply(o, function(x){
+          if(!x.prodPin) return false;
+          var at = new Date().toISOString(), me1 = (host().me && host().me()) || '';
+          x.prodPinHist = (Array.isArray(x.prodPinHist) ? x.prodPinHist : []).concat([{ off: true, was: String(x.prodPin.to || ''), by: me1, at: at }]).slice(-40);
+          delete x.prodPin;
+        }, function(x){ return !x.prodPin; });
+      say(rP === true || rP === 'stale' ? 'Шпильку цеху знято — картка стоїть за роботою' : 'Не записалось — повторіть');
+      return render(root);
     }
     if(what === 'pin-off'){
       if((U.host.role && U.host.role()) !== 'owner') return say('Шпильку знімає лише власник');

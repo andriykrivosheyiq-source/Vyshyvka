@@ -268,5 +268,22 @@ console.log('═══ 14. ДВІ ПОСИЛКИ — ДВІ НАКЛАДНІ О�
 }
 
 console.log('');
+console.log('═══ 15. «ВИКОНАНО» ВЛАСНИКОМ: ОПЛАЧЕНО ПОЗА СИСТЕМОЮ (04.11) ═══');
+{
+  const o = { id:'V1', orderId:'2000888', totalPrice:1000, ownerDone:{ at:'2026-11-04T10:00:00.000Z', by:'a@x', how:'off', sum:700, note:'готівка' },
+    payments:[{ sum:300, at:'2026-11-01T10:00:00.000Z', kind:'prepay' },
+              { sum:700, at:'2026-11-04T10:00:00.000Z', kind:'other', by:'a@x', note:'готівка', ownerDone:true, acc:'поза системою' }] };
+  ok(M.paid(o, []).sum === 1000 && M.due(o, []) === 0, 'запис поза системою рахується, як готівка: сплачено 1000, борг 0', M.paid(o, []).sum + ' / ' + M.due(o, []));
+  const a = M.audit([o], [], { now: Date.now(), np: {}, accs: [] }).filter(x => x.kind === 'owner_off');
+  ok(a.length === 1 && a[0].sum === 700 && a[0].sev === 'amber' && /поза системою/.test(a[0].text) && /готівка/.test(a[0].text),
+    'Звірка: окремий пункт owner_off — сума, як, хто', JSON.stringify(a));
+  ok(M.keyOf(a[0]) === 'owner_off:2000888', 'ключ пункту — з номером замовлення (позначка «Гаразд» не закриває чужі)', M.keyOf(a[0] || {}));
+  const ok1 = JSON.parse(JSON.stringify(o)); ok1.moneyOk = { 'owner_off:2000888': 1 };
+  ok(!M.audit([ok1], [], { now: Date.now(), np: {}, accs: [] }).some(x => x.kind === 'owner_off'), '«Гаразд» закриває пункт', '');
+  const звичайна = { id:'V2', orderId:'2000889', totalPrice:500, payments:[{ sum:500, at:'2026-11-01T10:00:00.000Z', kind:'other' }] };
+  ok(!M.audit([звичайна], [], { now: Date.now(), np: {}, accs: [] }).some(x => x.kind === 'owner_off'), 'звичайна готівка руками — без пункту owner_off', '');
+}
+
+console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);

@@ -232,6 +232,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js
   }
   echo "✓ фон пише одна вкладка; без відмов і бурі журналу"
 fi
+# 04.11: власник ставить картку куди хоче («Виконано», «Відмова», шпилька цеху) — однаково в усіх, гроші чесно.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|loomiq-money-core\.js|tests/owner-move\.mjs|tests/owner-pin\.mjs)'; then
+  node tests/owner-move.mjs >/tmp/lq-owner-move.log 2>&1 || {
+    echo "✗ Перетягування власника зламане («Виконано»/«Відмова»/гроші) — коміт зупинено. Подробиці: /tmp/lq-owner-move.log"
+    grep '✗' /tmp/lq-owner-move.log
+    exit 1
+  }
+  echo "✓ власник ставить картку куди хоче — однаково в усіх, гроші чесно"
+fi
 # 03.11: кольори худі з флісом — разова дія власника (6 кольорів, як у оверсайзу; Синій → Індіго).
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/fleece-colors\.mjs)'; then
   node tests/fleece-colors.mjs >/tmp/lq-fleece.log 2>&1 || {
