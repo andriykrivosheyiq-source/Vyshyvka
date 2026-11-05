@@ -7874,7 +7874,7 @@
       if(v && !String(f.value || '').trim()) f.value = v;
     });
   }
-  if(typeof document !== 'undefined' && !window.__lqSayDraft){
+  if(typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !window.__lqSayDraft){
     window.__lqSayDraft = true;
     document.addEventListener('input', function(e){
       var t = e.target;

@@ -594,6 +594,19 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/one-trip\
   echo "✓ одна поїздка в базу"
 fi
 
+# ВАРІАНТИ Й РОЗМОВА ДИЗАЙНУ (05.11): попередній прогін перед викладкою знайшов, що
+# обидва тести мовчки зламались (їх не було в хуку) — тепер на кожну зміну відділу.
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/variants\.mjs|tests/design-thread\.mjs)'; then
+  for t in variants design-thread; do
+    node tests/$t.mjs >/tmp/lq-$t.log 2>&1 || {
+      echo "✗ tests/$t.mjs — коміт зупинено. Подробиці: /tmp/lq-$t.log"
+      grep '✗' /tmp/lq-$t.log | head -5
+      exit 1
+    }
+  done
+  echo "✓ варіанти на виробах і розмова дизайну"
+fi
+
 # ОДИН ОДЯГ — ОДНА НАКЛАДНА (05.11, #2000198: чотири накладні на один одяг).
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|worker/novaposhta-proxy\.js|tests/ttn-dupe\.mjs)'; then
   node tests/ttn-dupe.mjs >/tmp/lq-ttn-dupe.log 2>&1 || {
