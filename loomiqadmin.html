@@ -4675,6 +4675,14 @@
     border:1px solid #D0D5DD;border-radius:6px;padding:0 6px;color:#98A2B3;}
   .dz-chain-act:hover{border-color:#B42318;color:#B42318;}
   .dz-chain-act.bad{color:#B42318;border-color:#FDA29B;background:#FEF3F2;font-weight:700;}
+  /* Етап вручну (05.11): виглядає як етап, натиск — «перевести сюди». */
+  .dz-chain-set{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;white-space:nowrap;line-height:1.35;border-radius:6px;padding:0 3px;}
+  .dz-chain-set.ok{color:#067647;}
+  .dz-chain-set.next{color:#98A2B3;font-weight:500;}
+  .dz-chain-set.bad{color:#B42318;font-weight:700;}
+  .dz-chain-set:hover{background:#F2F4F7;text-decoration:underline;}
+  .dz-chain-set:focus-visible{outline:2px solid var(--ink);}
+  .dz-var-c.is-ok{outline:2px solid #067647;}
   .dz-ref-l{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px;}
   .dz-ref-o{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;}
   .dz-ref-t{width:100%;box-sizing:border-box;margin:0 0 10px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;}
@@ -8455,32 +8463,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=cb71b5227d"></script>
-<script src="loomiq-fingerprint.js?v=cb71b5227d"></script>
-<script src="loomiq-pricing.js?v=cb71b5227d"></script>
+<script src="loomiq-select.js?v=151fdafe32"></script>
+<script src="loomiq-fingerprint.js?v=151fdafe32"></script>
+<script src="loomiq-pricing.js?v=151fdafe32"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=cb71b5227d"></script>
+<script src="loomiq-money-core.js?v=151fdafe32"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=cb71b5227d"></script>
-<script src="loomiq-mock.js?v=cb71b5227d"></script>
+<script src="loomiq-design.js?v=151fdafe32"></script>
+<script src="loomiq-mock.js?v=151fdafe32"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=cb71b5227d"></script>
+<script src="imagetracer.js?v=151fdafe32"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=cb71b5227d"></script>
-<script src="loomiq-threads.js?v=cb71b5227d"></script>
+<script src="loomiq-chat.js?v=151fdafe32"></script>
+<script src="loomiq-threads.js?v=151fdafe32"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=cb71b5227d"></script>
+<script src="loomiq-cards.js?v=151fdafe32"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8525,8 +8533,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'cb71b5227d';
-var LQ_VER_AT = '2026-11-05T16:04:37Z';
+var LQ_VER = '151fdafe32';
+var LQ_VER_AT = '2026-11-05T16:32:54Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -33320,7 +33328,7 @@ async function b2cRefuse(o, job, r){
      paid — боргу й так немає.
    Повертає true / 'stale' (уже виконане) / текст причини / false. */
 async function b2cOwnerDone(o, job, r){
-  if(!o || !o.id || myRole() !== 'owner') return 'Виконано вручну ставить лише власник';
+  if(!o || !o.id || myUi() !== 'manager') return 'Виконано вручну ставить акаунт або власник';
   r = r || {};
   const how = ['ttn', 'off', 'debt', 'paid'].indexOf(r.how) >= 0 ? r.how : '';
   if(!how) return false;
@@ -33360,7 +33368,7 @@ async function b2cOwnerDone(o, job, r){
   return res;
 }
 async function b2cOwnerDoneOff(o, job){
-  if(!o || !o.id || myRole() !== 'owner') return false;
+  if(!o || !o.id || myUi() !== 'manager') return false;
   const H = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host;
   if(!H || !H.orderApply) return false;
   const at = new Date().toISOString(), by = myEmail() || '';

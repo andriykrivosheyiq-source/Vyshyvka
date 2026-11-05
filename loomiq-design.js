@@ -3511,6 +3511,10 @@
       if(x.act && можна)
         return '<button type="button" class="dz-chain-act ' + esc(x.st) + '" data-do="' + esc(x.act) + '" data-id="' + esc(x.id || '') + '"' +
           (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' + esc(x.t) + '</button>';
+      /* Етап — кнопка «перевести сюди вручну» (05.11); теперішній — ні. */
+      if(x.set && можна && x.st !== 'now')
+        return '<button type="button" class="dz-chain-set ' + esc(x.st) + '" data-do="stage-set" data-to="' + esc(x.set) + '" data-id="' + esc(x.id || '') + '"' +
+          ' title="' + esc((x.title ? x.title + ' · ' : '') + 'Перевести картку сюди вручну') + '">' + (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</button>';
       if(x.act === 'refuse') return '';
       return '<b class="' + esc(x.st) + '"' + (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' +
         (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</b>'; }).join('') + '</span>';
@@ -8122,6 +8126,11 @@
   /* ЕТАПИ ЗАМОВЛЕННЯ ДЛЯ ЛАНЦЮЖКА (05.10): Графіка → Вишивка → Одяг →
      Виробництво → Відправка. st: ok (готово) · now (зараз тут) · next (ще ні). */
   function імя(e){ return String(nameOf(e) || '').trim().split(/\s+/)[0]; }
+  /* ЕТАП ВРУЧНУ З КАРТКИ (05.11, Андрій: «ручне переведення в новий статус
+     через карточку — там є статуси, і в них можливість пересувати»). Етап у
+     рядку картки — кнопка для акаунта й власника (`host.refuseOk`): куди
+     ставить — `set` (дошка:колонка), саме перенесення — `ownerDrop`. */
+  function stg(x, set){ if(x) x.set = set; return x; }
   function stageMarks(job, o, всі){
     var us = U.unitsOf(job).filter(function(u){ return u && (u.gid || u.name); });
     var col = D.chainAt(job, o);
@@ -8131,8 +8140,8 @@
     us.forEach(function(u){ gl = gl.concat(D.graphicLive ? D.graphicLive(u) : D.dzList(u, 'graphic')); sl = sl.concat(D.dzList(u, 'stitch')); });
     var gDone = !!job.approvedVersion || крок >= 1 || (gl.length > 0 && gl.every(function(d){ return d.ok || d.status === 'approved'; }));
     var gWho = (gl.filter(function(d){ return !d.ok && d.status !== 'approved' && d.who; })[0] || {}).who;
-    out.push(gDone ? { st:'ok', t:'Графіка' }
-      : { st:'now', t: gWho ? 'Графіка · ' + імя(gWho) : 'Графіка', title: gWho ? 'Працює: ' + nameOf(gWho) : 'Графічному ще не передано' });
+    out.push(stg(gDone ? { st:'ok', t:'Графіка' }
+      : { st:'now', t: gWho ? 'Графіка · ' + імя(gWho) : 'Графіка', title: gWho ? 'Працює: ' + nameOf(gWho) : 'Графічному ще не передано' }, 'acct:design'));
     var sDone = крок >= 2 || (sl.length > 0 && sl.every(function(d){ return !!d.ok; }));
     var sWho = (sl.filter(function(d){ return !d.ok && d.who; })[0] || {}).who;
     /* Не призначено вишивального (29.10) — червоним, щоб акаунт побачив одразу. */
@@ -8141,6 +8150,7 @@
       : gDone && sNeed ? { st:'bad', t:'Вишивка · не призначено', title:'Не призначено вишивального дизайнера — оберіть у картці (акаунт або власник)' }
       : gDone ? { st:'now', t: sWho ? 'Вишивка · ' + імя(sWho) : 'Вишивка', title: sWho ? 'Працює: ' + nameOf(sWho) : 'У черзі вишивального' }
       : { st:'next', t:'Вишивка' });
+    stg(out[out.length - 1], 'acct:stitch');
     /* ДАЛІ — КОЖЕН КРОК ОКРЕМО (Андрій, 08.10): «у акаунт-менеджера
        повинно бути видно кожен статус»: одяг замовлено → одяг прибув → на
        станках → погодження → можна відправляти → передано курʼєру → в
@@ -8161,25 +8171,31 @@
       var частково = ks.some(function(k){ return k === 'got'; });
       out.push(КРОК(замовлено, gDone && !замовлено, 'Одяг замовлено',
         ks.some(function(k){ return k !== 'none'; }) ? 'Одяг замовлено частково' : 'Одяг не замовлено'));
+      stg(out[out.length - 1], 'prod:wait');
       out.push(КРОК(прибув, замовлено && !прибув, 'Одяг прибув',
         частково ? 'Одяг прибув частково' : ks.some(function(k){ return k === 'way'; }) ? 'Одяг в дорозі' : 'Чекаємо одяг'));
+      stg(out[out.length - 1], 'prod:ready');
     }
     var передрук = уЦеху && typeof D.reprintOpen === 'function' && D.reprintOpen(o);
     out.push(КРОК(після('run'), пк === 'run' || пк === 'redo' || пк === 'ready', 'На станках',
       пк === 'redo' ? 'Передрук' : пк === 'ready' ? 'Готово до роботи' : передрук ? 'На станках · передрук' : 'На станках'));
+    stg(out[out.length - 1], 'prod:run');
     if(пк === 'redo') out[out.length - 1].st = 'bad';
-    out.push(КРОК(після('appr'), пк === 'appr', 'Погодження', 'Погодження · фото з цеху'));
+    out.push(stg(КРОК(після('appr'), пк === 'appr', 'Погодження', 'Погодження · фото з цеху'), 'prod:appr'));
     out.push(КРОК(після('reg'), пк === 'ship' || пк === 'reg', 'Можна відправляти',
       o && o.ttn ? 'Можна відправляти · ТТН ' + o.ttn : D.shipAbroad(o) ? 'Можна відправляти · за кордон' : 'Можна відправляти · без ТТН'));
-    out.push(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'));
+    stg(out[out.length - 1], 'prod:ship');
+    out.push(stg(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'), 'prod:courier'));
     out.push(КРОК(після('stuck'), пк === 'way' || пк === 'arrived' || пк === 'stuck', 'В дорозі',
       пк === 'arrived' ? 'У відділенні' : пк === 'stuck' ? 'У відділенні понад 3 дні' : 'В дорозі'));
+    stg(out[out.length - 1], 'prod:way');
     if(пк === 'refused') out.push({ st:'bad', t:'Відмова · ' + D.refuseLabel('post'), title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
-    else out.push(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' });
+    else out.push(stg(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' }, 'prod:done'));
     if(пк === 'stuck') out[out.length - 2].st = 'bad';
     /* ВІДМОВА (22.10): сіра кнопка в кінці; поставлена — червона з
        причиною, натиск — «Повернути в роботу». Посилку не забрали —
        червона вище, без кнопки: це факт Нової пошти, не рішення. */
+    out.forEach(function(x){ if(x && x.set && o) x.id = o.orderId; });
     var відм = D.refusalOf(job, o);
     if(відм && відм.manual)
       out.push({ st:'bad', t:'Відмова · ' + відм.label, act:'refuse-back', id: o.orderId,
@@ -8611,7 +8627,7 @@
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
           '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' +
           (job && job.pin ? '<span class="dz-pin" title="Поставлено вручну ' + esc(dt(job.pin.at)) + '">📌 вручну · ' + esc(String(job.pin.by || '').replace(/@.*/, '') || '—') +
-            (((U.host.role && U.host.role()) === 'owner') ? ' <button type="button" class="dz-pin-off" data-do="pin-off">зняти</button>' : '') + '</span>' : '') +
+            ((U.host.refuseOk && U.host.refuseOk()) ? ' <button type="button" class="dz-pin-off" data-do="pin-off">зняти</button>' : '') + '</span>' : '') +
           ownerMarksHtml(o) +
           (уЦеху ? '' : clothChip(job, o)) +
           (b2c ? U.waitSelHtml(job, o) : '') + '</span>' +
@@ -10126,7 +10142,7 @@
      o.prodPin (лежить у замовленні, тож видно всім). */
   /* Позначки власника в шапці картки (04.11) — видно всім; «зняти» — лише власнику. */
   function ownerMarksHtml(o){
-    var я = (U.host.role && U.host.role()) === 'owner', out = '';
+    var я = !!(U.host.refuseOk && U.host.refuseOk()), out = '';
     var хто = function(e){ return String(e || '').replace(/@.*/, '') || '—'; };
     var od = D.ownerDoneOf(o);
     if(od) out += '<span class="dz-pin is-done" title="Виконано вручну ' + esc(dt(od.at)) + '">✓ виконано вручну · ' + esc(хто(od.by)) +
@@ -10797,12 +10813,32 @@
   }
   /* Поля біля натиснутої кнопки — їх дія й мала спожити: найближчий предок
      кнопки, у якому є поле. */
+  /* 05.11 (баг у живій CRM: набране «Написати дизайнеру» зникало від
+     «📝 Додати примітку для всіх» чи імені в смузі «✏️ Графічні»). Доти підйом
+     ішов до першого предка з полем — для примітки й «! Проблема» це вся
+     картка (aside.dz-panel), для смуги «хто скільки» — уся сторінка: перевірка
+     на #dzRoot стояла після querySelectorAll. Тепер: кнопки, що поля не
+     надсилають, не «їдять» нічого; кнопка рядка дизайну — лише своє поле
+     (`data-dz` = `data-dzsay`); підйом зупиняється на межах картки / смуги /
+     сторінки ДО пошуку полів. */
+  var EAT_NONE = { 'note-edit':1, 'note-cancel':1, 'load-who':1, 'problem-add':1 };
+  function eatEdge(a){
+    return !a || a.nodeType !== 1 || a.id === 'dzRoot' || !!(a.classList &&
+      (a.classList.contains('dz-panel') || a.classList.contains('dz-panel-b') || a.classList.contains('dz-top') || a.classList.contains('dz-load')));
+  }
   function morphEatFor(b){
-    var a = b && b.parentNode, сх = 0;
+    if(!b || !b.dataset || EAT_NONE[b.dataset.do]) return [];
+    var key = b.getAttribute('data-dz');
+    if(key){
+      var rootE = (b.closest && b.closest('.dz-panel, #dzRoot')) || document;
+      var own = [].filter.call(rootE.querySelectorAll('[data-dzsay]'), function(f){ return f.getAttribute('data-dzsay') === key; });
+      if(own.length) return own;
+    }
+    var a = b.parentNode, сх = 0;
     while(a && a.nodeType === 1 && сх++ < 6){
+      if(eatEdge(a)) break;
       var f = a.querySelectorAll('textarea, input:not([type]), input[type="text"], input[type="number"], input[type="tel"], select');
       if(f.length) return [].slice.call(f);
-      if(a.classList && (a.classList.contains('dz-panel-b') || a.id === 'dzRoot')) break;
       a = a.parentNode;
     }
     return [];
@@ -13230,6 +13266,49 @@
       }).join('') + '</div>',
       function(n){ var v = l.filter(function(x){ return x.n === +n; })[0]; if(v) cb(v); });
   }
+  /* ФІКСАЦІЯ: НА ВИБІР УСЕ, ЩО МОЖНА ПОГОДИТИ (05.11, #2000205: «при
+     фіксації дає 3 варіанти ескізу на вибір, усі без рис, а погодили з
+     рисами»; Андрій: «повинні були всі варіанти, які можна погодити»). Доти
+     вікно показувало лише варіанти на вибір, а обраний варіант ставав новою
+     версією й забирав погодження з пізнішої. Тепер першою — погоджена версія,
+     далі решта версій ескізу, далі варіанти. Версія — дизайн як є (нової
+     версії немає), виріб і колір — у вікні одягу; варіант — як доти.
+     cb({ ver: n }) або cb({ variant: v }). */
+  function fixChoose(u, d, cb){
+    var l = U.varsOf(u);
+    var ok = d ? +d.sketchOk || 0 : 0;
+    var vs = ((d && d.vers) || []).slice().reverse();
+    vs.sort(function(a, b){ return (+b.n === ok ? 1 : 0) - (+a.n === ok ? 1 : 0); });
+    var верс = vs.map(function(v){
+      var pp = D.verParts(v), f = pp.sheet || pp.mock[0] || pp.work[0] || {};
+      return '<button type="button" class="dz-pick-c dz-var-c' + (+v.n === ok ? ' is-ok' : '') + '" data-pick="v' + v.n + '">' +
+        '<i class="dz-var-n">v' + v.n + '</i>' +
+        (f.url ? '<img src="' + esc(f.url) + '" alt="">' : '<span class="dz-var-img is-none">без картинки</span>') +
+        '<span>' + (+v.n === ok ? '✓ Погоджена версія' : 'Версія ескізу') + ' · ' + esc(dt(v.at)) + '</span></button>';
+    }).join('');
+    var вар = l.map(function(v){
+      return '<button type="button" class="dz-pick-c dz-var-c" data-pick="x' + v.n + '">' +
+        '<i class="dz-var-n">' + v.n + '</i>' +
+        (v.mock ? '<img src="' + esc(v.mock) + '" alt="">' : '<span class="dz-var-img is-none">не розміщено</span>') +
+        '<span>Варіант · ' + esc(varLabel(v)) + '</span></button>';
+    }).join('');
+    return U.pickOpen('Що погодив клієнт?',
+      'Версія ескізу — дизайн іде саме такий, виріб і колір — у вікні одягу далі. Варіант — його виріб, колір і дизайн',
+      '<div class="dz-var-ch">' + верс + вар + '</div>',
+      function(k){
+        k = String(k || '');
+        if(k[0] === 'v') return cb({ ver: +k.slice(1) });
+        var v = l.filter(function(x){ return x.n === +k.slice(1); })[0];
+        if(v) cb({ variant: v });
+      });
+  }
+  /* Обрали версію (не варіант): погодження — на ній, варіантів більше не питаємо. */
+  function fixVerPick(u, d, n, by){
+    u.variants = u.variants || {};
+    u.variants.pickVer = +n; u.variants.pickAt = new Date().toISOString(); u.variants.pickBy = String(by || '');
+    if(d && +d.sketchOk !== +n) D.sketchOkMark(d, n, by);
+  }
+  function fixAsk(u){ var vv = u.variants || {}; return U.varsOf(u).length >= 2 && !vv.pick && !vv.pickVer; }
   /* Обраний варіант — у позицію: виріб і колір, а його розміщення й мокап —
      новою версією дизайну, погодженою клієнтом. Повертає номер версії. */
   function varApply(job, u, v, by, dRow){
@@ -13274,8 +13353,12 @@
         }, p.o);
       };
       /* Надсилали варіанти — спершу який обрав клієнт (16.10). */
-      if(U.varsOf(x.u).length >= 2 && !(x.u.variants || {}).pick)
-        return variantChoose(x.u, function(v){ varApply(p.job, x.u, v, me0, x.d); фікс(); });
+      if(fixAsk(x.u))
+        return fixChoose(x.u, x.d, function(r){
+          if(r.variant){ varApply(p.job, x.u, r.variant, me0, x.d); return фікс(); }
+          fixVerPick(x.u, x.d, r.ver, me0);
+          фікс();
+        });
       фікс();
     };
     далі();
@@ -13340,6 +13423,28 @@
       if(!host().readyMake) return say('Готові дизайни доступні з робочого місця');
       return host().readyMake({ name: 'Ескіз ' + U.jobNo(bj), tags: '', pic: ф.pic, arts: ф.arts, files: ф.files, extras: ф.extras,
         from: { orderId: bo.orderId, unit: bu.id } });
+    }
+    /* ── ЕТАП ВРУЧНУ З КАРТКИ (05.11): акаунт і власник ── */
+    if(what === 'stage-set'){
+      var сп = U.pairOf(String((data && data.id) || ''));
+      if(!сп) return;
+      if(!(host().refuseOk && host().refuseOk())) return say('Етап вручну ставить акаунт або власник');
+      var ст = String((data && data.to) || '').split(':'), цехС = ст[0] === 'prod', куди = ст[1] || '';
+      if(!куди) return;
+      var назваС = цехС ? D.stepLabel(D.PROD, куди) : D.pinLabel(куди);
+      var me2 = (host().me && host().me()) || '';
+      if(куди !== 'done' && !window.confirm('Перевести картку ' + U.jobNo(сп.job) + ' у «' + назваС + '» вручну?\nСтоятиме там, доки її не переведуть знову.')) return;
+      /* Одна позначка «вручну» за раз: етап цеху знімає шпильку дошки акаунта, і навпаки. */
+      if(цехС && сп.job.pin){ D.pinClear(сп.job, me2); await save(сп.job, сп.o, ''); }
+      if(!цехС && D.prodPinOf(сп.o)){
+        await orderApply(сп.o, function(x){
+          if(!x.prodPin) return;
+          var at0 = new Date().toISOString();
+          x.prodPinHist = (Array.isArray(x.prodPinHist) ? x.prodPinHist : []).concat([{ off: true, was: String(x.prodPin.to || ''), by: me2, at: at0 }]).slice(-40);
+          delete x.prodPin;
+        }, function(x){ return !x.prodPin; });
+      }
+      return ownerDrop(root, сп, цехС ? D.prodAt(сп.job, сп.o) : D.chainAt(сп.job, сп.o), куди, цехС, me2);
     }
     /* ── ВІДМОВА (22.10): акаунт і власник; повернути — ті самі ── */
     if(what === 'refuse' || what === 'refuse-back'){
@@ -13920,7 +14025,7 @@
       return;
     }
     if(what === 'owner-done-off' || what === 'prod-pin-off'){
-      if((U.host.role && U.host.role()) !== 'owner') return say('Знімає лише власник');
+      if(!(host().refuseOk && host().refuseOk())) return say('Знімає акаунт або власник');
       if(what === 'owner-done-off'){
         if(!window.confirm('Зняти «Виконано вручну» з ' + U.jobNo(job) + '? Картка стане туди, де вона за роботою.\nЗаписана оплата лишається.')) return;
         var rO = host().ownerDoneOff ? await host().ownerDoneOff(o, job) : false;
@@ -13937,7 +14042,7 @@
       return render(root);
     }
     if(what === 'pin-off'){
-      if((U.host.role && U.host.role()) !== 'owner') return say('Шпильку знімає лише власник');
+      if(!(host().refuseOk && host().refuseOk())) return say('Шпильку знімає акаунт або власник');
       if(!D.pinClear(job, (host().me && host().me()) || '')) return;
       return save(job, o, 'Шпильку знято — картка стоїть за роботою');
     }
@@ -14261,7 +14366,7 @@
             var nv = { n: vu.variants.list.length + 1, gid: gid, name: vg ? vg.name : '',
                        color: c0 ? (c0.name || c0.id) : '', colorHex: c0 ? (c0.hex || '') : '' };
             vu.variants.list.push(nv);
-            delete vu.variants.sheet; delete vu.variants.pick;
+            delete vu.variants.sheet; delete vu.variants.pick; delete vu.variants.pickVer;
             save(job, o, 'Варіант ' + nv.n + ' додано — розмістіть дизайн').then(function(){
               varPlace(root, job, o, vu, nv); });
           });
@@ -14283,7 +14388,7 @@
         if(!vv) return;
         vu.variants.list = vl.filter(function(x){ return x !== vv; });
         vu.variants.list.forEach(function(x, i){ x.n = i + 1; });
-        delete vu.variants.sheet; delete vu.variants.pick;
+        delete vu.variants.sheet; delete vu.variants.pick; delete vu.variants.pickVer;
         return save(job, o, 'Варіант прибрано');
       }
       if(what === 'u-var-send') return varSend(job, o, vu);
@@ -15172,8 +15277,12 @@
           }
           /* Крок 2 — фіксація: одяг обовʼязково, далі черга вишивки.
              Надсилали варіанти — спершу який обрав клієнт (16.10). */
-          if(U.varsOf(du).length >= 2 && !(du.variants || {}).pick)
-            return variantChoose(du, function(v){ var n2 = varApply(job, du, v, m, dd); погодити(n2 || n); });
+          if(fixAsk(du))
+            return fixChoose(du, dd, function(r){
+              if(r.variant){ var n2 = varApply(job, du, r.variant, m, dd); return погодити(n2 || n); }
+              fixVerPick(du, dd, r.ver, m);
+              погодити(r.ver);
+            });
           clothOpen(du, 'Фіксація · v' + n + ' · одяг', function(st){
             clothApply(du, st, m);
             /* Товари з тим самим ескізом (18.10) фіксуються тут же, по черзі. */

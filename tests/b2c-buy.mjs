@@ -866,7 +866,8 @@ const дост = await p.evaluate(async () => {
   document.querySelector('.dz-col[data-col="reg"] [data-do="reg-make"]').click();
   await wait(600);
   U.setTab('acct'); U.open(o.orderId); U.render(document.getElementById('dzRoot'));
-  out.етапКурʼєр = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b')].map(b => b.className + ':' + b.textContent.replace('✓ ', '')).join('|');
+  /* Етапи в картці акаунта з 05.11 — ще й кнопки «перевести сюди вручну» (dz-chain-set). */
+  out.етапКурʼєр = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b, #dzPanel .dz-c-chain.in-panel .dz-chain-set')].map(b => b.className.replace('dz-chain-set ', '') + ':' + b.textContent.replace('✓ ', '')).join('|');
   U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
   out.курʼєр = D.prodAt(j, o); out.реєстр = реєстр.length ? реєстр[0].docs.map(d => d.ttn).join() : '';
   document.querySelector('[data-do="reg-list"]').click(); await wait(100);
@@ -886,7 +887,7 @@ const дост = await p.evaluate(async () => {
   o.npSt = { code:'103', status:'Відмова одержувача', at: new Date().toISOString() };
   U.open(o.orderId); U.render(document.getElementById('dzRoot'));
   out.відмова = D.prodAt(j, o);
-  out.етапВідмова = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b.bad')].map(b => b.textContent).join('|');
+  out.етапВідмова = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b.bad, #dzPanel .dz-c-chain.in-panel .dz-chain-set.bad')].map(b => b.textContent).join('|');
   out.кнопки = [...document.querySelectorAll('#dzPanel .dz-prod-acts [data-do]')].map(b => b.dataset.do).join();
   window.prompt = (q) => /грн/.test(q) ? '300' : 'знижка за затримку';
   document.querySelector('#dzPanel [data-do="loss-comp"]').click(); await wait(400);

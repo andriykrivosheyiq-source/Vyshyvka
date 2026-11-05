@@ -242,7 +242,8 @@ ok(a2.sum.indexOf(грн2(нетто2.n)) >= 0 && a2.paid === (нетто2.paid 
 console.log('   ланцюжок 2000002: ' + a2.chain.join(' | '));
 console.log('   ланцюжок 2000004: ' + a4.chain.join(' | '));
 const панель = await p.evaluate(() => { const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000104'); U.render(document.getElementById('dzRoot'));
-  const r = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b')].map(b => b.className + ':' + b.textContent.trim());
+  /* Етапи в картці акаунта з 05.11 — ще й кнопки «перевести сюди вручну» (dz-chain-set). */
+  const r = [...document.querySelectorAll('#dzPanel .dz-c-chain.in-panel b, #dzPanel .dz-c-chain.in-panel .dz-chain-set')].map(b => b.className.replace('dz-chain-set ', '') + ':' + b.textContent.trim());
   U.open(''); U.render(document.getElementById('dzRoot')); return r; });
 ok(a2.chain.length === 0 && a4.chain.length === 0 && панель.join(' | ') === 'ok:✓ Графіка | ok:✓ Вишивка | ok:✓ Одяг замовлено | ok:✓ Одяг прибув | now:На станках | next:Погодження | next:Можна відправляти | next:Передано курʼєру | next:В дорозі | next:Доставлено',
   'кожен статус — у відкритій картці (на плитці ланцюжка немає)', 'ланцюжок у картці: ' + панель.join(' | '));

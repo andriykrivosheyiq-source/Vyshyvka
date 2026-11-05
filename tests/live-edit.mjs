@@ -209,6 +209,35 @@ else {
   ok(!r5.name || r5.saves <= 1, 'одна зміна в формі — один запис (обробники не подвоїлись)', 'зміна пишеться кілька разів: ' + JSON.stringify(r5));
 }
 
+console.log('═══ 4б. ПРИМІТКА Й СМУГА «ХТО СКІЛЬКИ» НЕ СТИРАЮТЬ НЕНАДІСЛАНЕ (05.11) ═══');
+/* Баг у живій CRM: набрати в «Написати дизайнеру», не надсилати, натиснути
+   «📝 Додати примітку для всіх» чи імʼя в смузі «✏️ Графічні» — текст зникав.
+   Значення ставимо без події input: перевіряємо саме морф, не памʼять чернетки. */
+const r4б = await p.evaluate(async (SAY) => {
+  const U = window.LQDesign.ui; U.setTab('acct'); U.open('2000101'); U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 200));
+  const put = t => { const ta = document.querySelector(SAY); if(ta) ta.value = t; return !!ta; };
+  const val = () => { const ta = document.querySelector(SAY); return ta ? ta.value : null; };
+  const out = {};
+  const click = async sel => { const b = document.querySelector(sel); if(!b) return false; b.click(); await new Promise(r => setTimeout(r, 400)); return true; };
+  put('Чернетка 1: лого праворуч');
+  out.noteB = await click('#dzRoot [data-do="note-edit"]');
+  out.afterNote = val();
+  out.cancelB = await click('#dzRoot [data-do="note-cancel"]');
+  out.afterCancel = val();
+  put('Чернетка 2: нитка срібна');
+  out.loadB = await click('#dzRoot [data-do="load-who"]');
+  out.afterLoad = val();
+  /* Та сама смуга ще раз — «показати всі». */
+  await click('#dzRoot [data-do="load-who"]');
+  return out;
+}, SAY);
+console.log('  ' + JSON.stringify(r4б));
+ok(r4б.noteB && r4б.afterNote === 'Чернетка 1: лого праворуч' && r4б.afterCancel === 'Чернетка 1: лого праворуч',
+  '«📝 Додати примітку» і «Скасувати» — ненадіслане в полі дизайнеру на місці', 'стерто: ' + JSON.stringify(r4б));
+if(r4б.loadB) ok(r4б.afterLoad === 'Чернетка 2: нитка срібна', 'імʼя в смузі «хто скільки» — ненадіслане на місці', 'стерто: ' + JSON.stringify(r4б));
+else ok(true, 'смуги «хто скільки» над цією дошкою немає — пропущено', '');
+
 console.log('═══ 5. ВИМИКАЧ: noMorph = 1 — ЯК ДОТИ ═══');
 const r6 = await p.evaluate(async () => {
   contentData.noMorph = 1;
