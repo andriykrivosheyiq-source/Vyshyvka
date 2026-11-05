@@ -21,7 +21,7 @@ if(!RUT || !JAR){
   process.exit(0);
 }
 const req = createRequire(path.join(EMU, 'x.js'));
-const { doc, getDoc, setDoc, deleteDoc, addDoc, collection, setLogLevel } = req('firebase/firestore');
+const { doc, getDoc, setDoc, deleteDoc, addDoc, collection, setLogLevel, writeBatch, updateDoc } = req('firebase/firestore');
 setLogLevel('silent');
 
 const PORT = 8790 + Math.floor(Math.random() * 50);
@@ -190,6 +190,20 @@ ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(12).slice
 ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(3) }, { merge: true }))), 'менеджер журнал не скоротить', 'менеджер скоротив журнал!');
 ok(await can(setDoc(doc(own, 'loomiq/photos'), { accessLog: рядки(3) }, { merge: true })), 'власник обрізає (старе перед тим — в архів)', 'власник не зміг обрізати');
 ok(await can(setDoc(doc(mgr, 'loomiq/accArch_2026-11-04'), { rows: рядки(2) }, { merge: true })), 'архів журналу пише команда', 'архів не записався');
+
+console.log('');
+console.log('═══ ОДНА ПОЇЗДКА (05.11): ВЕРСІЯ Й КАРТКА ВІДДІЛУ ОДНИМ ПАКЕТОМ ═══');
+await env.withSecurityRulesDisabled(async c => { await setDoc(doc(c.firestore(), 'designJobs/5000510'), { orderId: '5000510', brief: { text: 'було' }, rev: 7 }); });
+const пакет = (rev, ts, text) => { const b = writeBatch(mgr);
+  b.set(doc(mgr, 'designJobs/5000510/hist/' + ts), { orderId: '5000510', brief: { text: 'було' }, rev: 7, _v: { at: ts, by: 'art@loomiq', why: 'save' } });
+  b.update(doc(mgr, 'designJobs/5000510'), { 'brief': { text }, rev }); return b.commit(); };
+ok(await can(пакет(8, '2026-11-05T10-00-00Z', 'стало')), 'пакет «версія + картка з rev 8» — проходить', 'пакет не пустило');
+ok(!(await can(пакет(8, '2026-11-05T10-01-00Z', 'зі старої копії'))), 'той самий rev 8 ще раз (хтось встиг) — відмова всьому пакету', 'запізнілий пакет пущено!');
+const лиш = {};
+await env.withSecurityRulesDisabled(async c => { const d = c.firestore();
+  лиш.v = (await getDoc(doc(d, 'designJobs/5000510/hist/2026-11-05T10-01-00Z'))).exists();
+  const j = (await getDoc(doc(d, 'designJobs/5000510'))).data(); лиш.rev = j.rev; лиш.text = j.brief.text; });
+ok(!лиш.v && лиш.rev === 8 && лиш.text === 'стало', 'відмовлений пакет не лишив ні версії, ні запису', JSON.stringify(лиш));
 
 await env.cleanup();
 emu.kill();

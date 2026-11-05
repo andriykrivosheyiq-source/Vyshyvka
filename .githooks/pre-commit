@@ -584,6 +584,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/an-prod\.
   echo "✓ передано у виробництво"
 fi
 
+# ОДНА ПОЇЗДКА В БАЗУ (05.11): дія читає картку відділу раз, версія й картка — одним пакетом.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/one-trip\.mjs|tests/fbstub\.js)'; then
+  node tests/one-trip.mjs >/tmp/lq-one-trip.log 2>&1 || {
+    echo "✗ «Одна поїздка в базу» зламана або губить чуже — коміт зупинено. Подробиці: /tmp/lq-one-trip.log"
+    grep '✗' /tmp/lq-one-trip.log
+    exit 1
+  }
+  echo "✓ одна поїздка в базу"
+fi
+
 # ВІДМОВА B2C (22.10): ставить лише акаунт і власник, з причиною; колонка
 # «Відмова» в кінці акаунта; на інших дошках її немає; повернення в роботу.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/refuse\.mjs)'; then

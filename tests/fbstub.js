@@ -41,6 +41,20 @@
     runTransaction:function(f){ return Promise.resolve(); },
     enablePersistence:function(){ return Promise.resolve(); },
     settings:function(){} }; };
+  /* Пакет (05.11): записи лягають через ті самі set/update/delete документа,
+     по черзі на commit — тести, що підміняють їх, бачать пакет як звичайні
+     записи (set зі злиттям — поверх того, що віддає get). Тест, що підставив
+     свій пакет замість рядка вище, лишається зі своїм. Неподільність
+     справжньої бази тут не відтворено (її перевіряє емулятор, order-nos). */
+  var fsBase=fs;
+  fs=function(){ var o=fsBase.apply(this, arguments);
+    if(/set:function\(\)\{\}, update:function\(\)\{\}/.test(String(o.batch))) o.batch=function(){ var ops=[]; var b={
+      set:function(r,d,op){ ops.push(function(){ if(!(op&&op.merge)) return r.set(d,op);
+        return r.get().then(function(s){ var cur=(s&&s.exists&&s.data())||{}; return r.set(Object.assign(JSON.parse(JSON.stringify(cur)), d)); }); }); return b; },
+      update:function(r,u){ ops.push(function(){ return r.update(u); }); return b; },
+      delete:function(r){ ops.push(function(){ return r.delete(); }); return b; },
+      commit:function(){ (window.__BATCHES=window.__BATCHES||[]).push(ops.length); return ops.reduce(function(pr,f){ return pr.then(f); }, Promise.resolve()); } }; return b; };
+    return o; };
   fs.FieldValue={ serverTimestamp:function(){ return new Date().toISOString(); },
     delete:function(){ return null; }, arrayUnion:function(){ return { __union: Array.prototype.slice.call(arguments) }; } };
   /* Вилучення поля (крок 3): позначка-обʼєкт, як у справжній базі; update

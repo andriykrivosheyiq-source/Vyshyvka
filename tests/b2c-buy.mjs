@@ -753,14 +753,16 @@ const цехПотік = await p.evaluate(async () => {
   o.tracks = Object.assign({}, o.tracks, { supply:'got', prod:'ready' }); delete o.tracks.qc; o.prodQc = null; o.ttn = '';
   U.setTab('prod'); U.open(''); U.render(document.getElementById('dzRoot'));
   out.було = D.prodAt(j, o);
-  out.неМожна = !D.prodCanMove('new', 'ship') && !D.prodCanMove('ready', 'appr');
+  out.неМожна = !D.prodCanMove('new', 'ship') && !D.prodCanMove('ready', 'appr') && !D.prodCanMove('ready', 'ship');
   // перетягуємо картку «Готово до роботи» → «На станках»
   const card = document.querySelector('.dz-col[data-col="ready"] [data-open="' + o.orderId + '"]');
   const w = card && (card.closest('.dz-card-w') || card);
   out.тягнеться = !!(w && w.getAttribute('draggable') === 'true');
   const dt = new DataTransfer();
   w.dispatchEvent(new DragEvent('dragstart', { bubbles:true, dataTransfer: dt }));
-  out.підсвітка = !!document.querySelector('.dz-col[data-col="run"].can-drop') && !document.querySelector('.dz-col[data-col="ship"].can-drop');
+  /* Тягне власник: з 04.11 йому можна в будь-яку колонку (tests/owner-move.mjs);
+     заборону зайвих переходів для цеху тримає prodCanMove (вище, «неМожна»). */
+  out.підсвітка = !!document.querySelector('.dz-col[data-col="run"].can-drop');
   const col = document.querySelector('.dz-col[data-col="run"]');
   col.dispatchEvent(new DragEvent('dragover', { bubbles:true, cancelable:true, dataTransfer: dt }));
   col.dispatchEvent(new DragEvent('drop', { bubbles:true, cancelable:true, dataTransfer: dt }));
