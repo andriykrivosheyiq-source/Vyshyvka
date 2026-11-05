@@ -4805,6 +4805,8 @@
   .shf-from{grid-column:1 / -1;font-size:12.5px;color:var(--ink-soft);}
   .shf-note{font-size:12px;color:var(--ink-soft);}
   .shf-miss{font-size:12.5px;color:#B03A1A;background:#FDECEA;border-radius:8px;padding:7px 10px;}
+  .shf-fail{font-size:12.5px;color:#8E1B10;background:#FDECEA;border:1px solid #F3B8B0;border-radius:8px;padding:8px 10px;line-height:1.4;}
+  .shf [data-shf-make].is-err,.shf [data-shf2-make].is-err{background:#B42318;color:#fff;border-color:#B42318;}
   .shf [data-shf-make]{justify-self:start;}
   .shs-h{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
   .shs-sub{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px;}
@@ -8451,32 +8453,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=63390b40ae"></script>
-<script src="loomiq-fingerprint.js?v=63390b40ae"></script>
-<script src="loomiq-pricing.js?v=63390b40ae"></script>
+<script src="loomiq-select.js?v=72fe7acd01"></script>
+<script src="loomiq-fingerprint.js?v=72fe7acd01"></script>
+<script src="loomiq-pricing.js?v=72fe7acd01"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=63390b40ae"></script>
+<script src="loomiq-money-core.js?v=72fe7acd01"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=63390b40ae"></script>
-<script src="loomiq-mock.js?v=63390b40ae"></script>
+<script src="loomiq-design.js?v=72fe7acd01"></script>
+<script src="loomiq-mock.js?v=72fe7acd01"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=63390b40ae"></script>
+<script src="imagetracer.js?v=72fe7acd01"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=63390b40ae"></script>
-<script src="loomiq-threads.js?v=63390b40ae"></script>
+<script src="loomiq-chat.js?v=72fe7acd01"></script>
+<script src="loomiq-threads.js?v=72fe7acd01"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=63390b40ae"></script>
+<script src="loomiq-cards.js?v=72fe7acd01"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8521,8 +8523,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '63390b40ae';
-var LQ_VER_AT = '2026-11-05T13:48:54Z';
+var LQ_VER = '72fe7acd01';
+var LQ_VER_AT = '2026-11-05T14:05:41Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -14025,7 +14027,8 @@ const HEALTH_KINDS = {
   'save-fail': 'картка замовлення не записалась', 'job-fail': 'картка відділу не записалась',
   'save-retry': 'запис відкинула база — повтор', 'atomic-deny': 'база відмовила у створенні',
   'units-keep': 'стара копія хотіла стерти склад', 'rollback': 'стара копія хотіла відкотити цех',
-  'order-new-again': 'повтор створення без дубля', 'del-auto': 'фоновий запис прибрав картку', 'del-half': 'прибрано недописане створення' };
+  'order-new-again': 'повтор створення без дубля', 'del-auto': 'фоновий запис прибрав картку', 'del-half': 'прибрано недописане створення',
+  'ttn-fail': 'накладна Нової пошти не створилась' };
 function finHealthRows(){
   const від = new Date(Date.now() - 864e5).toISOString();
   const by = {};
@@ -14041,7 +14044,7 @@ function renderFinHealth(){
   box.style.display = '';
   const E = escapeHtml, h = finHealthRows();
   const kinds = Object.keys(h.by);
-  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto'].filter(k => h.by[k]).length + (h.half ? 1 : 0);
+  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto', 'ttn-fail'].filter(k => h.by[k]).length + (h.half ? 1 : 0);
   const рядки = kinds.map(k => {
     const l = h.by[k]; const ост = l[l.length - 1];
     return `<div class="fa-i ${['save-retry', 'order-new-again', 'del-half'].indexOf(k) >= 0 ? 'amber' : 'red'}"><div class="fa-x"><b>${E(HEALTH_KINDS[k])}</b> · ${l.length} за добу<br><small>${E(String(ост.text || '').slice(0, 140))} · ${E(String(ост.by || '').split('@')[0])} · ${E(dmyOf(ост.at))}</small></div></div>`;
@@ -26973,8 +26976,32 @@ function shipForm2Html(o){
     <div class="shf-note shf-wide">Посилка 2: ${sp.qty2} шт · товару на ${E(fmt(sp.price2))} ₴ · контроль ${sp.cod2 > 5 ? E(fmt(sp.cod2)) + ' ₴' : 'немає'} · Посилка 1: ${sp.qty1} шт · контроль ${sp.cod1 > 5 ? E(fmt(sp.cod1)) + ' ₴' : 'немає'}</div>
     ${!gate.ok ? `<div class="gate-sum shf-wide">🔒 ${E(gate.why)}</div>` : ''}
     ${miss.length ? `<div class="shf-miss shf-wide">Бракує: ${E(miss.join(', '))}</div>` : ''}
-    <button class="mk-copy shf-wide" data-shf2-make${(miss.length || !gate.ok) ? ' disabled' : ''}>Створити ТТН · посилка 2</button>
+    ${ttnFailHtml(o, 2)}
+    <button class="mk-copy shf-wide${ttnFailOf(o, 2) ? ' is-err' : ''}" data-shf2-make${(miss.length || !gate.ok) ? ' disabled' : ''}>${ttnFailOf(o, 2) ? 'Створити ТТН ще раз · посилка 2' : 'Створити ТТН · посилка 2'}</button>
   </div>`;
+}
+/* НАКЛАДНА НЕ СТВОРИЛАСЬ — ПРИЧИНА В КАРТЦІ (05.11, менеджери: «чомусь не
+   можу створити ТТН, дані всі вказані» — #2000517, #2000477, #2000263).
+   Доти відмова Нової пошти чи воркера була лише спливним написом на кілька
+   секунд і ніде не лишалась. Тепер: червоний рядок під кнопкою (у цій
+   вкладці, доки не натиснуть знову), кнопка «Створити ТТН ще раз», і рядок
+   `ttn-fail` у журналі (видно в «Стан системи»; та сама причина по тій самій
+   картці — раз на 10 хв). Сама накладна й гроші — як доти. */
+const TTN_FAIL = {};
+function ttnFailOf(o, part){ return (o && TTN_FAIL[String(o.orderId || o.id) + ':' + (part || 1)]) || null; }
+function ttnFailSet(o, part, why, op){
+  if(!o) return;
+  const k = String(o.orderId || o.id) + ':' + (part || 1);
+  if(!why){ delete TTN_FAIL[k]; return; }
+  const t = String(why).replace(/\s+/g, ' ').trim() || 'Нова пошта відмовила без пояснення';
+  TTN_FAIL[k] = { why: t, at: new Date().toISOString() };
+  try{ accFail('ttn-fail', k + '|' + t.slice(0, 60), '#' + showNo(o) + (part === 2 ? ' · посилка 2' : '') + (op ? ' · ' + op : '') + ': ' + t.slice(0, 110)); }catch(e){}
+}
+function ttnFailHtml(o, part){
+  const f = ttnFailOf(o, part);
+  if(!f) return '';
+  const hm = (() => { try{ return new Date(f.at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); }catch(e){ return ''; } })();
+  return `<div class="shf-fail shf-wide" data-ttn-fail><b>НЕ СТВОРЕНО${hm ? ' · ' + escapeHtml(hm) : ''}:</b> ${escapeHtml(f.why)}</div>`;
 }
 /* Чого бракує для накладної — словами, а не неактивною кнопкою мовчки. */
 function shipMissing(v){
@@ -27040,7 +27067,8 @@ function shipFormHtml(o){
       v.split.live ? ` · посилка 2: ${v.split.qty2} шт, контроль ${v.split.cod2 > 5 ? fmt(v.split.cod2) + ' ₴' : 'немає'}` : ''}</div>
     ${!gate.ok ? `<div class="gate-sum shf-wide">🔒 ${E(gate.why)}</div>` : ''}
     ${miss.length ? `<div class="shf-miss shf-wide">Бракує: ${E(miss.join(', '))}</div>` : ''}
-    <button class="mk-copy shf-wide" data-shf-make${(miss.length || !gate.ok) ? ' disabled' : ''}>Створити ТТН${v.split.live ? ' · посилка 1' : ''}</button>
+    ${ttnFailHtml(o, 1)}
+    <button class="mk-copy shf-wide${ttnFailOf(o, 1) ? ' is-err' : ''}" data-shf-make${(miss.length || !gate.ok) ? ' disabled' : ''}>${ttnFailOf(o, 1) ? 'Створити ТТН ще раз' : 'Створити ТТН'}${v.split.live ? ' · посилка 1' : ''}</button>
     ${!ship2Of(o) && orderDir(o) === 'b2c' && shipLines(o, 1).length > 1
       ? `<button type="button" class="shf-link shf-wide" data-shf-two title="Друга посилка в інше місце: оберіть, які позиції їдуть другому отримувачу">+ Додатковий отримувач</button>` : ''}
     <button type="button" class="shf-link shf-wide" data-shf-abroad="1" title="Рідкий випадок: без накладної НП, лише куди відправити">✈ За кордон</button>
@@ -27160,10 +27188,11 @@ function wireShipForm(box, o, persist){
     toast('Створюю накладну другої посилки…');
     try{
       const d = await npCall('create', { order: shipTtnOrder2(o, v) });
+      ttnFailSet(o, 2, '');
       await shipSetTtn2(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' (посилка 2) створена');
-    }catch(e){ console.error(e); toast(String(e.message || e)); make2.disabled = false; }
+    }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 2, t); toast('Накладна посилки 2 не створилась: ' + t); make2.disabled = false; redraw(); }
   });
   if(друга) return;
   box.querySelectorAll('[data-shf]').forEach(el => {
@@ -27225,10 +27254,11 @@ function wireShipForm(box, o, persist){
     toast('Створюю накладну…');
     try{
       const d = await shipTtnCreate(o, v);
+      ttnFailSet(o, 1, '');
       await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' створена');
-    }catch(e){ console.error(e); toast(String(e.message || e)); make.disabled = false; }
+    }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 1, t); toast('Накладна не створилась: ' + t); make.disabled = false; redraw(); }
   });
 }
 
@@ -27326,8 +27356,9 @@ async function shipTtnRemake(o){
   if(miss.length) return 'бракує: ' + miss.join(', ');
   const стара = String(o.ttn).trim(), старийRef = String(o.ttnRef || ''), sender = String(o.ttnSender || (v.sender ? v.sender.id : '') || '');
   let d;
-  try{ d = await shipTtnCreate(o, v); }catch(e){ return String((e && e.message) || e); }
-  if(!d || !d.ttn) return 'Нова пошта не дала номера накладної';
+  try{ d = await shipTtnCreate(o, v); }catch(e){ const t = String((e && e.message) || e); ttnFailSet(o, 1, t, 'перестворити'); return t; }
+  if(!d || !d.ttn){ ttnFailSet(o, 1, 'Нова пошта не дала номера накладної', 'перестворити'); return 'Нова пошта не дала номера накладної'; }
+  ttnFailSet(o, 1, '');
   await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d), { quiet: true, replaced: true });
   if(String(o.ttn || '').trim() !== String(d.ttn).trim()) return 'нову накладну ' + d.ttn + ' створено, але в картку не записалось';
   /* Стару скасовуємо в Новій пошті, щоб не висіла. Не вийшло — картка не
