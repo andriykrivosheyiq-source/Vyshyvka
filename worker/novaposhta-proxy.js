@@ -267,6 +267,67 @@ function saveProps(order, refs) {
   if (cod > 0) props.AfterpaymentOnGoodsCost = String(cod);
   return props;
 }
+/* ТА САМА НАКЛАДНА ВЖЕ Є (05.11, #2000198: на один одяг — чотири накладні,
+   усі «Чекаємо на посилку від відправника»). Нова пошта відповідала довше,
+   ніж адмінка чекала, накладна тим часом лягала, а людині казали «спробуйте
+   ще раз». Тепер перед InternetDocument.save шукаємо серед накладних цього
+   ФОПа за вчора й сьогодні ту, що ще не передана до відправки (стан 1), з
+   тим самим описом («#номер», «#номер посилка 2»): опис, телефон,
+   відділення й контроль оплати збігаються — повертаємо її, нової немає.
+   Опис береться зі списку (getDocumentList) або з трекінгу
+   (CargoDescriptionString); не знайшли опису ніде — дублем нічого не
+   вважаємо (як доти). same — та сама накладна, other — з тим самим описом,
+   але іншими даними (зайва, якщо в картці вже нова). */
+const npDmy = x => String(x.getDate()).padStart(2, '0') + '.' + String(x.getMonth() + 1).padStart(2, '0') + '.' + x.getFullYear();
+const npNum = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : null; };
+async function sameDocs(env, key, order) {
+  const desc = String(parcelOf(order).description || '').trim();
+  const out = { same: [], other: [], checked: 0, fields: [] };
+  if (!desc) return out;
+  const до = new Date(), від = new Date(Date.now() - 864e5);
+  const docs = [];
+  for (let page = 1; page <= 5; page++) {
+    const l = await np(env, 'InternetDocument', 'getDocumentList',
+      { DateTimeFrom: npDmy(від), DateTimeTo: npDmy(до), GetFullList: '1', Page: String(page), Limit: '100' }, key);
+    l.forEach(x => { if (x && (x.IntDocNumber || x.Number)) docs.push(x); });
+    if (l.length < 100) break;
+  }
+  out.checked = docs.length;
+  if (!docs.length) return out;
+  out.fields = Object.keys(docs[0]).slice(0, 60);
+  const phone = npPhone(order.phone);
+  const tr = {};
+  for (let i = 0; i < docs.length; i += 100) {
+    const part = docs.slice(i, i + 100).map(x => ({ DocumentNumber: String(x.IntDocNumber || x.Number), Phone: phone }));
+    const st = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: part }, key);
+    st.forEach(x => { if (x && x.Number) tr[String(x.Number)] = x; });
+  }
+  const cod = Math.round(+order.cod || 0);
+  docs.forEach(x => {
+    const n = String(x.IntDocNumber || x.Number);
+    const t = tr[n] || {};
+    const d = String(x.Description || t.CargoDescriptionString || t.CargoDescription || x.CargoDescription || '').trim();
+    if (d !== desc) return;
+    const код = String(t.StatusCode || x.StateId || x.StatusCode || '');
+    if (код && код !== '1') return;                       // уже передана, видалена чи не знайдена
+    const їїТел = String(t.PhoneRecipient || x.RecipientsPhone || '').replace(/\D/g, '');
+    const їїВід = String(t.WarehouseRecipientRef || x.RecipientAddress || '');
+    const їїКо = npNum(x.AfterpaymentOnGoodsCost != null ? x.AfterpaymentOnGoodsCost : t.AfterpaymentOnGoodsCost);
+    const та = (!їїТел || !phone || їїТел.slice(-9) === phone.slice(-9)) &&
+               (!їїВід || !order.warehouseRef || їїВід === order.warehouseRef) &&
+               (їїКо == null || Math.round(їїКо) === cod);
+    (та ? out.same : out.other).push({ ttn: n, ref: String(x.Ref || ''), cost: +x.CostOnSite || 0,
+      est: String(x.EstimatedDeliveryDate || t.ScheduledDeliveryDate || ''), at: String(t.DateCreated || x.DateTime || x.CreateTime || '') });
+  });
+  const раніше = (a, b) => String(a.at).localeCompare(String(b.at)) || a.ttn.localeCompare(b.ttn);
+  out.same.sort(раніше); out.other.sort(раніше);
+  return out;
+}
+/* Ключ відправника цієї накладної — для створення й для пошуку тієї самої. */
+function orderKey(env, order) {
+  const s = order.sender || null;
+  return keyFor(env, (s && (s.id || s.cityRef)) ? s.id : '');
+}
 async function createTtn(env, order) {
   const s = order.sender || null;
   let key, refs;
@@ -286,14 +347,23 @@ async function createTtn(env, order) {
   }
   /* Спершу перевіряємо, чого бракує, — щоб не заводити отримувача марно. */
   saveProps(order, Object.assign({}, refs, { recipient: '-', contactRecipient: '-' }));
+  /* Та сама накладна вже лежить у НП (повтор після довгої відповіді) — її й
+     віддаємо, другої не створюємо. Пошук не вдався — створюємо, як доти:
+     збій пошуку не має зупиняти відправку. */
+  let був = null;
+  try { був = await sameDocs(env, key, order); } catch (e) { був = { same: [], other: [], err: String((e && e.message) || e).slice(0, 160) }; }
+  if (був.same.length) {
+    const x = був.same[0];
+    return { ttn: x.ttn, ref: x.ref, cost: x.cost, est: x.est, again: true, dupes: був.same.slice(1), other: був.other };
+  }
   Object.assign(refs, await recipientRefs(env, order, key));
   const data = await np(env, 'InternetDocument', 'save', saveProps(order, refs), key);
   const d = data[0] || {};
   return { ttn: String(d.IntDocNumber || ''), ref: String(d.Ref || ''),
-           cost: +d.CostOnSite || 0, est: String(d.EstimatedDeliveryDate || '') };
+           cost: +d.CostOnSite || 0, est: String(d.EstimatedDeliveryDate || ''), other: був.other || [] };
 }
 
-export const _pure = { parcelOf, saveProps, senderCode, npPhone, nameParts };
+export const _pure = { parcelOf, saveProps, senderCode, npPhone, nameParts, sameDocs };
 
 export default {
   async fetch(request, env) {
@@ -336,7 +406,11 @@ export default {
         const list = d.map(x => ({ ref: x.Ref, name: x.Description,
                                    number: String(x.Number || ''),
                                    postomat: /поштомат/i.test(String(x.Description || '') + ' ' + String(x.CategoryOfWarehouse || '')) ||
-                                             String(x.CategoryOfWarehouse || '') === 'Postomat' }));
+                                             String(x.CategoryOfWarehouse || '') === 'Postomat',
+                                   /* DenyToSelect (05.11, #2000517: «RecipientWarehouse is denied
+                                      to select»): НП тимчасово не дає обрати це відділення чи
+                                      поштомат — позначаємо, адмінка таке не пропонує. */
+                                   deny: String(x.DenyToSelect == null ? '0' : x.DenyToSelect) === '1' }));
         return json({ ok: true, list }, 200, cors);
       }
       if (op === 'sender') {
@@ -349,13 +423,35 @@ export default {
         const r = await createTtn(env, body.order || {});
         return json({ ok: true, ...r }, 200, cors);
       }
+      /* Чи лягла накладна (05.11): адмінка не дочекалась відповіді на create —
+         питає, чи є в НП та сама (опис, отримувач, контроль оплати). */
+      if (op === 'find') {
+        await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
+        const order = body.order || {};
+        const r = await sameDocs(env, orderKey(env, order), order);
+        return json({ ok: true, same: r.same, other: r.other, checked: r.checked, fields: r.fields }, 200, cors);
+      }
       /* Скасувати накладну (27.10, «Перестворити ТТН»): стару, замінену новою,
          знімаємо в Новій пошті, щоб не висіла. Лише за внутрішнім Ref. */
       if (op === 'ttnDelete') {
         await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
-        const ref = String(body.ref || '').replace(/[^A-Za-z0-9-]/g, '');
-        if (!ref) return json({ ok: false, error: 'Немає Ref накладної' }, 400, cors);
+        let ref = String(body.ref || '').replace(/[^A-Za-z0-9-]/g, '');
         const key = keyFor(env, body.sender || '');
+        /* Лише номер (05.11, зайві накладні в «Стані системи»): Ref шукаємо в
+           накладних цього відправника за 60 днів. */
+        const num = String(body.ttn || '').replace(/\D/g, '');
+        if (!ref && num) {
+          const до = new Date(), від = new Date(Date.now() - 60 * 864e5);
+          for (let page = 1; page <= 20 && !ref; page++) {
+            const l = await np(env, 'InternetDocument', 'getDocumentList',
+              { DateTimeFrom: npDmy(від), DateTimeTo: npDmy(до), GetFullList: '1', Page: String(page), Limit: '100' }, key);
+            const x = l.filter(d => String(d.IntDocNumber || '') === num)[0];
+            if (x && x.Ref) ref = String(x.Ref);
+            if (l.length < 100) break;
+          }
+          if (!ref) return json({ ok: false, error: 'Накладної ' + num + ' цього відправника за 60 днів не знайдено — скасуйте її в кабінеті Нової пошти' }, 200, cors);
+        }
+        if (!ref) return json({ ok: false, error: 'Немає Ref накладної' }, 400, cors);
         await np(env, 'InternetDocument', 'delete', { DocumentRefs: ref }, key);
         return json({ ok: true, ref }, 200, cors);
       }

@@ -324,8 +324,27 @@
     if(r === 2) return (s1 === 'stuck' || s2 === 'stuck') ? 'stuck' : 'arrived';
     return r === 1 ? 'way' : 'done';
   }
+  /* «ВИКОНАНО» І «ВРУЧНУ» ВІД ВЛАСНИКА — ОДНАКОВО В УСІХ (04.11, Андрій:
+     «перетягнув від правила — щоб воно там і було… і в менеджерів, і в
+     цеху»). Обидва лежать у самій картці замовлення, тож кожна дошка й
+     кожна вкладка бачать одне й те саме:
+       o.ownerDone {at, by, how:'ttn'|'off'|'debt', ttn?, sum?, note?} —
+         замовлення виконане: у цеху «Виконано», в акаунта «Відправлено»;
+       o.prodPin {to, by, at} — картка цеху стоїть у колонці, куди її
+         поставив власник (не «Виконано» й не «Відмова» — для них свої дії).
+     Тримають, доки власник не зніме; жодна подія (статус НП, галочка цеху)
+     картку не зсуває. Гроші — лише чесно: ТТН, за якою прийде накладка,
+     або запис «оплачено поза системою», який Звірка показує окремо. */
+  function ownerDoneOf(o){ return (o && o.ownerDone && o.ownerDone.at) ? o.ownerDone : null; }
+  var PROD_PIN_NO = { done: 1, refused: 1 };
+  function prodPinOf(o){
+    var p = o && o.prodPin;
+    return (p && p.to && PROD_IDX[p.to] != null && !PROD_PIN_NO[p.to]) ? p : null;
+  }
   function prodAt(job, o){
     o = o || {};
+    if(ownerDoneOf(o)) return 'done';
+    if(prodPinOf(o)) return o.prodPin.to;
     if(trk(o, 'qc') === 'bad') return 'redo';
     /* СТАТУС НОВОЇ ПОШТИ ГОЛОВНІШИЙ ЗА ГАЛОЧКИ ЦЕХУ (27.10, Андрій: «в
        дорозі, прибуло, понад 3 дні, виконано, відмова — усе по статусу
@@ -598,7 +617,9 @@
     return x ? x.label : String(key || '');
   }
   function chainAt(job, o){
+    if(ownerDoneOf(o)) return 'shipped';
     if(job && job.pin && job.pin.to && PIN_OK[job.pin.to]) return job.pin.to;
+    if(prodPinOf(o)) return CHAIN_OF_PROD[o.prodPin.to] || 'prod';
     var ш = trk(o, 'ship');
     if((ш === 'sent' || (o && o.ttn && ш === 'ttn')) && !(o && o.prodQc) && !trk(o, 'qc') &&
        !trk(o, 'prod') && String((o && o.ttnAt) || '') < '2026-10-07') return 'shipped';
@@ -649,6 +670,16 @@
   var ACCT_MOVES = { new: ['queue'], queue: ['new'], sketch: ['client'], client: ['sketch', 'sketchok'], sketchok: ['client', 'stitchq'] };
   /* «✓ Погоджено» у клієнта (14.10): клієнт погодив ЕСКІЗ — позначаємо саме
      це (Ескіз узгоджено), без вікна одягу. Фіксація — наступним кроком. */
+  /* СКАСУВАТИ «ЕСКІЗ УЗГОДЖЕНО» (04.11, #2000172: «випадково натиснула на
+     погоджено — було б добре змінювати»). Лише до фіксації (d.ok); слід —
+     у x.sketchUndo (історія картки), бо sketchOkAt зникає разом із позначкою. */
+  function sketchOkClear(x, by){
+    if(!x || !x.sketchOk || x.ok) return false;
+    (x.sketchUndo = Array.isArray(x.sketchUndo) ? x.sketchUndo : []).push({ at: nowIso(), by: String(by || ''), n: +x.sketchOk, was: x.sketchOkAt || '' });
+    if(x.sketchUndo.length > 20) x.sketchUndo = x.sketchUndo.slice(-20);
+    delete x.sketchOk; delete x.sketchOkBy; delete x.sketchOkAt;
+    return true;
+  }
   function sketchOkMark(x, n, by){
     if(!x) return null;
     var l = x.vers || [], last = l[l.length - 1];
@@ -3151,7 +3182,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, ownerDoneOf: ownerDoneOf, prodPinOf: prodPinOf, PROD_PIN_NO: PROD_PIN_NO, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, PROD_IDX: PROD_IDX, prodAt: prodAt, shipAbroad: shipAbroad, abroadManual: abroadManual, npWhyUa: npWhyUa, ttnDays: ttnDays, dniTxt: dniTxt, regFailOf: regFailOf, shipKnown: shipKnown, ship2Live: ship2Live, ship2Ttn: ship2Ttn, npStageOf: npStageOf, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, prodMoveWhy: prodMoveWhy, ttnBad: ttnBad, reprintOpen: reprintOpen,
@@ -3183,7 +3214,7 @@
     ttnValid: ttnValid, readyStray: readyStray, readyStrayRetire: readyStrayRetire, graphicLive: graphicLive, readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
-    dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
+    dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok, sketchOkClear: sketchOkClear,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
     offDay: offDay, setDayOff: setDayOff,
     stageLeft: stageLeft, trackFrom: trackFrom, STAGE: STAGE,
@@ -3480,6 +3511,10 @@
       if(x.act && можна)
         return '<button type="button" class="dz-chain-act ' + esc(x.st) + '" data-do="' + esc(x.act) + '" data-id="' + esc(x.id || '') + '"' +
           (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' + esc(x.t) + '</button>';
+      /* Етап — кнопка «перевести сюди вручну» (05.11); теперішній — ні. */
+      if(x.set && можна && x.st !== 'now')
+        return '<button type="button" class="dz-chain-set ' + esc(x.st) + '" data-do="stage-set" data-to="' + esc(x.set) + '" data-id="' + esc(x.id || '') + '"' +
+          ' title="' + esc((x.title ? x.title + ' · ' : '') + 'Перевести картку сюди вручну') + '">' + (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</button>';
       if(x.act === 'refuse') return '';
       return '<b class="' + esc(x.st) + '"' + (x.title ? ' title="' + esc(x.title) + '"' : '') + '>' +
         (x.st === 'ok' ? '✓ ' : '') + esc(x.t) + '</b>'; }).join('') + '</span>';
@@ -4004,20 +4039,39 @@
     if(PICK && PICK.el && PICK.el.parentNode) PICK.el.parentNode.removeChild(PICK.el);
     PICK = null;
   }
-  function pickOpen(title, hint, cardsHtml, onPick){
+  /* opt.multi (04.11, Андрій: «декілька версій на вибір — обирати відразу
+     декілька й відправляти разом»): картка не закриває вікно, а
+     позначається (`is-on`); унизу «opt.go (N)» — onPick отримує список у
+     порядку карток. */
+  function pickOpen(title, hint, cardsHtml, onPick, opt){
     pickClose();
+    opt = opt || {};
     var el = document.createElement('div');
-    el.className = 'dz-pick';
+    el.className = 'dz-pick' + (opt.multi ? ' is-multi' : '');
     el.innerHTML = '<div class="dz-pick-w">' +
       '<div class="dz-pick-h"><b>' + esc(title) + '</b>' +
         (hint ? '<i>' + esc(hint) + '</i>' : '') +
         '<button class="dz-x" data-pick-x>×</button></div>' +
       '<div class="dz-pick-b">' + cardsHtml + '</div>' +
+      (opt.multi ? '<div class="dz-pick-f"><button type="button" class="dz-b pri" data-pick-go disabled>' + esc(opt.go || 'Обрати') + '</button></div>' : '') +
     '</div>';
+    var обрані = function(){ return Array.prototype.slice.call(el.querySelectorAll('[data-pick].is-on')).map(function(c){ return c.getAttribute('data-pick'); }); };
     el.addEventListener('click', function(e){
       if(e.target === el || e.target.hasAttribute('data-pick-x')) return pickClose();
+      if(opt.multi && e.target.closest && e.target.closest('[data-pick-go]')){
+        var l = обрані(); if(!l.length) return;
+        pickClose(); return onPick(l);
+      }
       var card = e.target.closest ? e.target.closest('[data-pick]') : null;
       if(!card) return;
+      if(opt.multi){
+        card.classList.toggle('is-on');
+        card.setAttribute('aria-pressed', card.classList.contains('is-on') ? 'true' : 'false');
+        var n = обрані().length, go = el.querySelector('[data-pick-go]');
+        go.disabled = !n;
+        go.textContent = (opt.go || 'Обрати') + (n ? ' (' + n + ')' : '');
+        return;
+      }
       var v = card.getAttribute('data-pick');
       pickClose();
       onPick(v);
@@ -4078,6 +4132,70 @@
     document.addEventListener('keydown', esk, true);
     document.body.appendChild(el);
     PICK = el;
+    return el;
+  }
+  /* ВІКНО «ВИКОНАНО» ВЛАСНИКА (04.11). Гроші — лише чесно: залишок або
+     закриває накладка за ТТН (гроші Нова пошта перерахує, рух сам
+     привʼяжеться за номером), або запис «оплачено поза системою» (сума і
+     як — Звірка покаже його окремим рядком), або борг лишається видимим.
+     info: { no, due, ttn }; onGo({ how, ttn, sum, note }). */
+  function ownerDoneOpen(info, onGo){
+    pickClose();
+    info = info || {};
+    var борг = Math.max(0, Math.round(+info.due || 0));
+    var гр = function(n){ return String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴'; };
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-fixw dz-refw dz-odw';
+    el.innerHTML = '<div class="dz-fix-w">' +
+      '<div class="dz-fix-h"><b>Виконано · ' + esc(info.no || '') + '</b><button class="dz-x" data-fix-x>×</button></div>' +
+      (борг > 0
+        ? '<div class="dz-od-due">Лишилось сплатити: <b>' + esc(гр(борг)) + '</b></div>' +
+          '<div class="dz-ref-l">' +
+            '<label class="dz-ref-o"><input type="radio" name="dz-od" value="ttn" checked> Накладка — ТТН, якою реально відправили</label>' +
+            '<input class="dz-ref-t" data-od-ttn type="text" inputmode="numeric" maxlength="20" placeholder="Номер ТТН, 14 цифр" value="' + esc(info.ttn || '') + '">' +
+            '<label class="dz-ref-o"><input type="radio" name="dz-od" value="off"> Оплачено поза системою</label>' +
+            '<span class="dz-od-off" hidden><input class="dz-ref-t" data-od-sum type="text" inputmode="numeric" maxlength="9" placeholder="Сума, ₴" value="' + борг + '">' +
+            '<input class="dz-ref-t" data-od-note type="text" maxlength="120" placeholder="Як оплатили: готівка, на ФОП…"></span>' +
+            '<label class="dz-ref-o"><input type="radio" name="dz-od" value="debt"> Борг лишається (' + esc(гр(борг)) + ' — видно у Фінансах)</label>' +
+          '</div>'
+        : '<div class="dz-od-due">Сплачено повністю — боргу немає.</div>') +
+      '<div class="dz-fix-b"><button class="dz-b pri" data-od-go>Поставити у «Виконано»</button></div>' +
+    '</div>';
+    var закрити = function(){
+      document.removeEventListener('keydown', esk, true);
+      if(el.parentNode) el.parentNode.removeChild(el);
+      PICK = null;
+    };
+    var esk = function(ev){ if(ev.key === 'Escape') закрити(); };
+    var q = function(s){ return el.querySelector(s); };
+    var обрано = function(){ var c = q('input[name="dz-od"]:checked'); return c ? c.value : 'paid'; };
+    el.addEventListener('change', function(){
+      var h = обрано();
+      if(q('[data-od-ttn]')) q('[data-od-ttn]').hidden = h !== 'ttn';
+      if(q('.dz-od-off')) q('.dz-od-off').hidden = h !== 'off';
+    });
+    el.addEventListener('click', async function(ev){
+      if(ev.target === el || (ev.target.closest && ev.target.closest('[data-fix-x]'))) return закрити();
+      if(!(ev.target.closest && ev.target.closest('[data-od-go]'))) return;
+      var how = борг > 0 ? обрано() : 'paid', r = { how: how };
+      if(how === 'ttn'){
+        r.ttn = String((q('[data-od-ttn]') || {}).value || '').replace(/\D/g, '');
+        if(!/^\d{11,20}$/.test(r.ttn)){ q('[data-od-ttn]').focus(); return say('Впишіть номер ТТН — за ним накладка знайде замовлення'); }
+      }
+      if(how === 'off'){
+        r.sum = Math.round(+String((q('[data-od-sum]') || {}).value || '').replace(/[^\d]/g, '') || 0);
+        r.note = String((q('[data-od-note]') || {}).value || '').trim();
+        if(!(r.sum > 0)){ q('[data-od-sum]').focus(); return say('Вкажіть суму'); }
+        if(r.sum > борг){ q('[data-od-sum]').focus(); return say('Сума більша за залишок ' + гр(борг)); }
+        if(!r.note){ q('[data-od-note]').focus(); return say('Напишіть, як оплатили'); }
+      }
+      закрити();
+      await onGo(r);
+    });
+    document.addEventListener('keydown', esk, true);
+    document.body.appendChild(el);
+    PICK = el;
+    var f = q('[data-od-ttn]'); if(f && !f.value) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 30);
     return el;
   }
   function fixOpen(onSend, opt){
@@ -4183,6 +4301,9 @@
           що: 'перенесено вручну: «У клієнта на погодженні»', де: (ui + 1) + ' · графіка', текст: 'версія ' + (d.clientManual || '') });
         if(d.sketchOkAt) out.push({ at: d.sketchOkAt, by: d.sketchOkBy, kind: 'move',
           що: 'перенесено вручну: «Ескіз узгоджено»', де: (ui + 1) + ' · графіка', текст: 'версія ' + (d.sketchOk || '') });
+        (d.sketchUndo || []).forEach(function(h){
+          if(h && h.at) out.push({ at: h.at, by: h.by, kind: 'move', що: 'узгодження ескізу скасовано', де: (ui + 1) + ' · графіка', текст: 'версія ' + (h.n || '') });
+        });
       });
     });
     ((o && o.reprints) || []).forEach(function(r){
@@ -4195,6 +4316,22 @@
       out.push(h.off
         ? { at: h.at, by: h.by, kind: 'move', що: 'шпильку знято — картка стоїть за роботою', де: '', текст: h.was ? 'була: ' + D.pinLabel(h.was) : '' }
         : { at: h.at, by: h.by, kind: 'move', що: 'поставлено вручну: «' + D.pinLabel(h.to) + '» 📌', де: '', текст: '' });
+    });
+    /* «Виконано» і «вручну в цеху» від власника (04.11) — поставив / зняв. */
+    var ЯК = { ttn: 'накладка за ТТН', off: 'оплачено поза системою', debt: 'борг лишається', paid: 'сплачено' };
+    ((o && o.ownerDoneHist) || []).forEach(function(h){
+      if(!h || !h.at) return;
+      out.push(h.off
+        ? { at: h.at, by: h.by, kind: 'move', що: '«Виконано вручну» знято', де: '', текст: '' }
+        : { at: h.at, by: h.by, kind: 'move', що: 'виконано вручну (власник) ✓', де: '',
+            текст: (ЯК[h.how] || '') + (h.ttn ? ' · ТТН ' + h.ttn : '') + (h.sum ? ' · ' + String(Math.round(+h.sum)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴' : '') + (h.note ? ' · ' + String(h.note).slice(0, 80) : '') });
+    });
+    ((o && o.prodPinHist) || []).forEach(function(h){
+      if(!h || !h.at) return;
+      var л = (D.PROD.filter(function(x){ return x.key === (h.to || h.was); })[0] || {}).label || '';
+      out.push(h.off
+        ? { at: h.at, by: h.by, kind: 'move', що: 'цех: шпильку знято — картка стоїть за роботою', де: '', текст: л ? 'була: ' + л : '' }
+        : { at: h.at, by: h.by, kind: 'move', що: 'цех: поставлено вручну «' + л + '» 📌', де: '', текст: '' });
     });
     /* Відмова й повернення в роботу (22.10) — хто, коли, чому. */
     ((o && o.refuseHist) || []).forEach(function(h){
@@ -5123,7 +5260,9 @@
           : (kind === 'graphic' && D.sketchOk(d))
           ? '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
             '" title="Фіксація: підтвердити модель, колір, розмір і кількість — далі черга вишивки й закупівля">' +
-            '✓ Фіксація</button>'
+            '✓ Фіксація</button>' +
+            '<button class="dz-b" data-do="dz-sketch-undo" data-dz="' + key +
+            '" title="Натиснули «Погоджено» помилково — повернути ескіз «У клієнта на погодженні»">↩ Скасувати узгодження</button>'
           : '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
             '" title="' + (kind === 'graphic' ? 'Клієнт погодив ескіз — «Ескіз узгоджено»; фіксація — наступним кроком'
                                               : 'Вишивку погоджено — у виробництво') + '">' +
@@ -6914,7 +7053,7 @@
           /* ↻ Перестворити (27.10, Андрій): нова накладна з тими самими
              даними замість цієї; стара — в історію як замінена (брак) і
              скасовується в Новій пошті. Лише в картці, з підтвердженням. */
-          (n === 1 && host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
+          (n === 1 && host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Спершу скасує цю в Новій пошті, тоді створить нову з тими самими даними; не скасується — нової не буде">↻ Перестворити ТТН</button>' : '') +
           (host.ttnDelete && D.ttnValid(t) ? '<button class="dz-b dz-quiet dz-danger" data-ship-ttn-del="' + n + '" title="Скасувати накладну в Новій пошті й прибрати з картки; дані отримувача лишаться у формі — виправте й створіть нову">✕ Видалити ТТН</button>' : '') +
           '</div></div>' + ttnInfoHtml(o, n);
     };
@@ -7250,7 +7389,7 @@
     unitNew: unitNew, catItem: catItem, readyPickOpen: readyPickOpen, pastPickOpen: pastPickOpen, gate: b2cGate,
     waitOf: waitOf, WAIT_TXT: WAIT_TXT, noTtn: noTtn, waitSelHtml: waitSelHtml,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
-    pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, histHtml: histHtml, histSub: histSub,
+    pickOpen: pickOpen, fixOpen: fixOpen, refuseOpen: refuseOpen, ownerDoneOpen: ownerDoneOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen, picNoHtml: picNoHtml, picCapHtml: picCapHtml, prodView: prodView,
     DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName, SIDE_AT: SIDE_AT,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
@@ -7688,7 +7827,7 @@
     /* DTF-дизайнер — той самий другий етап, що й вишивальний (21.10). */
     return t === 'graphic' ? 'graphic' : (t === 'stitch' || t === 'dtf') ? 'stitch' : 'acct';
   }
-  function save(job, o, msg){
+  function save(job, o, msg, opt){
     job.updatedAt = new Date().toISOString();
     /* B2C: поля кількості немає — позиція без числа стає 1 шт, інакше
        «бракує кількості» сказало б про поле, якого не видно. */
@@ -7697,14 +7836,87 @@
     try{ U.priceLockJob(job); }catch(e){ console.warn('ціна', e); }
     try{ D.dzAutoQueue(job, o, (host().me && host().me()) || ''); }
     catch(e){ console.warn('черга відділу', e); }
-    var p = host().save ? host().save(job, o) : Promise.resolve();
+    var p = host().save ? host().save(job, o, opt) : Promise.resolve();
     return Promise.resolve(p).then(function(){
+      if(opt && opt.done) try{ opt.done(); }catch(e){ console.warn(e); }
       if(msg) say(msg);
       render(document.getElementById('dzRoot'));
       if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+      return true;
     }, function(e){
-      console.error(e); say('Не збереглось');
+      console.error(e); if(!(opt && opt.quiet)) say('Не збереглось');
+      return false;
     });
+  }
+  /* ПОВІДОМЛЕННЯ В РОЗМОВІ РЯДКА НЕ ГУБИТЬСЯ (05.11, Володимир: «пишеш
+     повідомлення дизайнеру — воно стирається», «по 3–5, інколи 10 разів
+     вставляти, щоб збереглося»). Доти поле чистилось ДО запису, а запис
+     відкидався, щойно в той самий рядок у ту мить писав хтось іще (дизайнер
+     відповів, позначка «прочитано», фоновий запис) — розмова рядка йде в
+     базу одним полем. Тепер: свіжа картка з бази (`designFresh`), повідомлення
+     дописується саме в неї, запис; не ліг — ще раз на свіжій; поле чиститься
+     лише коли лягло, інакше текст лишається в полі з поясненням. Набране
+     живе ще й у памʼяті (`SAY_DRAFT`, за ключем рядка) і повертається в поле
+     після будь-якої перемальовки. */
+  var SAY_DRAFT = {};
+  function sayFields(key){
+    return [].slice.call(document.querySelectorAll('[data-dzsay]')).filter(function(f){ return f.getAttribute('data-dzsay') === key; });
+  }
+  function sayKeep(key, txt){
+    if(!txt) return;
+    SAY_DRAFT[key] = txt;
+    sayFields(key).forEach(function(f){ if(!String(f.value || '').trim()) f.value = txt; });
+  }
+  function sayRestore(el){
+    if(!el || !el.querySelectorAll) return;
+    [].forEach.call(el.querySelectorAll('[data-dzsay]'), function(f){
+      var v = SAY_DRAFT[f.getAttribute('data-dzsay')];
+      if(v && !String(f.value || '').trim()) f.value = v;
+    });
+  }
+  if(typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !window.__lqSayDraft){
+    window.__lqSayDraft = true;
+    document.addEventListener('input', function(e){
+      var t = e.target;
+      if(t && t.getAttribute && t.hasAttribute('data-dzsay')) SAY_DRAFT[t.getAttribute('data-dzsay')] = String(t.value || '');
+    }, true);
+  }
+  async function threadSend(root, job, o, dkey, el, apply, msg, had){
+    var txt = el ? String(el.value || '') : '';
+    var id = String((job && job.orderId) || '');
+    var p = String(dkey || '').split('|');
+    var key = String(dkey || '');
+    for(var i = 0; i < 2; i++){
+      var j = job;
+      if(id && host().designFresh && !(job && job.draft) && !(o && o.draft)){
+        var f = null;
+        try{ f = await host().designFresh(id); }catch(e){ f = false; }
+        if(f === false){ sayKeep(key, txt); say('Немає звʼязку з базою — не надіслано. Текст лишився в полі, натисніть ще раз'); return false; }
+        if(f) j = f;
+      }
+      var uu = U.unitAt(j, p[0]), d = uu && D.dzAt(uu, p[1], p[2]);
+      if(!d){ sayKeep(key, txt); say('Рядок дизайну не знайдено — оновіть картку'); return false; }
+      /* Уже лежить (попередня спроба лягла в памʼять, а відповідь бази не
+         дійшла) — не дописуємо вдруге. */
+      if(!(had && had(d))) apply(d);
+      var ok = await save(j, o, msg, { quiet: true, done: function(){
+        delete SAY_DRAFT[key];
+        sayFields(key).forEach(function(x){ x.value = ''; });
+      } });
+      if(ok) return true;
+    }
+    sayKeep(key, txt);
+    say('Не надіслано — картку саме змінили з іншого пристрою. Текст лишився в полі — натисніть ще раз');
+    return false;
+  }
+  function sayHad(m, text, file){
+    var t = String(text || ''), u = file && file.url ? String(file.url) : '';
+    return function(d){
+      return (d.thread || []).some(function(x){
+        return x && x.by === String(m || '') && Date.now() - Date.parse(x.at || 0) < 180000 &&
+          (u ? (x.file && x.file.url === u) : (t && x.text === t));
+      });
+    };
   }
   /* Те саме, що save, але після запису — лише тихе оновлення: поки людина
      пише в полі картки, сторінку не перебудовуємо (02.11, форма доставки). */
@@ -7777,7 +7989,7 @@
          губилось найчастіше. */
       var правки = col === 'fixes';
       return { id: p.o.orderId, step: col, v2: true, tech: D.jobTech(p.job),
-        pin: !!(p.job && p.job.pin),
+        pin: !!((p.job && p.job.pin) || D.ownerDoneOf(p.o) || D.prodPinOf(p.o)),
         pic: cardPic(p.job),
         /* Назви виробів повернулись (Андрій, 04.10): «подивимося, як буде». */
         what: whatOf(p.job, p.o),
@@ -7914,6 +8126,11 @@
   /* ЕТАПИ ЗАМОВЛЕННЯ ДЛЯ ЛАНЦЮЖКА (05.10): Графіка → Вишивка → Одяг →
      Виробництво → Відправка. st: ok (готово) · now (зараз тут) · next (ще ні). */
   function імя(e){ return String(nameOf(e) || '').trim().split(/\s+/)[0]; }
+  /* ЕТАП ВРУЧНУ З КАРТКИ (05.11, Андрій: «ручне переведення в новий статус
+     через карточку — там є статуси, і в них можливість пересувати»). Етап у
+     рядку картки — кнопка для акаунта й власника (`host.refuseOk`): куди
+     ставить — `set` (дошка:колонка), саме перенесення — `ownerDrop`. */
+  function stg(x, set){ if(x) x.set = set; return x; }
   function stageMarks(job, o, всі){
     var us = U.unitsOf(job).filter(function(u){ return u && (u.gid || u.name); });
     var col = D.chainAt(job, o);
@@ -7923,8 +8140,8 @@
     us.forEach(function(u){ gl = gl.concat(D.graphicLive ? D.graphicLive(u) : D.dzList(u, 'graphic')); sl = sl.concat(D.dzList(u, 'stitch')); });
     var gDone = !!job.approvedVersion || крок >= 1 || (gl.length > 0 && gl.every(function(d){ return d.ok || d.status === 'approved'; }));
     var gWho = (gl.filter(function(d){ return !d.ok && d.status !== 'approved' && d.who; })[0] || {}).who;
-    out.push(gDone ? { st:'ok', t:'Графіка' }
-      : { st:'now', t: gWho ? 'Графіка · ' + імя(gWho) : 'Графіка', title: gWho ? 'Працює: ' + nameOf(gWho) : 'Графічному ще не передано' });
+    out.push(stg(gDone ? { st:'ok', t:'Графіка' }
+      : { st:'now', t: gWho ? 'Графіка · ' + імя(gWho) : 'Графіка', title: gWho ? 'Працює: ' + nameOf(gWho) : 'Графічному ще не передано' }, 'acct:design'));
     var sDone = крок >= 2 || (sl.length > 0 && sl.every(function(d){ return !!d.ok; }));
     var sWho = (sl.filter(function(d){ return !d.ok && d.who; })[0] || {}).who;
     /* Не призначено вишивального (29.10) — червоним, щоб акаунт побачив одразу. */
@@ -7933,6 +8150,7 @@
       : gDone && sNeed ? { st:'bad', t:'Вишивка · не призначено', title:'Не призначено вишивального дизайнера — оберіть у картці (акаунт або власник)' }
       : gDone ? { st:'now', t: sWho ? 'Вишивка · ' + імя(sWho) : 'Вишивка', title: sWho ? 'Працює: ' + nameOf(sWho) : 'У черзі вишивального' }
       : { st:'next', t:'Вишивка' });
+    stg(out[out.length - 1], 'acct:stitch');
     /* ДАЛІ — КОЖЕН КРОК ОКРЕМО (Андрій, 08.10): «у акаунт-менеджера
        повинно бути видно кожен статус»: одяг замовлено → одяг прибув → на
        станках → погодження → можна відправляти → передано курʼєру → в
@@ -7953,25 +8171,31 @@
       var частково = ks.some(function(k){ return k === 'got'; });
       out.push(КРОК(замовлено, gDone && !замовлено, 'Одяг замовлено',
         ks.some(function(k){ return k !== 'none'; }) ? 'Одяг замовлено частково' : 'Одяг не замовлено'));
+      stg(out[out.length - 1], 'prod:wait');
       out.push(КРОК(прибув, замовлено && !прибув, 'Одяг прибув',
         частково ? 'Одяг прибув частково' : ks.some(function(k){ return k === 'way'; }) ? 'Одяг в дорозі' : 'Чекаємо одяг'));
+      stg(out[out.length - 1], 'prod:ready');
     }
     var передрук = уЦеху && typeof D.reprintOpen === 'function' && D.reprintOpen(o);
     out.push(КРОК(після('run'), пк === 'run' || пк === 'redo' || пк === 'ready', 'На станках',
       пк === 'redo' ? 'Передрук' : пк === 'ready' ? 'Готово до роботи' : передрук ? 'На станках · передрук' : 'На станках'));
+    stg(out[out.length - 1], 'prod:run');
     if(пк === 'redo') out[out.length - 1].st = 'bad';
-    out.push(КРОК(після('appr'), пк === 'appr', 'Погодження', 'Погодження · фото з цеху'));
+    out.push(stg(КРОК(після('appr'), пк === 'appr', 'Погодження', 'Погодження · фото з цеху'), 'prod:appr'));
     out.push(КРОК(після('reg'), пк === 'ship' || пк === 'reg', 'Можна відправляти',
       o && o.ttn ? 'Можна відправляти · ТТН ' + o.ttn : D.shipAbroad(o) ? 'Можна відправляти · за кордон' : 'Можна відправляти · без ТТН'));
-    out.push(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'));
+    stg(out[out.length - 1], 'prod:ship');
+    out.push(stg(КРОК(після('courier'), пк === 'courier', 'Передано курʼєру'), 'prod:courier'));
     out.push(КРОК(після('stuck'), пк === 'way' || пк === 'arrived' || пк === 'stuck', 'В дорозі',
       пк === 'arrived' ? 'У відділенні' : пк === 'stuck' ? 'У відділенні понад 3 дні' : 'В дорозі'));
+    stg(out[out.length - 1], 'prod:way');
     if(пк === 'refused') out.push({ st:'bad', t:'Відмова · ' + D.refuseLabel('post'), title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
-    else out.push(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' });
+    else out.push(stg(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' }, 'prod:done'));
     if(пк === 'stuck') out[out.length - 2].st = 'bad';
     /* ВІДМОВА (22.10): сіра кнопка в кінці; поставлена — червона з
        причиною, натиск — «Повернути в роботу». Посилку не забрали —
        червона вище, без кнопки: це факт Нової пошти, не рішення. */
+    out.forEach(function(x){ if(x && x.set && o) x.id = o.orderId; });
     var відм = D.refusalOf(job, o);
     if(відм && відм.manual)
       out.push({ st:'bad', t:'Відмова · ' + відм.label, act:'refuse-back', id: o.orderId,
@@ -8403,7 +8627,8 @@
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
           '"></i>' + esc(крок.label || D.stateLine(job)) + '</span>' +
           (job && job.pin ? '<span class="dz-pin" title="Поставлено вручну ' + esc(dt(job.pin.at)) + '">📌 вручну · ' + esc(String(job.pin.by || '').replace(/@.*/, '') || '—') +
-            (((U.host.role && U.host.role()) === 'owner') ? ' <button type="button" class="dz-pin-off" data-do="pin-off">зняти</button>' : '') + '</span>' : '') +
+            ((U.host.refuseOk && U.host.refuseOk()) ? ' <button type="button" class="dz-pin-off" data-do="pin-off">зняти</button>' : '') + '</span>' : '') +
+          ownerMarksHtml(o) +
           (уЦеху ? '' : clothChip(job, o)) +
           (b2c ? U.waitSelHtml(job, o) : '') + '</span>' +
           (b2c ? '<span class="dz-panel-who">' + U.clientHtml(o, job) + '</span>' : '') +
@@ -9231,7 +9456,7 @@
     var job = p.job, o = p.o;
     var шп = U.shipInfo(job, D.prodAt(job, o));
     return '<div class="dz-panel-h">' + U.jobNo(job) +
-        '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' +
+        '<span class="dz-state">' + esc(D.stepLabel(D.PROD, D.prodAt(job, o))) + '</span>' + ownerMarksHtml(o) +
         (шп ? '<span class="dz-ship-due' + (шп.late ? ' late' : шп.soon ? ' soon' : '') + '" title="' + esc(шп.title || '') + '">📦 ' + esc(шп.txt) + '</span>' : '') +
         clockHtml(D.stageLeft(job, o, 'prod', termHours('prod'))) +
         '<button class="dz-x" data-close>×</button>' +
@@ -9323,7 +9548,7 @@
           (at === 'reg' && D.ttnBad(o) ? ' <em class="dz-c-stk late dz-c-ttnold dz-c-ttnbad" title="«Створити реєстр» цю посилку не візьме">' + esc(D.ttnBad(o)) + '</em>' : '') +
           /* ↻ Перестворити ТТН — і в картці цеху (27.10, Андрій: «ще в самому
              виробництві»), поки посилка не поїхала: «Можна відправляти» й «Реєстр». */
-          (o.ttn && !D.shipAbroad(o) && (at === 'ship' || at === 'reg') && host().ttnRemake ? ' <button type="button" class="dz-b dz-quiet dz-ttn-re" data-do="ttn-remake" title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
+          (o.ttn && !D.shipAbroad(o) && (at === 'ship' || at === 'reg') && host().ttnRemake ? ' <button type="button" class="dz-b dz-quiet dz-ttn-re" data-do="ttn-remake" title="Спершу скасує цю в Новій пошті, тоді створить нову з тими самими даними; не скасується — нової не буде">↻ Перестворити ТТН</button>' : '') +
           /* «Зебра» (27.10): маркування 100×100 цієї ТТН — і в картці цеху. */
           (o.ttn && ZEBRA_COLS.indexOf(at) >= 0 ? ' <button type="button" class="dz-b dz-zb" data-do="zebra" data-ttn="' + esc(o.ttn) + '" data-sender="' + esc(o.ttnSender || '') + '" title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
@@ -9907,6 +10132,88 @@
      поверталась. Тепер хід застосовується до свіжої картки з бази з
      повтором (orderApply) і пише лише стан цеху; «stale» — картку вже рушили
      деінде, показуємо свіжу. */
+  /* ПЕРЕТЯГУВАННЯ ВЛАСНИКА (04.11, Андрій: «перетягнув від правила — щоб
+     воно там і було, в усіх однаково… якщо там накладка — рахується як
+     накладка»). «Виконано» (цех) / «Відправлено» (акаунт) — вікно грошей
+     (U.ownerDoneOpen) → host.ownerDone; «Відмова» — та сама причина, що й
+     кнопкою (host.refuse); з відмови чи з «Виконано вручну» — спершу
+     повертаємо, з питанням. Інша колонка: в акаунта — шпилька картки
+     відділу, як доти; у цеху — звичайний хід, коли він дозволений, інакше
+     o.prodPin (лежить у замовленні, тож видно всім). */
+  /* Позначки власника в шапці картки (04.11) — видно всім; «зняти» — лише власнику. */
+  function ownerMarksHtml(o){
+    var я = !!(U.host.refuseOk && U.host.refuseOk()), out = '';
+    var хто = function(e){ return String(e || '').replace(/@.*/, '') || '—'; };
+    var od = D.ownerDoneOf(o);
+    if(od) out += '<span class="dz-pin is-done" title="Виконано вручну ' + esc(dt(od.at)) + '">✓ виконано вручну · ' + esc(хто(od.by)) +
+      (я ? ' <button type="button" class="dz-pin-off" data-do="owner-done-off">зняти</button>' : '') + '</span>';
+    var pp = !od && D.prodPinOf(o);
+    if(pp) out += '<span class="dz-pin" title="Цех: поставлено вручну ' + esc(dt(pp.at)) + '">📌 цех вручну: «' + esc(D.stepLabel(D.PROD, pp.to)) + '» · ' + esc(хто(pp.by)) +
+      (я ? ' <button type="button" class="dz-pin-off" data-do="prod-pin-off">зняти</button>' : '') + '</span>';
+    return out;
+  }
+  async function ownerDrop(root, p, from, to, цех, me, ord){
+    var job = p.job, o = p.o, h = host();
+    var кінець = цех ? 'done' : 'shipped';
+    var назваК = цех ? D.stepLabel(D.PROD, to) : D.pinLabel(to);
+    var перемалювати = function(){
+      render(root);
+      if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+    };
+    if(to === 'refused'){
+      if(o.status === 'cancel') return;
+      return U.refuseOpen(D.refuseGuess(job, o), async function(k, txt){
+        var назва = k === 'other' ? txt : D.refuseLabel(k);
+        if(!window.confirm('Перенести замовлення ' + U.jobNo(job) + ' у відмову?\nПричина: ' + назва)) return;
+        if(D.ownerDoneOf(o)){
+          if(!h.ownerDoneOff || await h.ownerDoneOff(o, job) !== true) return say('Не записалось — повторіть');
+        }
+        if(!h.refuse) return say('Відмову не записано');
+        await h.refuse(o, job, { reason: k, text: txt, stage: D.chainAt(job, o) });
+        say('Замовлення у відмові: ' + назва);
+        перемалювати();
+      });
+    }
+    if(o.status === 'cancel'){
+      if(!window.confirm('Повернути ' + U.jobNo(job) + ' з відмови в роботу й поставити в «' + назваК + '»?')) return;
+      if(!h.refuseBack) return say('Повернути не вдалось');
+      await h.refuseBack(o, job);
+    }
+    if(to === кінець){
+      if(D.ownerDoneOf(o)) return перемалювати();
+      var борг = 0; try{ борг = h.dueOf ? +h.dueOf(o) || 0 : 0; }catch(e){}
+      return U.ownerDoneOpen({ no: U.jobNo(job), due: борг, ttn: String(o.ttn || '').trim() }, async function(r){
+        if(!h.ownerDone) return say('Недоступно');
+        var res = await h.ownerDone(o, job, r);
+        if(res === true) say('Виконано · ' + U.jobNo(job) + (r.how === 'ttn' ? ' · накладка за ТТН ' + r.ttn + ' привʼяжеться сама' :
+          r.how === 'off' ? ' · оплату поза системою записано' : r.how === 'debt' ? ' · борг лишається у Фінансах' : ''), 5000);
+        else if(res === 'stale') say('Замовлення вже виконане — показано свіжу');
+        else say(typeof res === 'string' && res ? res : 'Не записалось — база не відповіла. Повторіть', 6000);
+        перемалювати();
+      });
+    }
+    if(D.ownerDoneOf(o)){
+      if(!window.confirm('Зняти «Виконано вручну» з ' + U.jobNo(job) + ' і поставити в «' + назваК + '»?\nЗаписана оплата лишається.')) return;
+      if(!h.ownerDoneOff || await h.ownerDoneOff(o, job) !== true) return say('Не записалось — повторіть');
+    }
+    if(ord != null) job.boardOrd = ord;
+    if(!цех){
+      if(to === 'stitchq' && D.acctCanMove(from, to) && !job.pin) return fixAll(root, p, me);
+      if(D.acctCanMove(from, to) && !job.pin && D.acctMove(job, o, to, me))
+        return save(job, o, to === 'client' ? 'У клієнта на погодженні' : to === 'sketchok' ? 'Ескіз узгоджено' : 'Готовий графічний ескіз');
+      if(!D.pinSet(job, to, me)) return say('У цю колонку поставити не можна');
+      return save(job, o, 'Поставлено вручну: «' + D.pinLabel(to) + '» · 📌');
+    }
+    var r2;
+    if(!D.prodPinOf(o) && D.prodCanMove(D.prodAt(job, o), to, o)) r2 = await prodMoveApply(job, o, to, me);
+    else r2 = await orderApply(o, function(x){
+        var at = new Date().toISOString();
+        x.prodPin = { to: String(to), by: String(me || ''), at: at };
+        x.prodPinHist = (Array.isArray(x.prodPinHist) ? x.prodPinHist : []).concat([{ to: String(to), by: String(me || ''), at: at }]).slice(-40);
+      }, function(x){ return !!(x.prodPin && x.prodPin.to === to); });
+    if(r2 === true && to === 'run') prodToTelegram(job, o, true);
+    prodMoveSay(root, job, o, to, r2);
+  }
   async function prodMoveApply(job, o, to, by){
     var r = await orderApply(o, function(x){
         var from = D.prodAt(job, x);
@@ -10003,6 +10310,7 @@
       var зебра = (String(p.o.ttn || '').trim() && ZEBRA_COLS.indexOf(крокП) >= 0) ? { ttn: String(p.o.ttn).trim() + (ттн2 ? ',' + ттн2 : ''), sender: String(p.o.ttnSender || ''), n: ттн2 ? 2 : 1 } : null;
       var днівТ = крокП === 'reg' ? D.ttnDays(p.o) : -1;
       return { id: p.o.orderId, step: крокП, v2: true, zebra: зебра,
+        pin: !!(D.ownerDoneOf(p.o) || D.prodPinOf(p.o)),
         two: D.ship2Live(p.o),
         abroad: D.shipAbroad(p.o),
         ttnOld: днівТ >= 3 ? днівТ : 0,
@@ -10405,7 +10713,8 @@
     var t = o.tagName;
     if(t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT') return;
     var focused = document.activeElement === o;
-    var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0);
+    /* Поле, у якому людина саме пише, не «їсться» ніколи (05.11). */
+    var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0) && !focused;
     if(t === 'SELECT'){
       var want = null;
       [].forEach.call(n.querySelectorAll('option'), function(op){ if(op.hasAttribute('selected')) want = op.getAttribute('value') != null ? op.getAttribute('value') : op.textContent; });
@@ -10496,19 +10805,40 @@
      вставити цілком, як доти. */
   function setHtml(el, html){
     if(el.firstChild && !morphOff()){
-      try{ morphInto(el, html); return; }
+      try{ morphInto(el, html); sayRestore(el); return; }
       catch(e){ console.warn('часткове оновлення — вставляю цілком', e); }
     }
     el.innerHTML = html;
+    sayRestore(el);
   }
   /* Поля біля натиснутої кнопки — їх дія й мала спожити: найближчий предок
      кнопки, у якому є поле. */
+  /* 05.11 (баг у живій CRM: набране «Написати дизайнеру» зникало від
+     «📝 Додати примітку для всіх» чи імені в смузі «✏️ Графічні»). Доти підйом
+     ішов до першого предка з полем — для примітки й «! Проблема» це вся
+     картка (aside.dz-panel), для смуги «хто скільки» — уся сторінка: перевірка
+     на #dzRoot стояла після querySelectorAll. Тепер: кнопки, що поля не
+     надсилають, не «їдять» нічого; кнопка рядка дизайну — лише своє поле
+     (`data-dz` = `data-dzsay`); підйом зупиняється на межах картки / смуги /
+     сторінки ДО пошуку полів. */
+  var EAT_NONE = { 'note-edit':1, 'note-cancel':1, 'load-who':1, 'problem-add':1 };
+  function eatEdge(a){
+    return !a || a.nodeType !== 1 || a.id === 'dzRoot' || !!(a.classList &&
+      (a.classList.contains('dz-panel') || a.classList.contains('dz-panel-b') || a.classList.contains('dz-top') || a.classList.contains('dz-load')));
+  }
   function morphEatFor(b){
-    var a = b && b.parentNode, сх = 0;
+    if(!b || !b.dataset || EAT_NONE[b.dataset.do]) return [];
+    var key = b.getAttribute('data-dz');
+    if(key){
+      var rootE = (b.closest && b.closest('.dz-panel, #dzRoot')) || document;
+      var own = [].filter.call(rootE.querySelectorAll('[data-dzsay]'), function(f){ return f.getAttribute('data-dzsay') === key; });
+      if(own.length) return own;
+    }
+    var a = b.parentNode, сх = 0;
     while(a && a.nodeType === 1 && сх++ < 6){
+      if(eatEdge(a)) break;
       var f = a.querySelectorAll('textarea, input:not([type]), input[type="text"], input[type="number"], input[type="tel"], select');
       if(f.length) return [].slice.call(f);
-      if(a.classList && (a.classList.contains('dz-panel-b') || a.id === 'dzRoot')) break;
       a = a.parentNode;
     }
     return [];
@@ -11925,12 +12255,14 @@
        куди не можна, не підсвічується й нічого не приймає. */
     if(U.tab() === 'prod' || U.tab() === 'print' || U.tab() === 'acct'){
       var цех = U.tab() === 'prod' || U.tab() === 'print';
-      var власник = !цех && (U.host.role && U.host.role()) === 'owner';
-      /* Власник на дошці акаунта тягне будь-яку картку в будь-яку колонку —
-         шпилька (23.10). Решта — лише дозволені ручні переходи. */
+      /* Власник тягне будь-яку картку в будь-яку колонку — на дошці акаунта
+         (шпилька, 23.10) і в цеху (04.11), разом із «Виконано» й «Відмова».
+         Решта — лише дозволені ручні переходи. */
+      var власник = (U.host.role && U.host.role()) === 'owner';
       var тягну = null;
-      var можна = цех ? function(f, t){ var pp = тягну && U.pairOf(тягну.id); return D.prodCanMove(f, t, pp && pp.o); }
-                : власник ? function(f, t){ return !!D.PIN_OK[t]; } : D.acctCanMove;
+      var можна = власник ? function(f, t){ return f !== t && (цех ? D.PROD_IDX[t] != null : (!!D.PIN_OK[t] || t === 'refused')); }
+                : цех ? function(f, t){ var pp = тягну && U.pairOf(тягну.id); return D.prodCanMove(f, t, pp && pp.o); }
+                : D.acctCanMove;
       root.querySelectorAll('.dz-board .dz-col [data-open]').forEach(function(c){
         var w = c.closest('.dz-card-w') || c;
         var звідки = (c.closest('.dz-col') || {}).dataset;
@@ -11968,6 +12300,7 @@
             p.job.boardOrd = ord;
             return save(p.job, p.o, '');
           }
+          if(власник) return ownerDrop(root, p, from, to, цех, me0, ord);
           if(!цех){
             if(D.acctCanMove(from, to) && !(p.job && p.job.pin)){
               if(to === 'stitchq') return fixAll(root, p, me0);
@@ -12102,6 +12435,14 @@
           tdl.disabled = true; tdl.textContent = 'Видаляю…';
           var rd;
           try{ rd = await host().ttnDelete(c.o, яка); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; }
+          /* Нова пошта не скасувала — з картки мовчки не знімаємо (05.11,
+             #2000198): лише коли людина скаже, що скасує в кабінеті НП сама. */
+          if(rd && !rd.ok && rd.force){
+            var самі = false;
+            try{ самі = window.confirm('Накладну не скасовано: ' + rd.why + '.\nПоки вона жива в Новій пошті, нова накладна стане в клієнта другою.\n\n' +
+              'Скасуєте її в кабінеті Нової пошти самі? «OK» — прибрати з картки зараз (вона буде в «Стан системи» як зайва, доки не скасуєте). «Скасувати» — лишити в картці.'); }catch(e){}
+            if(самі){ try{ rd = await host().ttnDelete(c.o, яка, { force: true }); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; } }
+          }
           tdl.disabled = false; tdl.textContent = '✕ Видалити ТТН';
           if(!rd || !rd.ok) return say('Накладну не видалено: ' + ((rd && rd.why) || 'не вдалось'), 6000);
           save(c.job, c.o, 'Накладну видалено' + (rd.note ? ' · ' + rd.note : '') + ' — виправте дані й створіть нову');
@@ -12112,14 +12453,14 @@
         var стараТ = String(c.o.ttn || '').trim();
         if(!стараТ) return say('Накладної ще немає');
         var ок = true;
-        try{ ок = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
+        try{ ок = window.confirm('Перестворити накладну ' + стараТ + '?\n1. Спершу стару скасуємо в Новій пошті. Не скасується — нову НЕ створимо, щоб у клієнта не було двох накладних.\n2. Тоді нова з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена. Бирку на коробці треба буде переклеїти.'); }catch(e){}
         if(!ок) return;
         var стоп = ttnBusy(tre, '↻ Перестворити ТТН');
         var rr;
         try{ rr = await host().ttnRemake(c.o); }catch(e){ rr = String((e && e.message) || e); }
         стоп();
         if(rr === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(c.o.ttn || '')); }
-        say('Накладну не перестворено: ' + (rr || 'Нова пошта відмовила'));
+        say('Накладну не перестворено: ' + (rr || 'Нова пошта відмовила'), 12000); render(root);
       };
       root.querySelectorAll('[data-ship-zebra]').forEach(function(zb){
         if(c && c.o) zb.onclick = function(){ act('zebra', root, { ttn: String(zb.dataset.ttn || c.o.ttn || ''), sender: String(zb.dataset.sender || c.o.ttnSender || '') }); };
@@ -12424,6 +12765,9 @@
         var l = Array.prototype.slice.call(inp.files || []);
         res(many ? l : l[0]);
       };
+      /* Закрили вікно без файлу (05.11): доти обіцянка висіла назавжди, а з
+         нею й «зʼїдання» поля біля 📎 на кожній перемальовці. */
+      inp.addEventListener('cancel', function(){ res(many ? [] : null); });
       inp.click();
     });
   }
@@ -12513,7 +12857,7 @@
        йому дали, ні повернути те, чого не потягне. */
     'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art-only':'', 'dz-stitch-up':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
     'dz-msg':'', 'dz-msg-file':'', 'dz-swap':'', 'dz-reply':'art',
-    'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art',
+    'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art', 'dz-sketch-undo':'art',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
@@ -12930,6 +13274,49 @@
       }).join('') + '</div>',
       function(n){ var v = l.filter(function(x){ return x.n === +n; })[0]; if(v) cb(v); });
   }
+  /* ФІКСАЦІЯ: НА ВИБІР УСЕ, ЩО МОЖНА ПОГОДИТИ (05.11, #2000205: «при
+     фіксації дає 3 варіанти ескізу на вибір, усі без рис, а погодили з
+     рисами»; Андрій: «повинні були всі варіанти, які можна погодити»). Доти
+     вікно показувало лише варіанти на вибір, а обраний варіант ставав новою
+     версією й забирав погодження з пізнішої. Тепер першою — погоджена версія,
+     далі решта версій ескізу, далі варіанти. Версія — дизайн як є (нової
+     версії немає), виріб і колір — у вікні одягу; варіант — як доти.
+     cb({ ver: n }) або cb({ variant: v }). */
+  function fixChoose(u, d, cb){
+    var l = U.varsOf(u);
+    var ok = d ? +d.sketchOk || 0 : 0;
+    var vs = ((d && d.vers) || []).slice().reverse();
+    vs.sort(function(a, b){ return (+b.n === ok ? 1 : 0) - (+a.n === ok ? 1 : 0); });
+    var верс = vs.map(function(v){
+      var pp = D.verParts(v), f = pp.sheet || pp.mock[0] || pp.work[0] || {};
+      return '<button type="button" class="dz-pick-c dz-var-c' + (+v.n === ok ? ' is-ok' : '') + '" data-pick="v' + v.n + '">' +
+        '<i class="dz-var-n">v' + v.n + '</i>' +
+        (f.url ? '<img src="' + esc(f.url) + '" alt="">' : '<span class="dz-var-img is-none">без картинки</span>') +
+        '<span>' + (+v.n === ok ? '✓ Погоджена версія' : 'Версія ескізу') + ' · ' + esc(dt(v.at)) + '</span></button>';
+    }).join('');
+    var вар = l.map(function(v){
+      return '<button type="button" class="dz-pick-c dz-var-c" data-pick="x' + v.n + '">' +
+        '<i class="dz-var-n">' + v.n + '</i>' +
+        (v.mock ? '<img src="' + esc(v.mock) + '" alt="">' : '<span class="dz-var-img is-none">не розміщено</span>') +
+        '<span>Варіант · ' + esc(varLabel(v)) + '</span></button>';
+    }).join('');
+    return U.pickOpen('Що погодив клієнт?',
+      'Версія ескізу — дизайн іде саме такий, виріб і колір — у вікні одягу далі. Варіант — його виріб, колір і дизайн',
+      '<div class="dz-var-ch">' + верс + вар + '</div>',
+      function(k){
+        k = String(k || '');
+        if(k[0] === 'v') return cb({ ver: +k.slice(1) });
+        var v = l.filter(function(x){ return x.n === +k.slice(1); })[0];
+        if(v) cb({ variant: v });
+      });
+  }
+  /* Обрали версію (не варіант): погодження — на ній, варіантів більше не питаємо. */
+  function fixVerPick(u, d, n, by){
+    u.variants = u.variants || {};
+    u.variants.pickVer = +n; u.variants.pickAt = new Date().toISOString(); u.variants.pickBy = String(by || '');
+    if(d && +d.sketchOk !== +n) D.sketchOkMark(d, n, by);
+  }
+  function fixAsk(u){ var vv = u.variants || {}; return U.varsOf(u).length >= 2 && !vv.pick && !vv.pickVer; }
   /* Обраний варіант — у позицію: виріб і колір, а його розміщення й мокап —
      новою версією дизайну, погодженою клієнтом. Повертає номер версії. */
   function varApply(job, u, v, by, dRow){
@@ -12974,8 +13361,12 @@
         }, p.o);
       };
       /* Надсилали варіанти — спершу який обрав клієнт (16.10). */
-      if(U.varsOf(x.u).length >= 2 && !(x.u.variants || {}).pick)
-        return variantChoose(x.u, function(v){ varApply(p.job, x.u, v, me0, x.d); фікс(); });
+      if(fixAsk(x.u))
+        return fixChoose(x.u, x.d, function(r){
+          if(r.variant){ varApply(p.job, x.u, r.variant, me0, x.d); return фікс(); }
+          fixVerPick(x.u, x.d, r.ver, me0);
+          фікс();
+        });
       фікс();
     };
     далі();
@@ -13040,6 +13431,28 @@
       if(!host().readyMake) return say('Готові дизайни доступні з робочого місця');
       return host().readyMake({ name: 'Ескіз ' + U.jobNo(bj), tags: '', pic: ф.pic, arts: ф.arts, files: ф.files, extras: ф.extras,
         from: { orderId: bo.orderId, unit: bu.id } });
+    }
+    /* ── ЕТАП ВРУЧНУ З КАРТКИ (05.11): акаунт і власник ── */
+    if(what === 'stage-set'){
+      var сп = U.pairOf(String((data && data.id) || ''));
+      if(!сп) return;
+      if(!(host().refuseOk && host().refuseOk())) return say('Етап вручну ставить акаунт або власник');
+      var ст = String((data && data.to) || '').split(':'), цехС = ст[0] === 'prod', куди = ст[1] || '';
+      if(!куди) return;
+      var назваС = цехС ? D.stepLabel(D.PROD, куди) : D.pinLabel(куди);
+      var me2 = (host().me && host().me()) || '';
+      if(куди !== 'done' && !window.confirm('Перевести картку ' + U.jobNo(сп.job) + ' у «' + назваС + '» вручну?\nСтоятиме там, доки її не переведуть знову.')) return;
+      /* Одна позначка «вручну» за раз: етап цеху знімає шпильку дошки акаунта, і навпаки. */
+      if(цехС && сп.job.pin){ D.pinClear(сп.job, me2); await save(сп.job, сп.o, ''); }
+      if(!цехС && D.prodPinOf(сп.o)){
+        await orderApply(сп.o, function(x){
+          if(!x.prodPin) return;
+          var at0 = new Date().toISOString();
+          x.prodPinHist = (Array.isArray(x.prodPinHist) ? x.prodPinHist : []).concat([{ off: true, was: String(x.prodPin.to || ''), by: me2, at: at0 }]).slice(-40);
+          delete x.prodPin;
+        }, function(x){ return !x.prodPin; });
+      }
+      return ownerDrop(root, сп, цехС ? D.prodAt(сп.job, сп.o) : D.chainAt(сп.job, сп.o), куди, цехС, me2);
     }
     /* ── ВІДМОВА (22.10): акаунт і власник; повернути — ті самі ── */
     if(what === 'refuse' || what === 'refuse-back'){
@@ -13484,16 +13897,16 @@
          повинно бути, чи він підтверджує»); далі кнопка рахує секунди, а в
          кінці каже, що вийшло — без 25 с тиші. */
       var окТ = true;
-      try{ окТ = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
+      try{ окТ = window.confirm('Перестворити накладну ' + стараТ + '?\n1. Спершу стару скасуємо в Новій пошті. Не скасується — нову НЕ створимо, щоб у клієнта не було двох накладних.\n2. Тоді нова з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена. Бирку на коробці треба буде переклеїти.'); }catch(e){}
       if(!окТ) return;
       var кнТ = root.querySelector('[data-do="ttn-remake"]');
       var стопТ = ttnBusy(кнТ, '↻ Перестворити ТТН');
-      say('Створюю нову накладну…');
+      say('Скасовую стару накладну в Новій пошті, тоді створю нову…');
       var rrT;
       try{ rrT = await host().ttnRemake(o); }catch(e){ rrT = String((e && e.message) || e); }
       стопТ();
       if(rrT === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(o.ttn || '')); }
-      return say('Накладну не перестворено: ' + (rrT || 'Нова пошта відмовила'));
+      render(root); return say('Накладну не перестворено: ' + (rrT || 'Нова пошта відмовила'), 12000);
     }
     if(what === 'reg-manual'){
       if(D.prodAt(job, o) !== 'reg') return say('Картка вже не в «Реєстр»');
@@ -13619,8 +14032,25 @@
       if(host().archOpen) host().archOpen();
       return;
     }
+    if(what === 'owner-done-off' || what === 'prod-pin-off'){
+      if(!(host().refuseOk && host().refuseOk())) return say('Знімає акаунт або власник');
+      if(what === 'owner-done-off'){
+        if(!window.confirm('Зняти «Виконано вручну» з ' + U.jobNo(job) + '? Картка стане туди, де вона за роботою.\nЗаписана оплата лишається.')) return;
+        var rO = host().ownerDoneOff ? await host().ownerDoneOff(o, job) : false;
+        say(rO === true ? '«Виконано вручну» знято' : 'Не записалось — повторіть');
+        return render(root);
+      }
+      var rP = await orderApply(o, function(x){
+          if(!x.prodPin) return false;
+          var at = new Date().toISOString(), me1 = (host().me && host().me()) || '';
+          x.prodPinHist = (Array.isArray(x.prodPinHist) ? x.prodPinHist : []).concat([{ off: true, was: String(x.prodPin.to || ''), by: me1, at: at }]).slice(-40);
+          delete x.prodPin;
+        }, function(x){ return !x.prodPin; });
+      say(rP === true || rP === 'stale' ? 'Шпильку цеху знято — картка стоїть за роботою' : 'Не записалось — повторіть');
+      return render(root);
+    }
     if(what === 'pin-off'){
-      if((U.host.role && U.host.role()) !== 'owner') return say('Шпильку знімає лише власник');
+      if(!(host().refuseOk && host().refuseOk())) return say('Шпильку знімає акаунт або власник');
       if(!D.pinClear(job, (host().me && host().me()) || '')) return;
       return save(job, o, 'Шпильку знято — картка стоїть за роботою');
     }
@@ -13944,7 +14374,7 @@
             var nv = { n: vu.variants.list.length + 1, gid: gid, name: vg ? vg.name : '',
                        color: c0 ? (c0.name || c0.id) : '', colorHex: c0 ? (c0.hex || '') : '' };
             vu.variants.list.push(nv);
-            delete vu.variants.sheet; delete vu.variants.pick;
+            delete vu.variants.sheet; delete vu.variants.pick; delete vu.variants.pickVer;
             save(job, o, 'Варіант ' + nv.n + ' додано — розмістіть дизайн').then(function(){
               varPlace(root, job, o, vu, nv); });
           });
@@ -13966,7 +14396,7 @@
         if(!vv) return;
         vu.variants.list = vl.filter(function(x){ return x !== vv; });
         vu.variants.list.forEach(function(x, i){ x.n = i + 1; });
-        delete vu.variants.sheet; delete vu.variants.pick;
+        delete vu.variants.sheet; delete vu.variants.pick; delete vu.variants.pickVer;
         return save(job, o, 'Варіант прибрано');
       }
       if(what === 'u-var-send') return varSend(job, o, vu);
@@ -14199,7 +14629,7 @@
        what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' || what === 'dz-art-only' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
-       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place'){
+       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place' || what === 'dz-sketch-undo'){
       var dp = String((data && data.dz) || '').split('|');
       /* Розміщення готового дизайну — тут, бо його збирач (workVer) живе в
          цьому блоці; запису графіки ще може не бути, тож до пошуку `dd`. */
@@ -14233,6 +14663,20 @@
         U.DZ_OPEN[dkey] = 1;
         if(D.dzUnseen(dd, m, asRole(), dk)){ D.dzSeen(dd, m, asRole()); return save(job, o, ''); }
         return render(root);
+      }
+      /* «↩ Скасувати узгодження» (04.11): до фіксації. Той самий ескіз на
+         інших товарах узгоджувався разом — і знімається разом. */
+      if(what === 'dz-sketch-undo'){
+        if(!D.sketchOk(dd) || dd.ok) return say('Узгодження вже немає');
+        var nU = +dd.sketchOk;
+        if(!window.confirm('Скасувати «Ескіз узгоджено» (v' + nU + ')?\nЕскіз повернеться «У клієнта на погодженні».')) return;
+        D.sketchOkClear(dd, m);
+        var лU = 0;
+        D.linksOf(job, du).forEach(function(lu){
+          var lg = D.dzList(lu, 'graphic').filter(function(x){ return x.readyMade; })[0];
+          if(lg && D.sketchOk(lg) && !lg.ok && D.sketchOkClear(lg, m)) лU++;
+        });
+        return save(job, o, 'Узгодження ескізу скасовано · v' + nU + (лU ? ' (і на ' + лU + ' товар(ах) з цим ескізом)' : ''));
       }
       /* Передача — на свіжій картці з бази (29.10, jobApply). */
       if(what === 'dz-send'){
@@ -14276,11 +14720,11 @@
         if(!mTxt && !mFs.length) return say('Напишіть щось або прикріпіть файл');
         /* Слово дизайнера — не правка: стан роботи й строк воно не міняє.
            Файлів може бути кілька (20.10) — підпис іде з першим. */
-        if(!mFs.length) D.dzNote(dd, m, mTxt, null, dk);
-        mFs.forEach(function(f, k){ D.dzNote(dd, m, k ? '' : mTxt, f, dk); });
-        D.dzSeen(dd, m, dk);
-        if(mEl) mEl.value = '';
-        return save(job, o, 'Надіслано');
+        return threadSend(root, job, o, dkey, mEl, function(d){
+          if(!mFs.length) D.dzNote(d, m, mTxt, null, dk);
+          mFs.forEach(function(f, k){ D.dzNote(d, m, k ? '' : mTxt, f, dk); });
+          D.dzSeen(d, m, dk);
+        }, 'Надіслано', sayHad(m, mFs.length ? '' : mTxt, mFs[0]));
       }
       /* ЗАМІНА ДИЗАЙНЕРА — ПОКИ ЗАГЛУШКА, І СКАЗАНО ЧЕСНО.
 
@@ -14304,12 +14748,12 @@
         var rEl = dzSayEl(root, dkey);
         var rTxt = rEl ? String(rEl.value || '').trim() : '';
         if(!rTxt) return say('Напишіть відповідь');
-        D.dzSay(dd, m, rTxt, null, 'acct');
         /* Питання відпрацьоване — знімаємо з нього «непрочитане», інакше
            воно висітиме в колонці й після відповіді. */
-        D.dzSeen(dd, m, 'acct');
-        if(rEl) rEl.value = '';
-        return save(job, o, 'Відповідь надіслано');
+        return threadSend(root, job, o, dkey, rEl, function(d){
+          D.dzSay(d, m, rTxt, null, 'acct');
+          D.dzSeen(d, m, 'acct');
+        }, 'Відповідь надіслано', sayHad(m, rTxt));
       }
       /* ── Дві відповіді дизайнера на передачу ──
          «Беру» вмикає роботу; «Не братиму» повертає рядок менеджеру
@@ -14841,8 +15285,12 @@
           }
           /* Крок 2 — фіксація: одяг обовʼязково, далі черга вишивки.
              Надсилали варіанти — спершу який обрав клієнт (16.10). */
-          if(U.varsOf(du).length >= 2 && !(du.variants || {}).pick)
-            return variantChoose(du, function(v){ var n2 = varApply(job, du, v, m, dd); погодити(n2 || n); });
+          if(fixAsk(du))
+            return fixChoose(du, dd, function(r){
+              if(r.variant){ var n2 = varApply(job, du, r.variant, m, dd); return погодити(n2 || n); }
+              fixVerPick(du, dd, r.ver, m);
+              погодити(r.ver);
+            });
           clothOpen(du, 'Фіксація · v' + n + ' · одяг', function(st){
             clothApply(du, st, m);
             /* Товари з тим самим ескізом (18.10) фіксуються тут же, по черзі. */
@@ -14865,10 +15313,13 @@
         if(vs.length === 1) return погодити(vs[0].n);
         /* Фіксація — тієї версії, яку клієнт уже погодив: питати вдруге нема про що. */
         if(дія === 'dz-ok' && dk === 'graphic' && D.sketchOk(dd)) return погодити(+dd.sketchOk);
+        /* Надіслати — можна кілька версій разом (04.11): клієнт обирає з них. */
+        var кілька = дія === 'dz-tell';
         return U.pickOpen(
           дія === 'dz-ok' ? (dk === 'stitch' ? 'Яку версію вишивки погоджуєте' : 'Яку версію погодив клієнт')
-                          : 'Яку версію надіслати',
-          'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
+                          : 'Які версії надіслати',
+          кілька ? 'Версій ' + vs.length + ' — позначте одну чи кілька, підуть разом'
+                 : 'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
           vs.slice().reverse().map(function(v){
             var vpp = D.verParts(v);
             var f = vpp.sheet || vpp.mock[0] || vpp.work[0] || {};
@@ -14879,7 +15330,12 @@
                 (v.sentToClient ? ' · надіслано' : '') + '</i></span>' +
             '</button>';
           }).join(''),
-          function(n){ погодити(n); });
+          кілька ? function(l){
+              var ns = l.map(Number).filter(function(x){ return x > 0; }).sort(function(a, b){ return a - b; });
+              if(ns.length === 1) return погодити(ns[0]);
+              return act('dz-tell', root, { dz: dkey, vs: ns });
+            } : function(n){ погодити(n); },
+          кілька ? { multi: true, go: 'Надіслати обрані' } : null);
       }
       /* ══════════ НАДІСЛАТИ КЛІЄНТУ ══════════
 
@@ -14902,6 +15358,49 @@
            клієнту, а потім тільки зберігала карточку»): замовлення ще не в
            базі — надіслане не мало б куди лягти. Спершу «Створити замовлення». */
         if(o && o.draft) return say('Спершу натисніть «Створити замовлення» — тоді надсилайте клієнту', 6000);
+        /* КІЛЬКА ВЕРСІЙ РАЗОМ (04.11, #2000337: дизайнер зробив кілька
+           варіантів ескізу — клієнт обирає). Один текст (скрипт першої чи
+           наступної версії, {версія} → «v1, v2, v3»), одне підтвердження з
+           усіма аркушами, далі кожен аркуш — окремою картинкою (Instagram
+           бере одну на повідомлення); кожна версія, що дійшла, — «Надіслано». */
+        var обр = (data && Array.isArray(data.vs)) ? (dd.vers || []).filter(function(x){ return data.vs.indexOf(+x.n) >= 0; }) : [];
+        if(обр.length > 1){
+          if(!host().tellPic) return say('Надсилання картинок недоступне');
+          var аркуші = [];
+          for(var mi = 0; mi < обр.length; mi++){
+            var mv = обр[mi], ма = D.verParts(mv).sheet;
+            if((!ма || !ма.url) && !D.verParts(mv).mock.length && D.verParts(mv).work.length) ма = D.verParts(mv).work[0];
+            if(!ма || !ма.url){
+              say('Збираю аркуш v' + mv.n + '…');
+              ма = await sheetGet(job, o, du, mv);
+              if(!ма || !ма.url) return say('Аркуш версії ' + mv.n + ' не зібрався — нема чого слати клієнту');
+              await save(job, o, '');
+            }
+            аркуші.push({ v: mv, url: ма.url });
+          }
+          var першаM = !(dd.vers || []).some(function(x){ return x.sentToClient; });
+          var ключM = dd.readyMade && першаM ? 'ready' : першаM ? 'design1' : 'design2';
+          /* {версія} у скрипті стає «v» + номер — тож передаємо «1, v2, v3». */
+          var номери = аркуші.map(function(x){ return 'v' + x.v.n; }).join(', ');
+          var txtM = '';
+          try{ txtM = (host().script && host().script(o, ключM, { v: номери.slice(1) })) || ''; }catch(e){}
+          var остM = await tellConfirm(аркуші[0].url, txtM, U.unitNo(job, du) + ' · версії ' + номери,
+            host().scriptSave ? function(t){ return host().scriptSave(o, ключM, t, { v: номери.slice(1) }); } : null,
+            аркуші.slice(1).map(function(x){ return x.url; }));
+          if(остM === null) return;
+          say('Надсилаю ' + аркуші.length + ' версії…');
+          var дійшли = [], недійшли = [];
+          for(var mx = 0; mx < аркуші.length; mx++){
+            var okM = false;
+            try{ okM = await host().tellPic(o, аркуші[mx].url, mx === 0 ? остM : ''); }catch(e){ console.error(e); }
+            if(okM){ аркуші[mx].v.sentToClient = new Date().toISOString(); D.dzTold(dd, m, аркуші[mx].v.n); дійшли.push('v' + аркуші[mx].v.n); }
+            else{ недійшли.push('v' + аркуші[mx].v.n); if(mx === 0) break; }
+          }
+          if(!дійшли.length) return say('Не надіслалось — перевірте привʼязку розмови');
+          return save(job, o, недійшли.length
+            ? 'Надіслано ' + дійшли.join(', ') + ', але не дійшли: ' + недійшли.join(', ') + ' — надішліть їх ще раз'
+            : 'Надіслано клієнту ' + дійшли.length + ' версії: ' + дійшли.join(', '));
+        }
         var tv = (dd.vers || []).filter(function(x){ return +x.n === +(data && data.v); })[0]
                  || dd.vers[dd.vers.length - 1];
         if(!tv) return say('Версії ще немає');
@@ -14996,20 +15495,20 @@
         var pEl = dzSayEl(root, dkey);
         var pTxt = pEl ? String(pEl.value || '').trim() : '';
         var pfs = await uploadMany('');
-        if(!pfs.length) return;
-        pfs.forEach(function(f, k){ D.dzSay(dd, m, k ? '' : pTxt, f, 'acct'); });
-        D.dzSeen(dd, m, 'acct');
-        if(pEl) pEl.value = '';
-        return save(job, o, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру');
+        if(!pfs || !pfs.length) return;
+        return threadSend(root, job, o, dkey, pEl, function(d){
+          pfs.forEach(function(f, k){ D.dzSay(d, m, k ? '' : pTxt, f, 'acct'); });
+          D.dzSeen(d, m, 'acct');
+        }, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру', sayHad(m, '', pfs[0]));
       }
       if(what === 'dz-note'){
         var nEl = dzSayEl(root, dkey);
         var nTxt = nEl ? String(nEl.value || '').trim() : '';
         if(!nTxt) return say('Напишіть щось');
-        D.dzSay(dd, m, nTxt, null, 'acct');
-        D.dzSeen(dd, m, 'acct');
-        if(nEl) nEl.value = '';
-        return save(job, o, 'Правку надіслано дизайнеру');
+        return threadSend(root, job, o, dkey, nEl, function(d){
+          D.dzSay(d, m, nTxt, null, 'acct');
+          D.dzSeen(d, m, 'acct');
+        }, 'Правку надіслано дизайнеру', sayHad(m, nTxt));
       }
       if(what === 'dz-fix'){
         return U.fixOpen(async function(txt, file){
@@ -15034,9 +15533,8 @@
         var sEl = dzSayEl(root, dkey);
         var txt = sEl ? String(sEl.value || '').trim() : '';
         if(!txt) return say('Напишіть, що саме поміняти');
-        D.dzSay(dd, m, txt, null, 'acct');
-        if(sEl) sEl.value = '';
-        return save(job, o, 'Правку надіслано');
+        return threadSend(root, job, o, dkey, sEl, function(d){ D.dzSay(d, m, txt, null, 'acct'); },
+          'Правку надіслано', sayHad(m, txt));
       }
       if(what === 'dz-ok'){
         /* «Ескіз погоджений» — це слово КЛІЄНТА, після якого робота йде

@@ -268,5 +268,70 @@ console.log('═══ 14. ДВІ ПОСИЛКИ — ДВІ НАКЛАДНІ О�
 }
 
 console.log('');
+console.log('═══ 15. «ВИКОНАНО» ВЛАСНИКОМ: ОПЛАЧЕНО ПОЗА СИСТЕМОЮ (04.11) ═══');
+{
+  const o = { id:'V1', orderId:'2000888', totalPrice:1000, ownerDone:{ at:'2026-11-04T10:00:00.000Z', by:'a@x', how:'off', sum:700, note:'готівка' },
+    payments:[{ sum:300, at:'2026-11-01T10:00:00.000Z', kind:'prepay' },
+              { sum:700, at:'2026-11-04T10:00:00.000Z', kind:'other', by:'a@x', note:'готівка', ownerDone:true, acc:'поза системою' }] };
+  ok(M.paid(o, []).sum === 1000 && M.due(o, []) === 0, 'запис поза системою рахується, як готівка: сплачено 1000, борг 0', M.paid(o, []).sum + ' / ' + M.due(o, []));
+  const a = M.audit([o], [], { now: Date.now(), np: {}, accs: [] }).filter(x => x.kind === 'owner_off');
+  ok(a.length === 1 && a[0].sum === 700 && a[0].sev === 'amber' && /поза системою/.test(a[0].text) && /готівка/.test(a[0].text),
+    'Звірка: окремий пункт owner_off — сума, як, хто', JSON.stringify(a));
+  ok(M.keyOf(a[0]) === 'owner_off:2000888', 'ключ пункту — з номером замовлення (позначка «Гаразд» не закриває чужі)', M.keyOf(a[0] || {}));
+  const ok1 = JSON.parse(JSON.stringify(o)); ok1.moneyOk = { 'owner_off:2000888': 1 };
+  ok(!M.audit([ok1], [], { now: Date.now(), np: {}, accs: [] }).some(x => x.kind === 'owner_off'), '«Гаразд» закриває пункт', '');
+  const звичайна = { id:'V2', orderId:'2000889', totalPrice:500, payments:[{ sum:500, at:'2026-11-01T10:00:00.000Z', kind:'other' }] };
+  ok(!M.audit([звичайна], [], { now: Date.now(), np: {}, accs: [] }).some(x => x.kind === 'owner_off'), 'звичайна готівка руками — без пункту owner_off', '');
+}
+
+console.log('═══ 16. ОДИН ІНДЕКС РУХІВ НА ПІДРАХУНОК — ТІ САМІ ГРОШІ (04.11) ═══');
+{
+  /* Еталон — ядро до індексу (tests/money-core-old.js). Випадкові, але
+     відтворювані дані: копії з payId, перенесені й відвʼязані рухи, витрати,
+     карта wait/ok/no, однакові id, null, номер з пробілом і числом. */
+  const OLD = createRequire(import.meta.url)(path.join(ROOT, 'tests/money-core-old.js'));
+  let seed = 7; const rnd = n => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) % n; };
+  const NO = ['5000001', '5000002', '5000003', '1000001', '1000002', ' 5000001', '', '9999'];
+  const pays = [];
+  for(let i = 0; i < 400; i++){
+    if(i % 97 === 5){ pays.push(null); continue; }
+    const k = rnd(NO.length);
+    pays.push({ id: 'p' + (i % 113 === 0 ? 1 : i), amount: rnd(5) ? 100 + rnd(900) : -rnd(500), orderId: k === 7 && i % 2 ? 9999 : NO[k],
+      src: ['mono', 'privat', 'np', 'card'][rnd(4)], tag: ['prepay', 'cod', '', 'own'][rnd(4)], ttn: rnd(3) ? '' : '2045' + rnd(50),
+      at: '2026-10-' + String(1 + rnd(28)).padStart(2, '0') + 'T' + String(rnd(24)).padStart(2, '0') + ':00:00Z',
+      check: rnd(4) ? undefined : { state: ['wait', 'ok', 'no'][rnd(3)] }, shot: rnd(2) ? 'x.jpg' : '' });
+  }
+  const orders = NO.filter(Boolean).map((no, j) => ({ id: 'o' + j, orderId: no.trim(), totalPrice: 3000 + j * 500, status: j === 4 ? 'cancel' : 'new',
+    ttn: j % 2 ? '2045' + j : '', ttnCod: 700, npSt: { code: '9', at: '2026-10-01T00:00:00Z' },
+    payments: pays.filter((p, i) => p && i % 7 === j).map(p => ({ payId: p.id, sum: p.amount, at: p.at }))
+      .concat([{ sum: 250 + j, at: '2026-10-02T00:00:00Z', kind: 'other' }, { payId: 'нема' + j, sum: 99, at: '2026-04-01T00:00:00Z' }]) }));
+  const J = x => JSON.stringify(x);
+  const one = (m, o) => J([m.paid(o, pays), m.due(o, pays), m.state(o, pays), m.unverified(o, pays), m.codFor(o, pays)]);
+  let діл = 0, разом = 0;
+  orders.forEach(o => {
+    const був = one(OLD, o), без = one(M, o), з = M.batch(pays, () => one(M, o));
+    разом++; if(був !== без || був !== з) діл++;
+  });
+  ok(!діл, 'paid / due / state / unverified / codFor — однакові з еталоном і в batch, і без (' + разом + ' замовлень, ' + pays.length + ' рухів)',
+    'розходиться в ' + діл + ' з ' + разом);
+  const opt = { now: NOW, np: { '20451': { code: '9', at: '2026-10-01T00:00:00Z' } }, accs: [{ id: 'a1', bank: 'mono' }], ordersLoaded: true };
+  /* Звірка й доти не приймала null серед рухів (у базі їх немає). */
+  const pa = pays.filter(Boolean);
+  ok(J(M.audit(orders, pa, opt)) === J(OLD.audit(orders, pa, opt)) && M.audit(orders, pa, opt).length > 3,
+    'Звірка — та сама, пункт у пункт (' + M.audit(orders, pa, opt).length + ' пунктів)', 'Звірка розійшлась з еталоном');
+  /* Індекс живе лише на час batch: рух, доданий після, рахується. */
+  const o = orders[0];
+  const до = M.batch(pays, () => M.paid(o, pays).sum);
+  pays.push({ id: 'новий', amount: 1000, orderId: o.orderId, src: 'mono', at: '2026-10-29T00:00:00Z' });
+  ok(M.paid(o, pays).sum === до + 1000, 'після batch новий рух рахується одразу (індекс не завис)', 'новий рух не рахується');
+  const вBatch = M.batch(pays, () => { pays.push({ id: 'ще', amount: 500, orderId: o.orderId, src: 'mono', at: '2026-10-29T01:00:00Z' }); return M.paid(o, pays).sum; });
+  ok(вBatch === до + 1500, 'рух, доданий усередині batch, теж рахується (довжина змінилась — без індексу)', 'усередині batch: ' + вBatch);
+  let впало = false; try{ M.batch(pays, () => { throw new Error('x'); }); }catch(e){ впало = true; }
+  pays.push({ id: 'після', amount: 1, orderId: o.orderId, src: 'mono', at: '2026-10-30T00:00:00Z' });
+  ok(впало && M.paid(o, pays).sum === до + 1501, 'помилка всередині batch не лишає індекс висіти', 'індекс завис після помилки');
+  ok(M.paid(o, null).sum === OLD.paid(o, null).sum && M.batch(null, () => 5) === 5, 'рухи не завантажені (null) — як доти', 'null');
+}
+
+console.log('');
 console.log(bad ? 'розходжень: ' + bad + ' — ЗМІНА ЛАМАЄ ГРОШОВЕ ЯДРО' : 'грошове ядро тримає всі правила');
 process.exit(bad ? 1 : 0);

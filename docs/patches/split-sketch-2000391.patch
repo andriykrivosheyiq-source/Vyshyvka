@@ -1,0 +1,642 @@
+diff --git a/.githooks/pre-commit b/.githooks/pre-commit
+index 64eec87..fb2ff15 100755
+--- a/.githooks/pre-commit
++++ b/.githooks/pre-commit
+@@ -232,6 +232,15 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-chat\.js
+   }
+   echo "✓ фон пише одна вкладка; без відмов і бурі журналу"
+ fi
++# 04.11: «⇢ Окремим ескізом» — два ескізи в одній розмові розділяються (#2000391).
++if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/split-sketch\.mjs)'; then
++  node tests/split-sketch.mjs >/tmp/lq-split.log 2>&1 || {
++    echo "✗ «Окремим ескізом» зламане — коміт зупинено. Подробиці: /tmp/lq-split.log"
++    grep '✗' /tmp/lq-split.log
++    exit 1
++  }
++  echo "✓ два ескізи в одній розмові — розділяються"
++fi
+ # 04.11: кілька версій дизайну — одним надсиланням.
+ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/multi-send\.mjs)'; then
+   node tests/multi-send.mjs >/tmp/lq-multi-send.log 2>&1 || {
+diff --git a/CLAUDE.md b/CLAUDE.md
+index a36bffc..bace4a8 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -655,6 +655,15 @@ stage, at, by, prev} для аналітики, `o.refuseHist` для істор
+ (`dz-sketch-undo` → `D.sketchOkClear`, і на товарах з тим самим ескізом),
+ слід — `d.sketchUndo` в історії картки; після фіксації — «Зняти», як доти.
+ Перевіряє `tests/multi-send.mjs` §5 (у pre-commit).
++**«⇢ Окремим ескізом»** (#2000391: котик і рицар в одній розмові — рицаря
++зафіксували, котика ніяк): у блоці графіки, коли є непогоджена версія
++(`D.splitVers`: не `ok.ver`, не `sketchOk`, лишається хоч одна; не
++`readyMade`) → яку → куди: «ще одне нанесення тут» (лише незамкнена
++позиція, `placeLocked`), інша незамкнена позиція, «＋ Нова позиція» →
++`jobApply` → `D.dzSplit`: версія з файлами й `sentToClient` стає v1 (чи
++наступною) у порожньому непочатому записі графіки цілі або в новому, з
++тим самим дизайнером, `review`; `v.movedFrom`; подія `move` в обох
++розмовах. Погоджене не чіпається. `tests/split-sketch.mjs` (у pre-commit).
+ 
+ ## Власник ставить картку куди хоче — однаково в усіх; гроші чесно (04.11.2026)
+ 
+diff --git a/build.json b/build.json
+index 0ee6de9..5db2011 100644
+--- a/build.json
++++ b/build.json
+@@ -1 +1 @@
+-{"v":"f43495286d","at":"2026-11-04T10:54:19Z"}
++{"v":"57628c0133","at":"2026-11-04T14:04:33Z"}
+diff --git a/build/index.html b/build/index.html
+index eaf73e3..6a5a1d3 100644
+--- a/build/index.html
++++ b/build/index.html
+@@ -6975,7 +6975,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+ <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
+      конструктором: той на нього спирається. -->
+ <!-- Випадаючі списки одного вигляду на весь Loomiq -->
+-<script src="/loomiq-select.js?v=f43495286d"></script>
++<script src="/loomiq-select.js?v=57628c0133"></script>
+ <script src="/loomiq-fingerprint.js?v=03b64d7427"></script>
+ <script src="/loomiq-pricing.js?v=03b64d7427"></script>
+ <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
+diff --git a/docs/BUGS.md b/docs/BUGS.md
+index 0cb4972..b5b527a 100644
+--- a/docs/BUGS.md
++++ b/docs/BUGS.md
+@@ -2039,3 +2039,4 @@ Cloudflare дає 50 звернень за прогін: на рахунку з
+ - **04.11 — #2000391: два різні ескізи в одній розмові, фіксується один.**
+   Відкрите, відкладено Андрієм; план — `docs/PLAN-2026-11.md`, розділ 6
+   («⇢ Окремим ескізом»: нове нанесення або нова позиція).
++  **Зроблено того ж дня**: «⇢ Окремим ескізом». Тест: `split-sketch`.
+diff --git a/docs/PLAN-2026-11.md b/docs/PLAN-2026-11.md
+index a32abe9..b3c6ecf 100644
+--- a/docs/PLAN-2026-11.md
++++ b/docs/PLAN-2026-11.md
+@@ -155,23 +155,10 @@
+ - #2000452: «Історія → Версії картки» (власник) — скриншоти.
+ - #5000973: те саме.
+ 
+-### Відкладено (Андрій, 04.11: «поки відкладемо, запиши»)
+-
+-- **#2000391: два різні ескізи в одній розмові — фіксується лише один.**
+-  Дизайнер здав обидва ескізи як версії ОДНОГО дизайну (одна розмова), а
+-  погодження й фіксація — на дизайн, не на версію. Буває обидва випадки
+-  (Андрій: «тут всі види є»). План, погоджений по суті, не зроблений:
+-  біля непогодженої версії — «⇢ Окремим ескізом» з вибором куди:
+-  1) «Ще одне нанесення на цьому ж виробі» (перед/спина) — новий запис
+-     графіки в тій самій позиції (`dzList(u,'graphic')`, як `dz-add`), той
+-     самий дизайнер; позиція далі лише коли погоджені обидва (`graphicDone`);
+-  2) «Інший виріб — нова позиція» — нова позиція з цим ескізом; модель,
+-     колір, розмір, кількість — при її «Фіксації», ціна — коли оберуть виріб.
+-  Погоджене й зафіксоване не чіпається; переносити лише непогоджену
+-  версію; «Надіслано клієнту» й файли — разом із нею; у розмові з
+-  дизайнером — «v2 перенесено окремим ескізом у …»; в історії картки — хто
+-  й коли. Обережно: позиція, що вже у вишивці (`placeLocked`), — не додавати
+-  їй нанесення мовчки. Тест — новий `tests/split-sketch.mjs`.
++### Відкладене — зроблено
++
++- #2000391 («два ескізи в одній розмові») — зроблено 04.11 того ж дня
++  («⇢ Окремим ескізом», `tests/split-sketch.mjs`).
+ 
+ ## 7. Журнал змін плану
+ 
+@@ -196,3 +183,5 @@
+ - 04.11 — «↩ Скасувати узгодження» ескізу до фіксації (#2000172).
+ - 04.11 — #2000391 («два ескізи в одній розмові») відкладено, план — у
+   розділі 6.
++- 04.11 — #2000391 зроблено: «⇢ Окремим ескізом» (інше нанесення, інша
++  чи нова позиція).
+diff --git a/horeca/index.html b/horeca/index.html
+index 7c84d64..9ae6cc6 100644
+--- a/horeca/index.html
++++ b/horeca/index.html
+@@ -6984,7 +6984,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+ <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
+      конструктором: той на нього спирається. -->
+ <!-- Випадаючі списки одного вигляду на весь Loomiq -->
+-<script src="/loomiq-select.js?v=f43495286d"></script>
++<script src="/loomiq-select.js?v=57628c0133"></script>
+ <script src="/loomiq-fingerprint.js?v=47d72a4bcc"></script>
+ <script src="/loomiq-pricing.js?v=47d72a4bcc"></script>
+ <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
+diff --git a/index.html b/index.html
+index ddce7db..cbdb50e 100644
+--- a/index.html
++++ b/index.html
+@@ -6960,12 +6960,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+ <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
+      конструктором: той на нього спирається. -->
+ <!-- Випадаючі списки одного вигляду на весь Loomiq -->
+-<script src="loomiq-select.js?v=f43495286d"></script>
+-<script src="loomiq-fingerprint.js?v=f43495286d"></script>
+-<script src="loomiq-pricing.js?v=f43495286d"></script>
++<script src="loomiq-select.js?v=57628c0133"></script>
++<script src="loomiq-fingerprint.js?v=57628c0133"></script>
++<script src="loomiq-pricing.js?v=57628c0133"></script>
+ <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
+      Підключається після основного скрипта: він читає його глобальні змінні. -->
+-<script src="loomiq-constructor.js?v=f43495286d"></script>
++<script src="loomiq-constructor.js?v=57628c0133"></script>
+ 
+ <script>
+ /* Interactive logo designer — step 02 */
+diff --git a/k/index.html b/k/index.html
+index fdf339a..efa310d 100644
+--- a/k/index.html
++++ b/k/index.html
+@@ -180,11 +180,11 @@
+ </div></nav>
+ 
+ <script src="/catalog-base.js"></script>
+-<script src="/loomiq-pricing.js?v=f43495286d"></script>
++<script src="/loomiq-pricing.js?v=57628c0133"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+ <script src="/an.js"></script>
+-<script src="/loomiq-kit.js?v=f43495286d"></script>
++<script src="/loomiq-kit.js?v=57628c0133"></script>
+ <script>
+ (function(){
+   'use strict';
+diff --git a/loomiq-design.js b/loomiq-design.js
+index 3022332..af8053a 100644
+--- a/loomiq-design.js
++++ b/loomiq-design.js
+@@ -680,6 +680,40 @@
+     delete x.sketchOk; delete x.sketchOkBy; delete x.sketchOkAt;
+     return true;
+   }
++  /* Які версії можна винести окремим ескізом (04.11): не погоджена й не
++     узгоджена, і в дизайні лишається хоч одна. */
++  function splitVers(d){
++    var l = (d && d.vers) || [];
++    if(l.length < 2 || (d && d.readyMade)) return [];
++    var okN = d.ok && d.ok.ver ? +d.ok.ver : 0, skN = d.sketchOk ? +d.sketchOk : 0;
++    return l.filter(function(v){ return +v.n !== okN && +v.n !== skN; });
++  }
++  /* Перенести версію n з дизайну d в окремий запис графіки позиції toU.
++     Порожній непочатий запис там (без версій, не погоджений) — беремо його,
++     інакше новий; виконавець той самий. Версія — з файлами, «надіслано
++     клієнту» й номером у новому місці; звідки — у v.movedFrom і подією в
++     обох розмовах. Повертає новий запис або null. */
++  function dzSplit(d, n, toU, by, from){
++    var v = ((d && d.vers) || []).filter(function(x){ return +x.n === +n; })[0];
++    if(!v || !toU || splitVers(d).indexOf(v) < 0) return null;
++    var at = nowIso(), me = String(by || '');
++    var t = dzList(toU, 'graphic').filter(function(x){ return !x.readyMade && !x.ok && !(x.vers || []).length; })[0];
++    if(!t){
++      t = dzNew();
++      ['who', 'sentAt', 'takenAt', 'attachedAt', 'pool'].forEach(function(k){ if(d[k] != null) t[k] = d[k]; });
++      dzList(toU, 'graphic').push(t);
++    } else if(!t.who && d.who){ t.who = d.who; t.sentAt = t.sentAt || d.sentAt; t.takenAt = t.takenAt || d.takenAt; }
++    d.vers = d.vers.filter(function(x){ return x !== v; });
++    var nn = (t.vers || []).length + 1;
++    var nv = JSON.parse(JSON.stringify(v));
++    nv.n = nn; nv.movedFrom = { n: +v.n, unit: String((from && from.unit) || ''), at: at, by: me };
++    (t.vers = t.vers || []).push(nv);
++    t.status = 'review';
++    (t.thread = t.thread || []).push({ at: at, by: me, kind: 'ver', text: 'Версія ' + nn, seen: [me] });
++    t.thread.push({ at: at, by: me, kind: 'move', seen: [me], text: 'Перенесено окремим ескізом: v' + v.n + (from && from.label ? ' з ' + from.label : '') + ' → тут v' + nn });
++    (d.thread = d.thread || []).push({ at: at, by: me, kind: 'move', seen: [me], text: 'v' + v.n + ' перенесено окремим ескізом' + (from && from.to ? ' → ' + from.to : '') });
++    return t;
++  }
+   function sketchOkMark(x, n, by){
+     if(!x) return null;
+     var l = x.vers || [], last = l[l.length - 1];
+@@ -3214,7 +3248,7 @@
+     ttnValid: ttnValid, readyStray: readyStray, readyStrayRetire: readyStrayRetire, graphicLive: graphicLive, readyAttach: readyAttach, baseAttach: baseAttach, sizeRescale: sizeRescale, dzPeers: dzPeers, dzSubmit: dzSubmit, readyArts: readyArts, repeatAttach: repeatAttach, pastFiles: pastFiles, readyGraphic: readyGraphic, readyStitch: readyStitch, readyDetach: readyDetach, readyToBase: readyToBase, kindForce: kindForce, readySync: readySync,
+     linkOf: linkOf, linkMain: linkMain, linksOf: linksOf, linkArts: linkArts, linkUrls: linkUrls, linkAttach: linkAttach, linkStale: linkStale, linkSync: linkSync,
+     DZ_HOURS: DZ_HOURS, DZ_NEW_H: 4, DZ_FIX_H: 12, NIGHT_TILL: NIGHT_TILL, dzRound: dzRound,
+-    dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok, sketchOkClear: sketchOkClear,
++    dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok, sketchOkClear: sketchOkClear, splitVers: splitVers, dzSplit: dzSplit,
+     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
+     offDay: offDay, setDayOff: setDayOff,
+     stageLeft: stageLeft, trackFrom: trackFrom, STAGE: STAGE,
+@@ -4728,7 +4762,7 @@
+             /* Подія — не репліка. «Передано в роботу» ніхто не «казав», це
+                сталось; і поставлене бульбашкою поруч зі словами воно
+                змушує щоразу розрізняти, де людина, а де система. */
+-            var подія = !v && ['sent','take','no','ok','tell','who','queue'].indexOf(m.kind) >= 0;
++            var подія = !v && ['sent','take','no','ok','tell','who','queue','move'].indexOf(m.kind) >= 0;
+             if(подія)
+               return '<div class="dz-ch-e"><span>' +
+                 esc(m.kind === 'who' && m.who
+@@ -5283,6 +5317,13 @@
+           ? '<button class="dz-b" data-do="dz-place" data-dz="' + key +
+             '" title="Посунути чи змінити розмір нанесення — буде нова версія">✎ Розміщення</button>'
+           : '') +
++        /* ДВА РІЗНІ ЕСКІЗИ В ОДНІЙ РОЗМОВІ (04.11, #2000391: котик і рицар
++           — рицаря зафіксували, котика вже ніяк). Непогоджену версію —
++           окремим ескізом: ще одне нанесення тут, інша позиція чи нова. */
++        ((kind === 'graphic' && !d.readyMade && D.splitVers(d).length)
++          ? '<button class="dz-b" data-do="dz-split" data-dz="' + key +
++            '" title="Дизайнер здав сюди різні ескізи — винести версію окремим ескізом зі своїм погодженням і фіксацією">⇢ Окремим ескізом</button>'
++          : '') +
+         /* Вишивку клієнту не показуємо — її погоджує лише менеджер. */
+         (kind === 'stitch' ? ''
+           : надіслано
+@@ -12735,7 +12776,7 @@
+        йому дали, ні повернути те, чого не потягне. */
+     'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art-only':'', 'dz-stitch-up':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
+     'dz-msg':'', 'dz-msg-file':'', 'dz-swap':'', 'dz-reply':'art',
+-    'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art', 'dz-sketch-undo':'art',
++    'dz-tell-pick':'art', 'dz-ok-pick':'art', 'dz-place':'art', 'dz-sketch-undo':'art', 'dz-split':'art',
+     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
+     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
+     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
+@@ -14438,7 +14479,7 @@
+        what === 'dz-work' || what === 'dz-stitch-up' || what === 'dz-place' || what === 'dz-art-only' ||
+        what === 'dz-msg' || what === 'dz-msg-file' ||
+        what === 'dz-swap' || what === 'dz-reply' ||
+-       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place' || what === 'dz-sketch-undo'){
++       what === 'dz-tell-pick' || what === 'dz-ok-pick' || what === 'dz-ready-place' || what === 'dz-sketch-undo' || what === 'dz-split'){
+       var dp = String((data && data.dz) || '').split('|');
+       /* Розміщення готового дизайну — тут, бо його збирач (workVer) живе в
+          цьому блоці; запису графіки ще може не бути, тож до пошуку `dd`. */
+@@ -14487,6 +14528,46 @@
+         });
+         return save(job, o, 'Узгодження ескізу скасовано · v' + nU + (лU ? ' (і на ' + лU + ' товар(ах) з цим ескізом)' : ''));
+       }
++      /* «⇢ ОКРЕМИМ ЕСКІЗОМ» (04.11, #2000391). Яку версію → куди → на
++         свіжій картці (jobApply): у fn позицію й дизайн шукаємо наново. */
++      if(what === 'dz-split'){
++        var можна = D.splitVers(dd);
++        if(!можна.length) return say('Окремо винести нічого: погоджену версію не переносимо, а одна мусить лишитись');
++        var uid = du.id, idx = +dp[2] || 0;
++        var куди = function(n){
++          var інші = U.unitsOf(job).filter(function(x){ return x && x.id !== uid && !D.placeLocked(x); });
++          var мітка = function(x){ return U.unitNo(job, x) + (x.name ? ' · ' + x.name : '') + (x.color ? ' · ' + x.color : ''); };
++          var карт = (D.placeLocked(du) ? '' :
++              '<button type="button" class="dz-pick-c" data-pick="here"><span class="dz-pick-n">Ще одне нанесення тут<i>той самий виріб · ' + esc(U.unitNo(job, du)) + '</i></span></button>') +
++            інші.map(function(x){
++              return '<button type="button" class="dz-pick-c" data-pick="' + esc(x.id) + '"><span class="dz-pick-n">' + esc(мітка(x)) + '<i>інша позиція цього замовлення</i></span></button>'; }).join('') +
++            '<button type="button" class="dz-pick-c" data-pick="new"><span class="dz-pick-n">＋ Нова позиція<i>інший виріб · модель і колір — при фіксації</i></span></button>';
++          return U.pickOpen('Куди винести v' + n, 'Окремий ескіз — своє погодження й своя фіксація', карт, function(ціль){
++            var назва = ціль === 'here' ? 'ще одне нанесення в ' + U.unitNo(job, du)
++                      : ціль === 'new' ? 'нову позицію'
++                      : (function(){ var x = U.unitAt(job, ціль); return x ? мітка(x) : 'позицію'; })();
++            if(!window.confirm('Винести v' + n + ' окремим ескізом у ' + назва + '?')) return;
++            return jobApply(job, o, function(j){
++              var fu = U.unitAt(j, uid), fd = fu && D.dzAt(fu, 'graphic', idx);
++              if(!fd || !(fd.vers || []).some(function(x){ return +x.n === +n; })) return false;
++              var tu = ціль === 'here' ? fu : ціль === 'new' ? null : U.unitAt(j, ціль);
++              if(ціль === 'new'){ tu = U.unitNew(); (j.units = j.units || []).push(tu); }
++              if(!tu || (ціль !== 'new' && D.placeLocked(tu) && tu !== fu) || (tu === fu && D.placeLocked(fu))) return false;
++              var tNo = U.unitNo(j, tu);
++              var r = D.dzSplit(fd, n, tu, m, { unit: uid, label: U.unitNo(j, fu), to: tNo + (ціль === 'here' ? ' (ще одне нанесення)' : '') });
++              if(!r) return false;
++              return 'v' + n + ' винесено окремим ескізом → ' + tNo + (ціль === 'new' ? ' (нова позиція — оберіть виріб)' : ціль === 'here' ? ' · ще одне нанесення' : '');
++            });
++          });
++        };
++        if(можна.length === 1) return куди(+можна[0].n);
++        return U.pickOpen('Яку версію винести окремим ескізом', 'Погоджену не переносимо', можна.slice().reverse().map(function(v){
++          var vpp = D.verParts(v), f = vpp.sheet || vpp.mock[0] || vpp.work[0] || {};
++          return '<button type="button" class="dz-pick-c" data-pick="' + v.n + '">' +
++            (f.url ? '<span class="dz-pick-i"><img src="' + esc(f.url) + '" alt="" onerror="this.style.opacity=0"></span>' : '') +
++            '<span class="dz-pick-n">v' + v.n + '<i>' + esc(dt(v.at)) + (v.sentToClient ? ' · надіслано' : '') + '</i></span></button>';
++        }).join(''), function(n){ куди(+n); });
++      }
+       /* Передача — на свіжій картці з бази (29.10, jobApply). */
+       if(what === 'dz-send'){
+         return jobApply(job, o, function(j){
+diff --git a/loomiqadmin.html b/loomiqadmin.html
+index fe9264b..c6513fb 100644
+--- a/loomiqadmin.html
++++ b/loomiqadmin.html
+@@ -8414,32 +8414,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
+ <!-- Firebase SDK (compat) -->
+ <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
+ <!-- Випадаючі списки одного вигляду на весь Loomiq -->
+-<script src="loomiq-select.js?v=f43495286d"></script>
+-<script src="loomiq-fingerprint.js?v=f43495286d"></script>
+-<script src="loomiq-pricing.js?v=f43495286d"></script>
++<script src="loomiq-select.js?v=57628c0133"></script>
++<script src="loomiq-fingerprint.js?v=57628c0133"></script>
++<script src="loomiq-pricing.js?v=57628c0133"></script>
+ <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
+      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
+-<script src="loomiq-money-core.js?v=f43495286d"></script>
++<script src="loomiq-money-core.js?v=57628c0133"></script>
+ <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
+      цикл роботи зі своїми станами — тримати його в адмінці разом із
+      продажами означало б мішати два різні життя одного замовлення. -->
+-<script src="loomiq-design.js?v=f43495286d"></script>
+-<script src="loomiq-mock.js?v=f43495286d"></script>
++<script src="loomiq-design.js?v=57628c0133"></script>
++<script src="loomiq-mock.js?v=57628c0133"></script>
+ <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
+      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
+      трасування — перед ним. -->
+-<script src="imagetracer.js?v=f43495286d"></script>
++<script src="imagetracer.js?v=57628c0133"></script>
+ <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
+      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
+      зміни в картках чи грошах не мають її зачіпати. Стереже
+      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
+-<script src="loomiq-chat.js?v=f43495286d"></script>
+-<script src="loomiq-threads.js?v=f43495286d"></script>
++<script src="loomiq-chat.js?v=57628c0133"></script>
++<script src="loomiq-threads.js?v=57628c0133"></script>
+ <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
+      картки можна було тільки завантажити собі на диск, а тоді вручну
+      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
+      малювати їх має те саме місце, звідки надсилають. -->
+-<script src="loomiq-cards.js?v=f43495286d"></script>
++<script src="loomiq-cards.js?v=57628c0133"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+@@ -8484,8 +8484,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
+    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
+    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
+    області видимості просто затирають одне одного. */
+-var LQ_VER = 'f43495286d';
+-var LQ_VER_AT = '2026-11-04T10:54:19Z';
++var LQ_VER = '57628c0133';
++var LQ_VER_AT = '2026-11-04T14:04:33Z';
+ /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
+    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
+    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
+diff --git a/offer-edit.html b/offer-edit.html
+index 2a18291..175ec22 100644
+--- a/offer-edit.html
++++ b/offer-edit.html
+@@ -1131,24 +1131,24 @@
+   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
+      панель редактора живе кадром і власного <head> зі скриптами не має. */
+   (function(){
+-    ['loomiq-select.js?v=f43495286d',
++    ['loomiq-select.js?v=57628c0133',
+      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
+         зміст, виведений інакше, — і завтра його так само знадобиться
+         підключити з картки замовлення. */
+-     'loomiq-cards.js?v=f43495286d'].forEach(function(src){
++     'loomiq-cards.js?v=57628c0133'].forEach(function(src){
+       var s = document.createElement('script');
+       s.src = src;
+       document.head.appendChild(s);
+     });
+   })();
+ 
+-  var CTOR_FP    = 'loomiq-fingerprint.js?v=f43495286d';
+-  var CTOR_PRICE = 'loomiq-pricing.js?v=f43495286d';
+-  var CTOR_JS   = 'loomiq-constructor.js?v=f43495286d';
++  var CTOR_FP    = 'loomiq-fingerprint.js?v=57628c0133';
++  var CTOR_PRICE = 'loomiq-pricing.js?v=57628c0133';
++  var CTOR_JS   = 'loomiq-constructor.js?v=57628c0133';
+   /* Внутрішнє прибирання фону (нейромережа в браузері, 07.10): без нього
+      конструктор КП різав би лише швидким алгоритмом. Не завантажився —
+      не біда, конструктор працює й без нього. */
+-  var CTOR_CSS  = 'loomiq-constructor.css?v=f43495286d';
++  var CTOR_CSS  = 'loomiq-constructor.css?v=57628c0133';
+ 
+   function send(msg){
+     if(window.parent === window) return;
+diff --git a/offer.html b/offer.html
+index b3cdc34..038b0a3 100644
+--- a/offer.html
++++ b/offer.html
+@@ -2344,9 +2344,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+ <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
+      склад наново, коли клієнт додає рекомендований товар. -->
+ <!-- Випадаючі списки одного вигляду на весь Loomiq -->
+-<script src="loomiq-select.js?v=f43495286d"></script>
+-<script src="loomiq-fingerprint.js?v=f43495286d"></script>
+-<script src="loomiq-pricing.js?v=f43495286d"></script>
++<script src="loomiq-select.js?v=57628c0133"></script>
++<script src="loomiq-fingerprint.js?v=57628c0133"></script>
++<script src="loomiq-pricing.js?v=57628c0133"></script>
+ <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+ <script>
+@@ -2656,9 +2656,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
+      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
+      тут порожній список, а не вікно. */
+-  var CTOR_JS   = 'loomiq-constructor.js?v=f43495286d';
+-  var CTOR_CSS  = 'loomiq-constructor.css?v=f43495286d';
+-  var CTOR_HTML = 'loomiq-constructor-body.html?v=f43495286d';
++  var CTOR_JS   = 'loomiq-constructor.js?v=57628c0133';
++  var CTOR_CSS  = 'loomiq-constructor.css?v=57628c0133';
++  var CTOR_HTML = 'loomiq-constructor-body.html?v=57628c0133';
+   var ctorReady = null;
+ 
+   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
+diff --git a/quiz/index.html b/quiz/index.html
+index b6a5b96..ae9ed2d 100644
+--- a/quiz/index.html
++++ b/quiz/index.html
+@@ -150,12 +150,12 @@
+ <input type="file" id="qFile" accept="image/*,.svg,.pdf" hidden>
+ 
+ <script src="/catalog-base.js"></script>
+-<script src="/loomiq-pricing.js?v=f43495286d"></script>
+-<script src="/loomiq-mock.js?v=f43495286d"></script>
++<script src="/loomiq-pricing.js?v=57628c0133"></script>
++<script src="/loomiq-mock.js?v=57628c0133"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+ <script src="/an.js"></script>
+-<script src="/loomiq-kit.js?v=f43495286d"></script>
++<script src="/loomiq-kit.js?v=57628c0133"></script>
+ <script>
+ (function(){
+   'use strict';
+diff --git a/tests/split-sketch.mjs b/tests/split-sketch.mjs
+new file mode 100644
+index 0000000..48e1a9a
+--- /dev/null
++++ b/tests/split-sketch.mjs
+@@ -0,0 +1,192 @@
++/* «⇢ ОКРЕМИМ ЕСКІЗОМ» (04.11, #2000391).
++
++   Менеджер: «дизайнер два ескізи, і котика, і рицаря, скидав в одній
++   плашці… рицаря зафіксували, а кота не можемо — як його розділити?»
++   1. Котик (непогоджена версія) → інша позиція: там своє «Погоджено»;
++      рицар лишається погодженим; у замкненій (вишивка йде) позиції «ще
++      одне нанесення тут» не пропонується.
++   2. Котик → нова позиція (виріб — при фіксації).
++   3. Погоджену чи узгоджену версію й єдину версію не переносимо.
++
++   Запуск:  node tests/split-sketch.mjs      (з кореня репозиторію)  */
++import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
++import fs from 'node:fs';
++import { createServer } from 'node:http';
++import { readFile } from 'node:fs/promises';
++import path from 'node:path';
++
++const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
++const PORT = 9047;
++const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css',
++               '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
++               '.webp':'image/webp' };
++const srv = createServer(async (req, res) => {
++  const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, ''));
++  try{
++    const body = await readFile(f);
++    res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
++    res.end(body);
++  }catch(e){ res.writeHead(404); res.end('no'); }
++});
++await new Promise(r => srv.listen(PORT, '127.0.0.1', r));
++const HOST = 'http://127.0.0.1:' + PORT;
++
++let bad = 0;
++const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong + ' ✗')); if(!c) bad++; };
++const errs = [];
++
++const CONTENT = {
++  team: [{ email:'test@loomiq', name:'Оля',       role:'managerb2c' },
++         { email:'p@loomiq',    name:'Петро',     role:'designer' },
++         { email:'e@loomiq',    name:'Віра',      role:'embroidery' },
++         { email:'d@loomiq',    name:'Данило',    role:'dtf' },
++         { email:'r@loomiq',    name:'Роман',     role:'print' }],
++  b2c: {},
++  rolesSeed: 2,
++  products: { retail: { tee: 600, hoodie: 1200 }, retailReady: { tee: 450, hoodie: 950 },
++              retailCost: { tee: 300, hoodie: 600 }, retailCostReady: { tee: 250, hoodie: 520 } }
++};
++const ORDERS = [
++  { id:'1', orderId:'2000301', type:'client', dir:'b2c', name:'Асія', phone:'+380670001122', status:'prorahunok', site:'main',
++    payments:[{ sum:300, at:'2026-10-18T09:00:00.000Z', kind:'prepay' }], hist:[], createdAt:'2026-10-18T09:00:00.000Z', crmChatId:'c1', crmChatName:'Асія', totalPrice: 0, items:[] },
++  { id:'2', orderId:'2000302', type:'client', dir:'b2c', name:'Б', status:'prorahunok', site:'main', crmChatId:'c2',
++    payments:[{ sum:300, at:'2026-10-18T10:00:00.000Z', kind:'prepay' }], hist:[], createdAt:'2026-10-18T10:00:00.000Z', totalPrice: 0, items:[] }
++];
++
++let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
++fbstub = fbstub.replace('window.firebase={',
++  'window.__ORDERS=' + JSON.stringify(ORDERS) + ';\n' +
++  '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
++fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
++  'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };');
++fbstub = fbstub.replace(
++  "Doc.prototype.onSnapshot=function(cb){ try{ cb(new Snap('x', null)); }catch(e){} return function(){}; };",
++  'Doc.prototype.onSnapshot=function(cb){ var d=null;\n' +
++  "    if(this.__col==='loomiq' && this.__id==='photos') d=window.__CONTENT;\n" +
++  "    try{ cb(new Snap(this.__id||'x', d)); }catch(e){ console.error(e); } return function(){}; };");
++fbstub = fbstub.replace('var fs=function(){ return { collection:function(){ return new Col(); },',
++  'function SeedCol(){}\n' +
++  '  SeedCol.prototype=Object.create(Col.prototype);\n' +
++  '  SeedCol.prototype.onSnapshot=function(cb){ try{ cb({\n' +
++  '    docs:window.__ORDERS.map(function(o){ return new Snap(o.id,o); }),\n' +
++  '    forEach:function(f){ window.__ORDERS.forEach(function(o){ f(new Snap(o.id,o)); }); },\n' +
++  '    empty:false }); }catch(e){ console.error(e); } return function(){}; };\n' +
++  '  var fs=function(){ return { collection:function(n){\n' +
++  "      if(n==='kanbanOrders') return new SeedCol();\n" +
++  '      var c=new Col(); c.__n=n; return c; },');
++
++const browser = await chromium.launch({
++  executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
++const p = await browser.newPage({ viewport:{ width:1500, height:940 } });
++p.on('pageerror', e => errs.push(e.message.slice(0, 180)));
++p.on('dialog', d => d.accept(''));
++await p.route('**://**', r => {
++  const u = r.request().url();
++  if(/gstatic\.com\/firebasejs/.test(u))
++    return r.fulfill({ contentType:'application/javascript', body:fbstub });
++  if(u.startsWith(HOST)) return r.continue();
++  return r.abort();
++});
++await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
++await p.waitForTimeout(3500);
++await p.evaluate(() => { const g = document.getElementById('auth-gate'); if(g) g.style.display = 'none'; });
++
++
++
++
++
++
++
++
++
++
++const ЖДИ = ms => p.waitForTimeout(ms);
++/* #2000391: позиція 1 (футболка) — у розмові v1 «рицар» і v2 «котик»;
++   рицаря погоджено й зафіксовано (вишивка вже почалась), котика — ні. */
++const підготуй = (дві) => p.evaluate((дві) => {
++  window.confirm = () => true;
++  const D = window.LQDesign, U = D.ui;
++  const id = '2000931';
++  if(!orders.find(x => x.orderId === id)) orders.push({ id:'r' + id, orderId:id, type:'client', dir:'b2c', name:'Ліна', status:'prorahunok', site:'main',
++      payments:[{ sum:300, at:'2026-10-18T09:00:00.000Z', kind:'prepay' }], hist:[], createdAt:'2026-10-18T09:00:00.000Z', crmChatId:'c' + id, items:[] });
++  const j = designJobMake(id); j.no = id;
++  const u1 = Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1, note:'x', artKind:'k' });
++  j.units = [u1];
++  if(дві) j.units.push(Object.assign(U.unitNew(), { gid:'hoodie', name:'Худі', color:'Білий', size:'L', qty:1, note:'y', artKind:'k' }));
++  const d = D.dzNew(); D.dzAttach(d, 'p@loomiq', 'test@loomiq'); D.dzSend(d, 'test@loomiq'); D.dzTake(d, 'p@loomiq');
++  D.dzVer(d, 'p@loomiq', [{ name:'рицар.png', url:'https://x/knight.png', role:'work' }, { name:'аркуш1.png', url:'https://x/sheet-knight.png', role:'sheet' }], 'рицар');
++  D.dzVer(d, 'p@loomiq', [{ name:'кіт.png', url:'https://x/cat.png', role:'work' }, { name:'аркуш2.png', url:'https://x/sheet-cat.png', role:'sheet' }], 'котик');
++  d.vers[1].sentToClient = '2026-11-03T10:00:00.000Z';
++  D.dzList(u1, 'graphic').push(d);
++  D.sketchOkMark(d, 1, 'test@loomiq'); D.dzOk(d, 'test@loomiq', 'client', 1);
++  D.dzList(u1, 'stitch').push(D.dzNew());          // вишивка рицаря вже почалась — позиція замкнена
++  designJobs[id] = j;
++  applyRoleUi();
++  document.querySelector('.nav button[data-view="design"]').click();
++  U.setTab('acct'); U.render(document.getElementById('dzRoot'));
++}, дві);
++const відкрий = () => p.evaluate(async () => {
++  const c = document.querySelector('#dzRoot .dz-card[data-open="2000931"]'); if(!c) return 'немає картки';
++  c.click(); await new Promise(r => setTimeout(r, 400));
++  const b = document.querySelector('.dz-panel [data-do="dz-split"]'); if(!b) return 'немає «Окремим ескізом»';
++  b.click(); await new Promise(r => setTimeout(r, 300));
++  const w = document.querySelector('.dz-pick');
++  return w ? [...w.querySelectorAll('[data-pick]')].map(c2 => c2.dataset.pick + ':' + c2.textContent.replace(/\s+/g, ' ').trim()) : 'немає вікна';
++});
++const стан = () => p.evaluate(() => {
++  const D = window.LQDesign, j = designJobs['2000931'];
++  return j.units.map(u => ({ name: u.name || '', g: D.dzList(u, 'graphic').map(d => ({ vers: d.vers.map(v => v.n + ':' + (v.files[0] || {}).url + (v.movedFrom ? '<-v' + v.movedFrom.n : '') + (v.sentToClient ? ':sent' : '')),
++    ok: d.ok ? d.ok.ver : 0, who: d.who, st: d.status, move: (d.thread || []).filter(m => m.kind === 'move').map(m => m.text) })) }));
++});
++
++console.log('═══ 1. КОТИК → ІНША ПОЗИЦІЯ (ХУДІ) ═══');
++await підготуй(true);
++await ЖДИ(300);
++const в = await відкрий();
++console.log('   ' + JSON.stringify(в));
++ok(Array.isArray(в) && !в.some(x => /^here:/.test(x)) && в.some(x => /Худі/.test(x)) && в.some(x => /^new:/.test(x)),
++  'одна непогоджена версія — одразу «куди»: худі або нова позиція; «ще одне нанесення тут» немає (вишивка вже йде)', JSON.stringify(в));
++await p.evaluate(async () => { [...document.querySelectorAll('.dz-pick [data-pick]')].filter(c => /Худі/.test(c.textContent))[0].click(); });
++await ЖДИ(900);
++const с1 = await стан();
++console.log('   ' + JSON.stringify(с1));
++const з = с1[0].g[0], н = (с1[1].g[0] || {});
++ok(з.vers.join() === '1:https://x/knight.png' && з.ok === 1, 'у футболці лишився рицар v1, погоджений', JSON.stringify(з));
++ok((н.vers || []).join() === '1:https://x/cat.png<-v2:sent' && н.st === 'review' && н.who === 'p@loomiq' && !н.ok,
++  'у худі — котик як v1 (звідки v2, «надіслано» з ним), на перевірці в того самого дизайнера', JSON.stringify(н));
++ok(з.move.length === 1 && (н.move || []).length === 1, 'в обох розмовах — подія «перенесено окремим ескізом»', JSON.stringify([з.move, н.move]));
++const кнопки = await p.evaluate(async () => {
++  window.LQDesign.ui.render(document.getElementById('dzRoot'));
++  await new Promise(r => setTimeout(r, 300));
++  return { погод: [...document.querySelectorAll('.dz-panel .dz-b')].filter(x => /✓ Погоджено/.test(x.textContent)).length,
++           split: document.querySelectorAll('.dz-panel [data-do="dz-split"]').length };
++});
++ok(кнопки.погод >= 1 && кнопки.split === 0, 'у худі своє «✓ Погоджено»; виносити більше нічого — кнопки немає', JSON.stringify(кнопки));
++
++console.log('');
++console.log('═══ 2. КОТИК → НОВА ПОЗИЦІЯ ═══');
++await підготуй(false);
++await ЖДИ(300);
++const в2 = await відкрий();
++await p.evaluate(async () => { document.querySelector('.dz-pick [data-pick="new"]').click(); });
++await ЖДИ(900);
++const с2 = await стан();
++console.log('   ' + JSON.stringify(с2));
++ok(Array.isArray(в2) && с2.length === 2 && !с2[1].name && (с2[1].g[0] || {}).vers.join() === '1:https://x/cat.png<-v2:sent' && с2[0].g[0].vers.join() === '1:https://x/knight.png',
++  'нова позиція без виробу з котиком v1; у футболці — рицар', JSON.stringify(с2));
++
++console.log('');
++console.log('═══ 3. ПОГОДЖЕНУ НЕ ПЕРЕНОСИМО, ОСТАННЮ — ТЕЖ ═══');
++const ж = await p.evaluate(() => {
++  const D = window.LQDesign;
++  const d = D.dzNew(); d.vers = [{ n:1, files:[] }, { n:2, files:[] }]; d.ok = { ver: 1 }; d.sketchOk = 2;
++  const one = D.dzNew(); one.vers = [{ n:1, files:[] }];
++  return { обидві: D.splitVers(d).length, одна: D.splitVers(one).length, тест: D.dzSplit(d, 1, { graphic: [] }, 'x') };
++});
++ok(ж.обидві === 0 && ж.одна === 0 && ж.тест === null, 'погоджену й узгоджену не винести; єдину версію — теж', JSON.stringify(ж));
++
++console.log('');
++ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
++await browser.close(); srv.close();
++console.log(bad ? 'розходжень: ' + bad : 'два ескізи в одній розмові — розділяються');
++process.exit(bad ? 1 : 0);

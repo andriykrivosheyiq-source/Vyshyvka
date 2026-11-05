@@ -164,8 +164,8 @@ const в1 = await p.evaluate(async () => {
     hist: U.histHtml(j, o).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') };
 });
 console.log('   ' + JSON.stringify(в1));
-ok(в.draggable && в.canDrop.includes('ready') && в.canDrop.includes('prod') && !в.canDrop.includes('refused'),
-  'власник тягне: приймають усі колонки, крім «Відмова»', JSON.stringify(в));
+ok(в.draggable && в.canDrop.includes('ready') && в.canDrop.includes('prod') && в.canDrop.includes('refused'),
+  'власник тягне: приймають усі колонки, і «Відмова» (з причиною, 04.11)', JSON.stringify(в));
 ok(в1.col === 'ready' && в1.chain === 'ready' && в1.pin && в1.pin.to === 'ready' && в1.pin.by === 'test@loomiq' && в1.tile && /вручну · test/.test(в1.panel) && в1.off,
   'картка в «До відправки», 📌 на плитці, у картці «вручну · test» і «зняти»', JSON.stringify(в1));
 ok(/поставлено вручну: «До відправки»/.test(в1.hist), 'в історії — «поставлено вручну: «До відправки» 📌»', в1.hist.slice(0, 200));

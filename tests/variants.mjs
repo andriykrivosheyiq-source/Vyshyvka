@@ -208,7 +208,9 @@ const крок3 = await p.evaluate(async () => {
   U.render(root);
   await U.act('dz-ok-pick', root, { dz: u.id + '|graphic|' + i });
   await new Promise(r => setTimeout(r, 300));
+  /* 05.11 (#2000205): у вікні все, що можна погодити — погоджена версія першою (v1), далі варіанти (x1, x2). */
   const вікно = { є: !!document.querySelector('.dz-pick .dz-var-c'), карток: document.querySelectorAll('.dz-pick .dz-var-c').length,
+                  перша: (document.querySelector('.dz-pick .dz-var-c') || {}).dataset ? document.querySelector('.dz-pick .dz-var-c').dataset.pick : '',
                   одяг: !!document.querySelector('.dz-cl') };
   /* Закрили без вибору — нічого не сталось. */
   document.querySelector('.dz-pick [data-pick-x]').click();
@@ -217,7 +219,7 @@ const крок3 = await p.evaluate(async () => {
   /* Знову — і обираємо № 2. */
   await U.act('dz-ok-pick', root, { dz: u.id + '|graphic|' + i });
   await new Promise(r => setTimeout(r, 300));
-  document.querySelector('.dz-pick .dz-var-c[data-pick="2"]').click();
+  document.querySelector('.dz-pick .dz-var-c[data-pick="x2"]').click();
   await new Promise(r => setTimeout(r, 400));
   const одяг = document.querySelector('.dz-cl');
   const після = { одяг: !!одяг, назва: одяг ? (одяг.querySelector('.dz-cf-h') || {}).textContent : '', колір: u.color, pick: u.variants.pick,
@@ -229,8 +231,8 @@ const крок3 = await p.evaluate(async () => {
   return { вікно, закрили, після, ok: d.ok && d.ok.ver };
 });
 console.log('  ' + JSON.stringify(крок3));
-ok(крок3.вікно.є && крок3.вікно.карток === 2 && !крок3.вікно.одяг,
-  'фіксація спершу питає «Який варіант обрав клієнт?» — 2 картки, одяг ще не питаємо', JSON.stringify(крок3.вікно));
+ok(крок3.вікно.є && крок3.вікно.карток === 3 && крок3.вікно.перша === 'v1' && !крок3.вікно.одяг,
+  'фіксація спершу питає «Що погодив клієнт?» — погоджена v1 першою і 2 варіанти (05.11), одяг ще не питаємо', JSON.stringify(крок3.вікно));
 ok(!крок3.закрили.одяг && !крок3.закрили.ok && !крок3.закрили.pick,
   'закрили вікно без вибору — далі не пішло', JSON.stringify(крок3.закрили));
 ok(крок3.після.pick === 2 && крок3.після.колір && крок3.після.колір === крок3.після.треба && крок3.після.версій === 2 && крок3.після.ост === 2 &&
@@ -270,7 +272,9 @@ const крок4 = await p.evaluate(async () => {
   col.dispatchEvent(new DragEvent('drop', { bubbles:true, dataTransfer: dt, clientY: 200 }));
   await new Promise(r => setTimeout(r, 300));
   const вікно = { карток: document.querySelectorAll('.dz-pick .dz-var-c').length };
-  const c3 = document.querySelector('.dz-pick .dz-var-c[data-pick="3"]');
+  /* 05.11 (#2000205): першою — погоджена версія (v1), далі варіанти x1…x3. */
+  вікно.перша = (document.querySelector('.dz-pick .dz-var-c') || { dataset: {} }).dataset.pick || '';
+  const c3 = document.querySelector('.dz-pick .dz-var-c[data-pick="x3"]');
   if(c3) c3.click();
   await new Promise(r => setTimeout(r, 400));
   const go = document.querySelector('.dz-cl [data-cl-go]');
@@ -281,9 +285,9 @@ const крок4 = await p.evaluate(async () => {
            мок: (D.verParts(d.vers[d.vers.length - 1]).mock[0] || {}).url };
 });
 console.log('  ' + JSON.stringify(крок4));
-ok(крок4.вікно && крок4.вікно.карток === 3 && крок4.одяг && крок4.pick === 3 && крок4.колір === крок4.треба &&
+ok(крок4.вікно && крок4.вікно.карток === 4 && крок4.вікно.перша === 'v1' && крок4.одяг && крок4.pick === 3 && крок4.колір === крок4.треба &&
    крок4.ok === 2 && крок4.мок === 'https://m/3.png',
-  'готовий дизайн: перетягнули далі — спершу «Який варіант?» (3), обрали № 3 → його колір і мокап, погоджено v2',
+  'готовий дизайн: перетягнули далі — спершу «Що погодив клієнт?» (v1 і 3 варіанти), обрали № 3 → його колір і мокап, погоджено v2',
   JSON.stringify(крок4));
 
 console.log('');

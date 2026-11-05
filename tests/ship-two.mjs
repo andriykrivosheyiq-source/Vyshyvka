@@ -163,8 +163,8 @@ await p.waitForTimeout(1200);
 const o3 = await ord();
 const c2 = npAsked.filter(b => b.op === 'create').pop() || {};
 console.log('  ' + JSON.stringify({ ttn2: o3.ttn2, cod2: o3.cod2, order: c2.order && { name: c2.order.name, cod: c2.order.cod, qty: c2.order.qty, description: c2.order.description, cityRef: c2.order.cityRef } }));
-ok(o3.ttn2 === '20450000000001' && o3.cod2 === 975 && c2.order && c2.order.cod === 975 && c2.order.qty === 1 && c2.order.name === 'Коваль Анна' && c2.order.cityRef === 'CITY-VIN' && /^#\d+ · посилка 2$/.test(c2.order.description),
-  'накладна другої посилки: контроль 975 ₴, 1 шт, отримувач 2, опис «#… · посилка 2»', JSON.stringify(o3));
+ok(o3.ttn2 === '20450000000001' && o3.cod2 === 975 && c2.order && c2.order.cod === 975 && c2.order.qty === 1 && c2.order.name === 'Коваль Анна' && c2.order.cityRef === 'CITY-VIN' && /^#\d+ посилка 2$/.test(c2.order.description),
+  'накладна другої посилки: контроль 975 ₴, 1 шт, отримувач 2, опис «#… посилка 2» (без «·» — НП його не приймає, 05.11)', JSON.stringify(o3));
 ok(!o3.known, 'перша накладна ще не створена — відправка «не відома» (ТТН не створена)', JSON.stringify(o3));
 await open();
 await type('.dz-panel [data-shf="name"]', 'Мороз Євгенія'); await p.dispatchEvent('.dz-panel [data-shf="name"]', 'change'); await p.waitForTimeout(500);

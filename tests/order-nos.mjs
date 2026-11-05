@@ -21,7 +21,7 @@ if(!RUT || !JAR){
   process.exit(0);
 }
 const req = createRequire(path.join(EMU, 'x.js'));
-const { doc, getDoc, setDoc, deleteDoc, addDoc, collection, setLogLevel } = req('firebase/firestore');
+const { doc, getDoc, setDoc, deleteDoc, addDoc, collection, setLogLevel, writeBatch, updateDoc } = req('firebase/firestore');
 setLogLevel('silent');
 
 const PORT = 8790 + Math.floor(Math.random() * 50);
@@ -180,6 +180,30 @@ ok(await can(setDoc(doc(noRight, 'kanbanOrders/A/hist/2026-10-23T10-00-00Z'), { 
 ok(!(await can(setDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'), { ...версія, name: 'Інший' }))), 'версію не перепишеш', 'версію переписано!');
 ok(!(await can(deleteDoc(doc(mgr, 'designJobs/1000147/hist/2026-10-23T10-00-00Z')))), 'менеджер версію не стирає', 'менеджер стер версію');
 ok(await can(deleteDoc(doc(own, 'designJobs/1000147/hist/2026-10-23T10-00-00Z'))), 'власник (прибирання старих) — може', 'власник не зміг');
+
+console.log('');
+console.log('═══ ЖУРНАЛ (04.11): ДОПИСУЄ КОЖЕН, НЕ МЕНШАЄ; ОБРІЗАЄ ЛИШЕ ВЛАСНИК ═══');
+const рядки = n => Array.from({ length: n }, (_, i) => ({ at: 't' + i, by: 'x', kind: 'role', text: 'r' + i }));
+await env.withSecurityRulesDisabled(async c => { await setDoc(doc(c.firestore(), 'loomiq/photos'), { accessLog: рядки(10) }, { merge: true }); });
+ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(11) }, { merge: true })), 'менеджер дописує рядок', 'менеджер не дописав');
+ok(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(12).slice(-11) }, { merge: true })), 'менеджер — новий рядок, найстаріший геть (довжина та сама)', 'не пустило при тій самій довжині');
+ok(!(await can(setDoc(doc(mgr, 'loomiq/photos'), { accessLog: рядки(3) }, { merge: true }))), 'менеджер журнал не скоротить', 'менеджер скоротив журнал!');
+ok(await can(setDoc(doc(own, 'loomiq/photos'), { accessLog: рядки(3) }, { merge: true })), 'власник обрізає (старе перед тим — в архів)', 'власник не зміг обрізати');
+ok(await can(setDoc(doc(mgr, 'loomiq/accArch_2026-11-04'), { rows: рядки(2) }, { merge: true })), 'архів журналу пише команда', 'архів не записався');
+
+console.log('');
+console.log('═══ ОДНА ПОЇЗДКА (05.11): ВЕРСІЯ Й КАРТКА ВІДДІЛУ ОДНИМ ПАКЕТОМ ═══');
+await env.withSecurityRulesDisabled(async c => { await setDoc(doc(c.firestore(), 'designJobs/5000510'), { orderId: '5000510', brief: { text: 'було' }, rev: 7 }); });
+const пакет = (rev, ts, text) => { const b = writeBatch(mgr);
+  b.set(doc(mgr, 'designJobs/5000510/hist/' + ts), { orderId: '5000510', brief: { text: 'було' }, rev: 7, _v: { at: ts, by: 'art@loomiq', why: 'save' } });
+  b.update(doc(mgr, 'designJobs/5000510'), { 'brief': { text }, rev }); return b.commit(); };
+ok(await can(пакет(8, '2026-11-05T10-00-00Z', 'стало')), 'пакет «версія + картка з rev 8» — проходить', 'пакет не пустило');
+ok(!(await can(пакет(8, '2026-11-05T10-01-00Z', 'зі старої копії'))), 'той самий rev 8 ще раз (хтось встиг) — відмова всьому пакету', 'запізнілий пакет пущено!');
+const лиш = {};
+await env.withSecurityRulesDisabled(async c => { const d = c.firestore();
+  лиш.v = (await getDoc(doc(d, 'designJobs/5000510/hist/2026-11-05T10-01-00Z'))).exists();
+  const j = (await getDoc(doc(d, 'designJobs/5000510'))).data(); лиш.rev = j.rev; лиш.text = j.brief.text; });
+ok(!лиш.v && лиш.rev === 8 && лиш.text === 'стало', 'відмовлений пакет не лишив ні версії, ні запису', JSON.stringify(лиш));
 
 await env.cleanup();
 emu.kill();

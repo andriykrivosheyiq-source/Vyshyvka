@@ -92,6 +92,31 @@
     return 0;
   }
 
+  /* ОДИН ПРОХІД ПО РУХАХ НА ВЕСЬ ПІДРАХУНОК (04.11, Аналітика «не можу
+     навіть зайти»). paid() для кожного замовлення будував довідник усіх
+     рухів і перебирав їх усі — замовлення × рухи. batch(pays, fn): поки
+     йде fn (синхронно), paid() бере довідник і рухи замовлення з одного
+     індексу, побудованого раз, — ті самі рухи в тому самому порядку, тож і
+     результат той самий (tests/money-core.mjs §16). Поза batch — як доти.
+     Лише для читання: fn не міняє рухів. Змінилась довжина масиву — індекс
+     не береться, рахуємо по-старому. */
+  var IDX = null;
+  function indexOf(pays){
+    var map = {}, by = {};
+    pays.forEach(function(p){
+      if(!p) return;
+      if(p.id) map[p.id] = p;
+      var k = id(p.orderId);
+      (by[k] || (by[k] = [])).push(p);
+    });
+    return { pays: pays, len: pays.length, map: map, by: by };
+  }
+  function batch(pays, fn){
+    if(!Array.isArray(pays) || (IDX && IDX.pays === pays)) return fn();
+    var prev = IDX;
+    IDX = indexOf(pays);
+    try{ return fn(); } finally { IDX = prev; }
+  }
   /* СКІЛЬКИ СПЛАЧЕНО.
      pays — усі завантажені рухи Фінансів, або null, коли їх ще не
      завантажили (тоді рахуємо лише записи картки — як було). */
@@ -99,7 +124,9 @@
     var oid = id(o && o.orderId);
     var rows = [];
     var map = null;
-    if(Array.isArray(pays)){
+    var ix = (IDX && IDX.pays === pays && pays.length === IDX.len) ? IDX : null;
+    if(ix) map = ix.map;
+    else if(Array.isArray(pays)){
       map = {};
       pays.forEach(function(p){ if(p && p.id) map[p.id] = p; });
     }
@@ -117,10 +144,11 @@
         }
       }
       rows.push({ src: e.payId ? 'cache' : 'hand', idx:i, payId:e.payId || '', sum:s, at:e.at,
-                  kind:e.kind, by:e.by, acc:e.acc, counter:e.counter, counted:true });
+                  kind:e.kind, by:e.by, acc:e.acc, counter:e.counter, counted:true,
+                  owner: !e.payId && !!e.ownerDone, note: e.note || '' });
     });
     if(map && oid){
-      pays.forEach(function(p){
+      (ix ? (ix.by[oid] || []) : pays).forEach(function(p){
         if(!p || id(p.orderId) !== oid) return;
         var s = r(p.amount);
         if(s <= 0) return;   // витрата, привʼязана до замовлення, — не оплата клієнта
@@ -187,6 +215,9 @@
      opt: { now, np: { <ttn>: {code, status, at} }, totalOf(o), accs:[{id,bank}],
             ordersLoaded:true } */
   function audit(orders, pays, opt){
+    return batch(pays, function(){ return auditRun(orders, pays, opt); });
+  }
+  function auditRun(orders, pays, opt){
     opt = opt || {};
     /* Номер для тексту пункту — як у картці (opt.noOf); ключ лишається orderId. */
     var no = typeof opt.noOf === 'function' ? function(k){ return opt.noOf(k) || k; } : id;
@@ -287,6 +318,16 @@
             text: 'У картці записано оплату ' + грн(x.sum) + ' з банку, а у Фінансах цей платіж ' +
               (x.elsewhere ? 'привʼязаний до #' + no(x.elsewhere) : 'відвʼязаний') + '. Її не рахуємо.' });
       });
+      /* «ВИКОНАНО» ВЛАСНИКОМ, ОПЛАЧЕНО ПОЗА СИСТЕМОЮ (04.11). Запис руками
+         рахується, як будь-яка готівка (правило 3), але руху в банку за ним
+         немає — тож кожен такий видно окремим пунктом: хто, коли, як. Закрити
+         можна «Перевірено, все гаразд» (moneyOk), як і решту. */
+      pd.rows.forEach(function(x){
+        if(x.src !== 'hand' || !x.owner || !(x.sum > 0)) return;
+        out.push({ kind:'owner_off', sev:'amber', orderId:oid, sum:x.sum, idx:x.idx,
+          text: 'Виконано вручну: оплату ' + грн(x.sum) + ' записано поза системою' + (x.note ? ' («' + String(x.note).slice(0, 80) + '»)' : '') +
+            (x.by ? ' · ' + x.by : '') + (x.at ? ' · ' + дата(time(x.at)) : '') + '. Руху в банку немає — переконайтесь, що гроші справді отримано.' });
+      });
       /* Те саме двічі: записали руками, а потім прийшло з банку. */
       var руками = pd.rows.filter(function(x){ return x.src === 'hand' && x.sum > 0; });
       var банк = pd.rows.filter(function(x){ return x.src === 'bank'; });
@@ -379,11 +420,11 @@
     return out;
   }
 
-  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || (x.kind === 'dup_no' ? x.orderId : '') || '') ; }
+  function keyOf(x){ return x.kind + ':' + (x.ttn || x.payId || x.acc || ((x.kind === 'dup_no' || x.kind === 'owner_off') ? x.orderId : '') || '') ; }
 
   var api = { BANK_SRC:BANK_SRC, CARD_SRC:CARD_SRC, isCard:isCard, cardCheck:cardCheck, unverified:unverified,
               COD_DAYS:COD_DAYS, NP_GOT:NP_GOT, NP_BACK:NP_BACK,
-              paid:paid, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, codOfTtn:codOfTtn, audit:audit,
+              paid:paid, batch:batch, due:due, discountOf:discountOf, state:state, linkCheck:linkCheck, codFor:codFor, codOfTtn:codOfTtn, audit:audit,
               ttnsOf:ttnsOf, ttnOf:ttnOf, isBank:isBank, keyOf:keyOf };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LQMoney = api;

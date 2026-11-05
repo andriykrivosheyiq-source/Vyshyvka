@@ -176,11 +176,35 @@ ok(/Стан системи/.test(r8.txt) && /картка замовлення 
 console.log('═══ 7. БУРЯ ЗАПИСІВ 02–03.11: ЖУРНАЛ РІДШЕ, ≤300; ВІДМОВА БЕЗ КОЛА; ЕСТАФЕТА ═══');
 const r9 = await p.evaluate(async () => {
   const out = {};
-  /* журнал на 3000 рядків (як у базі 03.11) — перший новий рядок обрізає до 300 */
+  /* журнал на 3000 рядків (як у базі 03.11). ПРАВИЛО БАЗИ (04.11 — стенд
+     його не знав, і 03.11 обрізання «пройшло» тест, а в житті база
+     відкидала кожен рядок): accessLog не коротшає, хіба власник, коли
+     правило для may('setup') опубліковано (__OWNER_TRIM). */
   contentData.accessLog = Array.from({ length: 3000 }, (_, i) => ({ at: new Date(Date.now() - (3000 - i) * 60000).toISOString(), by: 'x', role: 'x', kind: 'order-new', text: 'r' + i }));
+  let вБазі = 3000; const справжній = PHOTOS_DOC.set.bind(PHOTOS_DOC);
+  PHOTOS_DOC.set = (d, o2) => {
+    if(d && Array.isArray(d.accessLog)){
+      if(d.accessLog.length < вБазі && !window.__OWNER_TRIM){ const e = new Error('Missing or insufficient permissions.'); e.code = 'permission-denied'; return Promise.reject(e); }
+      вБазі = d.accessLog.length; window.__ACCW = d.accessLog;
+    }
+    return справжній(d, o2);
+  };
+  /* а) правила як зараз: обрізати не можна — рядок лягає, довжина та сама */
   await accLog('role', 'перемкнув роль');
+  out.pubLen = (window.__ACCW || []).length; out.pubLast = ((window.__ACCW || []).slice(-1)[0] || {}).text; out.pubLocal = accLogList().length;
+  /* б) звичайна вкладка (без права налаштувань) — не обрізає й архів не тягне */
+  const archKey = 'loomiq/accArch_' + new Date().toISOString().slice(0, 10);
+  delete window.__DB[archKey];
+  const cs = canSetup; canSetup = () => false;
+  await accLog('order-new', 'нове замовлення #2000999');
+  canSetup = cs;
+  out.userLen = (window.__ACCW || []).length; out.userArch = !!window.__DB[archKey];
+  /* в) власник, правило опубліковано — обрізає до 300, старе в архіві */
+  window.__OWNER_TRIM = 1;
+  await accLog('role', 'перемкнув роль ще раз');
+  delete window.__OWNER_TRIM; PHOTOS_DOC.set = справжній;
   out.len = accLogList().length;
-  const арх = window.__DB['loomiq/accArch_' + new Date().toISOString().slice(0, 10)];
+  const арх = window.__DB[archKey];
   out.arch = арх && арх.rows ? ((арх.rows.__union || арх.rows).length) : 0;
   /* той самий шумний вид по тій самій картці пʼять разів поспіль — один рядок */
   const n0 = accLogList().filter(r => r.kind === 'rollback').length;
@@ -214,7 +238,10 @@ const r9 = await p.evaluate(async () => {
   return out;
 });
 console.log('  ' + JSON.stringify(r9));
-ok(r9.len === 300, 'журнал на 3000 рядків — новий рядок обрізає до 300 (документ худне з ~880 КБ)', 'рядків: ' + r9.len);
+ok(r9.pubLen === 3000 && r9.pubLast === 'перемкнув роль' && r9.pubLocal === 3000,
+  'правила не пускають коротший журнал — рядок однаково лягає (довжина та сама), а не губиться (04.11)', JSON.stringify(r9));
+ok(r9.userLen === 3000 && !r9.userArch, 'звичайна вкладка журнал не обрізає й архів не вантажить', JSON.stringify(r9));
+ok(r9.len === 300, 'власник із опублікованим правилом — новий рядок обрізає до 300 (документ худне з ~880 КБ)', 'рядків: ' + r9.len);
 ok(r9.arch === 2701, 'старі 2701 рядок перед обрізанням лягли в архів loomiq/accArch_<дата>', 'в архіві: ' + r9.arch);
 ok(r9.rb === 1, 'той самий «rollback» по тій самій картці пʼять разів — у журналі один рядок', 'рядків rollback: ' + r9.rb);
 ok(r9.failed === 0 && r9.leftDeny === 4 && r9.mem === 'з бази' && !r9.dirty && r9.leftDeny2 === 4,

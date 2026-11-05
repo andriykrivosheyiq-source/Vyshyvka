@@ -61,7 +61,9 @@ fbstub = fbstub.replace('window.firebase={',
 fbstub = fbstub.replace("runTransaction:function(f){ return Promise.resolve(); },",
   "runTransaction:function(f){ window.__TAKEN=window.__TAKEN||{}; window.__RES=window.__RES||[]; var t={ get:function(ref){ var no=ref.__id; var d=window.__TAKEN[no]; return Promise.resolve({ exists:!!d, data:function(){ return d; } }); }, set:function(ref,d){ window.__TAKEN[ref.__id]=d; window.__RES.push(ref.__id); } }; return Promise.resolve(f(t)); },")
   .replace("batch:function(){ return { set:function(){}, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },",
-  "batch:function(){ return { set:function(ref,d){ window.__TAKEN=window.__TAKEN||{}; window.__TAKEN[ref.__id]=d; (window.__SEED=window.__SEED||[]).push(ref.__id); }, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },");
+  /* Бронь номерів — як доти; решта пакета (05.11: версія й картка відділу
+     одним пакетом) лягає справжніми set/update по черзі. */
+  "batch:function(){ var ops=[]; var b={ set:function(ref,d){ if(ref.__col==='orderNos'){ window.__TAKEN=window.__TAKEN||{}; window.__TAKEN[ref.__id]=d; (window.__SEED=window.__SEED||[]).push(ref.__id); return b; } ops.push(function(){ return ref.set(d); }); return b; }, update:function(ref,u){ ops.push(function(){ return ref.update(u); }); return b; }, delete:function(){ return b; }, commit:function(){ return ops.reduce(function(pr,f){ return pr.then(f); }, Promise.resolve()); } }; return b; },");
 fbstub = fbstub.replace('Col.prototype.doc=function(){ return new Doc(); };',
   'Col.prototype.doc=function(id){ var d=new Doc(); d.__id=id; d.__col=this.__n; return d; };')
   .replace("Doc.prototype.get=function(){ return Promise.resolve(new Snap('x', null)); };",

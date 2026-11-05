@@ -118,6 +118,9 @@ service cloud.firestore {
            !('accessLog' in request.resource.data)
         || !('accessLog' in resource.data)
         || request.resource.data.accessLog.size() >= resource.data.accessLog.size()
+        // 04.11: обрізати журнал (до 300, старе — в архів accArch_<дата>)
+        // може лише власник; решта — лише дописує, довжина не меншає.
+        || may('setup')
       );
       allow delete: if request.auth != null && may('setup');
     }
