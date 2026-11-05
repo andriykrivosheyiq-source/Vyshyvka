@@ -5961,6 +5961,26 @@
     font-variant-numeric:tabular-nums;color:var(--ink);}
   .an-t tr.on td{background:var(--canvas);font-weight:700;}
   .an-empty{text-align:center !important;color:var(--muted);}
+  .anp-card{margin-top:14px;}
+  .anp-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .anp-who{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);max-width:100%;}
+  .anp-copy{margin-left:auto;}
+  .anp-sub{font-size:12px;color:var(--muted);margin:6px 0 12px;}
+  .anp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .anp-chip{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:1px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:96px;}
+  .anp-chip span{font-size:12px;color:var(--ink-soft);}
+  .anp-chip b{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .anp-chip i{font-style:normal;font-size:11px;color:var(--muted);}
+  .anp-chip.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);}
+  .anp-chip:focus-visible{outline:2px solid var(--accent);}
+  .anp-scroll{overflow-x:auto;}
+  .anp-t tfoot td{font-weight:800;border-top:1px solid var(--line);}
+  .anp-0{color:var(--line);}
+  .anp-nos{text-align:left !important;white-space:normal;}
+  .anp-t th:last-child{text-align:left;}
+  .anp-no{all:unset;cursor:pointer;display:inline-block;margin:1px 4px 1px 0;padding:1px 6px;border-radius:6px;background:var(--canvas);font-size:12px;color:var(--ink);}
+  .anp-no:hover{background:var(--line-soft);}
+  .anp-no:focus-visible{outline:2px solid var(--accent);}
   /* Команда: рядок на людину, під ним — аналітика, розшифровка й поля. */
   .tm-t{margin-top:14px;}
   .tm-r{cursor:pointer;}
@@ -8226,7 +8246,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <!-- ── ЗАГАЛЬНА: гроші обох напрямів і звідки вони ─────────── -->
       <div class="an-pane" id="an-pane-all"><div id="an-all"></div></div>
       <!-- ── АНАЛІТИКА B2C ─────────────────────────────────────── -->
-      <div class="an-pane" id="an-pane-b2c" hidden><div class="card"><div id="fin-an"></div></div></div>
+      <div class="an-pane" id="an-pane-b2c" hidden><div class="card"><div id="fin-an"></div></div><div class="card anp-card"><div id="an-prod"></div></div></div>
 
       <!-- ── 1. ГОЛОВНЕ ─────────────────────────────────────────── -->
       <div class="an-pane" id="an-pane-main" hidden>
@@ -8431,32 +8451,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=73cca4bf92"></script>
-<script src="loomiq-fingerprint.js?v=73cca4bf92"></script>
-<script src="loomiq-pricing.js?v=73cca4bf92"></script>
+<script src="loomiq-select.js?v=a9cca8167f"></script>
+<script src="loomiq-fingerprint.js?v=a9cca8167f"></script>
+<script src="loomiq-pricing.js?v=a9cca8167f"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=73cca4bf92"></script>
+<script src="loomiq-money-core.js?v=a9cca8167f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=73cca4bf92"></script>
-<script src="loomiq-mock.js?v=73cca4bf92"></script>
+<script src="loomiq-design.js?v=a9cca8167f"></script>
+<script src="loomiq-mock.js?v=a9cca8167f"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=73cca4bf92"></script>
+<script src="imagetracer.js?v=a9cca8167f"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=73cca4bf92"></script>
-<script src="loomiq-threads.js?v=73cca4bf92"></script>
+<script src="loomiq-chat.js?v=a9cca8167f"></script>
+<script src="loomiq-threads.js?v=a9cca8167f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=73cca4bf92"></script>
+<script src="loomiq-cards.js?v=a9cca8167f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8501,8 +8521,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '73cca4bf92';
-var LQ_VER_AT = '2026-11-05T10:32:48Z';
+var LQ_VER = 'a9cca8167f';
+var LQ_VER_AT = '2026-11-05T11:09:18Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -12954,6 +12974,98 @@ function renderFinAn(days, month){
   if(ad) ad.addEventListener('change', async ()=>{
     await finAdSet(m, 'b2c', ad.value);
     renderFinAn();
+  });
+  try{ renderAnProd(days, month); }catch(e){ console.warn('передано у виробництво', e); }
+}
+/* ПЕРЕДАНО У ВИРОБНИЦТВО (05.11, Андрій: «аналітика по кожному, хто подав на
+   виробництво, в який день і скільки… рахуємо штуки одобреного одягу… перед і
+   спина — одна одиниця… тільки B2C»; «днем, який натиснув»).
+   Подія — «✓ Фіксація» акаунт-менеджера: `u.confirmed {at, by}` на позиції
+   (той самий запис ставить і «Підтвердити одяг»). Кожна позиція — раз, тій
+   людині й того дня, коли зафіксовано востаннє (зняли й поставили знову —
+   рахується остання); штуки — `u.qty`; перед і спина — одна позиція. Не
+   рахуємо: DTF, відмови (`status:'cancel'`), чернетки, надгробки, B2B.
+   Лише читання з памʼяті: жодного запиту й жодного запису. */
+const AN_PROD = { who: '' };
+function anProdRows(days){
+  const set = {};
+  (days || []).forEach(d => { set[d] = 1; });
+  const заНомером = new Map();
+  (orders || []).forEach(o => { if(o && o.orderId) заНомером.set(String(o.orderId), o); });
+  const out = [];
+  Object.keys(designJobs || {}).forEach(k => {
+    const j = designJobs[k];
+    if(!j || j.gone || j.draft || j.kind || !Array.isArray(j.units)) return;
+    const o = заНомером.get(String(j.orderId || k));
+    if(!o || o.draft || orderDir(o) !== 'b2c' || o.status === 'cancel') return;
+    j.units.forEach(u => {
+      const c = u && u.confirmed;
+      if(!c || !c.at || u.tech === 'dtf') return;
+      const day = anDayOf(c.at);
+      if(!set[day]) return;
+      out.push({ day, by: String(c.by || '').trim().toLowerCase(), qty: Math.max(0, Math.round(+u.qty || 0)),
+        orderId: String(o.orderId), no: showNo(o) });
+    });
+  });
+  return out;
+}
+function anProdTable(rows, who){
+  const люди = {};
+  rows.forEach(r => { (люди[r.by] = люди[r.by] || { by: r.by, qty: 0, n: 0 }); люди[r.by].qty += r.qty; люди[r.by].n++; });
+  const список = Object.keys(люди).map(k => люди[k]).sort((a, b) => b.qty - a.qty || a.by.localeCompare(b.by));
+  const імʼя = e => e ? (personName(e) || e) : 'невідомо';
+  const мої = who ? rows.filter(r => r.by === who) : rows;
+  const дні = Array.from(new Set(мої.map(r => r.day))).sort().reverse();
+  const колонки = who ? [] : список;
+  const head = ['День'].concat(колонки.map(p => імʼя(p.by)), [who ? 'Штук' : 'Разом', 'Позицій', 'Замовлення']);
+  const body = дні.map(d => {
+    const зaДень = мої.filter(r => r.day === d);
+    const ном = [];
+    зaДень.forEach(r => { if(!ном.some(x => x.orderId === r.orderId)) ном.push(r); });
+    return { day: d,
+      cells: колонки.map(p => зaДень.filter(r => r.by === p.by).reduce((a, r) => a + r.qty, 0)),
+      qty: зaДень.reduce((a, r) => a + r.qty, 0), n: зaДень.length, orders: ном };
+  });
+  return { список, head, body, total: { cells: колонки.map(p => p.qty), qty: мої.reduce((a, r) => a + r.qty, 0), n: мої.length }, імʼя };
+}
+function renderAnProd(days, month){
+  const box = document.getElementById('an-prod');
+  if(!box) return;
+  const E = escapeHtml;
+  const rows = anProdRows(days);
+  const all = anProdTable(rows, '');
+  if(AN_PROD.who && !all.список.some(p => p.by === AN_PROD.who)) AN_PROD.who = '';
+  const t = AN_PROD.who ? anProdTable(rows, AN_PROD.who) : all;
+  const дн = d => { const [y, m, dd] = d.split('-'); return dd + '.' + m + (y === String(new Date().getFullYear()) ? '' : '.' + y); };
+  box.innerHTML = `
+    <div class="anp-top">
+      <div class="an-h" style="margin:0">Передано у виробництво</div>
+      <select class="anp-who" data-anp-who title="Чиї фіксації показати">
+        <option value="">Усі</option>${all.список.map(p => `<option value="${E(p.by)}"${p.by === AN_PROD.who ? ' selected' : ''}>${E(all.імʼя(p.by))} · ${p.qty} шт</option>`).join('')}
+      </select>
+      <button type="button" class="btn btn-ghost anp-copy" data-anp-copy${t.body.length ? '' : ' disabled'}>Скопіювати таблицю</button>
+    </div>
+    <div class="anp-sub">Штуки одягу за «✓ Фіксація» акаунт-менеджера, днем натиску. Кожна позиція — раз (перед і спина — одна), без DTF і відмов.</div>
+    ${all.список.length ? `<div class="anp-chips">${all.список.map(p => `<button type="button" class="anp-chip${p.by === AN_PROD.who ? ' on' : ''}" data-anp-pick="${E(p.by)}"><span>${E(all.імʼя(p.by))}</span><b>${p.qty} шт</b><i>${p.n} поз.</i></button>`).join('')}</div>` : ''}
+    <div class="anp-scroll"><table class="an-t anp-t"><thead><tr>${t.head.map(h => `<th>${E(h)}</th>`).join('')}</tr></thead><tbody>${
+      t.body.length ? t.body.map(r => `<tr><td>${E(дн(r.day))}</td>${r.cells.map(c => `<td>${c || '<span class="anp-0">—</span>'}</td>`).join('')}<td><b>${r.qty}</b></td><td>${r.n}</td><td class="anp-nos">${
+        r.orders.map(x => `<button type="button" class="anp-no" data-anp-no="${E(x.orderId)}" title="Відкрити картку">#${E(x.no)}</button>`).join('')}</td></tr>`).join('')
+      : `<tr><td colspan="${t.head.length}" class="an-empty">За цей період фіксацій немає</td></tr>`}</tbody>${
+      t.body.length ? `<tfoot><tr><td>Разом</td>${t.total.cells.map(c => `<td>${c}</td>`).join('')}<td><b>${t.total.qty}</b></td><td>${t.total.n}</td><td></td></tr></tfoot>` : ''}</table></div>`;
+  const sel = box.querySelector('[data-anp-who]');
+  if(sel) sel.addEventListener('change', () => { AN_PROD.who = sel.value || ''; renderAnProd(days, month); });
+  box.querySelectorAll('[data-anp-pick]').forEach(b => b.addEventListener('click', () => {
+    AN_PROD.who = AN_PROD.who === b.dataset.anpPick ? '' : b.dataset.anpPick; renderAnProd(days, month); }));
+  box.querySelectorAll('[data-anp-no]').forEach(b => b.addEventListener('click', () => openByNo(b.dataset.anpNo)));
+  const cp = box.querySelector('[data-anp-copy]');
+  if(cp) cp.addEventListener('click', () => {
+    const лінії = [t.head.join('\t')].concat(t.body.map(r => [дн(r.day)].concat(r.cells, [r.qty, r.n, r.orders.map(x => '#' + x.no).join(' ')]).join('\t')),
+      [['Разом'].concat(t.total.cells, [t.total.qty, t.total.n, '']).join('\t')]);
+    const txt = (AN_PROD.who ? 'Передано у виробництво · ' + all.імʼя(AN_PROD.who) : 'Передано у виробництво') +
+      ' · ' + (days[0] || '') + ' — ' + (days[days.length - 1] || '') + '\n' + лінії.join('\n');
+    window.__anpCopied = txt;
+    try{ navigator.clipboard.writeText(txt).then(() => toast('Таблицю скопійовано — вставте в Google Таблицю чи повідомлення'),
+      () => toast('Не вдалось скопіювати')); }catch(e){ toast('Не вдалось скопіювати'); }
   });
 }
 /* ══════════ ЗАГАЛЬНА: ГРОШІ ОБОХ НАПРЯМІВ І ЗВІДКИ ВОНИ ══════════

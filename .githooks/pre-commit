@@ -574,6 +574,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/name-ask\
   echo "✓ як вас звати"
 fi
 
+# «ПЕРЕДАНО У ВИРОБНИЦТВО» (05.11): штуки за фіксацією, по днях і людях, лише B2C.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/an-prod\.mjs)'; then
+  node tests/an-prod.mjs >/tmp/lq-an-prod.log 2>&1 || {
+    echo "✗ «Передано у виробництво» рахує не так — коміт зупинено. Подробиці: /tmp/lq-an-prod.log"
+    grep '✗' /tmp/lq-an-prod.log
+    exit 1
+  }
+  echo "✓ передано у виробництво"
+fi
+
 # ВІДМОВА B2C (22.10): ставить лише акаунт і власник, з причиною; колонка
 # «Відмова» в кінці акаунта; на інших дошках її немає; повернення в роботу.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/refuse\.mjs)'; then
