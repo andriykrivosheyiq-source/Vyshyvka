@@ -604,6 +604,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ttn-fail\
   echo "✓ відмова ТТН — з причиною в картці"
 fi
 
+# ПОВІДОМЛЕННЯ ДИЗАЙНЕРУ НЕ ГУБИТЬСЯ; ПЛАШКИ ВГОРІ (05.11).
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/say-keep\.mjs)'; then
+  node tests/say-keep.mjs >/tmp/lq-say-keep.log 2>&1 || {
+    echo "✗ Повідомлення дизайнеру знову губиться — коміт зупинено. Подробиці: /tmp/lq-say-keep.log"
+    grep '✗' /tmp/lq-say-keep.log
+    exit 1
+  }
+  echo "✓ повідомлення дизайнеру не губиться"
+fi
+
 # ВІДМОВА B2C (22.10): ставить лише акаунт і власник, з причиною; колонка
 # «Відмова» в кінці акаунта; на інших дошках її немає; повернення в роботу.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/refuse\.mjs)'; then

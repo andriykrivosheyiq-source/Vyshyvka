@@ -2663,7 +2663,8 @@
      чесно казала результат — а сказане лишалось за екраном. Найгірше це
      виглядало там, де результат «нічого робити не треба»: нічого не
      змінилось і ніхто нічого не пояснив. */
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:9500;max-width:min(560px,92vw);text-align:center;line-height:1.4;}
+  /* Угорі (05.11, менеджери: «плашка закриває рядок, де набираємо повідомлення»). */
+  .toast{position:fixed;top:16px;bottom:auto;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:9500;max-width:min(560px,92vw);text-align:center;line-height:1.4;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   .deadline-pill{display:flex;align-items:center;gap:10px;background:#1E293B;border-radius:10px;padding:12px 14px;margin-top:12px;}
@@ -8454,32 +8455,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b8f463b415"></script>
-<script src="loomiq-fingerprint.js?v=b8f463b415"></script>
-<script src="loomiq-pricing.js?v=b8f463b415"></script>
+<script src="loomiq-select.js?v=cb71b5227d"></script>
+<script src="loomiq-fingerprint.js?v=cb71b5227d"></script>
+<script src="loomiq-pricing.js?v=cb71b5227d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=b8f463b415"></script>
+<script src="loomiq-money-core.js?v=cb71b5227d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b8f463b415"></script>
-<script src="loomiq-mock.js?v=b8f463b415"></script>
+<script src="loomiq-design.js?v=cb71b5227d"></script>
+<script src="loomiq-mock.js?v=cb71b5227d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=b8f463b415"></script>
+<script src="imagetracer.js?v=cb71b5227d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=b8f463b415"></script>
-<script src="loomiq-threads.js?v=b8f463b415"></script>
+<script src="loomiq-chat.js?v=cb71b5227d"></script>
+<script src="loomiq-threads.js?v=cb71b5227d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b8f463b415"></script>
+<script src="loomiq-cards.js?v=cb71b5227d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8524,8 +8525,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'b8f463b415';
-var LQ_VER_AT = '2026-11-05T14:21:58Z';
+var LQ_VER = 'cb71b5227d';
+var LQ_VER_AT = '2026-11-05T16:04:37Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -33226,7 +33227,7 @@ async function designSetWhole(key, obj){
   await ref.set(obj);
   return obj;
 }
-async function designSave(job, o){
+async function designSave(job, o, opt){
   if(!job || !job.orderId) return;
   if(job.draft || (o && o.draft)){
     /* Чернетка: усе лише в памʼяті (і на пристрої), до «Створити замовлення». */
@@ -33242,19 +33243,21 @@ async function designSave(job, o){
      б відкотити чуже. Не пишемо, кажемо повторити. */
   const жива = (designJobs || {})[job.orderId];
   if(жива && жива !== job && String(жива.updatedAt || '') > String(job.updatedAt || '') && +(жива.rev || 0) >= +(job.rev || 0)){
-    toast('Картку #' + noOf(job.orderId) + ' уже оновили з іншого пристрою — повторіть правку на свіжій');
-    try{ const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); }catch(e){}
+    if(!(opt && opt.quiet)){
+      toast('Картку #' + noOf(job.orderId) + ' уже оновили з іншого пристрою — повторіть правку на свіжій');
+      try{ const U = window.LQDesign.ui; U.render(document.getElementById('dzRoot')); }catch(e){}
+    }
     throw new Error('картку відділу вже оновили з іншого пристрою — повторіть правку');
   }
   designDirty[job.orderId] = 1;
   designJobs[job.orderId] = job;
   let записано = false;
   try{
-    записано = await designPut(job);
+    записано = await designPut(job, (opt && opt.quiet) ? { quiet: true } : undefined);
   }catch(e){
     console.error('design save', e);
     accFail('job-fail', job.orderId, 'картка відділу #' + noOf(job.orderId) + ' не записалась: ' + String((e && (e.code || e.message)) || e).slice(0, 80));
-    toast('Задача дизайну не збереглась: ' + ((e && e.message) || e));
+    if(!(opt && opt.quiet)) toast('Задача дизайну не збереглась: ' + ((e && e.message) || e));
     throw e;
   }finally{
     delete designDirty[job.orderId];

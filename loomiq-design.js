@@ -7823,7 +7823,7 @@
     /* DTF-дизайнер — той самий другий етап, що й вишивальний (21.10). */
     return t === 'graphic' ? 'graphic' : (t === 'stitch' || t === 'dtf') ? 'stitch' : 'acct';
   }
-  function save(job, o, msg){
+  function save(job, o, msg, opt){
     job.updatedAt = new Date().toISOString();
     /* B2C: поля кількості немає — позиція без числа стає 1 шт, інакше
        «бракує кількості» сказало б про поле, якого не видно. */
@@ -7832,14 +7832,87 @@
     try{ U.priceLockJob(job); }catch(e){ console.warn('ціна', e); }
     try{ D.dzAutoQueue(job, o, (host().me && host().me()) || ''); }
     catch(e){ console.warn('черга відділу', e); }
-    var p = host().save ? host().save(job, o) : Promise.resolve();
+    var p = host().save ? host().save(job, o, opt) : Promise.resolve();
     return Promise.resolve(p).then(function(){
+      if(opt && opt.done) try{ opt.done(); }catch(e){ console.warn(e); }
       if(msg) say(msg);
       render(document.getElementById('dzRoot'));
       if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
+      return true;
     }, function(e){
-      console.error(e); say('Не збереглось');
+      console.error(e); if(!(opt && opt.quiet)) say('Не збереглось');
+      return false;
     });
+  }
+  /* ПОВІДОМЛЕННЯ В РОЗМОВІ РЯДКА НЕ ГУБИТЬСЯ (05.11, Володимир: «пишеш
+     повідомлення дизайнеру — воно стирається», «по 3–5, інколи 10 разів
+     вставляти, щоб збереглося»). Доти поле чистилось ДО запису, а запис
+     відкидався, щойно в той самий рядок у ту мить писав хтось іще (дизайнер
+     відповів, позначка «прочитано», фоновий запис) — розмова рядка йде в
+     базу одним полем. Тепер: свіжа картка з бази (`designFresh`), повідомлення
+     дописується саме в неї, запис; не ліг — ще раз на свіжій; поле чиститься
+     лише коли лягло, інакше текст лишається в полі з поясненням. Набране
+     живе ще й у памʼяті (`SAY_DRAFT`, за ключем рядка) і повертається в поле
+     після будь-якої перемальовки. */
+  var SAY_DRAFT = {};
+  function sayFields(key){
+    return [].slice.call(document.querySelectorAll('[data-dzsay]')).filter(function(f){ return f.getAttribute('data-dzsay') === key; });
+  }
+  function sayKeep(key, txt){
+    if(!txt) return;
+    SAY_DRAFT[key] = txt;
+    sayFields(key).forEach(function(f){ if(!String(f.value || '').trim()) f.value = txt; });
+  }
+  function sayRestore(el){
+    if(!el || !el.querySelectorAll) return;
+    [].forEach.call(el.querySelectorAll('[data-dzsay]'), function(f){
+      var v = SAY_DRAFT[f.getAttribute('data-dzsay')];
+      if(v && !String(f.value || '').trim()) f.value = v;
+    });
+  }
+  if(typeof document !== 'undefined' && !window.__lqSayDraft){
+    window.__lqSayDraft = true;
+    document.addEventListener('input', function(e){
+      var t = e.target;
+      if(t && t.getAttribute && t.hasAttribute('data-dzsay')) SAY_DRAFT[t.getAttribute('data-dzsay')] = String(t.value || '');
+    }, true);
+  }
+  async function threadSend(root, job, o, dkey, el, apply, msg, had){
+    var txt = el ? String(el.value || '') : '';
+    var id = String((job && job.orderId) || '');
+    var p = String(dkey || '').split('|');
+    var key = String(dkey || '');
+    for(var i = 0; i < 2; i++){
+      var j = job;
+      if(id && host().designFresh && !(job && job.draft) && !(o && o.draft)){
+        var f = null;
+        try{ f = await host().designFresh(id); }catch(e){ f = false; }
+        if(f === false){ sayKeep(key, txt); say('Немає звʼязку з базою — не надіслано. Текст лишився в полі, натисніть ще раз'); return false; }
+        if(f) j = f;
+      }
+      var uu = U.unitAt(j, p[0]), d = uu && D.dzAt(uu, p[1], p[2]);
+      if(!d){ sayKeep(key, txt); say('Рядок дизайну не знайдено — оновіть картку'); return false; }
+      /* Уже лежить (попередня спроба лягла в памʼять, а відповідь бази не
+         дійшла) — не дописуємо вдруге. */
+      if(!(had && had(d))) apply(d);
+      var ok = await save(j, o, msg, { quiet: true, done: function(){
+        delete SAY_DRAFT[key];
+        sayFields(key).forEach(function(x){ x.value = ''; });
+      } });
+      if(ok) return true;
+    }
+    sayKeep(key, txt);
+    say('Не надіслано — картку саме змінили з іншого пристрою. Текст лишився в полі — натисніть ще раз');
+    return false;
+  }
+  function sayHad(m, text, file){
+    var t = String(text || ''), u = file && file.url ? String(file.url) : '';
+    return function(d){
+      return (d.thread || []).some(function(x){
+        return x && x.by === String(m || '') && Date.now() - Date.parse(x.at || 0) < 180000 &&
+          (u ? (x.file && x.file.url === u) : (t && x.text === t));
+      });
+    };
   }
   /* Те саме, що save, але після запису — лише тихе оновлення: поки людина
      пише в полі картки, сторінку не перебудовуємо (02.11, форма доставки). */
@@ -10624,7 +10697,8 @@
     var t = o.tagName;
     if(t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT') return;
     var focused = document.activeElement === o;
-    var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0);
+    /* Поле, у якому людина саме пише, не «їсться» ніколи (05.11). */
+    var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0) && !focused;
     if(t === 'SELECT'){
       var want = null;
       [].forEach.call(n.querySelectorAll('option'), function(op){ if(op.hasAttribute('selected')) want = op.getAttribute('value') != null ? op.getAttribute('value') : op.textContent; });
@@ -10715,10 +10789,11 @@
      вставити цілком, як доти. */
   function setHtml(el, html){
     if(el.firstChild && !morphOff()){
-      try{ morphInto(el, html); return; }
+      try{ morphInto(el, html); sayRestore(el); return; }
       catch(e){ console.warn('часткове оновлення — вставляю цілком', e); }
     }
     el.innerHTML = html;
+    sayRestore(el);
   }
   /* Поля біля натиснутої кнопки — їх дія й мала спожити: найближчий предок
      кнопки, у якому є поле. */
@@ -12646,6 +12721,9 @@
         var l = Array.prototype.slice.call(inp.files || []);
         res(many ? l : l[0]);
       };
+      /* Закрили вікно без файлу (05.11): доти обіцянка висіла назавжди, а з
+         нею й «зʼїдання» поля біля 📎 на кожній перемальовці. */
+      inp.addEventListener('cancel', function(){ res(many ? [] : null); });
       inp.click();
     });
   }
@@ -14529,11 +14607,11 @@
         if(!mTxt && !mFs.length) return say('Напишіть щось або прикріпіть файл');
         /* Слово дизайнера — не правка: стан роботи й строк воно не міняє.
            Файлів може бути кілька (20.10) — підпис іде з першим. */
-        if(!mFs.length) D.dzNote(dd, m, mTxt, null, dk);
-        mFs.forEach(function(f, k){ D.dzNote(dd, m, k ? '' : mTxt, f, dk); });
-        D.dzSeen(dd, m, dk);
-        if(mEl) mEl.value = '';
-        return save(job, o, 'Надіслано');
+        return threadSend(root, job, o, dkey, mEl, function(d){
+          if(!mFs.length) D.dzNote(d, m, mTxt, null, dk);
+          mFs.forEach(function(f, k){ D.dzNote(d, m, k ? '' : mTxt, f, dk); });
+          D.dzSeen(d, m, dk);
+        }, 'Надіслано', sayHad(m, mFs.length ? '' : mTxt, mFs[0]));
       }
       /* ЗАМІНА ДИЗАЙНЕРА — ПОКИ ЗАГЛУШКА, І СКАЗАНО ЧЕСНО.
 
@@ -14557,12 +14635,12 @@
         var rEl = dzSayEl(root, dkey);
         var rTxt = rEl ? String(rEl.value || '').trim() : '';
         if(!rTxt) return say('Напишіть відповідь');
-        D.dzSay(dd, m, rTxt, null, 'acct');
         /* Питання відпрацьоване — знімаємо з нього «непрочитане», інакше
            воно висітиме в колонці й після відповіді. */
-        D.dzSeen(dd, m, 'acct');
-        if(rEl) rEl.value = '';
-        return save(job, o, 'Відповідь надіслано');
+        return threadSend(root, job, o, dkey, rEl, function(d){
+          D.dzSay(d, m, rTxt, null, 'acct');
+          D.dzSeen(d, m, 'acct');
+        }, 'Відповідь надіслано', sayHad(m, rTxt));
       }
       /* ── Дві відповіді дизайнера на передачу ──
          «Беру» вмикає роботу; «Не братиму» повертає рядок менеджеру
@@ -15300,20 +15378,20 @@
         var pEl = dzSayEl(root, dkey);
         var pTxt = pEl ? String(pEl.value || '').trim() : '';
         var pfs = await uploadMany('');
-        if(!pfs.length) return;
-        pfs.forEach(function(f, k){ D.dzSay(dd, m, k ? '' : pTxt, f, 'acct'); });
-        D.dzSeen(dd, m, 'acct');
-        if(pEl) pEl.value = '';
-        return save(job, o, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру');
+        if(!pfs || !pfs.length) return;
+        return threadSend(root, job, o, dkey, pEl, function(d){
+          pfs.forEach(function(f, k){ D.dzSay(d, m, k ? '' : pTxt, f, 'acct'); });
+          D.dzSeen(d, m, 'acct');
+        }, pfs.length > 1 ? 'Надіслано дизайнеру · ' + pfs.length + ' файли' : 'Надіслано дизайнеру', sayHad(m, '', pfs[0]));
       }
       if(what === 'dz-note'){
         var nEl = dzSayEl(root, dkey);
         var nTxt = nEl ? String(nEl.value || '').trim() : '';
         if(!nTxt) return say('Напишіть щось');
-        D.dzSay(dd, m, nTxt, null, 'acct');
-        D.dzSeen(dd, m, 'acct');
-        if(nEl) nEl.value = '';
-        return save(job, o, 'Правку надіслано дизайнеру');
+        return threadSend(root, job, o, dkey, nEl, function(d){
+          D.dzSay(d, m, nTxt, null, 'acct');
+          D.dzSeen(d, m, 'acct');
+        }, 'Правку надіслано дизайнеру', sayHad(m, nTxt));
       }
       if(what === 'dz-fix'){
         return U.fixOpen(async function(txt, file){
@@ -15338,9 +15416,8 @@
         var sEl = dzSayEl(root, dkey);
         var txt = sEl ? String(sEl.value || '').trim() : '';
         if(!txt) return say('Напишіть, що саме поміняти');
-        D.dzSay(dd, m, txt, null, 'acct');
-        if(sEl) sEl.value = '';
-        return save(job, o, 'Правку надіслано');
+        return threadSend(root, job, o, dkey, sEl, function(d){ D.dzSay(d, m, txt, null, 'acct'); },
+          'Правку надіслано', sayHad(m, txt));
       }
       if(what === 'dz-ok'){
         /* «Ескіз погоджений» — це слово КЛІЄНТА, після якого робота йде
