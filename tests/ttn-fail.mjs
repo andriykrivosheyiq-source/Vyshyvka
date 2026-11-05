@@ -112,6 +112,7 @@ await p.evaluate(() => {
     if(b.op === 'warehouses') return J({ ok:true, list:[{ ref:'w1', name:'Відділення №12', number:'12' }] });
     if(b.op === 'create') return window.__NP_FAIL ? J({ ok:false, error: window.__NP_FAIL }) : J({ ok:true, ttn:'20450999888777', ref:'r1' });
     if(b.op === 'track') return J({ ok:true, status:'Прямує до відділення', code:'5' });
+    if(b.op === 'ttnDelete') return J({ ok:true, ref: b.ref || '' });
     return J({ ok:false, error:'?' });
   };
 });
@@ -162,8 +163,8 @@ const f4 = await p.evaluate(async () => {
     twoLog: log.concat(accLogList().filter(x => x.kind === 'ttn-fail').map(x => x.text)).some(t => /посилка 2/.test(t)), ttn: o.ttn };
 });
 console.log('   ' + JSON.stringify(f4));
-ok(f4.r === 'Невірний поштомат для цієї ваги' && f4.log.some(t => /перестворити: Невірний поштомат/.test(t)) && f4.ttn === '20450999888777',
-  '«Перестворити» не вдалось — причина людині й у журнал, стара накладна на місці', JSON.stringify(f4));
+ok(/^стару накладну 20450999888777 скасовано, а нова не створилась: Невірний поштомат для цієї ваги/.test(f4.r) && f4.log.some(t => /перестворити: Невірний поштомат/.test(t)) && f4.ttn === '',
+  '«Перестворити» (спершу скасувати стару, 05.11): нова не створилась — причина людині й у журнал, картка без скасованої накладної', JSON.stringify(f4));
 ok(f4.two && f4.twoLog, 'посилка 2: причина під її кнопкою, «Створити ТТН ще раз · посилка 2», у журналі «посилка 2»', JSON.stringify(f4));
 
 console.log('═══ 4. ПРИЧИНИ ЗІ СКРІНІВ 05.11: УКРАЇНСЬКОЮ; ОПИС ПОСИЛКИ 2; НЕДОСТУПНЕ ВІДДІЛЕННЯ ═══');

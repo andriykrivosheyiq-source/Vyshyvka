@@ -7053,7 +7053,7 @@
           /* ↻ Перестворити (27.10, Андрій): нова накладна з тими самими
              даними замість цієї; стара — в історію як замінена (брак) і
              скасовується в Новій пошті. Лише в картці, з підтвердженням. */
-          (n === 1 && host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
+          (n === 1 && host.ttnRemake ? '<button class="dz-b dz-quiet" data-ship-ttn-re title="Спершу скасує цю в Новій пошті, тоді створить нову з тими самими даними; не скасується — нової не буде">↻ Перестворити ТТН</button>' : '') +
           (host.ttnDelete && D.ttnValid(t) ? '<button class="dz-b dz-quiet dz-danger" data-ship-ttn-del="' + n + '" title="Скасувати накладну в Новій пошті й прибрати з картки; дані отримувача лишаться у формі — виправте й створіть нову">✕ Видалити ТТН</button>' : '') +
           '</div></div>' + ttnInfoHtml(o, n);
     };
@@ -9548,7 +9548,7 @@
           (at === 'reg' && D.ttnBad(o) ? ' <em class="dz-c-stk late dz-c-ttnold dz-c-ttnbad" title="«Створити реєстр» цю посилку не візьме">' + esc(D.ttnBad(o)) + '</em>' : '') +
           /* ↻ Перестворити ТТН — і в картці цеху (27.10, Андрій: «ще в самому
              виробництві»), поки посилка не поїхала: «Можна відправляти» й «Реєстр». */
-          (o.ttn && !D.shipAbroad(o) && (at === 'ship' || at === 'reg') && host().ttnRemake ? ' <button type="button" class="dz-b dz-quiet dz-ttn-re" data-do="ttn-remake" title="Нова накладна з тими самими даними замість цієї; ця піде в історію як замінена">↻ Перестворити ТТН</button>' : '') +
+          (o.ttn && !D.shipAbroad(o) && (at === 'ship' || at === 'reg') && host().ttnRemake ? ' <button type="button" class="dz-b dz-quiet dz-ttn-re" data-do="ttn-remake" title="Спершу скасує цю в Новій пошті, тоді створить нову з тими самими даними; не скасується — нової не буде">↻ Перестворити ТТН</button>' : '') +
           /* «Зебра» (27.10): маркування 100×100 цієї ТТН — і в картці цеху. */
           (o.ttn && ZEBRA_COLS.indexOf(at) >= 0 ? ' <button type="button" class="dz-b dz-zb" data-do="zebra" data-ttn="' + esc(o.ttn) + '" data-sender="' + esc(o.ttnSender || '') + '" title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
@@ -12435,6 +12435,14 @@
           tdl.disabled = true; tdl.textContent = 'Видаляю…';
           var rd;
           try{ rd = await host().ttnDelete(c.o, яка); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; }
+          /* Нова пошта не скасувала — з картки мовчки не знімаємо (05.11,
+             #2000198): лише коли людина скаже, що скасує в кабінеті НП сама. */
+          if(rd && !rd.ok && rd.force){
+            var самі = false;
+            try{ самі = window.confirm('Накладну не скасовано: ' + rd.why + '.\nПоки вона жива в Новій пошті, нова накладна стане в клієнта другою.\n\n' +
+              'Скасуєте її в кабінеті Нової пошти самі? «OK» — прибрати з картки зараз (вона буде в «Стан системи» як зайва, доки не скасуєте). «Скасувати» — лишити в картці.'); }catch(e){}
+            if(самі){ try{ rd = await host().ttnDelete(c.o, яка, { force: true }); }catch(e){ rd = { ok: false, why: String((e && e.message) || e) }; } }
+          }
           tdl.disabled = false; tdl.textContent = '✕ Видалити ТТН';
           if(!rd || !rd.ok) return say('Накладну не видалено: ' + ((rd && rd.why) || 'не вдалось'), 6000);
           save(c.job, c.o, 'Накладну видалено' + (rd.note ? ' · ' + rd.note : '') + ' — виправте дані й створіть нову');
@@ -12445,14 +12453,14 @@
         var стараТ = String(c.o.ttn || '').trim();
         if(!стараТ) return say('Накладної ще немає');
         var ок = true;
-        try{ ок = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
+        try{ ок = window.confirm('Перестворити накладну ' + стараТ + '?\n1. Спершу стару скасуємо в Новій пошті. Не скасується — нову НЕ створимо, щоб у клієнта не було двох накладних.\n2. Тоді нова з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена. Бирку на коробці треба буде переклеїти.'); }catch(e){}
         if(!ок) return;
         var стоп = ttnBusy(tre, '↻ Перестворити ТТН');
         var rr;
         try{ rr = await host().ttnRemake(c.o); }catch(e){ rr = String((e && e.message) || e); }
         стоп();
         if(rr === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(c.o.ttn || '')); }
-        say('Накладну не перестворено: ' + (rr || 'Нова пошта відмовила'));
+        say('Накладну не перестворено: ' + (rr || 'Нова пошта відмовила'), 12000); render(root);
       };
       root.querySelectorAll('[data-ship-zebra]').forEach(function(zb){
         if(c && c.o) zb.onclick = function(){ act('zebra', root, { ttn: String(zb.dataset.ttn || c.o.ttn || ''), sender: String(zb.dataset.sender || c.o.ttnSender || '') }); };
@@ -13889,16 +13897,16 @@
          повинно бути, чи він підтверджує»); далі кнопка рахує секунди, а в
          кінці каже, що вийшло — без 25 с тиші. */
       var окТ = true;
-      try{ окТ = window.confirm('Перестворити накладну ' + стараТ + '?\nНова піде з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена і скасується в Новій пошті. Бирку на коробці треба буде переклеїти.'); }catch(e){}
+      try{ окТ = window.confirm('Перестворити накладну ' + стараТ + '?\n1. Спершу стару скасуємо в Новій пошті. Не скасується — нову НЕ створимо, щоб у клієнта не було двох накладних.\n2. Тоді нова з тими самими даними (отримувач, контроль оплати). Стара — в історію картки як замінена. Бирку на коробці треба буде переклеїти.'); }catch(e){}
       if(!окТ) return;
       var кнТ = root.querySelector('[data-do="ttn-remake"]');
       var стопТ = ttnBusy(кнТ, '↻ Перестворити ТТН');
-      say('Створюю нову накладну…');
+      say('Скасовую стару накладну в Новій пошті, тоді створю нову…');
       var rrT;
       try{ rrT = await host().ttnRemake(o); }catch(e){ rrT = String((e && e.message) || e); }
       стопТ();
       if(rrT === true){ render(root); if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id); return say('Накладну перестворено · нова ТТН ' + String(o.ttn || '')); }
-      return say('Накладну не перестворено: ' + (rrT || 'Нова пошта відмовила'));
+      render(root); return say('Накладну не перестворено: ' + (rrT || 'Нова пошта відмовила'), 12000);
     }
     if(what === 'reg-manual'){
       if(D.prodAt(job, o) !== 'reg') return say('Картка вже не в «Реєстр»');

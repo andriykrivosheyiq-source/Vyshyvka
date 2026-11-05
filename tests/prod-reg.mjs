@@ -13,7 +13,7 @@
       реєстр» її не бере й каже чому. Без ТТН — так само, «ТТН ще немає».
    2. «↻ Перестворити ТТН» — питання «Перестворити накладну?» є, далі кнопка
       рахує секунди; нова ТТН — червоне в «Реєстрі» гасне.
-   3. Нова пошта мовчить — через 25 с людські слова, кнопка повертається;
+   3. Нова пошта мовчить — людські слова «могла створитись», без «спробуйте ще раз»;
       картку в цей час можна закрити.
    4. Телефон: «Перенести в реєстр» у нижній панелі картки цеху.
 
@@ -138,7 +138,9 @@ await p.evaluate(() => { const x = document.querySelector('[data-close]'); if(x)
 await p.waitForTimeout(300);
 await openCard(p, '2000198');
 dialogs.length = 0;
-await p.evaluate(() => { window.__TOASTS = []; document.querySelector('[data-do="ttn-remake"]').click(); });
+/* 05.11 (#2000198): спершу стара скасовується, далі нова; накладна — не «спробуйте
+   ще раз», а «могла створитись» (чекаємо NP_CREATE_MS, тут скорочено до 4 с). */
+await p.evaluate(() => { NP_CREATE_MS = 4000; TTN_FIND_WAIT = [100, 100]; window.__TOASTS = []; document.querySelector('[data-do="ttn-remake"]').click(); });
 await p.waitForTimeout(150);
 const busy = await p.evaluate(() => ((document.querySelector('[data-do="ttn-remake"]') || {}).textContent || '').trim());
 const busyToast = await p.evaluate(() => window.__TOASTS.join(' | '));
@@ -151,20 +153,25 @@ ok(end.btn === '↻ Перестворити ТТН', 'кнопка поверн
 c = await cardInfo(p);
 ok(!c.bad.length && !(await tileBad(p, '2000198')) && await colOf(p, '2000198') === 'reg', 'червоне в «Реєстрі» згасло, картка там же', 'bad=' + JSON.stringify(c.bad) + ' плитка=«' + await tileBad(p, '2000198') + '» колонка=' + await colOf(p, '2000198'));
 
-console.log('═══ 3. НОВА ПОШТА МОВЧИТЬ — ЛЮДСЬКІ СЛОВА ЧЕРЕЗ 25 С, КАРТКА ЗАКРИВАЄТЬСЯ ═══');
+console.log('═══ 3. НОВА ПОШТА МОВЧИТЬ — «МОГЛА СТВОРИТИСЬ», БЕЗ «СПРОБУЙТЕ ЩЕ РАЗ», КАРТКА ЗАКРИВАЄТЬСЯ ═══');
 await p.evaluate(() => { const x = document.querySelector('[data-close]'); if(x) x.click(); });
 await p.waitForTimeout(400);
 await openCard(p, '2000433');
-await p.evaluate(() => { window.__TOASTS = []; document.querySelector('[data-do="ttn-remake"]').click(); });
+/* 05.11 (#2000198): спершу стара скасовується, далі нова; накладна — не «спробуйте
+   ще раз», а «могла створитись» (чекаємо NP_CREATE_MS, тут скорочено до 4 с). */
+await p.evaluate(() => { NP_CREATE_MS = 4000; TTN_FIND_WAIT = [100, 100]; window.__TOASTS = []; document.querySelector('[data-do="ttn-remake"]').click(); });
 await p.waitForTimeout(3000);
 const mid = await p.evaluate(() => ((document.querySelector('[data-do="ttn-remake"]') || {}).textContent || '').trim());
 ok(/^Створюю… [23] с$/.test(mid), 'через 3 с кнопка каже «' + mid + '»', 'через 3 с кнопка: «' + mid + '»');
 const closed = await p.evaluate(() => { const x = document.querySelector('[data-close]'); if(!x) return 'хрестика немає'; x.click(); return document.querySelector('[data-close]') ? 'не закрилась' : 'закрилась'; });
 ok(closed === 'закрилась', 'картку можна закрити, поки чекаємо Нову пошту', 'закрити: ' + closed);
-await p.waitForTimeout(25000);
-end = await p.evaluate(() => ({ ttn: (orders.find(o => o.orderId === '2000433') || {}).ttn, toasts: window.__TOASTS.slice() }));
-ok(end.toasts.some(t => /не перестворено: Нова пошта не відповідає — спробуйте ще раз за хвилину/.test(t)), 'через 25 с: «' + (end.toasts.filter(t => /не перестворено/.test(t))[0] || '') + '»', 'напису немає: ' + JSON.stringify(end.toasts));
-ok(end.ttn === '20451500000433', 'стара ТТН у картці лишилась', 'ttn=' + end.ttn);
+await p.waitForTimeout(4000);
+end = await p.evaluate(() => { const o = orders.find(o => o.orderId === '2000433') || {}; return { ttn: o.ttn, toasts: window.__TOASTS.slice(),
+  h: (o.ttnHist || []).filter(x => x.ttn === '20451500000433').pop() || null }; });
+ok(end.toasts.some(t => /не перестворено: стару накладну 20451500000433 скасовано, а нова не створилась: Нова пошта довго відповідала — накладна могла створитись/.test(t)) &&
+   !end.toasts.some(t => /спробуйте ще раз за хвилину/.test(t)),
+  'НП мовчить: «стару скасовано, нова… могла створитись» — без «спробуйте ще раз»', 'напису немає: ' + JSON.stringify(end.toasts));
+ok(!end.ttn && end.h && end.h.replaced && end.h.npDel === true, 'скасована стара в картці не висить — в історії «замінена, скасована»', 'ttn=' + end.ttn + ' h=' + JSON.stringify(end.h));
 
 console.log('═══ 4. ТЕЛЕФОН: «ПЕРЕНЕСТИ В РЕЄСТР» У НИЖНІЙ ПАНЕЛІ ═══');
 const m = await page(true);

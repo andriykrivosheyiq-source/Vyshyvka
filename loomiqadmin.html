@@ -8463,32 +8463,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=07328b4302"></script>
-<script src="loomiq-fingerprint.js?v=07328b4302"></script>
-<script src="loomiq-pricing.js?v=07328b4302"></script>
+<script src="loomiq-select.js?v=59b054da5e"></script>
+<script src="loomiq-fingerprint.js?v=59b054da5e"></script>
+<script src="loomiq-pricing.js?v=59b054da5e"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=07328b4302"></script>
+<script src="loomiq-money-core.js?v=59b054da5e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=07328b4302"></script>
-<script src="loomiq-mock.js?v=07328b4302"></script>
+<script src="loomiq-design.js?v=59b054da5e"></script>
+<script src="loomiq-mock.js?v=59b054da5e"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=07328b4302"></script>
+<script src="imagetracer.js?v=59b054da5e"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=07328b4302"></script>
-<script src="loomiq-threads.js?v=07328b4302"></script>
+<script src="loomiq-chat.js?v=59b054da5e"></script>
+<script src="loomiq-threads.js?v=59b054da5e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=07328b4302"></script>
+<script src="loomiq-cards.js?v=59b054da5e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8533,8 +8533,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '07328b4302';
-var LQ_VER_AT = '2026-11-05T16:56:42Z';
+var LQ_VER = '59b054da5e';
+var LQ_VER_AT = '2026-11-05T17:53:29Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -14049,7 +14049,8 @@ function finHealthRows(){
   accLogList().forEach(r => { if(!r || !HEALTH_KINDS[r.kind] || String(r.at || '') < від) return;
     (by[r.kind] = by[r.kind] || []).push(r); });
   let half = 0; try{ half = finIncompleteRows(false).filter(x => x.безКартки).length; }catch(e){}
-  return { by, half };
+  let extra = []; try{ extra = ttnExtraRows(); }catch(e){}
+  return { by, half, extra };
 }
 function renderFinHealth(){
   const box = document.getElementById('fin-health');
@@ -14058,16 +14059,83 @@ function renderFinHealth(){
   box.style.display = '';
   const E = escapeHtml, h = finHealthRows();
   const kinds = Object.keys(h.by);
-  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto', 'ttn-fail'].filter(k => h.by[k]).length + (h.half ? 1 : 0);
+  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto', 'ttn-fail'].filter(k => h.by[k]).length + (h.half ? 1 : 0) + (h.extra.length ? 1 : 0);
   const рядки = kinds.map(k => {
     const l = h.by[k]; const ост = l[l.length - 1];
     return `<div class="fa-i ${['save-retry', 'order-new-again', 'del-half'].indexOf(k) >= 0 ? 'amber' : 'red'}"><div class="fa-x"><b>${E(HEALTH_KINDS[k])}</b> · ${l.length} за добу<br><small>${E(String(ост.text || '').slice(0, 140))} · ${E(String(ост.by || '').split('@')[0])} · ${E(dmyOf(ост.at))}</small></div></div>`;
   });
   if(h.half) рядки.push(`<div class="fa-i red"><div class="fa-x"><b>напівстворені картки (без картки відділу)</b> · ${h.half}<br><small>нижче, у «Неповних картках» — «Дати номер відділу» або «Прибрати недописану»</small></div></div>`);
+  h.extra.forEach(r => рядки.push(`<div class="fa-i red" data-xt-row="${E(r.ttn)}"><div class="fa-x"><b>зайва накладна Нової пошти</b> · #${E(showNo(r.o))}${r.part === 2 ? ' · посилка 2' : ''} · ТТН ${E(r.ttn)}${+r.h.cod > 0 ? ' · контроль оплати ' + E(fmt(r.h.cod)) + ' ₴' : ''}<br><small>${E(r.why)}; головна — ${E(String(((r.part === 2 ? ship2Of(r.o) : r.o) || {}).ttn || '').trim() || 'немає')}. У клієнта вона висить «Чекаємо на посилку» — скасуйте в Новій пошті</small></div>
+    <div class="fa-b"><button class="pri" data-xt-cancel="${E(r.o.orderId)}" data-part="${r.part}" data-ttn="${E(r.ttn)}">Скасувати в НП</button><button data-xt-done="${E(r.o.orderId)}" data-part="${r.part}" data-ttn="${E(r.ttn)}" title="Скасували в кабінеті Нової пошти самі">Уже скасовано</button><button data-xt-open="${E(r.o.orderId)}">Відкрити</button></div></div>`));
   box.innerHTML = `<div class="fa-h"><b>Стан системи</b>${погані ? `<span class="fa-n red">${погані}</span>` : '<span class="fa-ok">✓ за добу без збоїв запису</span>'}<span>невдалі записи, відмови бази, захисти, що спрацювали — за останню добу</span></div>` +
     (рядки.length ? `<div class="fa-list">${рядки.join('')}</div>` : '');
+  box.onclick = async e => {
+    const c = e.target.closest('[data-xt-cancel]'); if(c){ ttnExtraCancel(c); return; }
+    const d = e.target.closest('[data-xt-done]');
+    if(d){
+      if(!confirm('Накладну ' + d.dataset.ttn + ' вже скасовано в кабінеті Нової пошти?')) return;
+      d.disabled = true;
+      const ok = await ttnExtraMark(d.dataset.xtDone, +d.dataset.part || 1, d.dataset.ttn, 'manual');
+      toast(ok ? 'Позначено: накладну ' + d.dataset.ttn + ' скасовано' : 'Не записалось — спробуйте ще раз', 5000);
+      renderFinHealth(); return;
+    }
+    const op = e.target.closest('[data-xt-open]'); if(op){ openByNo(op.dataset.xtOpen); return; }
+  };
 }
 window.__lqHealth = () => finHealthRows();
+/* ЗАЙВІ НАКЛАДНІ (05.11, #2000198). Накладні картки, які в Новій пошті ще
+   живі, хоча картка вже з іншою: створені разом із головною (extra),
+   замінені чи зняті з картки, але не скасовані (npDel === false). У
+   клієнта такі висять «Чекаємо на посилку» і «Сплатити всі посилки».
+   Записи до 05.11 без позначки npDel сюди не йдуть — про них ми не знаємо. */
+function ttnExtraRows(){
+  const out = [], від = new Date(Date.now() - 30 * 864e5).toISOString();
+  (orders || []).forEach(o => {
+    if(!o || o.draft || !o.orderId) return;
+    const add = (h0, part) => {
+      if(!h0) return;
+      (Array.isArray(h0.ttnHist) ? h0.ttnHist : []).forEach(h => {
+        if(!h || h.npDel !== false) return;
+        if(String(h.till || h.at || '') < від) return;            // давніші за 30 днів — уже не «висять» у клієнта
+        const t = String(h.ttn || '').trim();
+        if(!t || t === String(h0.ttn || '').trim()) return;
+        out.push({ o, part, h, ttn: t, why: h.extra ? 'створена зайвою разом із головною' : h.deleted ? 'знята з картки, у Новій пошті не скасована' : 'замінена новою, у Новій пошті не скасована' });
+      });
+    };
+    add(o, 1); add(ship2Of(o), 2);
+  });
+  return out;
+}
+window.__lqTtnExtra = () => ttnExtraRows().map(r => ({ no: showNo(r.o), ttn: r.ttn, part: r.part, why: r.why }));
+async function ttnExtraMark(oid, part, ttn, how){
+  const H = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host;
+  const o = (orders || []).find(x => x && String(x.orderId) === String(oid));
+  if(!o) return false;
+  const тут = x => { const h0 = +part === 2 ? ship2Of(x) : x; return ((h0 && h0.ttnHist) || []).filter(y => y && String(y.ttn) === String(ttn)).pop(); };
+  const fn = x => { const h = тут(x); if(!h) return false; if(h.npDel === true) return; h.npDel = true; h.npDelAt = new Date().toISOString(); h.npDelBy = myEmail() || ''; if(how) h.npDelHow = how; };
+  const okFn = x => { const h = тут(x); return !!(h && h.npDel === true); };
+  if(H && H.orderApply){ const r = await H.orderApply(o.id, fn, okFn); return r === true || r === 'stale' && okFn(o); }
+  if(fn(o) === false) return false;
+  touchOrder(o); await saveOrders({ quiet: true, only: o.id }); return true;
+}
+async function ttnExtraCancel(btn){
+  const oid = btn.dataset.xtCancel, part = +btn.dataset.part || 1, ttn = btn.dataset.ttn;
+  const o = (orders || []).find(x => x && String(x.orderId) === String(oid));
+  if(!o) return;
+  const h0 = part === 2 ? ship2Of(o) : o;
+  const h = ((h0 && h0.ttnHist) || []).filter(y => y && String(y.ttn) === String(ttn)).pop();
+  if(!h) return;
+  if(!confirm('Скасувати накладну ' + ttn + ' (#' + showNo(o) + (part === 2 ? ', посилка 2' : '') + ') у Новій пошті?\nГоловна накладна картки — ' + (String((h0 && h0.ttn) || '').trim() || 'немає') + ' — лишається.')) return;
+  btn.disabled = true; btn.textContent = 'Скасовую…';
+  const чому = await ttnNpCancel(ttn, String(h.ref || ''), String(h.sender || (h0 && h0.ttnSender) || ''));
+  if(чому){
+    btn.disabled = false; btn.textContent = 'Скасувати в НП';
+    return toast('Не скасовано: ' + ttnWhyUa(чому) + '. Скасуйте в кабінеті Нової пошти й натисніть «Уже скасовано»', 9000);
+  }
+  const лягло = await ttnExtraMark(oid, part, ttn, 'np');
+  toast(лягло ? 'Накладну ' + ttn + ' скасовано в Новій пошті' : 'У Новій пошті скасовано, а в картку не записалось — натисніть «Уже скасовано»', 6000);
+  renderFinHealth();
+}
 function renderFinIncomplete(){
   try{ renderFinHealth(); }catch(e){ console.warn('стан системи', e); }
   const box = document.getElementById('fin-incomplete');
@@ -26357,19 +26425,22 @@ function repeatFold(o){
    руками. Другий шлях не гірший: він працює завжди, зокрема тоді, коли
    відправляють іншою службою. */
 function npUrl(){ return String(((contentData || {}).bgApi || {}).npUrl || '').trim(); }
+let NP_CREATE_MS = 45000;          // тести скорочують
 async function npCall(op, extra){
   const u = npUrl();
   if(!u) throw new Error('Адреса воркера Нової пошти не задана');
   /* Накладну й реквізити відправника воркер дає лише тому, хто увійшов в
      адмінку: його адреса лежить у публічних налаштуваннях сайту. */
   let idToken = '';
-  if(op === 'create' || op === 'sender' || op === 'registry' || op === 'ttnDelete'){
+  if(op === 'create' || op === 'sender' || op === 'registry' || op === 'ttnDelete' || op === 'find'){
     try{ idToken = await fbAuth.currentUser.getIdToken(); }
     catch(e){ throw new Error('Сесія застаріла — увійдіть ще раз'); }
   }
   extra = Object.assign({}, extra || {}, idToken ? { idToken } : {});
   const ctrl = new AbortController();
-  const t = setTimeout(()=> ctrl.abort(), 25000);
+  /* Накладна — 45 с (05.11, #2000198): Нова пошта буває повільна, а
+     накладна лягає й тоді, коли ми вже не чекаємо. */
+  const t = setTimeout(()=> ctrl.abort(), op === 'create' ? NP_CREATE_MS : 25000);
   try{
     let r;
     try{
@@ -26377,7 +26448,12 @@ async function npCall(op, extra){
         body: JSON.stringify(Object.assign({ op }, extra || {})), signal:ctrl.signal });
     }catch(e){
       /* Людині — словами, а не «signal is aborted without reason» (02.11). */
-      if(ctrl.signal.aborted) throw new Error('Нова пошта не відповідає — спробуйте ще раз за хвилину');
+      if(ctrl.signal.aborted){
+        /* Накладна: НЕ «спробуйте ще раз» — вона могла лягти (05.11, #2000198,
+           чотири накладні на один одяг). Хто кликав — перевіряє (ttnCreateSafe). */
+        if(op === 'create'){ const er = new Error('Нова пошта довго відповідає — накладна могла створитись'); er.npSlow = true; throw er; }
+        throw new Error('Нова пошта не відповідає — спробуйте ще раз за хвилину');
+      }
       throw new Error('Немає звʼязку з воркером Нової пошти: ' + String((e && e.message) || e));
     }
     const d = await r.json().catch(()=> null);
@@ -26592,17 +26668,29 @@ function shipTtnDrop(o){
    ним усе одно знайдуть картку), статуси й відмови реєстру знімаємо; дані
    отримувача у формі «Відправка» лишаються — людина виправляє й створює
    нову тут же. Повертає {ok, note|why}. */
-async function shipTtnDelete(o){
+/* Скасувати в Новій пошті: за Ref, а без нього — за номером (воркер шукає
+   Ref серед накладних відправника). '' — скасовано, інакше чому ні. */
+async function ttnNpCancel(ttn, ref, sender){
+  try{ await npCall('ttnDelete', ref ? { ref, sender } : { ttn: String(ttn || '').replace(/\D/g, ''), sender }); return ''; }
+  catch(e){ return String((e && e.message) || e).slice(0, 160); }
+}
+/* ✕ ВИДАЛИТИ ТТН. Не скасувалась у Новій пошті — з картки мовчки не знімаємо
+   (05.11, #2000198: знята з картки, але жива в НП накладна — це друга
+   накладна в клієнта, щойно створять нову). opt.force — людина підтвердила,
+   що скасує в кабінеті НП сама; тоді номер у ttnHist з npDel:false, і
+   «Стан системи» показує його як зайвий, доки не скасують. */
+async function shipTtnDelete(o, opt){
+  opt = opt || {};
   const стара = String((o && o.ttn) || '').trim();
   if(!o || !стара) return { ok: false, why: 'накладної немає' };
   const ref = String(o.ttnRef || ''), sender = String(o.ttnSender || '');
   let npDel = false, note = '';
-  if(ref){
-    try{ await npCall('ttnDelete', { ref, sender }); npDel = true; }
-    catch(e){ note = 'у Новій пошті не скасувалась (' + String((e && e.message) || e).slice(0, 80) + ') — скасуйте в кабінеті НП'; }
-  } else note = 'створена не в адмінці — скасуйте її в кабінеті Нової пошти, якщо треба';
+  const чому = await ttnNpCancel(стара, ref, sender);
+  if(!чому) npDel = true;
+  else if(!opt.force) return { ok: false, force: true, why: 'у Новій пошті накладна ' + стара + ' не скасувалась (' + ttnWhyUa(чому).slice(0, 120) + ')' };
+  else note = 'у Новій пошті не скасувалась — скасуйте її в кабінеті НП (вона в «Стан системи» як зайва)';
   o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0, at: o.ttnAt || '', by: myEmail() || '',
-    till: new Date().toISOString(), deleted: true, npDel }]).slice(-10);
+    till: new Date().toISOString(), deleted: true, npDel, ref, sender }]).slice(-10);
   o.ttn = ''; o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
   ['ttnRef','ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender','npSt','regFail'].forEach(k => { delete o[k]; });
   touchOrder(o);
@@ -26991,7 +27079,7 @@ function shipForm2Html(o){
     ${!gate.ok ? `<div class="gate-sum shf-wide">🔒 ${E(gate.why)}</div>` : ''}
     ${miss.length ? `<div class="shf-miss shf-wide">Бракує: ${E(miss.join(', '))}</div>` : ''}
     ${ttnFailHtml(o, 2)}
-    <button class="mk-copy shf-wide${ttnFailOf(o, 2) ? ' is-err' : ''}" data-shf2-make${(miss.length || !gate.ok) ? ' disabled' : ''}>${ttnFailOf(o, 2) ? 'Створити ТТН ще раз · посилка 2' : 'Створити ТТН · посилка 2'}</button>
+    <button class="mk-copy shf-wide${ttnFailOf(o, 2) ? ' is-err' : ''}" data-shf2-make${(miss.length || !gate.ok) ? ' disabled' : ''}>${TTN_SLOW[ttnSlowKey(o, 2)] ? 'Перевірити, чи накладна створилась · посилка 2' : ttnFailOf(o, 2) ? 'Створити ТТН ще раз · посилка 2' : 'Створити ТТН · посилка 2'}</button>
   </div>`;
 }
 /* НАКЛАДНА НЕ СТВОРИЛАСЬ — ПРИЧИНА В КАРТЦІ (05.11, менеджери: «чомусь не
@@ -27034,7 +27122,9 @@ function ttnFailHtml(o, part){
   const f = ttnFailOf(o, part);
   if(!f) return '';
   const hm = (() => { try{ return new Date(f.at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); }catch(e){ return ''; } })();
-  return `<div class="shf-fail shf-wide" data-ttn-fail><b>НЕ СТВОРЕНО${hm ? ' · ' + escapeHtml(hm) : ''}:</b> ${escapeHtml(f.why)}</div>`;
+  /* Довга відповідь НП — не «не створено»: накладна могла лягти (05.11). */
+  const мабуть = /могла створитись/.test(f.why);
+  return `<div class="shf-fail shf-wide" data-ttn-fail><b>${мабуть ? 'НЕ ЯСНО, ЧИ СТВОРЕНО' : 'НЕ СТВОРЕНО'}${hm ? ' · ' + escapeHtml(hm) : ''}:</b> ${escapeHtml(f.why)}</div>`;
 }
 /* Чого бракує для накладної — словами, а не неактивною кнопкою мовчки. */
 function shipMissing(v){
@@ -27101,7 +27191,7 @@ function shipFormHtml(o){
     ${!gate.ok ? `<div class="gate-sum shf-wide">🔒 ${E(gate.why)}</div>` : ''}
     ${miss.length ? `<div class="shf-miss shf-wide">Бракує: ${E(miss.join(', '))}</div>` : ''}
     ${ttnFailHtml(o, 1)}
-    <button class="mk-copy shf-wide${ttnFailOf(o, 1) ? ' is-err' : ''}" data-shf-make${(miss.length || !gate.ok) ? ' disabled' : ''}>${ttnFailOf(o, 1) ? 'Створити ТТН ще раз' : 'Створити ТТН'}${v.split.live ? ' · посилка 1' : ''}</button>
+    <button class="mk-copy shf-wide${ttnFailOf(o, 1) ? ' is-err' : ''}" data-shf-make${(miss.length || !gate.ok) ? ' disabled' : ''}>${TTN_SLOW[ttnSlowKey(o, 1)] ? 'Перевірити, чи накладна створилась' : ttnFailOf(o, 1) ? 'Створити ТТН ще раз' : 'Створити ТТН'}${v.split.live ? ' · посилка 1' : ''}</button>
     ${!ship2Of(o) && orderDir(o) === 'b2c' && shipLines(o, 1).length > 1
       ? `<button type="button" class="shf-link shf-wide" data-shf-two title="Друга посилка в інше місце: оберіть, які позиції їдуть другому отримувачу">+ Додатковий отримувач</button>` : ''}
     <button type="button" class="shf-link shf-wide" data-shf-abroad="1" title="Рідкий випадок: без накладної НП, лише куди відправити">✈ За кордон</button>
@@ -27220,14 +27310,17 @@ function wireShipForm(box, o, persist){
     if(miss.length) return toast('Бракує: ' + miss.join(', '));
     const gate = shipGate(o);
     if(!gate.ok) return toast('Накладну ще рано: ' + gate.why);
+    /* Накладна посилки 2 вже є — другої не створюємо (05.11, #2000198). */
+    if(String((ship2Of(o) || {}).ttn || '').trim()) return toast('У посилки 2 вже є ТТН ' + ship2Of(o).ttn + '. Інша потрібна — спершу «✕ Видалити ТТН» біля неї', 6000);
     make2.disabled = true;
     toast('Створюю накладну другої посилки…');
     try{
-      const d = await npCall('create', { order: shipTtnOrder2(o, v) });
+      const d = await ttnCreateSafe(o, 2, shipTtnOrder2(o, v));
       ttnFailSet(o, 2, '');
+      ttnExtraKeep(o, 2, Object.assign({ sender: v.sender ? v.sender.id : '' }, d), v.codOn ? v.cod : 0);
       await shipSetTtn2(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
-      toast('Накладна ' + d.ttn + ' (посилка 2) створена');
+      toast(ttnMadeText(d, 2), d.found || d.again ? 6000 : 0);
     }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 2, t); toast('Накладна посилки 2 не створилась: ' + ttnWhyUa(t)); make2.disabled = false; redraw(); }
   });
   if(друга) return;
@@ -27284,16 +27377,19 @@ function wireShipForm(box, o, persist){
     if(miss.length) return toast('Бракує: ' + miss.join(', '));
     const gate = shipGate(o);
     if(!gate.ok) return toast('Накладну ще рано: ' + gate.why);
-    if(o.ttn && +o.ttnCod > 0 && !confirm('У замовленні вже є ТТН ' + o.ttn + ' з контролем оплати ' + fmt(o.ttnCod) +
-        ' ₴. Друга накладна — друга оплата з клієнта. Створити все одно?')) return;
+    /* У картці вже є накладна — другої не створюємо ніколи (05.11, #2000198:
+       друга накладна — друга оплата з клієнта). Інша потрібна — спершу
+       «✕ Видалити ТТН» (скасує її в Новій пошті), тоді «Створити». */
+    if(String(o.ttn || '').trim()) return toast('У замовленні вже є ТТН ' + o.ttn + '. Інша потрібна — спершу «✕ Видалити ТТН» біля неї (скасує в Новій пошті), тоді «Створити ТТН»', 7000);
     make.disabled = true;
     toast('Створюю накладну…');
     try{
       const d = await shipTtnCreate(o, v);
       ttnFailSet(o, 1, '');
+      ttnExtraKeep(o, 1, Object.assign({ sender: v.sender ? v.sender.id : '' }, d), v.codOn ? v.cod : 0);
       await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
-      toast('Накладна ' + d.ttn + ' створена');
+      toast(ttnMadeText(d, 1), d.found || d.again ? 6000 : 0);
     }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 1, t); toast('Накладна не створилась: ' + ttnWhyUa(t)); make.disabled = false; redraw(); }
   });
 }
@@ -27310,7 +27406,90 @@ function shipTtnOrder(o, v){
     description: '#' + showNo(o),
     payer: v.payer };
 }
-async function shipTtnCreate(o, v){ return npCall('create', { order: shipTtnOrder(o, v) }); }
+async function shipTtnCreate(o, v){ return ttnCreateSafe(o, 1, shipTtnOrder(o, v)); }
+/* НАКЛАДНА БЕЗ ДУБЛІВ (05.11, #2000198: замовили один одяг — у клієнта
+   чотири накладні «Чекаємо на посилку від відправника» і «Сплатити всі
+   посилки»). Нова пошта відповідала довше, ніж адмінка чекала (25 с);
+   накладна лягала, а людині казали «спробуйте ще раз» — і кожне натискання
+   давало ще одну. Тепер:
+     — довга відповідь — не «спробуйте ще раз», а «могла створитись,
+       перевіряю»: воркер шукає ту саму накладну (op 'find': опис «#номер»,
+       отримувач, контроль оплати) і, знайшовши, привʼязує її до картки;
+     — 2 хв після довгої відповіді (TTN_SLOW, і в localStorage) кожне
+       натискання спершу шукає, другої не створює; перевірити не вдалось —
+       лише після питання «у кабінеті НП її немає?»;
+     — сам воркер перед створенням теж шукає ту саму (воркер має бути
+       розгорнутий) — повтор з іншої вкладки чи пристрою дубля не дасть;
+     — інші накладні з тим самим описом, які НП повернула, лягають у
+       ttnHist як зайві (extra, npDel:false): гроші за ними знайдуть
+       картку, а «Стан системи» показує їх зі «Скасувати в НП». */
+const TTN_SLOW_MS = 120000;
+let TTN_FIND_WAIT = [3000, 8000];
+const TTN_SLOW = (() => { try{ return JSON.parse(localStorage.getItem('lq_ttn_slow') || '{}') || {}; }catch(e){ return {}; } })();
+function ttnSlowKey(o, part){ return String((o && (o.orderId || o.id)) || '') + ':' + (part === 2 ? 2 : 1); }
+function ttnSlowSet(k, on){
+  if(on) TTN_SLOW[k] = Date.now(); else delete TTN_SLOW[k];
+  Object.keys(TTN_SLOW).forEach(x => { if(Date.now() - TTN_SLOW[x] > 864e5) delete TTN_SLOW[x]; });
+  try{ localStorage.setItem('lq_ttn_slow', JSON.stringify(TTN_SLOW)); }catch(e){}
+}
+function ttnSlowLeft(o, part){ const t = TTN_SLOW[ttnSlowKey(o, part)]; return t ? Math.max(0, TTN_SLOW_MS - (Date.now() - t)) : 0; }
+async function ttnFind(order){
+  try{ const r = await npCall('find', { order }); return { ok: true, same: r.same || [], other: r.other || [] }; }
+  catch(e){ return { ok: false, why: String((e && e.message) || e).slice(0, 120) }; }
+}
+function ttnFoundOf(f){ return Object.assign({}, f.same[0], { found: true, dupes: f.same.slice(1), other: f.other || [] }); }
+async function ttnCreateSafe(o, part, order){
+  const k = ttnSlowKey(o, part);
+  if(TTN_SLOW[k]){
+    const f = await ttnFind(order);
+    if(f.ok && f.same.length){ ttnSlowSet(k, false); return ttnFoundOf(f); }
+    const left = ttnSlowLeft(o, part);
+    if(left > 0) throw new Error('Нова пошта довго відповідала — накладна могла створитись. ' +
+      (f.ok ? 'Поки її не видно в Новій пошті' : 'Перевірити не вдалось (' + f.why + ')') +
+      '. Зачекайте ' + Math.ceil(left / 1000) + ' с і натисніть ще раз — спершу перевірю, другої не створю');
+    if(!f.ok && !confirm('Нова пошта довго відповідала, і накладна могла створитись, а перевірити не вдалось (' + f.why + ').\n' +
+        'Подивіться в кабінеті Нової пошти накладну з описом «' + order.description + '».\nЇї там НЕМАЄ — створити нову?'))
+      throw new Error('Не створено: спершу перевірте в кабінеті Нової пошти накладну «' + order.description + '»');
+    ttnSlowSet(k, false);
+  }
+  try{ return await npCall('create', { order }); }
+  catch(e){
+    if(!(e && e.npSlow)) throw e;
+    ttnSlowSet(k, true);
+    try{ toast('Нова пошта довго відповідає — накладна могла створитись. Перевіряю…', 8000); }catch(e2){}
+    let f = null;
+    for(const w of TTN_FIND_WAIT){
+      await new Promise(z => setTimeout(z, w));
+      f = await ttnFind(order);
+      if(f.ok && f.same.length){ ttnSlowSet(k, false); return ttnFoundOf(f); }
+    }
+    throw new Error('Нова пошта довго відповідала — накладна могла створитись. ' +
+      (f && f.ok ? 'Поки її не видно в Новій пошті' : 'Перевірити не вдалось' + (f && f.why ? ' (' + f.why + ')' : '')) +
+      '. Через 2 хв натисніть ще раз — спершу перевірю, другої не створю');
+  }
+}
+/* Зайві накладні з відповіді воркера — в історію накладних картки (part 2 —
+   посилки 2) як extra, ще не скасовані. Та, що стала головною, — ні. */
+function ttnExtraKeep(o, part, d, cod){
+  const host = part === 2 ? ship2Of(o) : o;
+  if(!host || !d) return 0;
+  const головна = String(d.ttn || '').trim();
+  const h = Array.isArray(host.ttnHist) ? host.ttnHist : [];
+  let n = 0;
+  [].concat(d.dupes || [], d.other || []).forEach(x => {
+    const t = String((x && x.ttn) || '').trim();
+    if(!t || t === головна || h.some(y => y && String(y.ttn) === t)) return;
+    h.push({ ttn: t, ref: String(x.ref || ''), cod: (d.dupes || []).indexOf(x) >= 0 ? (+cod || 0) : 0, at: String(x.at || ''),
+      by: myEmail() || '', till: new Date().toISOString(), extra: true, npDel: false, sender: String((d.sender || '')) });
+    n++;
+  });
+  if(n) host.ttnHist = h.slice(-10);
+  return n;
+}
+function ttnMadeText(d, part){
+  return (d.found || d.again ? 'Накладна ' + d.ttn + ' вже була в Новій пошті — привʼязано її, другої не створено' : 'Накладна ' + d.ttn + ' створена') +
+    (part === 2 ? ' (посилка 2)' : '');
+}
 /* Друга посилка (29.10): те саме, зі своїх полів; в описі — «посилка 2». */
 function shipTtnOrder2(o, v){
   return {
@@ -27342,18 +27521,19 @@ async function shipSetTtn2(o, ttn, extra){
   try{ accLog('ttn', 'накладна другої посилки ' + n + ' для #' + showNo(o)); }catch(e){}
   renderBoard(); renderOrderDrawer();
 }
-async function shipTtnDelete2(o){
+async function shipTtnDelete2(o, opt){
+  opt = opt || {};
   const s2 = ship2Of(o);
   const стара = String((s2 && s2.ttn) || '').trim();
   if(!s2 || !стара) return { ok: false, why: 'накладної другої посилки немає' };
   const ref = String(s2.ttnRef || ''), sender = String(s2.ttnSender || '');
   let npDel = false, note = '';
-  if(ref){
-    try{ await npCall('ttnDelete', { ref, sender }); npDel = true; }
-    catch(e){ note = 'у Новій пошті не скасувалась (' + String((e && e.message) || e).slice(0, 80) + ') — скасуйте в кабінеті НП'; }
-  } else note = 'створена не в адмінці — скасуйте її в кабінеті Нової пошти, якщо треба';
+  const чому = await ttnNpCancel(стара, ref, sender);
+  if(!чому) npDel = true;
+  else if(!opt.force) return { ok: false, force: true, why: 'у Новій пошті накладна ' + стара + ' (посилка 2) не скасувалась (' + ttnWhyUa(чому).slice(0, 120) + ')' };
+  else note = 'у Новій пошті не скасувалась — скасуйте її в кабінеті НП (вона в «Стан системи» як зайва)';
   s2.ttnHist = (Array.isArray(s2.ttnHist) ? s2.ttnHist : []).concat([{ ttn: стара, cod: +s2.ttnCod || 0, at: s2.ttnAt || '', by: myEmail() || '',
-    till: new Date().toISOString(), deleted: true, npDel }]).slice(-10);
+    till: new Date().toISOString(), deleted: true, npDel, ref, sender }]).slice(-10);
   ['ttn','ttnCod','ttnStatus','ttnStatusAt','ttnAt','ttnBy','ttnRef','ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender','npSt','regFail'].forEach(k => { delete s2[k]; });
   touchOrder(o);
   try{ accLog('ttn', 'видалив накладну другої посилки ' + стара + ' з #' + showNo(o) + (npDel ? ' (скасовано в НП)' : '')); }catch(e){}
@@ -27393,23 +27573,38 @@ async function shipTtnRemake(o){
   }
   if(miss.length) return 'бракує: ' + miss.join(', ');
   const стара = String(o.ttn).trim(), старийRef = String(o.ttnRef || ''), sender = String(o.ttnSender || (v.sender ? v.sender.id : '') || '');
-  let d;
-  try{ d = await shipTtnCreate(o, v); }catch(e){ const t = String((e && e.message) || e); ttnFailSet(o, 1, t, 'перестворити'); return ttnWhyUa(t); }
-  if(!d || !d.ttn){ ttnFailSet(o, 1, 'Нова пошта не дала номера накладної', 'перестворити'); return 'Нова пошта не дала номера накладної'; }
-  ttnFailSet(o, 1, '');
-  await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d), { quiet: true, replaced: true });
-  if(String(o.ttn || '').trim() !== String(d.ttn).trim()) return 'нову накладну ' + d.ttn + ' створено, але в картку не записалось';
-  /* Стару скасовуємо в Новій пошті, щоб не висіла. Не вийшло — картка не
-     страждає, кажемо людині. */
-  let скас = '';
-  if(старийRef){ try{ await npCall('ttnDelete', { ref: старийRef, sender }); }catch(e){ скас = String((e && e.message) || e); } }
-  else скас = 'у картці немає Ref старої накладної — скасуйте її в кабінеті Нової пошти';
-  const h = Array.isArray(o.ttnHist) ? o.ttnHist : [];
-  const last = h.filter(x => x && String(x.ttn) === стара).pop();
-  if(last){ last.npDel = !скас; if(скас) last.npDelWhy = скас.slice(0, 200); }
+  /* СПЕРШУ СКАСУВАТИ СТАРУ, ПОТІМ СТВОРИТИ (05.11, #2000198, Андрій:
+     «спочатку видалити, а потім тільки перестворити»). Доти нова лягала
+     першою, а стара, якщо НП її не скасувала, висіла далі — у клієнта дві
+     накладні й «Сплатити всі посилки». Не скасувалась — нової НЕ створюємо. */
+  try{ await npCall('ttnDelete', старийRef ? { ref: старийRef, sender } : { ttn: стара.replace(/\D/g, ''), sender }); }
+  catch(e){
+    const t = String((e && e.message) || e);
+    ttnFailSet(o, 1, 'стару ' + стара + ' не скасовано в Новій пошті: ' + t, 'перестворити');
+    return 'стару накладну ' + стара + ' не вдалось скасувати в Новій пошті (' + ttnWhyUa(t).slice(0, 140) + '). Нову не створено, щоб у клієнта не було двох накладних. ' +
+      'Скасуйте її в кабінеті Нової пошти, тоді «✕ Видалити ТТН» і «Створити ТТН»';
+  }
+  o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0, at: o.ttnAt || '', by: myEmail() || '',
+    till: new Date().toISOString(), replaced: true, npDel: true, ref: старийRef }]).slice(-10);
+  o.ttn = ''; o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
+  ['ttnRef','ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender','npSt','regFail'].forEach(k => { delete o[k]; });
   touchOrder(o);
-  try{ await storeSet('orders', orders); }catch(e){ console.warn('історія накладних', e); }
-  if(скас) toast('Нова накладна ' + d.ttn + '. Стару ' + стара + ' в Новій пошті скасувати не вдалось: ' + скас);
+  try{ await storeSet('orders', orders); }catch(e){ console.warn('скасування старої накладної', e); }
+  try{ accLog('ttn', 'перестворення #' + showNo(o) + ': стару ' + стара + ' скасовано в НП'); }catch(e){}
+  let d;
+  try{ d = await shipTtnCreate(o, v); }
+  catch(e){
+    const t = String((e && e.message) || e);
+    ttnFailSet(o, 1, t, 'перестворити');
+    return 'стару накладну ' + стара + ' скасовано, а нова не створилась: ' + ttnWhyUa(t) + '. Створіть її в «Відправка» → «Створити ТТН»';
+  }
+  if(!d || !d.ttn){ ttnFailSet(o, 1, 'Нова пошта не дала номера накладної', 'перестворити'); return 'стару накладну ' + стара + ' скасовано, а Нова пошта не дала номера нової — створіть її в «Відправка»'; }
+  ttnFailSet(o, 1, '');
+  ttnExtraKeep(o, 1, Object.assign({ sender }, d), v.codOn ? v.cod : 0);
+  const був = (o.ttnHist || []).filter(x => x && String(x.ttn) === стара).pop();
+  if(був) був.newTtn = String(d.ttn);
+  await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d), { quiet: true });
+  if(String(o.ttn || '').trim() !== String(d.ttn).trim()) return 'нову накладну ' + d.ttn + ' створено, але в картку не записалось';
   return true;
 }
 
@@ -33602,7 +33797,7 @@ function designHostInit(){
     shipForm: o => ((npUrl() || shipAbroad(o) || (o && o.ship && o.ship.abroad)) && !(o && o.ttn)) ? shipFormHtml(o) : '',
     shipAbroad: o => shipAbroad(o),
     ttnDrop: o => shipTtnDrop(o),
-    ttnDelete: (o, which) => which === 2 ? shipTtnDelete2(o) : shipTtnDelete(o),
+    ttnDelete: (o, which, opt) => which === 2 ? shipTtnDelete2(o, opt) : shipTtnDelete(o, opt),
     ttnRemake: o => shipTtnRemake(o),
     shipWire: (el, o, persist) => wireShipForm(el, o, persist),
     shipTrack: (o, which) => shipTrack(o, which),

@@ -594,6 +594,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/one-trip\
   echo "✓ одна поїздка в базу"
 fi
 
+# ОДИН ОДЯГ — ОДНА НАКЛАДНА (05.11, #2000198: чотири накладні на один одяг).
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|worker/novaposhta-proxy\.js|tests/ttn-dupe\.mjs)'; then
+  node tests/ttn-dupe.mjs >/tmp/lq-ttn-dupe.log 2>&1 || {
+    echo "✗ Накладна знову може створитись двічі (довга відповідь НП, «Перестворити», «Видалити») — коміт зупинено. Подробиці: /tmp/lq-ttn-dupe.log"
+    grep '✗' /tmp/lq-ttn-dupe.log
+    exit 1
+  }
+  echo "✓ одна накладна на одне замовлення"
+fi
+
 # ТТН НЕ СТВОРИЛАСЬ (05.11): причина червоним у картці, ttn-fail у журналі й «Стан системи».
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ttn-fail\.mjs)'; then
   node tests/ttn-fail.mjs >/tmp/lq-ttn-fail.log 2>&1 || {
