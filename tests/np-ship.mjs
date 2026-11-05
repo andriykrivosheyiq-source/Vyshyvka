@@ -58,7 +58,8 @@ globalThis.fetch = async (url, opt) => {
     if(b.calledMethod === 'getWarehouses')
       return res({ success: true, data: [
         { Ref: 'W1', Description: 'Відділення №1: вул. Соборна, 1', Number: '1', CategoryOfWarehouse: 'Branch' },
-        { Ref: 'W2', Description: 'Поштомат "Нова Пошта" №5012', Number: '5012', CategoryOfWarehouse: 'Postomat' } ] });
+        { Ref: 'W2', Description: 'Поштомат "Нова Пошта" №5012', Number: '5012', CategoryOfWarehouse: 'Postomat' },
+        { Ref: 'W3', Description: 'Поштомат "Нова Пошта" №4790', Number: '4790', CategoryOfWarehouse: 'Postomat', DenyToSelect: '1' } ] });
     return res({ success: true, data: [] });
   }
   throw new Error('неочікуваний запит ' + url);
@@ -138,8 +139,10 @@ const save6 = calls.filter(c => c.calledMethod === 'save' && c.modelName === 'In
 ok(r6.ok && save6.apiKey === 'KEY-OLD' && save6.methodProperties.Sender === 'S-OLD',
   'відправників ще не заведено — працює старий спосіб (змінні воркера)', 'запасний шлях: ' + JSON.stringify(r6));
 const wh = await call({ op: 'warehouses', city: 'CITY-K', q: '', sender: 'yukalchuk' });
-ok(wh.ok && wh.list.length === 2 && !wh.list[0].postomat && wh.list[1].postomat,
+ok(wh.ok && wh.list.length === 3 && !wh.list[0].postomat && wh.list[1].postomat,
   'довідник без входу; поштомати позначені', 'довідник: ' + JSON.stringify(wh));
+ok(!wh.list[0].deny && !wh.list[1].deny && wh.list[2].deny === true,
+  'поштомат, який НП не дає обрати (DenyToSelect), позначено (05.11, #2000517)', 'deny: ' + JSON.stringify(wh.list));
 
 console.log('');
 console.log(bad ? 'розходжень: ' + bad : 'накладна — від вибраного ФОПа, з вагою й контролем оплати, лише з адмінки');

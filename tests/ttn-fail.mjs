@@ -166,6 +166,48 @@ ok(f4.r === 'Невірний поштомат для цієї ваги' && f4.l
   '«Перестворити» не вдалось — причина людині й у журнал, стара накладна на місці', JSON.stringify(f4));
 ok(f4.two && f4.twoLog, 'посилка 2: причина під її кнопкою, «Створити ТТН ще раз · посилка 2», у журналі «посилка 2»', JSON.stringify(f4));
 
+console.log('═══ 4. ПРИЧИНИ ЗІ СКРІНІВ 05.11: УКРАЇНСЬКОЮ; ОПИС ПОСИЛКИ 2; НЕДОСТУПНЕ ВІДДІЛЕННЯ ═══');
+const f5 = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '1001101');
+  const r = {};
+  r.deny = ttnWhyUa('RecipientWarehouse is denied to select');
+  r.desc = ttnWhyUa('Description is not valid; VolumeWeight is changed; VolumeGeneral is changed; Weight is changed');
+  r.other = ttnWhyUa('Щось нове від НП');
+  o.ship2 = { on: true, units: [] };
+  r.d2 = shipTtnOrder2(o, shipVals2(o)).description;
+  r.d1 = shipTtnOrder(o, shipVals(o)).description;
+  /* Список відділень: те, що НП не дає обрати, — сіре й не обирається. */
+  const real = window.fetch;
+  window.fetch = async (u, op) => { if(String(u).indexOf('np.example') >= 0 && JSON.parse(op.body).op === 'warehouses')
+      return new Response(JSON.stringify({ ok:true, list:[{ ref:'w1', name:'Відділення №12', number:'12' }, { ref:'w9', name:'Поштомат "Нова Пошта" №4790', number:'4790', postomat:true, deny:true }] }), { headers:{ 'Content-Type':'application/json' } });
+    return real(u, op); };
+  const box = document.createElement('div');
+  box.innerHTML = '<input id="tc"><input id="tw"><div id="tl"></div>';
+  document.body.appendChild(box);
+  const cityI = box.querySelector('#tc'), whI = box.querySelector('#tw'), list = box.querySelector('#tl');
+  whI.dataset.city = 'c1';
+  let picked = null;
+  npPicker(cityI, whI, list, () => '', () => {}, x => { if(x) picked = x.ref; });
+  whI.value = '4'; whI.dispatchEvent(new Event('input'));
+  await new Promise(z => setTimeout(z, 700));
+  const bs = [...list.querySelectorAll('.ship-o')];
+  r.list = bs.map(b => ({ t: b.textContent.trim(), dis: b.disabled }));
+  bs[1] && bs[1].click(); await new Promise(z => setTimeout(z, 50));
+  r.pickedDeny = picked;
+  bs[0] && bs[0].click(); await new Promise(z => setTimeout(z, 50));
+  r.pickedOk = picked;
+  box.remove(); window.fetch = real;
+  return r;
+});
+console.log('   ' + JSON.stringify(f5));
+ok(/^Нова пошта зараз не дає обрати це відділення чи поштомат .* — оберіть інше \(Нова пошта: RecipientWarehouse is denied to select\)$/.test(f5.deny),
+  '«RecipientWarehouse is denied to select» — українською, що робити, оригінал у дужках', f5.deny);
+ok(f5.desc === 'Нова пошта не прийняла опис відправлення (Нова пошта: Description is not valid)', '«Description is not valid» — українською; «… is changed» (лише попередження) не заважає', f5.desc);
+ok(f5.other === 'Щось нове від НП', 'невідома причина — як є', f5.other);
+ok(f5.d2 === '#1001101 посилка 2' && f5.d1 === '#1001101', 'опис посилки 2 без «·» (НП його не приймає), посилки 1 — як доти', JSON.stringify([f5.d1, f5.d2]));
+ok(f5.list.length === 2 && !f5.list[0].dis && f5.list[1].dis && /⛔.*зараз не приймає/.test(f5.list[1].t) && f5.pickedDeny === null && f5.pickedOk === 'w1',
+  'відділення, яке НП не дає обрати, — сіре «⛔ … зараз не приймає», не обирається; звичайне — обирається', JSON.stringify(f5.list) + ' ' + f5.pickedDeny + '/' + f5.pickedOk);
+
 ok(!errs.length, 'без помилок на сторінці', JSON.stringify(errs));
 await browser.close(); srv.close();
 console.log(bad ? '\n✗ ' + bad + ' перевірок не пройшло' : '\n✓ усе гаразд');

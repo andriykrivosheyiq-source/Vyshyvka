@@ -4805,6 +4805,7 @@
   .shf-from{grid-column:1 / -1;font-size:12.5px;color:var(--ink-soft);}
   .shf-note{font-size:12px;color:var(--ink-soft);}
   .shf-miss{font-size:12.5px;color:#B03A1A;background:#FDECEA;border-radius:8px;padding:7px 10px;}
+  .ship-o.is-deny{color:#9ca3af;cursor:not-allowed;background:#f6f7f9;}
   .shf-fail{font-size:12.5px;color:#8E1B10;background:#FDECEA;border:1px solid #F3B8B0;border-radius:8px;padding:8px 10px;line-height:1.4;}
   .shf [data-shf-make].is-err,.shf [data-shf2-make].is-err{background:#B42318;color:#fff;border-color:#B42318;}
   .shf [data-shf-make]{justify-self:start;}
@@ -8453,32 +8454,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=72fe7acd01"></script>
-<script src="loomiq-fingerprint.js?v=72fe7acd01"></script>
-<script src="loomiq-pricing.js?v=72fe7acd01"></script>
+<script src="loomiq-select.js?v=b8f463b415"></script>
+<script src="loomiq-fingerprint.js?v=b8f463b415"></script>
+<script src="loomiq-pricing.js?v=b8f463b415"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=72fe7acd01"></script>
+<script src="loomiq-money-core.js?v=b8f463b415"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=72fe7acd01"></script>
-<script src="loomiq-mock.js?v=72fe7acd01"></script>
+<script src="loomiq-design.js?v=b8f463b415"></script>
+<script src="loomiq-mock.js?v=b8f463b415"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=72fe7acd01"></script>
+<script src="imagetracer.js?v=b8f463b415"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=72fe7acd01"></script>
-<script src="loomiq-threads.js?v=72fe7acd01"></script>
+<script src="loomiq-chat.js?v=b8f463b415"></script>
+<script src="loomiq-threads.js?v=b8f463b415"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=72fe7acd01"></script>
+<script src="loomiq-cards.js?v=b8f463b415"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8523,8 +8524,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '72fe7acd01';
-var LQ_VER_AT = '2026-11-05T14:05:41Z';
+var LQ_VER = 'b8f463b415';
+var LQ_VER_AT = '2026-11-05T14:21:58Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -26988,12 +26989,31 @@ function shipForm2Html(o){
    `ttn-fail` у журналі (видно в «Стан системи»; та сама причина по тій самій
    картці — раз на 10 хв). Сама накладна й гроші — як доти. */
 const TTN_FAIL = {};
+/* Відмова НП англійською — людині українською, оригінал у дужках.
+   «… is changed» — лише попередження (НП сама переважила), окремо не кажемо. */
+const TTN_WHY_UA = [
+  [/RecipientWarehouse is denied to select/i, 'Нова пошта зараз не дає обрати це відділення чи поштомат (тимчасово не приймає) — оберіть інше'],
+  [/Description is not valid/i, 'Нова пошта не прийняла опис відправлення'],
+  [/RecipientWarehouse is (empty|invalid|not valid)/i, 'відділення отримувача не прийнято — оберіть його зі списку ще раз'],
+  [/(Recipient|Contact).*Phone.*(invalid|not valid)|Phone.*(is invalid|not valid)/i, 'Нова пошта не прийняла телефон отримувача'],
+  [/Weight.*(is too big|exceeded|more than)|max.*weight/i, 'посилка заважка для цього відділення чи поштомату'],
+  [/(Seats|Volume|Size).*(too big|exceeded|not allowed)|dimensions/i, 'посилка завелика для цього відділення чи поштомату']
+];
+function ttnWhyUa(t){
+  const parts = String(t || '').split(/;\s*/).map(x => x.trim()).filter(Boolean);
+  const real = parts.filter(x => !/^(Volume)?(Weight|General)?\s*(is changed)$|^[A-Za-z]+ is changed$/i.test(x));
+  const use = real.length ? real : parts;
+  const ua = [];
+  use.forEach(x => { const m = TTN_WHY_UA.filter(r => r[0].test(x))[0]; if(m && ua.indexOf(m[1]) < 0) ua.push(m[1]); });
+  const orig = use.join('; ');
+  return ua.length ? ua.join('; ') + ' (Нова пошта: ' + orig + ')' : orig;
+}
 function ttnFailOf(o, part){ return (o && TTN_FAIL[String(o.orderId || o.id) + ':' + (part || 1)]) || null; }
 function ttnFailSet(o, part, why, op){
   if(!o) return;
   const k = String(o.orderId || o.id) + ':' + (part || 1);
   if(!why){ delete TTN_FAIL[k]; return; }
-  const t = String(why).replace(/\s+/g, ' ').trim() || 'Нова пошта відмовила без пояснення';
+  const t = ttnWhyUa(String(why).replace(/\s+/g, ' ').trim()) || 'Нова пошта відмовила без пояснення';
   TTN_FAIL[k] = { why: t, at: new Date().toISOString() };
   try{ accFail('ttn-fail', k + '|' + t.slice(0, 60), '#' + showNo(o) + (part === 2 ? ' · посилка 2' : '') + (op ? ' · ' + op : '') + ': ' + t.slice(0, 110)); }catch(e){}
 }
@@ -27079,9 +27099,12 @@ function npPicker(cityI, whI, list, sender, onCity, onWh){
   let city = null, timer = 0;
   const show = (items, pick) => {
     list.hidden = !items.length;
-    list.innerHTML = items.map((x, i) =>
-      `<button type="button" class="ship-o" data-i="${i}">${x.postomat ? '📦 ' : ''}${escapeHtml(x.name)}</button>`).join('');
-    list.querySelectorAll('.ship-o').forEach(b =>
+    /* Відділення, яке Нова пошта зараз не дає обрати (deny, 05.11, #2000517:
+       «RecipientWarehouse is denied to select»), — сіре, не обирається. */
+    list.innerHTML = items.map((x, i) => x.deny
+      ? `<button type="button" class="ship-o is-deny" data-i="${i}" disabled title="Нова пошта тимчасово не дає обрати це відділення — оберіть інше">⛔ ${escapeHtml(x.name)} · зараз не приймає</button>`
+      : `<button type="button" class="ship-o" data-i="${i}">${x.postomat ? '📦 ' : ''}${escapeHtml(x.name)}</button>`).join('');
+    list.querySelectorAll('.ship-o:not(.is-deny)').forEach(b =>
       b.addEventListener('click', () => pick(items[+b.dataset.i])));
   };
   const ask = fn => { clearTimeout(timer); timer = setTimeout(fn, 350); };
@@ -27192,7 +27215,7 @@ function wireShipForm(box, o, persist){
       await shipSetTtn2(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' (посилка 2) створена');
-    }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 2, t); toast('Накладна посилки 2 не створилась: ' + t); make2.disabled = false; redraw(); }
+    }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 2, t); toast('Накладна посилки 2 не створилась: ' + ttnWhyUa(t)); make2.disabled = false; redraw(); }
   });
   if(друга) return;
   box.querySelectorAll('[data-shf]').forEach(el => {
@@ -27258,7 +27281,7 @@ function wireShipForm(box, o, persist){
       await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d));
       try{ await persist(o); }catch(e){}
       toast('Накладна ' + d.ttn + ' створена');
-    }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 1, t); toast('Накладна не створилась: ' + t); make.disabled = false; redraw(); }
+    }catch(e){ console.error(e); const t = String((e && e.message) || e); ttnFailSet(o, 1, t); toast('Накладна не створилась: ' + ttnWhyUa(t)); make.disabled = false; redraw(); }
   });
 }
 
@@ -27283,7 +27306,9 @@ function shipTtnOrder2(o, v){
     weightKg: v.kg, dims: v.format ? { l: +v.format.l || 0, w: +v.format.w || 0, h: +v.format.h || 0 } : null,
     cost: Math.max(v.cod, v.split.price2), cod: v.codOn ? v.cod : 0,
     cityRef: v.cityRef, cityName: v.cityName, warehouseRef: v.whRef, warehouseNumber: v.whNumber,
-    description: '#' + showNo(o) + ' · посилка 2',
+    /* Без «·» (05.11, #2000477: «Description is not valid» — Нова пошта не
+       приймає цей знак в описі відправлення). */
+    description: '#' + showNo(o) + ' посилка 2',
     payer: v.payer };
 }
 async function shipSetTtn2(o, ttn, extra){
@@ -27356,7 +27381,7 @@ async function shipTtnRemake(o){
   if(miss.length) return 'бракує: ' + miss.join(', ');
   const стара = String(o.ttn).trim(), старийRef = String(o.ttnRef || ''), sender = String(o.ttnSender || (v.sender ? v.sender.id : '') || '');
   let d;
-  try{ d = await shipTtnCreate(o, v); }catch(e){ const t = String((e && e.message) || e); ttnFailSet(o, 1, t, 'перестворити'); return t; }
+  try{ d = await shipTtnCreate(o, v); }catch(e){ const t = String((e && e.message) || e); ttnFailSet(o, 1, t, 'перестворити'); return ttnWhyUa(t); }
   if(!d || !d.ttn){ ttnFailSet(o, 1, 'Нова пошта не дала номера накладної', 'перестворити'); return 'Нова пошта не дала номера накладної'; }
   ttnFailSet(o, 1, '');
   await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d), { quiet: true, replaced: true });

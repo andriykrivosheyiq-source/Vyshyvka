@@ -1248,7 +1248,14 @@ set/update документа. Перевіряють `tests/one-trip.mjs` (у p
 `ttn-fail` у журналі через `accFail` (та сама причина по картці — раз на
 10 хв) → «Стан системи» (`HEALTH_KINDS`). Так і посилка 2 (`data-shf2-make`)
 і «Перестворити ТТН» (`shipTtnRemake`). Тост сам по собі — не повідомлення.
-Перевіряє `tests/ttn-fail.mjs` (у pre-commit).
+Відмову НП англійською — українською з оригіналом у дужках (`ttnWhyUa`,
+`TTN_WHY_UA`; «… is changed» — лише попередження). Скріни 05.11:
+#2000517 «RecipientWarehouse is denied to select» — НП не дає обрати
+поштомат (`DenyToSelect`): воркер позначає `deny`, у списку такі сірі
+«⛔ … зараз не приймає» й не обираються (`npPicker`); #2000477 «Description is
+not valid» — опис посилки 2 був «#№ · посилка 2», тепер «#№ посилка 2» (без
+«·»). Перевіряють `tests/ttn-fail.mjs` (у pre-commit), `tests/np-ship.mjs`
+(воркер). **Перерозгорнути `loomiq-np`** — без нього `deny` не приходить.
 
 ## Інше
 

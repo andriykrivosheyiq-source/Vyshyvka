@@ -336,7 +336,11 @@ export default {
         const list = d.map(x => ({ ref: x.Ref, name: x.Description,
                                    number: String(x.Number || ''),
                                    postomat: /поштомат/i.test(String(x.Description || '') + ' ' + String(x.CategoryOfWarehouse || '')) ||
-                                             String(x.CategoryOfWarehouse || '') === 'Postomat' }));
+                                             String(x.CategoryOfWarehouse || '') === 'Postomat',
+                                   /* DenyToSelect (05.11, #2000517: «RecipientWarehouse is denied
+                                      to select»): НП тимчасово не дає обрати це відділення чи
+                                      поштомат — позначаємо, адмінка таке не пропонує. */
+                                   deny: String(x.DenyToSelect == null ? '0' : x.DenyToSelect) === '1' }));
         return json({ ok: true, list }, 200, cors);
       }
       if (op === 'sender') {
