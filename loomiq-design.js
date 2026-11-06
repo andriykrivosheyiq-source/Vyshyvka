@@ -10709,9 +10709,40 @@
     if(keepCls && o.getAttribute('tabindex') !== '-1') o.setAttribute('tabindex', '-1');
     if(keepCls && !n.hasAttribute('class') && !o.classList.contains('lq-native')) o.classList.add('lq-native');
   }
-  function morphField(o, n, was){
+  /* Підпис поля — те, чиє воно: name, id і всі data-* (data-dzsay — позиція й
+     рядок дизайну, data-sf / data-uf — поле картки). Інший підпис — уже інше
+     поле, хай би елемент сторінки лишився той самий (06.11). */
+  function fieldSig(el){
+    var a = [];
+    for(var i = 0; i < el.attributes.length; i++){
+      var nm = el.attributes[i].name;
+      if(nm === 'name' || nm === 'id' || nm.indexOf('data-') === 0) a.push(nm + '=' + el.attributes[i].value);
+    }
+    return a.sort().join('&');
+  }
+  function morphField(o, n, was, sig0){
     var t = o.tagName;
     if(t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT') return;
+    /* Інша картка чи інше поле на тому самому місці: набране не його — беремо
+       з розмітки; набране старого поля дизайнеру — в памʼять його чернетки. */
+    var other = MORPH_FRESH || !!(sig0 && sig0.sig !== fieldSig(o));
+    if(other){
+      if(sig0 && sig0.say && String(o.value || '').trim() && !SAY_DRAFT[sig0.say]) SAY_DRAFT[sig0.say] = String(o.value);
+      if(t === 'SELECT'){
+        var w0 = null;
+        [].forEach.call(n.querySelectorAll('option'), function(op){ if(op.hasAttribute('selected')) w0 = op.getAttribute('value') != null ? op.getAttribute('value') : op.textContent; });
+        if(w0 == null){ var f0 = n.querySelector('option'); w0 = f0 ? (f0.getAttribute('value') != null ? f0.getAttribute('value') : f0.textContent) : ''; }
+        if(o.value !== w0) o.value = w0;
+        return;
+      }
+      var ty0 = (o.getAttribute('type') || '').toLowerCase();
+      if(ty0 === 'checkbox' || ty0 === 'radio'){ o.checked = n.hasAttribute('checked'); return; }
+      if(ty0 === 'file'){ try{ o.value = ''; }catch(e){} return; }
+      var nv = t === 'TEXTAREA' ? n.value : (n.getAttribute('value') || '');
+      if(t === 'TEXTAREA' && o.defaultValue !== nv) o.defaultValue = nv;
+      if(o.value !== nv) o.value = nv;
+      return;
+    }
     var focused = document.activeElement === o;
     /* Поле, у якому людина саме пише, не «їсться» ніколи (05.11). */
     var eat = !!(MORPH_EAT && MORPH_EAT.indexOf(o) >= 0) && !focused;
@@ -10752,13 +10783,14 @@
       return fresh;
     }
     var was = o.tagName === 'TEXTAREA' ? o.defaultValue : (o.tagName === 'INPUT' ? (o.getAttribute('value') || '') : null);
+    var sig0 = (o.tagName === 'INPUT' || o.tagName === 'TEXTAREA' || o.tagName === 'SELECT') ? { sig: fieldSig(o), say: o.getAttribute('data-dzsay') } : null;
     morphAttrs(o, n);
     /* Обробники ставить wire наново; старі, яких тепер не має бути, — знімаємо. */
     for(var i = 0; i < MORPH_ON.length; i++){ var p = MORPH_ON[i]; if(o[p] && !o.hasAttribute(p)) o[p] = null; }
     if(o.isContentEditable && document.activeElement === o) return;
-    if(o.tagName === 'TEXTAREA'){ morphField(o, n, was); return; }
+    if(o.tagName === 'TEXTAREA'){ morphField(o, n, was, sig0); return; }
     morphKids(o, n);
-    morphField(o, n, was);
+    morphField(o, n, was, sig0);
   }
   function morphKids(from, to){
     var olds = [].slice.call(from.childNodes).filter(function(x){ return !morphForeign(x); });
@@ -10803,10 +10835,23 @@
   }
   /* Поставити розмітку: накласти на наявну (є що накладати й не вимкнено) або
      вставити цілком, як доти. */
-  function setHtml(el, html){
+  /* ІНША КАРТКА — НЕ «СВОЄ НЕНАДІСЛАНЕ» (06.11, знахідка перевірки: набрали
+     «Написати дизайнеру» в одному замовленні, не надіслали, відкрили ІНШЕ — з
+     розмови, після створення, з дошки — і поле нового замовлення лягало на той
+     самий елемент сторінки з чужим текстом; його могли надіслати не тому
+     дизайнеру). card — номер відкритої картки: змінився — у цьому переході
+     жодне поле набраного не тримає (MORPH_FRESH), а набране старої картки
+     лишається в памʼяті чернеток (SAY_DRAFT) під її ключем і повертається,
+     коли картку відкриють знову. */
+  var MORPH_FRESH = false;
+  function setHtml(el, html, card){
+    var fresh = card !== undefined && el.__lqCard !== String(card);
+    if(card !== undefined) el.__lqCard = String(card);
     if(el.firstChild && !morphOff()){
+      MORPH_FRESH = fresh;
       try{ morphInto(el, html); sayRestore(el); return; }
       catch(e){ console.warn('часткове оновлення — вставляю цілком', e); }
+      finally{ MORPH_FRESH = false; }
     }
     el.innerHTML = html;
     sayRestore(el);
@@ -10908,7 +10953,7 @@
     var html = probBarHtml(SOLO.id) + noteBarHtml(SOLO.id) + panelFor('acct', SOLO.id);
     var full = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
     if(softSkip(root, full)) return !!html;
-    setHtml(root, full);
+    setHtml(root, full, SOLO.id);
     root.__lqHtml = full;
     wire(root);
     try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
@@ -11093,7 +11138,7 @@
           (openId ? probBarHtml(openId) + noteBarHtml(openId) + panelFor(seat, openId) : '') + '</aside>' +
       '</div>');
     if(softSkip(root, _full)) return;
-    setHtml(root, _full);
+    setHtml(root, _full, openId || '');
     root.__lqHtml = _full;
     wire(root);
     /* Аркуш добирається сам, уже після того, як екран намальовано: спершу
@@ -11159,6 +11204,8 @@
     try{ html = probBarHtml(id) + noteBarHtml(id) + panelFor(seat, id); }catch(e){ console.warn('картка', e); return false; }
     if(!html) return false;
     pn.innerHTML = html;
+    root.__lqCard = id;
+    sayRestore(pn);
     pn.classList.remove('hide');
     root.querySelectorAll('.dz-card.on').forEach(function(c){ c.classList.remove('on'); });
     var on = null;

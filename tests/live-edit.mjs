@@ -238,6 +238,86 @@ ok(r4б.noteB && r4б.afterNote === 'Чернетка 1: лого правору
 if(r4б.loadB) ok(r4б.afterLoad === 'Чернетка 2: нитка срібна', 'імʼя в смузі «хто скільки» — ненадіслане на місці', 'стерто: ' + JSON.stringify(r4б));
 else ok(true, 'смуги «хто скільки» над цією дошкою немає — пропущено', '');
 
+console.log('═══ 4в. НАБРАНЕ НЕ ПЕРЕСКАКУЄ В ІНШЕ ЗАМОВЛЕННЯ (06.11) ═══');
+/* Знахідка перевірки 06.11: набрали «Написати дизайнеру» в одному замовленні,
+   не надіслали, відкрили ІНШЕ (з розмови, при створенні тощо) — поле нового
+   замовлення лягало на той самий елемент сторінки й лишало чужий текст; його
+   могли надіслати не тому дизайнеру. Перевіряємо обидва шляхи: без події
+   input (лише морф) і з нею (памʼять чернетки SAY_DRAFT). */
+const r4в = await p.evaluate(async () => {
+  const U = window.LQDesign.ui, D = window.LQDesign, root = document.getElementById('dzRoot');
+  /* Друге замовлення — тієї самої будови (одна позиція, графіка й вишивка, версії):
+     у житті так найчастіше, і саме тоді поле лягає на той самий елемент сторінки. */
+  if(!window.__j2){
+    const j2 = designJobMake('2000102');
+    j2.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка базова', color:'Чорний', size:'M', qty:3, note:'Лого на груди' })];
+    const g2 = D.dzNew(); D.dzAttach(g2, 'test@loomiq', 'q@loomiq'); D.dzSend(g2, 'test@loomiq'); g2.status = 'work';
+    D.dzList(j2.units[0], 'graphic').push(g2);
+    const s2 = D.dzNew(); D.dzAttach(s2, 'test@loomiq', 'e@loomiq'); D.dzSend(s2, 'test@loomiq'); s2.status = 'work';
+    D.dzList(j2.units[0], 'stitch').push(s2);
+    for(let i = 1; i <= window.__g.vers.length; i++) D.dzVer(g2, 'q@loomiq', [{ name:'ескіз' + i + '.png', url:'/tests/fixtures/none-' + i + '.png' }], 'версія ' + i);
+    window.__j2 = j2;
+  }
+  const k1 = window.__j.units[0].id + '|graphic|0', k2 = window.__j2.units[0].id + '|graphic|0';
+  const f = k => document.querySelector('#dzRoot [data-dzsay="' + k + '"]');
+  const all = () => [...document.querySelectorAll('#dzRoot [data-dzsay]')].map(x => ({ k: x.getAttribute('data-dzsay'), v: x.value }));
+  const go = async id => { U.setTab('acct'); U.open(id); U.render(root); await new Promise(r => setTimeout(r, 300)); };
+  const out = {};
+  await go('2000101');
+  /* 1) лише морф: значення без події input */
+  f(k1).value = 'Для Петра: лого праворуч';
+  await go('2000102');
+  out.morph = { b: f(k2) ? f(k2).value : null, all: all() };
+  await go('2000101');
+  /* 2) з подією input — тоді чернетка памʼятається й має повернутись у своє замовлення */
+  const a = f(k1); a.value = 'Для Петра: нитка срібна'; a.dispatchEvent(new Event('input', { bubbles: true }));
+  await go('2000102');
+  out.input = { b: f(k2) ? f(k2).value : null, all: all() };
+  await go('2000101');
+  out.back = f(k1) ? f(k1).value : null;
+  /* 3) бічна шухляда (вікно розмови, щойно створене замовлення): renderPanel у той самий корінь */
+  const box = document.createElement('div'); box.className = 'od-panel'; document.body.appendChild(box);
+  const g = k => box.querySelector('[data-dzsay="' + k + '"]');
+  U.renderPanel(box, '2000101'); await new Promise(r => setTimeout(r, 200));
+  const a2 = g(k1); out.panelHas = !!a2;
+  if(a2){ a2.value = 'Для Петра: з розмови'; }
+  U.renderPanel(box, '2000102'); await new Promise(r => setTimeout(r, 200));
+  out.sameEl = g(k2) === a2;
+  out.panelMorph = { b: g(k2) ? g(k2).value : null, all: [...box.querySelectorAll('[data-dzsay]')].map(x => ({ k: x.getAttribute('data-dzsay'), v: x.value })) };
+  U.renderPanel(box, '2000101'); await new Promise(r => setTimeout(r, 200));
+  const a3 = g(k1); if(a3){ a3.value = 'Для Петра: з розмови 2'; a3.dispatchEvent(new Event('input', { bubbles: true })); }
+  U.renderPanel(box, '2000102'); await new Promise(r => setTimeout(r, 200));
+  out.panelInput = { b: g(k2) ? g(k2).value : null, all: [...box.querySelectorAll('[data-dzsay]')].map(x => ({ k: x.getAttribute('data-dzsay'), v: x.value })) };
+  U.renderPanel(box, '2000101'); await new Promise(r => setTimeout(r, 200));
+  out.panelBack = g(k1) ? g(k1).value : null;
+  box.remove();
+  /* 4) клік по плитці на дошці (openFast — лише панель) */
+  await go('2000101');
+  const a4 = f(k1); if(a4){ a4.value = 'Для Петра: з плитки'; a4.dispatchEvent(new Event('input', { bubbles: true })); }
+  const tB = document.querySelector('#dzRoot .dz-card[data-open="2000102"]');
+  out.tile = !!tB;
+  if(tB){ tB.click(); await new Promise(r => setTimeout(r, 300));
+    out.tileB = { b: f(k2) ? f(k2).value : null, all: all() };
+    const tA = document.querySelector('#dzRoot .dz-card[data-open="2000101"]');
+    if(tA){ tA.click(); await new Promise(r => setTimeout(r, 300)); }
+    out.tileBack = f(k1) ? f(k1).value : null; }
+  return out;
+});
+console.log('  ' + JSON.stringify(r4в));
+ok(r4в.morph.b === '' && !r4в.morph.all.some(x => /Для Петра/.test(x.v)),
+  'відкрили інше замовлення — чужий набраний текст у його полі не лишився', 'перескочило: ' + JSON.stringify(r4в.morph));
+ok(r4в.input.b === '' && !r4в.input.all.some(x => /Для Петра/.test(x.v)),
+  'і з подією input (чернетка) — у новому замовленні порожньо', 'перескочило: ' + JSON.stringify(r4в.input));
+ok(r4в.back === 'Для Петра: нитка срібна', 'повернулись у своє замовлення — набране там же, не зникло', 'зникло: ' + JSON.stringify(r4в.back));
+ok(r4в.panelHas && r4в.panelMorph.b === '' && !r4в.panelMorph.all.some(x => /Для Петра/.test(x.v)),
+  'бічна шухляда (з розмови, після створення): інше замовлення — без чужого тексту', 'перескочило: ' + JSON.stringify(r4в.panelMorph));
+ok(r4в.panelInput.b === '' && !r4в.panelInput.all.some(x => /Для Петра/.test(x.v)),
+  'бічна шухляда, з подією input — у новому замовленні порожньо', 'перескочило: ' + JSON.stringify(r4в.panelInput));
+ok(r4в.panelBack === 'Для Петра: з розмови 2', 'шухляда: повернулись у своє — набране на місці', 'зникло: ' + JSON.stringify(r4в.panelBack));
+if(r4в.tile) ok(r4в.tileB && r4в.tileB.b === '' && !r4в.tileB.all.some(x => /Для Петра/.test(x.v)) && r4в.tileBack === 'Для Петра: з плитки',
+  'клік по плитці іншого замовлення — порожньо; назад — своє набране на місці', JSON.stringify({ b: r4в.tileB, back: r4в.tileBack }));
+else ok(false, '', 'плитки 2000102 на дошці немає — шлях openFast не перевірено');
+
 console.log('═══ 5. ВИМИКАЧ: noMorph = 1 — ЯК ДОТИ ═══');
 const r6 = await p.evaluate(async () => {
   contentData.noMorph = 1;
