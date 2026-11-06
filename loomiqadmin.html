@@ -8463,32 +8463,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=fb6814f51a"></script>
-<script src="loomiq-fingerprint.js?v=fb6814f51a"></script>
-<script src="loomiq-pricing.js?v=fb6814f51a"></script>
+<script src="loomiq-select.js?v=72b835292d"></script>
+<script src="loomiq-fingerprint.js?v=72b835292d"></script>
+<script src="loomiq-pricing.js?v=72b835292d"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=fb6814f51a"></script>
+<script src="loomiq-money-core.js?v=72b835292d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=fb6814f51a"></script>
-<script src="loomiq-mock.js?v=fb6814f51a"></script>
+<script src="loomiq-design.js?v=72b835292d"></script>
+<script src="loomiq-mock.js?v=72b835292d"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=fb6814f51a"></script>
+<script src="imagetracer.js?v=72b835292d"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=fb6814f51a"></script>
-<script src="loomiq-threads.js?v=fb6814f51a"></script>
+<script src="loomiq-chat.js?v=72b835292d"></script>
+<script src="loomiq-threads.js?v=72b835292d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=fb6814f51a"></script>
+<script src="loomiq-cards.js?v=72b835292d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8533,8 +8533,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'fb6814f51a';
-var LQ_VER_AT = '2026-11-06T10:41:19Z';
+var LQ_VER = '72b835292d';
+var LQ_VER_AT = '2026-11-06T11:55:59Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -26721,6 +26721,10 @@ async function shipSetTtn(o, ttn, extra, opt){
   o.ttn = n;
   Object.assign(o, extra || {});
   o.ttnAt = o.ttnAt || new Date().toISOString();
+  /* Накладна — дія людини, хай би Нова пошта відповідала й 40 с (06.11): без
+     цього відмова бази на цьому записі йшла фоновим шляхом — картку брали з
+     бази, нова ТТН мовчки зникала. Тепер — повтор на свіжій. */
+  ownTouch(o.id, true);
   artTrack(o, 'ship', trackDoneKey('ship'));
   if(o.status !== 'done' && typeof setStatus === 'function') setStatus(o, 'done');
   touchOrder(o);
@@ -27515,6 +27519,7 @@ async function shipSetTtn2(o, ttn, extra){
   s2.ttn = n;
   Object.assign(s2, extra || {});
   s2.ttnAt = new Date().toISOString(); s2.ttnBy = myEmail() || '';
+  ownTouch(o.id, true);                                    // див. shipSetTtn (06.11)
   touchOrder(o);
   try{ await storeSet('orders', orders); }
   catch(e){ console.error(e); toast('Не збереглось'); }
@@ -27573,38 +27578,63 @@ async function shipTtnRemake(o){
   }
   if(miss.length) return 'бракує: ' + miss.join(', ');
   const стара = String(o.ttn).trim(), старийRef = String(o.ttnRef || ''), sender = String(o.ttnSender || (v.sender ? v.sender.id : '') || '');
-  /* СПЕРШУ СКАСУВАТИ СТАРУ, ПОТІМ СТВОРИТИ (05.11, #2000198, Андрій:
-     «спочатку видалити, а потім тільки перестворити»). Доти нова лягала
-     першою, а стара, якщо НП її не скасувала, висіла далі — у клієнта дві
-     накладні й «Сплатити всі посилки». Не скасувалась — нової НЕ створюємо. */
-  try{ await npCall('ttnDelete', старийRef ? { ref: старийRef, sender } : { ttn: стара.replace(/\D/g, ''), sender }); }
-  catch(e){
-    const t = String((e && e.message) || e);
-    ttnFailSet(o, 1, 'стару ' + стара + ' не скасовано в Новій пошті: ' + t, 'перестворити');
-    return 'стару накладну ' + стара + ' не вдалось скасувати в Новій пошті (' + ttnWhyUa(t).slice(0, 140) + '). Нову не створено, щоб у клієнта не було двох накладних. ' +
-      'Скасуйте її в кабінеті Нової пошти, тоді «✕ Видалити ТТН» і «Створити ТТН»';
-  }
-  o.ttnHist = (Array.isArray(o.ttnHist) ? o.ttnHist : []).concat([{ ttn: стара, cod: +o.ttnCod || 0, at: o.ttnAt || '', by: myEmail() || '',
-    till: new Date().toISOString(), replaced: true, npDel: true, ref: старийRef }]).slice(-10);
-  o.ttn = ''; o.ttnCod = 0; o.ttnStatus = ''; o.ttnStatusAt = ''; o.ttnAt = '';
-  ['ttnRef','ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender','npSt','regFail'].forEach(k => { delete o[k]; });
-  touchOrder(o);
-  try{ await storeSet('orders', orders); }catch(e){ console.warn('скасування старої накладної', e); }
-  try{ accLog('ttn', 'перестворення #' + showNo(o) + ': стару ' + стара + ' скасовано в НП'); }catch(e){}
+  /* СПЕРШУ НОВА, ОДИН ЗАПИС, ПОТІМ СКАСУВАННЯ СТАРОЇ (06.11). 05.11 порядок
+     перевернули («спершу скасувати стару») — і картка писалась двічі: «стару
+     скасовано» лягало, а «ось нова» за кілька секунд очікування Нової пошти
+     база могла відкинути, і фоновий шлях saveOrders мовчки брав картку з
+     бази — без жодної ТТН (#2000321, #2000446, #2000463: «стара пропала,
+     нова не зʼявилась»). Тепер стара лишається в картці, доки нову не
+     записано; запис — один, через orderApply (свіжа картка, повтор,
+     перевірка, що лягло); стару скасовуємо лише після нього. Не скасувалась
+     — вона в ttnHist з npDel:false і в «Стан системи» як зайва. Повтор
+     «Перестворити» після невдалого запису дубля не дасть: воркер знайде
+     щойно створену (той самий опис, сьогодні) і віддасть її. */
   let d;
   try{ d = await shipTtnCreate(o, v); }
-  catch(e){
-    const t = String((e && e.message) || e);
-    ttnFailSet(o, 1, t, 'перестворити');
-    return 'стару накладну ' + стара + ' скасовано, а нова не створилась: ' + ttnWhyUa(t) + '. Створіть її в «Відправка» → «Створити ТТН»';
+  catch(e){ const t = String((e && e.message) || e); ttnFailSet(o, 1, t, 'перестворити'); return ttnWhyUa(t) + ' · стара накладна ' + стара + ' лишилась у картці'; }
+  if(!d || !d.ttn){ ttnFailSet(o, 1, 'Нова пошта не дала номера накладної', 'перестворити'); return 'Нова пошта не дала номера накладної · стара ' + стара + ' лишилась у картці'; }
+  const нова = String(d.ttn).trim();
+  if(нова === стара){ ttnFailSet(o, 1, ''); return true; }
+  const extra = shipTtnExtra(o, v, d), cod = v.codOn ? v.cod : 0, now = new Date().toISOString(), me = myEmail() || '';
+  const put = x => {
+    if(String(x.ttn || '').trim() === нова) return;
+    const була = String(x.ttn || '').trim();
+    if(була){
+      x.ttnHist = (Array.isArray(x.ttnHist) ? x.ttnHist : []).concat([{ ttn: була, cod: +x.ttnCod || 0, at: x.ttnAt || '', by: me, till: now,
+        replaced: true, newTtn: нова, npDel: false, ref: була === стара ? старийRef : String(x.ttnRef || ''), sender: була === стара ? sender : String(x.ttnSender || '') }]).slice(-10);
+    }
+    ['ttnRef','ttnPayer','ttnDecl','ttnName','ttnPhone','ttnCost','ttnNpAt','ttnEst','ttnCity','ttnWh','ttnSender','npSt','regFail'].forEach(k => { delete x[k]; });
+    x.ttnCod = 0; x.ttnStatus = ''; x.ttnStatusAt = '';
+    ttnExtraKeep(x, 1, Object.assign({ sender }, d), cod);
+    x.ttn = нова;
+    Object.assign(x, extra);
+    x.ttnAt = now; x.ttnBy = me;
+    try{ artTrack(x, 'ship', trackDoneKey('ship')); }catch(e){}
+  };
+  const лягло = x => !!x && String(x.ttn || '').trim() === нова;
+  const H = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host;
+  let r = false;
+  try{
+    ownTouch(o.id, true);
+    if(H && H.orderApply) r = await H.orderApply(o.id, put, лягло);
+    else { put(o); touchOrder(o); await saveOrders({ quiet: true, only: o.id }); r = лягло(JSON.parse(ordersSaved.get(o.id) || 'null')); }
+  }catch(e){ console.warn('запис нової накладної', e); r = false; }
+  const live = (orders || []).find(x => x && x.id === o.id);
+  if(live && live !== o) Object.assign(o, live);
+  if(r !== true && !лягло(o)){
+    const чому = 'Нову накладну ' + нова + ' створено в Новій пошті, але в картку не записалось. Стара ' + стара +
+      ' лишилась. Натисніть «Перестворити ТТН» ще раз — нову буде знайдено й привʼязано, другої не створиться';
+    ttnFailSet(o, 1, чому, 'перестворити');
+    return чому;
   }
-  if(!d || !d.ttn){ ttnFailSet(o, 1, 'Нова пошта не дала номера накладної', 'перестворити'); return 'стару накладну ' + стара + ' скасовано, а Нова пошта не дала номера нової — створіть її в «Відправка»'; }
   ttnFailSet(o, 1, '');
-  ttnExtraKeep(o, 1, Object.assign({ sender }, d), v.codOn ? v.cod : 0);
-  const був = (o.ttnHist || []).filter(x => x && String(x.ttn) === стара).pop();
-  if(був) був.newTtn = String(d.ttn);
-  await shipSetTtn(o, d.ttn, shipTtnExtra(o, v, d), { quiet: true });
-  if(String(o.ttn || '').trim() !== String(d.ttn).trim()) return 'нову накладну ' + d.ttn + ' створено, але в картку не записалось';
+  try{ accLog('ttn', 'перестворення #' + showNo(o) + ': нова ' + нова + ', стара ' + стара); }catch(e){}
+  /* Стару — лише тепер. Скасувалась — позначка в історії; ні — лишається
+     «зайвою» в «Стан системи» зі «Скасувати в НП». */
+  const скас = await ttnNpCancel(стара, старийRef, sender);
+  if(!скас){ try{ await ttnExtraMark(o.orderId, 1, стара, 'np'); }catch(e){} }
+  else toast('Нова накладна ' + нова + '. Стару ' + стара + ' в Новій пошті скасувати не вдалось: ' + ttnWhyUa(скас).slice(0, 120) + ' — вона у «Стан системи»', 9000);
+  try{ renderBoard(); renderOrderDrawer(); }catch(e){}
   return true;
 }
 

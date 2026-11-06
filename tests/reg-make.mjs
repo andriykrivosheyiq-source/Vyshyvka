@@ -360,8 +360,8 @@ ok(!r8b.наПлитці && r8b.кнопка && r8b.уЦеху && /ТТН уже
   'кнопки «Перестворити» на плитці немає; у картці менеджера біля ТТН і в картці цеху — є, поруч «ТТН уже 5 днів» і причина відмови', JSON.stringify({ п: r8b.наПлитці, к: r8b.кнопка, ц: r8b.уЦеху, з: r8b.позначки }));
 ok(r8b.ttn === '20450000000999' && r8b.ref === 'ref-999' && r8b.hist.ttn === '204500000040' && r8b.hist.replaced && r8b.hist.newTtn === '20450000000999' && r8b.hist.npDel === true,
   'нова накладна стала головною; стара — в історії як замінена, скасована в НП', JSON.stringify({ t: r8b.ttn, h: r8b.hist }));
-ok(r8b.ops.join() === 'ttnDelete,create' && r8b.опис === nos8[0] && r8b.delRef === 'ref-40',
-  'воркеру: спершу ttnDelete старої за її Ref (05.11: не скасувалась — нової немає), потім create з описом «' + nos8[0] + '» (номер картки, не ключ)', JSON.stringify({ ops: r8b.ops, о: r8b.опис, d: r8b.delRef }));
+ok(r8b.ops.join() === 'create,ttnDelete' && r8b.опис === nos8[0] && r8b.delRef === 'ref-40',
+  'воркеру: create з описом «' + nos8[0] + '» (номер картки, не ключ), і лише після запису в картку — ttnDelete старої за її Ref (06.11)', JSON.stringify({ ops: r8b.ops, о: r8b.опис, d: r8b.delRef }));
 ok(r8b.стан === 'reg' && r8b.shipCol === 'reg' && !r8b.regFail && !r8b.npSt && r8b.днів === 0,
   'картка лишилась у «Реєстр»; причина відмови й статус старої накладної зняті; накладній 0 днів', JSON.stringify({ с: r8b.стан, sc: r8b.shipCol, rf: r8b.regFail, np: r8b.npSt, д: r8b.днів }));
 

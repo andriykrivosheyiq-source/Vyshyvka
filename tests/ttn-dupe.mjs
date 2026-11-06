@@ -269,21 +269,36 @@ ok(c4.join() === 'find,create' && /^2045000000\d{4}$/.test(s4.ttn) && dl4.some(m
   'перевірка неможлива — питаємо «у кабінеті НП її немає?», лише тоді створюємо', JSON.stringify({ c4, s4: s4.ttn, dl4 }));
 await p.evaluate(() => { window.__NP.findOk = true; });
 
-console.log('— 5. «Перестворити»: спершу скасувати; не скасувалась — нової немає');
-await p.evaluate(() => { window.__NP.del = 'no'; });
+console.log('— 5. «Перестворити»: спершу нова й запис, тоді скасування старої (06.11)');
 await clr();
 const r5 = await p.evaluate(async () => shipTtnRemake(orders.find(x => x.orderId === '1001101')));
 const c5 = await calls(), s5 = await O();
-ok(/^стару накладну 2045000000\d{4} не вдалось скасувати в Новій пошті .*Нову не створено/.test(r5) && !c5.includes('create') && s5.ttn === s4.ttn,
-  'НП не скасувала стару — нової не створено, стара в картці, підказка «скасуйте… тоді ✕ Видалити ТТН і Створити ТТН»', JSON.stringify({ r5, c5 }));
-await p.evaluate(() => { window.__NP.del = 'ok'; });
+const h5 = s5.hist.filter(x => x.ttn === s4.ttn).pop() || {};
+ok(r5 === true && c5.indexOf('create') >= 0 && c5.indexOf('create') < c5.indexOf('ttnDelete') && s5.ttn && s5.ttn !== s4.ttn &&
+   h5.replaced && h5.npDel === true && h5.newTtn === s5.ttn,
+  'нова створена й записана, лише тоді стару скасовано; стара в історії «замінена, скасована» з номером нової', JSON.stringify({ c5, s5: s5.ttn, h5 }));
+/* Стара не скасувалась у НП — картка вже з новою, стара в «зайвих». */
+await p.evaluate(() => { window.__NP.del = 'no'; });
 await clr();
 const r5b = await p.evaluate(async () => shipTtnRemake(orders.find(x => x.orderId === '1001101')));
-const c5b = await calls(), s5b = await O();
-const h5 = s5b.hist.filter(x => x.ttn === s4.ttn).pop() || {};
-ok(r5b === true && c5b.indexOf('ttnDelete') >= 0 && c5b.indexOf('ttnDelete') < c5b.indexOf('create') && s5b.ttn && s5b.ttn !== s4.ttn &&
-   h5.replaced && h5.npDel === true && h5.newTtn === s5b.ttn,
-  'скасувалась — тоді нова; стара в історії «замінена, скасована» з номером нової', JSON.stringify({ c5b, s5b: s5b.ttn, h5 }));
+const s5b = await O(), ex5b = await p.evaluate(() => window.__lqTtnExtra());
+const h5b = s5b.hist.filter(x => x.ttn === s5.ttn).pop() || {};
+ok(r5b === true && s5b.ttn && s5b.ttn !== s5.ttn && h5b.npDel === false && ex5b.some(x => x.ttn === s5.ttn),
+  'НП не скасувала стару — у картці нова, стара в «Стан системи» як зайва', JSON.stringify({ t: s5b.ttn, h5b, ex5b }));
+await p.evaluate(() => { window.__NP.del = 'ok'; });
+/* Запис у картку не ліг (база відкинула й повтор теж) — стара ТТН у картці, у НП нічого не скасовано. */
+await clr();
+const r5c = await p.evaluate(async () => {
+  const H = window.LQDesign.ui.host, real = H.orderApply;
+  H.orderApply = async () => false;
+  try{ return await shipTtnRemake(orders.find(x => x.orderId === '1001101')); } finally { H.orderApply = real; }
+});
+const c5c = await calls(), s5c = await O();
+ok(/^Нову накладну 2045\d+ створено в Новій пошті, але в картку не записалось\. Стара 2045\d+ лишилась/.test(r5c) && s5c.ttn === s5b.ttn && !c5c.includes('ttnDelete'),
+  'запис не ліг — стара ТТН у картці, у НП її не скасовано, людині: «натисніть ще раз — нову буде знайдено»', JSON.stringify({ r5c, t: s5c.ttn, c5c }));
+const fail5 = await p.evaluate(() => { const f = document.querySelector('[data-ttn-fail]'); return f ? f.textContent : (ttnFailOf(orders.find(x => x.orderId === '1001101'), 1) || {}).why || ''; });
+ok(/в картку не записалось/.test(fail5), 'та сама причина — у картці червоним', fail5);
+await p.evaluate(() => ttnFailSet(orders.find(x => x.orderId === '1001101'), 1, ''));
 
 console.log('— 6. «Видалити ТТН»: жива в НП мовчки з картки не зникає; зайві — у «Стан системи»');
 await p.evaluate(() => { window.__NP.del = 'no'; });
