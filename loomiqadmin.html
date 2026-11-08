@@ -3466,6 +3466,14 @@
       padding-bottom:env(safe-area-inset-bottom);}
     .od-body{padding-bottom:20px;}
     .od-foot{padding-bottom:calc(10px + env(safe-area-inset-bottom));}
+    /* Картка B2B прокручується ВСЯ (08.11, відео #1000341: шапка з даними
+       клієнта займала 526 з 664 px, для товарів, розмірів і ТЗ лишалась смужка
+       в 69 px — «немає потрібного поля»). Шапка їде вгору разом з усім,
+       кнопки внизу лишаються на екрані. Картка відділу (is-dept) — своя. */
+    .od-panel:not(.is-dept){overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .od-panel:not(.is-dept) > .od-head{flex:none;}
+    .od-panel:not(.is-dept) > .od-body{flex:none;overflow:visible;}
+    .od-panel:not(.is-dept) > .od-foot{position:sticky;bottom:0;z-index:3;background:#fff;}
     .od-fold-h{min-height:48px;}
 
     /* ── Вікна ── */
@@ -8463,32 +8471,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=72b835292d"></script>
-<script src="loomiq-fingerprint.js?v=72b835292d"></script>
-<script src="loomiq-pricing.js?v=72b835292d"></script>
+<script src="loomiq-select.js?v=2e91d3f332"></script>
+<script src="loomiq-fingerprint.js?v=2e91d3f332"></script>
+<script src="loomiq-pricing.js?v=2e91d3f332"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=72b835292d"></script>
+<script src="loomiq-money-core.js?v=2e91d3f332"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=72b835292d"></script>
-<script src="loomiq-mock.js?v=72b835292d"></script>
+<script src="loomiq-design.js?v=2e91d3f332"></script>
+<script src="loomiq-mock.js?v=2e91d3f332"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=72b835292d"></script>
+<script src="imagetracer.js?v=2e91d3f332"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=72b835292d"></script>
-<script src="loomiq-threads.js?v=72b835292d"></script>
+<script src="loomiq-chat.js?v=2e91d3f332"></script>
+<script src="loomiq-threads.js?v=2e91d3f332"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=72b835292d"></script>
+<script src="loomiq-cards.js?v=2e91d3f332"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8533,8 +8541,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '72b835292d';
-var LQ_VER_AT = '2026-11-06T11:55:59Z';
+var LQ_VER = '2e91d3f332';
+var LQ_VER_AT = '2026-11-08T17:19:16Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -28724,6 +28732,7 @@ function renderOrderDrawer(){
      (найпомітніше на діалозі з клієнтом). Запамʼятовуємо позицію і повертаємо
      після перемальовування. */
   const keepScroll = (panel.querySelector('.od-body') || {}).scrollTop || 0;
+  const keepPanel = panel.scrollTop || 0;          // телефон: прокручується вся картка (08.11)
   /* Дата в шапці без року й без хвилин: рік у роботі один і той самий, а
      хвилина створення нікому не потрібна — потрібно «коли це було».
      Беремо не лише `createdAt`: картки,
@@ -28936,6 +28945,7 @@ function renderOrderDrawer(){
   panel.innerHTML = odHtml;
   const bodyEl = panel.querySelector('.od-body');
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
+  if(keepPanel) panel.scrollTop = keepPanel;
   const closeB = panel.querySelector('[data-od-close2]');
   if(closeB) closeB.addEventListener('click', closeOrderDrawer);
   const stg = panel.querySelector('.od-stage');
@@ -33876,6 +33886,8 @@ function designHostInit(){
     cardNote: () => b2cCfg().note,
     /* Вимикач часткового оновлення відділу (03.11): 1 — як доти, цілком. */
     morphOff: () => !!(contentData && +contentData.noMorph === 1),
+    /* Зменшені картинки на екрані (08.11) — вимикач `contentData.imgLite = 0`. */
+    liteOff: () => !!(contentData && contentData.imgLite != null && +contentData.imgLite === 0),
     /* Виробнича карта — у Telegram цеху. */
     prodBot: (caption, pngs) => prodBotSend(caption, pngs),
     /* Реєстри НП і борг клієнта (для «повної відмови»). */
@@ -39208,7 +39220,44 @@ function shrinkImage(file){
 
 /* Те саме, але через auto/upload: макети приходять не лише картинками —
    DST і вихідники теж мають лежати в картці, а не в чиємусь месенджері. */
-function uploadCloudinaryAuto(blob){
+/* ФОТО З КАМЕРИ ТЕЛЕФОНА — МЕНШЕ ПЕРЕД ЗАВАНТАЖЕННЯМ (08.11). iPhone падав
+   («Повторення проблеми на loomiq.net») саме на прикріпленні фото: 12–48 Мп
+   JPEG/HEIC тримались у памʼяті цілими. На телефоні фото з камери (лише
+   JPEG/HEIC/HEIF, від PHONE_PIC_MIN) зменшуємо до PHONE_PIC_PX і JPEG
+   PHONE_PIC_Q. PNG, PDF, DST, SVG — робочі файли дизайнерів — і все з
+   компʼютера йде як є. Не вийшло зменшити — як є. */
+const PHONE_PIC_PX = 2400, PHONE_PIC_Q = 0.85, PHONE_PIC_MIN = 600000;
+function phoneDevice(){
+  if(window.LQ_PHONE === 1) return true;
+  if(window.LQ_PHONE === 0) return false;
+  try{ return window.matchMedia('(max-width:767px)').matches || (window.matchMedia('(pointer:coarse)').matches && Math.min(screen.width, screen.height) < 820); }catch(e){ return false; }
+}
+function phonePhotoSmall(blob){
+  return new Promise(res => {
+    try{
+      const t = String((blob && blob.type) || '').toLowerCase();
+      if(!blob || typeof blob === 'string' || !phoneDevice() || !/^image\/(jpe?g|heic|heif)$/.test(t) || (blob.size || 0) < PHONE_PIC_MIN) return res(blob);
+      const u = URL.createObjectURL(blob), im = new Image();
+      im.onload = () => {
+        URL.revokeObjectURL(u);
+        const W = im.naturalWidth || 1, H = im.naturalHeight || 1, k = Math.min(1, PHONE_PIC_PX / Math.max(W, H));
+        if(k >= 1 && t !== 'image/heic' && t !== 'image/heif') return res(blob);
+        const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        c.toBlob(b => {
+          c.width = c.height = 0;
+          if(!b) return res(blob);
+          const name = String(blob.name || 'фото').replace(/\.\w+$/, '') + '.jpg';
+          res(typeof File === 'function' ? new File([b], name, { type:'image/jpeg' }) : b);
+        }, 'image/jpeg', PHONE_PIC_Q);
+      };
+      im.onerror = () => { URL.revokeObjectURL(u); res(blob); };
+      im.src = u;
+    }catch(e){ res(blob); }
+  });
+}
+async function uploadCloudinaryAuto(blob){ return uploadCloudinaryAutoRaw(await phonePhotoSmall(blob)); }
+function uploadCloudinaryAutoRaw(blob){
   return new Promise((resolve, reject)=>{
     if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }
     const fd = new FormData();
