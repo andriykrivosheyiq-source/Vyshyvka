@@ -607,6 +607,16 @@ if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|tests/variants\
   echo "✓ варіанти на виробах і розмова дизайну"
 fi
 
+# ТЕЛЕФОН НЕ ПАДАЄ (08.11): картинки зменшені, фото з камери менше, одна колонка, картка B2B прокручується.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|tests/phone-light\.mjs)'; then
+  node tests/phone-light.mjs >/tmp/lq-phone-light.log 2>&1 || {
+    echo "✗ Телефон знову важкий (оригінали картинок, усі колонки, картка B2B не прокручується) — коміт зупинено. Подробиці: /tmp/lq-phone-light.log"
+    grep '✗' /tmp/lq-phone-light.log
+    exit 1
+  }
+  echo "✓ телефон: картинки зменшені, одна колонка, картка B2B прокручується"
+fi
+
 # ОДИН ОДЯГ — ОДНА НАКЛАДНА (05.11, #2000198: чотири накладні на один одяг).
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|worker/novaposhta-proxy\.js|tests/ttn-dupe\.mjs)'; then
   node tests/ttn-dupe.mjs >/tmp/lq-ttn-dupe.log 2>&1 || {

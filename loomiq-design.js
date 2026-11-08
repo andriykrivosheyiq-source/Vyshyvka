@@ -3528,7 +3528,7 @@
   }
   function cardV2Html(c, годинник, лишок){
     var pic = c.pic
-      ? '<span class="dz-c-pic"><img src="' + esc(c.pic) + '" alt="" loading="lazy"></span>'
+      ? '<span class="dz-c-pic"><img src="' + esc(picLite(c.pic, PIC_TILE)) + '" alt="" loading="lazy" decoding="async"></span>'
       : '<span class="dz-c-pic is-none">' + esc(c.picTxt || '—') + '</span>';
     var кроки = '';
     if(c.chain) кроки = chainHtml(c.chain);
@@ -3653,6 +3653,35 @@
       '</button>' +
     '</div>';
   }
+  /* КАРТИНКИ НА ЕКРАНІ — ЗМЕНШЕНІ (08.11). iPhone вбивав сторінку («Повторення
+     проблеми на loomiq.net», вхід заново, «Оновлення…»): ескізи, макети й
+     фото цеху показувались оригіналами з Cloudinary (3000–4000 px), і кожен
+     iOS розпаковував у памʼять цілком — десятки МБ на мініатюру. Тепер у
+     <img> адреса з перетворенням Cloudinary (`w_…,c_limit,f_auto,q_auto`):
+     плитка — PIC_TILE, решта — PIC_VIEW. Посилання «відкрити», «скачати»,
+     data-url, файли цеху — оригінали, як були. Вимикач —
+     `contentData.imgLite = 0` (host `liteOff`). */
+  var PIC_TILE = 320, PIC_VIEW = 1000;
+  var CLD_UP = /^(https:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(?!(?:[a-z]{1,3}_[^,\/]+,?)+\/)/;
+  function liteOff(){ try{ var h = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host; return !!(h && h.liteOff && h.liteOff()); }catch(e){ return false; } }
+  function picLite(url, px){
+    var u = String(url || '');
+    if(!u || liteOff() || !CLD_UP.test(u)) return u;
+    return u.replace(CLD_UP, '$1w_' + (px || PIC_VIEW) + ',h_' + (px || PIC_VIEW) + ',c_limit,f_auto,q_auto/');
+  }
+  var IMG_SRC = /(<img\b[^>]*?\bsrc=")([^"]+)(")/g;
+  function imgLite(html){
+    if(liteOff()) return html;
+    return String(html).replace(IMG_SRC, function(m, a, u, z){ return a + picLite(u, PIC_VIEW) + z; });
+  }
+  window.LQPicLite = { picLite: picLite, imgLite: imgLite };
+  /* Телефон: дошка малює плитки лише видимої колонки (08.11) — на 600 картках
+     було понад 12 тисяч елементів, хоча видно одну колонку. */
+  function phoneNarrow(){
+    if(window.LQ_PHONE === 1) return true;
+    if(window.LQ_PHONE === 0) return false;
+    try{ return !!(window.matchMedia && window.matchMedia('(max-width:760px)').matches); }catch(e){ return false; }
+  }
   /* ТЕЛЕФОН (26.10, Андрій: «виробництво хоче з телефону… щоб було
      зручно»): колонки поруч на вузькому екрані розпирали сторінку в рази
      ширше за екран. Там зверху вкладки колонок з числами, а видно одну —
@@ -3667,11 +3696,13 @@
       }).join('') + '</div>' +
       '<div class="dz-board' + (seek() ? ' is-seek' : '') + '">' + steps.map(function(s){
       var mine = cards.filter(function(c){ return c.step === s.key; });
+      /* Телефон без пошуку: плитки лише у видимій колонці (08.11). */
+      var сховано = phoneNarrow() && !seek() && s.key !== cur;
       return '<div class="dz-col' + (s.cls ? ' ' + esc(s.cls) : '') + (s.key === cur ? ' is-mcur' : '') + (mine.length ? ' has-cards' : '') + '" data-col="' + esc(s.key) + '">' +
         '<div class="dz-col-h"><span class="dz-dot is-' + esc(s.color) + '"></span>' +
           esc(s.label) + '<i>' + (s.n != null ? s.n : mine.length) + '</i>' + (s.head || '') + '</div>' +
         '<div class="dz-col-b">' +
-          (s.body != null ? s.body : mine.length ? mine.map(function(c){
+          (сховано ? '' : s.body != null ? s.body : mine.length ? mine.map(function(c){
             /* Строк, розмова, непрочитане й «чекають на відповідь» — на
                самій картці. Це саме ті питання, які задають дошці: що
                горить, де стоїть і кому писати. Відповідати на них
@@ -10847,6 +10878,7 @@
   function setHtml(el, html, card){
     var fresh = card !== undefined && el.__lqCard !== String(card);
     if(card !== undefined) el.__lqCard = String(card);
+    html = (window.LQPicLite ? window.LQPicLite.imgLite(html) : html);
     if(el.firstChild && !morphOff()){
       MORPH_FRESH = fresh;
       try{ morphInto(el, html); sayRestore(el); return; }
@@ -11203,7 +11235,7 @@
     var html;
     try{ html = probBarHtml(id) + noteBarHtml(id) + panelFor(seat, id); }catch(e){ console.warn('картка', e); return false; }
     if(!html) return false;
-    pn.innerHTML = html;
+    pn.innerHTML = (window.LQPicLite ? window.LQPicLite.imgLite(html) : html);
     root.__lqCard = id;
     sayRestore(pn);
     pn.classList.remove('hide');
@@ -12119,6 +12151,8 @@
   window.LQDesign.ui.render = render;
   window.LQDesign.ui.renderSoft = renderSoft;
   window.LQDesign.ui.renderPanel = renderPanel;
+  window.LQDesign.ui.picLite = function(u, px){ return window.LQPicLite.picLite(u, px); };
+  window.LQDesign.ui.imgLite = function(h){ return window.LQPicLite.imgLite(h); };
   window.LQDesign.ui.soloOff = function(){ SOLO = null; };
   /* Дії назовні — щоб їх можна було перевірити повз інтерфейс. Половина
      заборон тут саме в дії, а не в кнопці: сховати кнопку легко, і тоді
