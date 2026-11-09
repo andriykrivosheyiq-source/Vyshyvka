@@ -4860,6 +4860,19 @@
   /* Реєстр (27.10): «ТТН уже N дні» й причина відмови Нової пошти. */
   .dz-card .dz-c-regfail{color:#B42318;font-style:normal;font-weight:600;white-space:normal;}
   .dz-regfail-s{color:#B42318;font-weight:600;}
+  /* Відмова НП (09.11): стан повернення посилки — на плитці й у картці. */
+  .dz-card .dz-c-npret{color:#9A3412;font-style:normal;font-weight:600;white-space:normal;}
+  .dz-card .dz-c-npret.is-need{color:#B42318;}
+  .dz-card .dz-c-npret.is-arr{color:#047857;}
+  .dz-npret{margin:8px 0;padding:8px 10px;border:1px solid #FECDCA;border-radius:8px;background:#FFF6F5;}
+  .dz-npret-l{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0;}
+  .dz-npret-t{font-weight:600;color:#9A3412;}
+  .dz-npret-t.is-need{color:#B42318;}
+  .dz-npret-t.is-arr{color:#047857;}
+  .dz-npret-fail{color:#B42318;font-weight:600;font-size:13px;}
+  /* «Обсяг даних» у «Стан системи» (09.11). */
+  .fa-size{margin-top:10px;}
+  .fa-size-pre{white-space:pre-wrap;font-size:12px;line-height:1.45;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;margin:8px 0;max-height:420px;overflow:auto;}
   .dz-ship-l .dz-c-ttnold{margin-left:6px;font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#FDECEA;color:#B03A1A;}
   .dz-ttn .dz-c-ttnold{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#FDECEA;color:#B03A1A;}
   .dz-card-w.is-v2 .dz-c-foot .dz-card-m{margin:0;min-width:0;}
@@ -8471,32 +8484,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2e91d3f332"></script>
-<script src="loomiq-fingerprint.js?v=2e91d3f332"></script>
-<script src="loomiq-pricing.js?v=2e91d3f332"></script>
+<script src="loomiq-select.js?v=6ffc4bc119"></script>
+<script src="loomiq-fingerprint.js?v=6ffc4bc119"></script>
+<script src="loomiq-pricing.js?v=6ffc4bc119"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=2e91d3f332"></script>
+<script src="loomiq-money-core.js?v=6ffc4bc119"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2e91d3f332"></script>
-<script src="loomiq-mock.js?v=2e91d3f332"></script>
+<script src="loomiq-design.js?v=6ffc4bc119"></script>
+<script src="loomiq-mock.js?v=6ffc4bc119"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=2e91d3f332"></script>
+<script src="imagetracer.js?v=6ffc4bc119"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=2e91d3f332"></script>
-<script src="loomiq-threads.js?v=2e91d3f332"></script>
+<script src="loomiq-chat.js?v=6ffc4bc119"></script>
+<script src="loomiq-threads.js?v=6ffc4bc119"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2e91d3f332"></script>
+<script src="loomiq-cards.js?v=6ffc4bc119"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8541,8 +8554,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2e91d3f332';
-var LQ_VER_AT = '2026-11-08T17:19:16Z';
+var LQ_VER = '6ffc4bc119';
+var LQ_VER_AT = '2026-11-09T12:48:25Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -14050,7 +14063,7 @@ const HEALTH_KINDS = {
   'save-retry': 'запис відкинула база — повтор', 'atomic-deny': 'база відмовила у створенні',
   'units-keep': 'стара копія хотіла стерти склад', 'rollback': 'стара копія хотіла відкотити цех',
   'order-new-again': 'повтор створення без дубля', 'del-auto': 'фоновий запис прибрав картку', 'del-half': 'прибрано недописане створення',
-  'ttn-fail': 'накладна Нової пошти не створилась' };
+  'ttn-fail': 'накладна Нової пошти не створилась', 'ret-fail': 'повернення посилки не замовилось' };
 function finHealthRows(){
   const від = new Date(Date.now() - 864e5).toISOString();
   const by = {};
@@ -14067,7 +14080,7 @@ function renderFinHealth(){
   box.style.display = '';
   const E = escapeHtml, h = finHealthRows();
   const kinds = Object.keys(h.by);
-  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto', 'ttn-fail'].filter(k => h.by[k]).length + (h.half ? 1 : 0) + (h.extra.length ? 1 : 0);
+  const погані = ['save-fail', 'job-fail', 'atomic-deny', 'units-keep', 'rollback', 'del-auto', 'ttn-fail', 'ret-fail'].filter(k => h.by[k]).length + (h.half ? 1 : 0) + (h.extra.length ? 1 : 0);
   const рядки = kinds.map(k => {
     const l = h.by[k]; const ост = l[l.length - 1];
     return `<div class="fa-i ${['save-retry', 'order-new-again', 'del-half'].indexOf(k) >= 0 ? 'amber' : 'red'}"><div class="fa-x"><b>${E(HEALTH_KINDS[k])}</b> · ${l.length} за добу<br><small>${E(String(ост.text || '').slice(0, 140))} · ${E(String(ост.by || '').split('@')[0])} · ${E(dmyOf(ост.at))}</small></div></div>`;
@@ -14076,8 +14089,10 @@ function renderFinHealth(){
   h.extra.forEach(r => рядки.push(`<div class="fa-i red" data-xt-row="${E(r.ttn)}"><div class="fa-x"><b>зайва накладна Нової пошти</b> · #${E(showNo(r.o))}${r.part === 2 ? ' · посилка 2' : ''} · ТТН ${E(r.ttn)}${+r.h.cod > 0 ? ' · контроль оплати ' + E(fmt(r.h.cod)) + ' ₴' : ''}<br><small>${E(r.why)}; головна — ${E(String(((r.part === 2 ? ship2Of(r.o) : r.o) || {}).ttn || '').trim() || 'немає')}. У клієнта вона висить «Чекаємо на посилку» — скасуйте в Новій пошті</small></div>
     <div class="fa-b"><button class="pri" data-xt-cancel="${E(r.o.orderId)}" data-part="${r.part}" data-ttn="${E(r.ttn)}">Скасувати в НП</button><button data-xt-done="${E(r.o.orderId)}" data-part="${r.part}" data-ttn="${E(r.ttn)}" title="Скасували в кабінеті Нової пошти самі">Уже скасовано</button><button data-xt-open="${E(r.o.orderId)}">Відкрити</button></div></div>`));
   box.innerHTML = `<div class="fa-h"><b>Стан системи</b>${погані ? `<span class="fa-n red">${погані}</span>` : '<span class="fa-ok">✓ за добу без збоїв запису</span>'}<span>невдалі записи, відмови бази, захисти, що спрацювали — за останню добу</span></div>` +
-    (рядки.length ? `<div class="fa-list">${рядки.join('')}</div>` : '');
+    (рядки.length ? `<div class="fa-list">${рядки.join('')}</div>` : '') +
+    `<div class="fa-size"><button type="button" data-size-go title="Скільки карток і мегабайт тримає ця вкладка — для полегшення телефона">Обсяг даних · порахувати</button><div data-size-box></div></div>`;
   box.onclick = async e => {
+    const sg = e.target.closest('[data-size-go]'); if(sg){ renderDataSize(box.querySelector('[data-size-box]')); return; }
     const c = e.target.closest('[data-xt-cancel]'); if(c){ ttnExtraCancel(c); return; }
     const d = e.target.closest('[data-xt-done]');
     if(d){
@@ -14091,6 +14106,63 @@ function renderFinHealth(){
   };
 }
 window.__lqHealth = () => finHealthRows();
+/* ОБСЯГ ДАНИХ У ВКЛАДЦІ (09.11, відео цеху: телефон падає, щойно приходять
+   дані). Скільки й чого тримає памʼять цієї вкладки — щоб полегшувати
+   телефон за цифрами, а не навмання. Лише читання з памʼяті, рахується на
+   натиск («Порахувати»), нічого не пише. Вага — довжина JSON (≈ байти). */
+function dataSizeRows(){
+  const len = v => { try{ return JSON.stringify(v == null ? null : v).length; }catch(e){ return 0; } };
+  const межа = new Date(Date.now() - 30 * 864e5).toISOString();
+  const групи = [];
+  const група = (name, list, idOf) => {
+    let total = 0, old = 0, oldN = 0; const top = [];
+    (list || []).forEach(x => {
+      if(!x) return;
+      const n = len(x); total += n;
+      const t = String(x.touchedAt || x.updatedAt || x.at || x.createdAt || '');
+      if(t && t < межа){ old += n; oldN++; }
+      top.push({ id: idOf(x), n, x });
+    });
+    групи.push({ name, count: (list || []).length, total, old, oldN, top });
+  };
+  const jobs = (typeof designJobs === 'object' && designJobs) ? Object.keys(designJobs).map(k => designJobs[k]) : [];
+  група('Картки замовлень', orders || [], o => '#' + (showNo(o) || o.orderId || o.id));
+  група('Картки відділу B2C', jobs, j => 'відділ #' + (j.no || j.orderId || j.id || '?'));
+  група('Платежі (пів року)', typeof payments !== 'undefined' ? payments : [], x => 'рух ' + (x.id || ''));
+  група('КП', typeof offersByToken === 'object' && offersByToken ? Object.keys(offersByToken).map(k => offersByToken[k]) : [], x => 'КП ' + (x.token || x.orderId || ''));
+  const cd = (typeof contentData === 'object' && contentData) || {};
+  const ключі = Object.keys(cd).map(k => ({ k, n: len(cd[k]) })).sort((a, b) => b.n - a.n).slice(0, 6);
+  /* Найважчі картки й їхні найважчі поля. */
+  const важкі = групи.slice(0, 2).reduce((a, g) => a.concat(g.top), []).sort((a, b) => b.n - a.n).slice(0, 10).map(t => {
+    const поля = Object.keys(t.x || {}).map(k => ({ k, n: len(t.x[k]) })).sort((a, b) => b.n - a.n).slice(0, 3);
+    return { id: t.id, n: t.n, поля };
+  });
+  let heap = 0; try{ heap = (performance && performance.memory && performance.memory.usedJSHeapSize) || 0; }catch(e){}
+  return { групи: групи.map(g => ({ name: g.name, count: g.count, total: g.total, old: g.old, oldN: g.oldN })),
+           content: len(cd), ключі, важкі, heap, dom: document.getElementsByTagName('*').length,
+           all: групи.reduce((a, g) => a + g.total, 0) + len(cd) };
+}
+function dataSizeKb(n){ return n >= 1048576 ? (n / 1048576).toFixed(1) + ' МБ' : Math.max(1, Math.round(n / 1024)) + ' КБ'; }
+function dataSizeText(r){
+  const l = ['Обсяг даних у вкладці · ' + new Date().toLocaleString('uk-UA') + ' · разом ' + dataSizeKb(r.all) +
+    (r.heap ? ' · памʼять сторінки ' + dataSizeKb(r.heap) : '') + ' · елементів сторінки ' + r.dom];
+  r.групи.forEach(g => l.push(g.name + ': ' + g.count + ' шт · ' + dataSizeKb(g.total) +
+    (g.oldN ? ' (без руху 30+ днів: ' + g.oldN + ' шт · ' + dataSizeKb(g.old) + ')' : '')));
+  l.push('Документ команди (loomiq/photos): ' + dataSizeKb(r.content) + ' — ' + r.ключі.map(k => k.k + ' ' + dataSizeKb(k.n)).join(', '));
+  l.push('Найважчі картки:');
+  r.важкі.forEach(t => l.push('  ' + t.id + ' — ' + dataSizeKb(t.n) + ' (' + t.поля.map(f => f.k + ' ' + dataSizeKb(f.n)).join(', ') + ')'));
+  return l.join('\n');
+}
+function renderDataSize(box){
+  if(!box) return;
+  const r = dataSizeRows(), t = dataSizeText(r), E = escapeHtml;
+  box.innerHTML = `<pre class="fa-size-pre">${E(t)}</pre><button type="button" data-size-copy>Скопіювати</button>`;
+  box.querySelector('[data-size-copy]').onclick = () => {
+    try{ navigator.clipboard.writeText(t).then(() => toast('Скопійовано — надішліть розробнику'), () => toast('Не скопіювалось — виділіть текст і скопіюйте')); }
+    catch(e){ toast('Не скопіювалось — виділіть текст і скопіюйте'); }
+  };
+}
+window.__lqDataSize = () => dataSizeRows();
 /* ЗАЙВІ НАКЛАДНІ (05.11, #2000198). Накладні картки, які в Новій пошті ще
    живі, хоча картка вже з іншою: створені разом із головною (extra),
    замінені чи зняті з картки, але не скасовані (npDel === false). У
@@ -26440,7 +26512,7 @@ async function npCall(op, extra){
   /* Накладну й реквізити відправника воркер дає лише тому, хто увійшов в
      адмінку: його адреса лежить у публічних налаштуваннях сайту. */
   let idToken = '';
-  if(op === 'create' || op === 'sender' || op === 'registry' || op === 'ttnDelete' || op === 'find'){
+  if(op === 'create' || op === 'sender' || op === 'registry' || op === 'ttnDelete' || op === 'find' || op === 'returnOrder'){
     try{ idToken = await fbAuth.currentUser.getIdToken(); }
     catch(e){ throw new Error('Сесія застаріла — увійдіть ще раз'); }
   }
@@ -26562,12 +26634,29 @@ async function prodNpPoll(force){
     const s2 = ship2Of(o);
     if(s2 && s2.ttn && !(s2.npSt && NP_FINAL.indexOf(String(s2.npSt.code)) >= 0)) ці.push({ o, p: s2 });
   });
+  /* Повернення (09.11): відмовлена посилка без номера накладної повернення —
+     її власна накладна (у відповіді back); з номером — накладна повернення,
+     поки не отримали. 90 днів від повернення чи відмови. */
+  const межаП = Date.now() - 90 * 864e5;
+  (orders || []).forEach(o => {
+    if(!o || o.draft || orderDir(o) !== 'b2c') return;
+    [o, ship2Of(o)].forEach(p => {
+      if(!p || !p.ttn) return;
+      const r = p.npRet;
+      if(r && r.got) return;
+      const відм = p.npSt && ['102', '103', '108', '105'].indexOf(String(p.npSt.code)) >= 0;
+      if(!r && !відм) return;
+      if(Date.parse((r && r.at) || (p.npSt && p.npSt.at) || '') < межаП) return;
+      if(r && r.ttn){ if(!(r.st && ['9', '10', '11', '106'].indexOf(String(r.st.code)) >= 0)) ці.push({ o, p, ret: true }); }
+      else if(!ці.some(y => y.p === p)) ці.push({ o, p });
+    });
+  });
   if(!ці.length) return;
   let змін = 0;
   for(let i = 0; i < ці.length; i += 100){
     const part = ці.slice(i, i + 100);
     let d;
-    try{ d = await npCall('trackMany', { ttns: part.map(x => ({ ttn: x.p.ttn, phone: x.o.phone || '' })) }); }
+    try{ d = await npCall('trackMany', { ttns: part.map(x => ({ ttn: x.ret ? x.p.npRet.ttn : x.p.ttn, phone: x.o.phone || '' })) }); }
     catch(e){
       npPoll.err = String((e && e.message) || e).slice(0, 200); npPoll.errAt = new Date().toISOString();
       console.warn('статуси НП', e);
@@ -26577,9 +26666,18 @@ async function prodNpPoll(force){
     }
     npPoll.err = ''; npPoll.okAt = new Date().toISOString(); npPoll.n = ці.length;
     (d.list || []).forEach(x => {
-      const hit = part.filter(y => String(y.p.ttn).replace(/\D/g, '') === String(x.ttn).replace(/\D/g, ''))[0];
+      const номер = y => String(y.ret ? y.p.npRet.ttn : y.p.ttn).replace(/\D/g, '');
+      const hit = part.filter(y => номер(y) === String(x.ttn).replace(/\D/g, ''))[0];
       if(!hit || !x.code) return;
       const p = hit.p;
+      if(hit.ret){
+        const st = p.npRet.st || {};
+        if(String(st.code) === String(x.code) && st.status === x.status) return;
+        p.npRet = Object.assign({}, p.npRet, { st: { code: String(x.code), status: String(x.status || '').slice(0, 120), at: new Date().toISOString() } });
+        touchOrder(hit.o); змін++;
+        return;
+      }
+      if(npRetBack(p, x)){ touchOrder(hit.o); змін++; }
       const було = p.npSt || {};
       if(String(було.code) === String(x.code) && було.status === x.status) return;
       const at = new Date().toISOString();
@@ -27565,6 +27663,85 @@ function shipTtnExtra(o, v, d){
    стара йде в o.ttnHist як замінена (гроші за нею знайдуть картку) і
    скасовується в Новій пошті. Колонка цеху, реєстр і решта картки — як
    були; причина відмови реєстру знімається. true — зроблено, інакше чому ні. */
+/* ══ ВІДМОВА НП → ЗАМОВИТИ ПОВЕРНЕННЯ (09.11) ══
+   Андрій: «відмова НП повинна бути, щоб зрозуміти, по яких ТТН відмова
+   пішла, і щоб ми могли ці ТТН замовити назад». Воркер (op returnOrder)
+   спершу шукає вже замовлене повернення на цю накладну — повторний натиск
+   другого не створить; далі замовляє на відділення відправника. У картку
+   (посилка 1 — сама картка, 2 — o.ship2) лягає p.npRet {at, by, num, ref,
+   ttn, addr, pay, again} — лише через orderApply. Не вийшло — причина
+   червоним у картці (NPRET_FAIL, у цій вкладці) і рядок `ret-fail` у журналі
+   («Стан системи»). Гроші не рухаються. */
+const NPRET_FAIL = {};
+function npRetFailOf(o, part){ return (o && NPRET_FAIL[String(o.orderId || o.id) + ':' + (part === 2 ? 2 : 1)]) || null; }
+function npRetFailSet(o, part, why){
+  if(!o) return;
+  const k = String(o.orderId || o.id) + ':' + (part === 2 ? 2 : 1);
+  if(!why){ delete NPRET_FAIL[k]; return; }
+  const t = String(why).replace(/\s+/g, ' ').trim().slice(0, 240) || 'Нова пошта відмовила без пояснення';
+  NPRET_FAIL[k] = { why: t, at: new Date().toISOString() };
+  try{ accFail('ret-fail', k + '|' + t.slice(0, 60), '#' + showNo(o) + (part === 2 ? ' · посилка 2' : '') + ' · повернення: ' + t.slice(0, 110)); }catch(e){}
+}
+async function npReturnOrder(o, part){
+  part = part === 2 ? 2 : 1;
+  const p = part === 2 ? ship2Of(o) : o;
+  const ttn = String((p && p.ttn) || '').replace(/\D/g, '');
+  if(!o || !ttn) return { ok: false, why: 'у посилці немає накладної' };
+  const D = window.LQDesign;
+  const стан = D && D.npRetOf ? D.npRetOf(o, part) : null;
+  if(!стан || !стан.can) return { ok: false, why: 'повернення вже замовлено або посилка не у відмові' };
+  let r;
+  try{ r = await npCall('returnOrder', { ttn, sender: String((p && p.ttnSender) || o.ttnSender || '') }); }
+  catch(e){
+    const чому = String((e && e.message) || e);
+    npRetFailSet(o, part, чому);
+    return { ok: false, why: чому };
+  }
+  const now = new Date().toISOString(), me = myEmail() || '';
+  const запис = { at: now, by: me, num: String(r.num || ''), ref: String(r.ref || ''), ttn: String(r.ttn || '').replace(/\D/g, ''),
+                  addr: String(r.addr || ''), pay: String(r.pay || ''), again: !!r.again };
+  const той = x => { const px = part === 2 ? (x && x.ship2) : x; return !!(px && px.npRet && ((запис.ref && px.npRet.ref === запис.ref) || px.npRet.at === now)); };
+  const put = x => {
+    const px = part === 2 ? x.ship2 : x;
+    if(!px) return false;
+    if(той(x)) return;
+    /* Поки ми питали НП, повернення вже вписала інша вкладка — те саме
+       замовлення (той самий ref) лишаємо, чуже не перекриваємо. */
+    if(px.npRet && !px.npRet.got) return (запис.ref && px.npRet.ref === запис.ref) ? undefined : false;
+    px.npRet = запис;
+  };
+  const H = window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host;
+  let res = false;
+  try{
+    ownTouch(o.id, true);
+    if(H && H.orderApply) res = await H.orderApply(o.id, put, той);
+    else { put(o); touchOrder(o); await saveOrders({ quiet: true, only: o.id }); res = той(JSON.parse(ordersSaved.get(o.id) || 'null')); }
+  }catch(e){ console.warn('запис повернення', e); res = false; }
+  const live = (orders || []).find(x => x && x.id === o.id);
+  if(live && live !== o) Object.assign(o, live);
+  if(res === 'stale') return { ok: false, why: 'повернення вже вписали з іншої вкладки — показано свіжу' };
+  if(res !== true && !той(o)){
+    const чому = 'Повернення в Новій пошті замовлено' + (запис.num ? ' (№' + запис.num + ')' : '') +
+      ', але в картку не записалось. Натисніть «Замовити повернення» ще раз — буде знайдено те саме, другого не створиться';
+    npRetFailSet(o, part, чому);
+    return { ok: false, why: чому };
+  }
+  npRetFailSet(o, part, '');
+  try{ accLog('ttn', 'повернення #' + showNo(o) + (part === 2 ? ' · посилка 2' : '') + ': ТТН ' + ttn + (запис.num ? ' → замовлення №' + запис.num : '') + (запис.again ? ' (уже було)' : '')); }catch(e){}
+  return { ok: true, num: запис.num, ttn: запис.ttn, again: запис.again };
+}
+/* Опитування статусів (09.11): накладна повернення, створена на основі
+   відмовленої (back), — у p.npRet; повернення, замовлене в кабінеті НП, теж
+   лягає сюди (outside). true — змінилось. */
+function npRetBack(p, x){
+  const back = String((x && x.back) || '').replace(/\D/g, '');
+  if(!p || !back || back === String(p.ttn || '').replace(/\D/g, '')) return false;
+  if(x.backType && !/return|поверн|back/i.test(String(x.backType))) return false;
+  if(p.npRet && p.npRet.ttn === back) return false;
+  if(p.npRet && p.npRet.ttn && p.npRet.ttn !== back) return false;
+  p.npRet = Object.assign({}, p.npRet || { at: String(x.backAt || '') || new Date().toISOString(), by: 'Нова пошта', outside: true }, { ttn: back });
+  return true;
+}
 async function shipTtnRemake(o){
   if(!o || !String(o.ttn || '').trim()) return 'накладної немає';
   let v = shipVals(o), miss = shipMissing(v);
@@ -33839,6 +34016,9 @@ function designHostInit(){
     ttnDrop: o => shipTtnDrop(o),
     ttnDelete: (o, which, opt) => which === 2 ? shipTtnDelete2(o, opt) : shipTtnDelete(o, opt),
     ttnRemake: o => shipTtnRemake(o),
+    /* Відмова НП → повернення посилки (09.11). */
+    npReturn: (o, part) => npReturnOrder(o, part),
+    npRetFail: (o, part) => npRetFailOf(o, part),
     shipWire: (el, o, persist) => wireShipForm(el, o, persist),
     shipTrack: (o, which) => shipTrack(o, which),
     ttnInfo: (o, which) => ttnInfo(o, which),

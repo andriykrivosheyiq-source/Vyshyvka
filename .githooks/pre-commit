@@ -627,6 +627,16 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   echo "✓ одна накладна на одне замовлення"
 fi
 
+# ВІДМОВА НП → ПОВЕРНЕННЯ (09.11): окрема колонка, «Замовити повернення» один раз, статус повернення.
+if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|worker/novaposhta-proxy\.js|tests/np-return\.mjs)'; then
+  node tests/np-return.mjs >/tmp/lq-np-return.log 2>&1 || {
+    echo "✗ Відмова НП / повернення посилки зламались — коміт зупинено. Подробиці: /tmp/lq-np-return.log"
+    grep '✗' /tmp/lq-np-return.log
+    exit 1
+  }
+  echo "✓ відмова НП і повернення посилки"
+fi
+
 # ТТН НЕ СТВОРИЛАСЬ (05.11): причина червоним у картці, ttn-fail у журналі й «Стан системи».
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|tests/ttn-fail\.mjs)'; then
   node tests/ttn-fail.mjs >/tmp/lq-ttn-fail.log 2>&1 || {
