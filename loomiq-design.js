@@ -3666,6 +3666,8 @@
                пошта не взяла в реєстр — причина прямо на плитці. */
             (c.ttnOld ? '<span class="dz-c-row"><em class="dz-c-stk late dz-c-ttnold" title="Нова пошта не бере в реєстр роздруковану накладну, старшу за 3 дні — перестворіть ТТН у картці">ТТН уже ' + esc(dniTxt(c.ttnOld)) + '</em></span>' : '') +
             (c.two ? '<span class="dz-c-row"><em class="dz-c-stk dz-c-two" title="Замовлення їде двома посилками двом отримувачам — дві накладні, дві бирки">📦 2 посилки</em></span>' : '') +
+            /* Один ескіз на кілька товарів (09.11) — видно ще до відкриття картки. */
+            (c.oneSk ? '<span class="dz-c-row"><em class="dz-c-stk dz-c-onesk" title="Та сама вишивка на кількох товарах — файл один">🧵 ' + esc(c.oneSk) + '</em></span>' : '') +
             (c.ttnBad ? '<span class="dz-c-row"><em class="dz-c-stk late dz-c-ttnold dz-c-ttnbad" title="«Створити реєстр» цю посилку не візьме">' + esc(c.ttnBad) + '</em></span>' : '') +
             (c.regFail ? '<i class="dz-c-state dz-c-regfail">НП не взяла в реєстр: ' + esc(c.regFail) + '</i>' : '') +
             /* Відмова НП (09.11): що з поверненням посилки — на плитці. */
@@ -9452,7 +9454,13 @@
       var зона = null;
       try{ зона = (host().zone && host().zone(pu.gid, (sp && sp.side) || 'front', pu.color, pu.size)) || null; }catch(e){}
       var w = (sp && works[+sp.work || 0]) || works[0] || parts.work[0] || {};
-      var specs = [['Товар', (pg && pg.name) || pu.name || '—'], ['Колір', pu.color || '—'], ['Розмір', pu.size || '—']];
+      /* Один ескіз на кілька товарів (09.11) — у карті всі товари групи. */
+      var гр = [pu].concat(D.linksOf(job, pu).filter(function(x){ return x && x.gid; }));
+      var назви = гр.map(function(x){ var gx = U.catItem(x.gid); return (gx && gx.name) || x.name || '—'; });
+      var specs = [['Товар', назви.filter(function(v, k){ return назви.indexOf(v) === k; }).join(', ') + (гр.length > 1 ? ' ×' + гр.length : '')],
+                   ['Колір', гр.map(function(x){ return x.color || '—'; }).join(', ')],
+                   ['Розмір', гр.map(function(x){ return x.size || '—'; }).join(', ')]];
+      if(гр.length > 1) specs.push(['Штук', String(гр.reduce(function(a, x){ return a + (+x.qty || 0); }, 0) || гр.length)]);
       if(список.length > 1) specs.push(['Місце', label || ('нанесення ' + (i + 1))]);
       var png = null;
       try{
@@ -9469,9 +9477,33 @@
   /* ОДИН РЯДОК ФАЙЛІВ НА ПОЗИЦІЮ. Андрій: «одним рядком, щоб не займало
      багато місця»: робота, мокап, скрін Wilcom, файл для машини — підписані
      плитки. Картки для клієнта тут немає: цеху вона нічого не дає. */
+  /* ОДИН ЕСКІЗ — КІЛЬКА ТОВАРІВ (09.11, #2000436: графіт і світло-сірий з
+     одним ескізом; у цеху друга позиція стояла порожнім блоком, і було
+     незрозуміло, що вишивка та сама). Товар, привʼязаний «＋ Товар з цим
+     ескізом» (`u.ready.link`), у картці цеху — рядком під своєю головною:
+     угорі «Один ескіз на N товари», далі кожен товар зі своїм одягом, файли й
+     карта — раз. Без головної — окремим блоком, як доти. */
+  function oneSketchTxt(n){
+    var r10 = n % 10, r100 = n % 100;
+    return 'Один ескіз на ' + n + ' ' + ((r10 >= 2 && r10 <= 4 && !(r100 >= 12 && r100 <= 14)) ? 'товари' : 'товарів');
+  }
+  function prodGroups(job){
+    var all = U.unitsOf(job).filter(function(u){ return u && u.gid; });
+    return all.filter(function(u){ var m = D.linkOf(u) && D.linkMain(job, u); return !(m && all.indexOf(m) >= 0); })
+      .map(function(u){ return [u].concat(D.linksOf(job, u).filter(function(x){ return x && x.gid && all.indexOf(x) >= 0; })); });
+  }
+  /* Помітка на плитку цеху: «1 ескіз · 2 товари», кілька таких груп — «2 ескізи на 5 товарів». */
+  function oneSketchTile(job){
+    var gs = prodGroups(job).filter(function(g){ return g.length > 1; });
+    if(!gs.length) return '';
+    var n = gs.reduce(function(a, g){ return a + g.length; }, 0);
+    return gs.length === 1 ? '1 ескіз · ' + oneSketchTxt(n).replace(/^Один ескіз на /, '')
+                           : gs.length + ' ескізи на ' + n + ' товарів';
+  }
   function prodUnitsHtml(p){
     var job = p.job, o = p.o;
-    return U.unitsOf(job).filter(function(u){ return u && u.gid; }).map(function(u){
+    return prodGroups(job).map(function(група){
+      var u = група[0];
       var no = U.unitNo(job, u);
       var g = U.catItem(u.gid);
       var gr = D.dzList(u, 'graphic'), st = D.dzList(u, 'stitch');
@@ -9492,14 +9524,19 @@
         if(!v){ бракує.push('вишивка' + (st.length > 1 ? ' ' + (i + 1) : '') + ' ще не здана'); return; }
         плитки.push(U.verTilesHtml(v, U.dlNames(no, u, 'stitch', i, v.n), { only: ['shot', 'machine', 'extra'], bare: true }));
       });
-      return '<div class="dz-prod-u">' +
-        '<div class="dz-prod-h"><b>' + esc(no) + '</b>' +
-          '<span>' + esc([(g && g.name) || u.name, u.color, u.size,
-                          ((+u.qty || 0) ? (+u.qty) + ' шт' : '')].filter(Boolean).join(' · ')) + '</span>' +
-          clothHtml(o, u) + '</div>' +
-        /* Послуги позиції — цех теж має знати (15.10: «бачать і дизайнер»). */
-        ((u.services || []).length ? '<div class="dz-u-svc is-ro">' + u.services.map(function(x){
-          return '<span class="dz-svc">+ ' + esc(x.name) + '</span>'; }).join('') + '</div>' : '') +
+      var рядок = function(x){
+        var gx = U.catItem(x.gid);
+        return '<div class="dz-prod-h"><b>' + esc(U.unitNo(job, x)) + '</b>' +
+            '<span>' + esc([(gx && gx.name) || x.name, x.color, x.size,
+                            ((+x.qty || 0) ? (+x.qty) + ' шт' : '')].filter(Boolean).join(' · ')) + '</span>' +
+            clothHtml(o, x) + '</div>' +
+          /* Послуги позиції — цех теж має знати (15.10: «бачать і дизайнер»). */
+          ((x.services || []).length ? '<div class="dz-u-svc is-ro">' + x.services.map(function(sv){
+            return '<span class="dz-svc">+ ' + esc(sv.name) + '</span>'; }).join('') + '</div>' : '');
+      };
+      return '<div class="dz-prod-u' + (група.length > 1 ? ' is-one' : '') + '"' + (група.length > 1 ? ' data-one-sketch="' + група.length + '"' : '') + '>' +
+        (група.length > 1 ? '<div class="dz-prod-one">🧵 ' + esc(oneSketchTxt(група.length)) + ' — та сама вишивка на кожному</div>' : '') +
+        група.map(рядок).join('') +
         (плитки.length ? '<span class="dz-tiles dz-prod-row">' + плитки.join('') + '</span>' : '') +
         threadsHtml(нитки) +
         (бракує.length ? '<div class="dz-miss is-calm">' + esc(бракує.join(' · ')) + '</div>' : '') +
@@ -10421,6 +10458,7 @@
       return { id: p.o.orderId, step: крокП, v2: true, zebra: зебра,
         pin: !!(D.ownerDoneOf(p.o) || D.prodPinOf(p.o)),
         two: D.ship2Live(p.o),
+        oneSk: oneSketchTile(p.job),
         abroad: D.shipAbroad(p.o),
         ttnOld: днівТ >= 3 ? днівТ : 0,
         ttnBad: крокП === 'reg' ? D.ttnBad(p.o) : '',
