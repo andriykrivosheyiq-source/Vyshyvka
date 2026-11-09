@@ -1979,6 +1979,17 @@
   function baseAttach(u, rd, note, file){
     if(!u || !rd) return null;
     var arts = readyFiles(readyArts(rd), 'принт.png');
+    /* ДОПЛАТА ЗА ПРАВКИ (10.11, Андрій: «яка ціна додатково до звичайного
+       готового дизайну… тільки в нових»): сума з Налаштувань B2C лягає в
+       позицію в мить, коли вона стає «з правками», і далі не змінюється —
+       ні зміною налаштувань, ні заміною основи. Старі позиції без `extra` —
+       без доплати, як і були. */
+    var було = (u.base && u.base.extra != null) ? { extra: u.base.extra, extraAt: u.base.extraAt } : null;
+    var доплата = 0;
+    try{
+      var hx = (typeof window !== 'undefined' && window.LQDesign && window.LQDesign.ui && window.LQDesign.ui.host) || null;
+      доплата = Math.max(0, Math.round(+((hx && hx.baseExtra && hx.baseExtra()) || 0)));
+    }catch(e){ доплата = 0; }
     delete u.ready;
     delete u.artKind; delete u.artKindName;
     u.base = { id: String(rd.id || ''), name: String(rd.name || ''), pic: String(rd.pic || ''),
@@ -1987,6 +1998,8 @@
                note: String(note || '').trim(),
                noteFile: (file && file.url) ? { name: String(file.name || 'файл'), url: String(file.url) } : null,
                at: nowIso() };
+    u.base.extra = було ? було.extra : доплата;
+    u.base.extraAt = було ? (було.extraAt || '') : nowIso();
     return u.base;
   }
   /* ГОТОВИЙ ДИЗАЙН ОНОВИЛИ В БІБЛІОТЦІ — ОНОВЛЮЄТЬСЯ Й У ЗАМОВЛЕННЯХ (20.10,
@@ -3876,7 +3889,7 @@
     var g = catItem(u.gid);
     var w = 0;
     try{ w = +(host.widthCm && host.widthCm(u.gid, u.size)) || 0; }catch(e){}
-    return [base, (g && g.name) || u.name || '', u.size || '', u.color || '',
+    return [base, u.name || (g && g.name) || '', u.size || '', u.color || '',
             w ? String(Math.round(w * 10) / 10).replace('.', ',') + 'см' : '']
       .filter(Boolean).join('_');
   }
@@ -5480,7 +5493,7 @@
     var all = unitsOf(job);
     return '<div class="dz-link-note">🔗 Цей ескіз також на: ' + l.map(function(x){
       var g = catItem(x.gid);
-      return '<b>' + (all.indexOf(x) + 1) + '</b> ' + esc([(g && g.name) || x.name || 'виріб ще не обрано', x.color, x.size].filter(Boolean).join(' · '));
+      return '<b>' + (all.indexOf(x) + 1) + '</b> ' + esc([x.name || (g && g.name) || 'виріб ще не обрано', x.color, x.size].filter(Boolean).join(' · '));
     }).join('; ') + '</div>';
   }
   function capHtml(t){
@@ -5736,7 +5749,7 @@
               var g = catItem(u.gid);
               return '<button type="button" class="dz-past-u" data-past="' + oi + ':' + ui + '">' +
                 (f.arts[0] ? '<img src="' + esc(f.arts[0].url) + '" alt="" loading="lazy" onerror="this.style.opacity=0">' : '<span class="dz-past-n">—</span>') +
-                '<span><b>' + esc([(g && g.name) || u.name, u.color].filter(Boolean).join(' · ') || ('позиція ' + (ui + 1))) + '</b>' +
+                '<span><b>' + esc([u.name || (g && g.name), u.color].filter(Boolean).join(' · ') || ('позиція ' + (ui + 1))) + '</b>' +
                 '<i>' + f.files.length + ' DST · ' + f.arts.length + ' принт(и)' + (f.extras.length ? ' · ' + f.extras.length + ' додатк.' : '') + '</i></span></button>';
             }).join('') + '</div>';
         }).join('') : '<div class="dz-miss is-calm">' + (всі.length
@@ -5826,7 +5839,7 @@
         var need = function(v){ return (!v && треба) ? ' need' : ''; };
         return '<button type="button" class="dz-pickb' + (u.gid ? ' on' : '') + need(u.gid) +
         '" data-do="u-pick-gid" data-u="' + esc(u.id) + '">' +
-        esc((g && g.name) || u.name || 'Обрати виріб') + '</button>' +
+        esc(u.name || (g && g.name) || 'Обрати виріб') + '</button>' +
       '<button type="button" class="dz-pickb' + (u.color ? ' on' : '') + need(u.color) +
         '" data-do="u-pick-color" data-u="' + esc(u.id) + '"' +
         (u.gid ? '' : ' disabled') + '>' +
@@ -5921,7 +5934,7 @@
          відрізнити від недогляду. */
       (ro
         ? '<div class="dz-u-ro">' +
-            '<span><i>Виріб</i>' + esc((g && g.name) || u.name || '—') + '</span>' +
+            '<span><i>Виріб</i>' + esc(u.name || (g && g.name) || '—') + '</span>' +
             '<span><i>Колір</i>' +
               (u.colorHex ? '<b class="dz-sw" style="background:' + esc(u.colorHex) + '"></b>' : '') +
               esc(u.color || 'ще не знаємо') + '</span>' +
@@ -6118,7 +6131,7 @@
           '<i class="dz-var-n">' + v.n + '</i>' +
           (v.mock ? '<button type="button" class="dz-var-img" data-do="pic-open" data-url="' + esc(v.mock) + '"><img src="' + esc(v.mock) + '" alt="" loading="lazy"></button>'
                   : '<button type="button" class="dz-var-img is-none" data-do="u-var-place" data-u="' + uid + '" data-v="' + v.n + '">Розмістити</button>') +
-          '<span class="dz-var-l">' + esc([(g && g.name) || v.name || 'виріб', v.color].filter(Boolean).join(' · ')) +
+          '<span class="dz-var-l">' + esc([v.name || (g && g.name) || 'виріб', v.color].filter(Boolean).join(' · ')) +
             (v.artOwn ? ' <em title="Картинку замінено лише тут">своя картинка</em>' : '') + '</span>' +
           '<span class="dz-var-a">' +
             '<button type="button" class="dz-ib" data-do="u-var-place" data-u="' + uid + '" data-v="' + v.n + '" title="Розміщення">✎</button>' +
@@ -6838,7 +6851,7 @@
       var запас = !!((u.ready || u.base) && u.gid && host.retailExact && !host.retailExact(u.gid, 'ready'));
       /* Друк: ціни на друк ще не вписано — береться індивідуальна (21.10). */
       var запасДрук = !!(вид === 'dtf' && u.gid && host.retailExact && !host.retailExact(u.gid, 'dtf'));
-      return [{ name: (g && g.name) || u.name || 'без виробу', design: дизайн + (вид === 'dtf' ? ' · друк' : ''), fallback: запас, fallbackDtf: запасДрук,
+      return [{ name: u.name || (g && g.name) || 'без виробу', design: дизайн + (вид === 'dtf' ? ' · друк' : ''), fallback: запас, fallbackDtf: запасДрук,
                lockedAt: зафікс ? u.priceAt : '', nowPrice: (зафікс && прайс !== ціна) ? прайс : 0,
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
                cost: соб, costSum: соб * к,
@@ -6858,6 +6871,11 @@
                      cost: c ? c.sum : 0, costSum: c ? c.sum : 0, costKnown: !!c, нема: false });
         });
         return out;
+      })()).concat((function(){
+        /* Доплата за «Готовий з правками» (10.11) — раз на позицію, зафіксована в ній. */
+        var дод = (u.base && !u.ready) ? Math.max(0, Math.round(+u.base.extra || 0)) : 0;
+        return дод ? [{ name: '↳ правки до готового дизайну', baseExtra: true, qty: 1, price: дод, sum: дод,
+                        cost: 0, costSum: 0, нема: false }] : [];
       })()).concat(((u.services) || []).map(function(x){
         var ц = Math.max(0, Math.round(+x.price || 0)), с = Math.max(0, Math.round(+x.cost || 0));
         return { name: '+ ' + (x.name || 'послуга'), service: true, qty: 1, price: ц, sum: ц,
@@ -6874,13 +6892,13 @@
     var сума = 0, повна = true;
     rows.forEach(function(r){
       if(!r.qty) return;
-      if(r.kindDelta) return;
+      if(r.kindDelta || r.baseExtra) return;
       if(r.dzCost){ if(!r.costKnown) повна = false; сума += r.costSum; return; }
       if(r.service){ сума += r.costSum; return; }      // послуга без собівартості — 0, а не «невідомо»
       if(!r.cost){ повна = false; return; }
       сума += r.costSum;
     });
-    return { sum: сума, full: повна && rows.some(function(r){ return r.qty && !r.service && !r.dzCost && !r.kindDelta; }) };
+    return { sum: сума, full: повна && rows.some(function(r){ return r.qty && !r.service && !r.dzCost && !r.kindDelta && !r.baseExtra; }) };
   }
   function orderSum(o, job){
     var з = sumRows(job).reduce(function(a, r){ return a + r.sum; }, 0);
@@ -6992,6 +7010,7 @@
         ? '<div class="dz-sum">' + rows.map(function(r){
             if(r.service) return '<div class="dz-sum-r is-svc"><span>' + esc(r.name) + '</span><i>послуга</i><b>' + esc(грн(r.sum)) + '</b></div>';
             if(r.dzCost) return '';
+            if(r.baseExtra) return '<div class="dz-sum-r is-svc is-kind" data-base-extra><span>' + esc(r.name) + '</span><i>готовий з правками</i><b>+' + esc(грн(r.sum)) + '</b></div>';
             if(r.kindDelta) return '<div class="dz-sum-r is-svc is-kind"><span>' + esc(r.name) + '</span><i>тип малюнка</i><b>' +
               (r.sum < 0 ? '−' + esc(грн(-r.sum)) : '+' + esc(грн(r.sum))) + '</b></div>';
             return '<div class="dz-sum-r' + (r.нема ? ' no' : '') + '">' +
@@ -7052,7 +7071,7 @@
     rows.forEach(function(r){
       if(r.dzCost === 'graphic'){ gr += r.costSum; if(r.src) grS[r.src] = 1; if(!r.costKnown) невідомо = true; }
       else if(r.dzCost === 'stitch'){ st += r.costSum; if(r.src) stS[r.src] = 1; if(!r.costKnown) невідомо = true; }
-      else if(!r.kindDelta && !r.service) одяг += r.costSum;
+      else if(!r.kindDelta && !r.service && !r.baseExtra) одяг += r.costSum;
       else if(r.service) одяг += r.costSum;
     });
     var мітка = function(m){ var k = Object.keys(m); return k.length === 1 ? DZ_SRC[k[0]] : (k.length ? 'частково' : ''); };
@@ -9046,7 +9065,7 @@
     var нових = D.dzUnseen(d, м, kind, kind);
     return '<div class="dz-w' + (d.status === 'revision' ? ' is-fix' : '') + '">' +
       '<div class="dz-w-h">' +
-        '<b>' + esc((g && g.name) || u.name || 'Виріб') + '</b>' +
+        '<b>' + esc(u.name || (g && g.name) || 'Виріб') + '</b>' +
         (u.color ? '<span class="dz-w-c">' +
           (u.colorHex ? '<i class="dz-sw" style="background:' + esc(u.colorHex) + '"></i>' : '') +
           esc(u.color) + '</span>' : '') +
@@ -9098,7 +9117,7 @@
         /* Той самий ескіз ще й на інших товарах (18.10). */
         ((x.job && D.linksOf(x.job, u).length) ? '<div class="dz-w-note"><i>Цей ескіз також на</i>' +
           D.linksOf(x.job, u).map(function(lu){
-            return esc([(U.catItem(lu.gid) || {}).name || lu.name || 'виріб ще не обрано', lu.color, lu.size].filter(Boolean).join(' · ')); }).join('; ') +
+            return esc([lu.name || (U.catItem(lu.gid) || {}).name || 'виріб ще не обрано', lu.color, lu.size].filter(Boolean).join(' · ')); }).join('; ') +
           (kind === 'stitch' ? ' — файл один на всі, оплата одна'
                              : ' — після здачі вікно розміщення відкриється на кожному') + '</div>' : '') +
         /* Додаткові послуги позиції — без цін (15.10). */
@@ -9456,7 +9475,7 @@
       var w = (sp && works[+sp.work || 0]) || works[0] || parts.work[0] || {};
       /* Один ескіз на кілька товарів (09.11) — у карті всі товари групи. */
       var гр = [pu].concat(D.linksOf(job, pu).filter(function(x){ return x && x.gid; }));
-      var назви = гр.map(function(x){ var gx = U.catItem(x.gid); return (gx && gx.name) || x.name || '—'; });
+      var назви = гр.map(function(x){ var gx = U.catItem(x.gid); return x.name || (gx && gx.name) || '—'; });
       var specs = [['Товар', назви.filter(function(v, k){ return назви.indexOf(v) === k; }).join(', ') + (гр.length > 1 ? ' ×' + гр.length : '')],
                    ['Колір', гр.map(function(x){ return x.color || '—'; }).join(', ')],
                    ['Розмір', гр.map(function(x){ return x.size || '—'; }).join(', ')]];
@@ -9527,7 +9546,7 @@
       var рядок = function(x){
         var gx = U.catItem(x.gid);
         return '<div class="dz-prod-h"><b>' + esc(U.unitNo(job, x)) + '</b>' +
-            '<span>' + esc([(gx && gx.name) || x.name, x.color, x.size,
+            '<span>' + esc([x.name || (gx && gx.name), x.color, x.size,
                             ((+x.qty || 0) ? (+x.qty) + ' шт' : '')].filter(Boolean).join(' · ')) + '</span>' +
             clothHtml(o, x) + '</div>' +
           /* Послуги позиції — цех теж має знати (15.10: «бачать і дизайнер»). */
@@ -9825,7 +9844,7 @@
               return '<label><input type="radio" name="dzpmb" value="' + b.key + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(b.label) + '</label>'; }).join('') + '</div>') +
         '<div class="dz-pm-l">Скільки штук передрукувати (одяг перезамовимо)</div>' +
         us.map(function(u){
-          return '<label class="dz-pm-q"><span>' + esc([(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · ')) + '</span>' +
+          return '<label class="dz-pm-q"><span>' + esc([u.name || (U.catItem(u.gid) || {}).name, u.color, u.size].filter(Boolean).join(' · ')) + '</span>' +
             '<input type="number" min="0" step="1" data-pmq="' + esc(u.id) + '" value="' + (us.length === 1 ? (Math.round(+u.qty || 0) || 1) : 0) + '"></label>'; }).join('')
         : '') +
       '<div class="dz-pm-l"><span class="dz-on-mouse">Фото — скільки завгодно (зняти, вибрати або вставити Ctrl+V)</span>' +
@@ -10146,7 +10165,7 @@
     var br = (job && job.brief) || {};
     var us = U.unitsOf(job).filter(function(u){ return u && (String(u.note || '').trim() || (u.pics || []).length); });
     var поЮнітах = us.map(function(u){
-      var назва = [(U.catItem(u.gid) || {}).name || u.name || '', u.color || ''].filter(Boolean).join(' · ');
+      var назва = [u.name || (U.catItem(u.gid) || {}).name || '', u.color || ''].filter(Boolean).join(' · ');
       return '<div class="dz-tz-u">' +
         (us.length > 1 && назва ? '<div class="dz-tz-uh">' + esc(назва) + '</div>' : '') +
         (String(u.note || '').trim() ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
@@ -11498,7 +11517,7 @@
       var k = (r.gid || '') + '|' + (r.color || '').toLowerCase();
       if(!g[k]){
         var it = U.catItem(r.gid);
-        g[k] = { key: k, gid: r.gid, name: (it && it.name) || r.name || 'Виріб',
+        g[k] = { key: k, gid: r.gid, name: r.name || (it && it.name) || 'Виріб',
                  color: r.color || '', colorHex: r.colorHex || '', qty: 0, sizes: {}, rows: [] };
         order.push(k);
       }
@@ -11525,7 +11544,7 @@
   function buyRowsNow(){
     return D.buyNeed(U.pairs(), buys()).map(function(r){
       r.no = U.unitNo(r.job, r.u);
-      r.name = ((U.catItem(r.gid) || {}).name) || r.u.name || '';
+      r.name = (r.u && r.u.name) || ((U.catItem(r.gid) || {}).name) || '';
       r.key = D.buyKey(r.orderId, r.uid);
       r.sup = supOf(r.gid);
       return r;
@@ -13307,7 +13326,7 @@
       placeOnly: true,
       gid: u.gid, size: u.size || 'M', sizeAssumed: !u.size, color: u.color || '',
       name: 'Позиція ' + no + ' · ескіз позиції ' + mno + ' · ' +
-            [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
+            [u.name || (U.catItem(u.gid) || {}).name, u.color, u.size].filter(Boolean).join(' · '),
       sides: сторони,
       works: arts.map(function(f, k){
         return { name: f.name || 'ескіз.png', url: f.url, hash: 'link:' + main.id + (k ? ':' + k : ''), threads: f.threads || [] }; }),
@@ -13380,7 +13399,7 @@
     return window.LQMock.openWork({
       placeOnly: true,
       gid: v.gid, size: u.size || 'M', sizeAssumed: !u.size, color: v.color || '',
-      name: 'Варіант ' + v.n + ' · ' + [(U.catItem(v.gid) || {}).name || v.name, v.color].filter(Boolean).join(' · '),
+      name: 'Варіант ' + v.n + ' · ' + [v.name || (U.catItem(v.gid) || {}).name, v.color].filter(Boolean).join(' · '),
       sides: сторони,
       works: [{ name: art.name || 'картинка.png', url: art.url, hash: 'var:' + u.id + ':' + v.n }],
       places: (v.places && v.places.length) ? v.places : varBasePlaces(u, сторони),
@@ -13396,7 +13415,7 @@
     });
   }
   function varLabel(v){
-    return [(U.catItem(v.gid) || {}).name || v.name || 'виріб', v.color].filter(Boolean).join(' · ');
+    return [v.name || (U.catItem(v.gid) || {}).name || 'виріб', v.color].filter(Boolean).join(' · ');
   }
   /* Напис на картці варіантів і текст до них — із заготовок (20.10). */
   function varCardText(job){
@@ -14763,7 +14782,7 @@
       if(!su || !o) return;
       var nT = stockTakeQty(o, su);
       var gT = U.catItem(su.gid);
-      var щоT = [(gT && gT.name) || su.name || '', su.color || '', su.size || ''].filter(Boolean).join(' · ');
+      var щоT = [su.name || (gT && gT.name) || '', su.color || '', su.size || ''].filter(Boolean).join(' · ');
       if(!nT) return say('На складі немає такого одягу: ' + щоT);
       var noT = U.unitNo(job, su);
       var allT = buys();
@@ -14778,7 +14797,7 @@
       if(!окT) return;
       var хтоT = (host().me && host().me()) || '';
       var stT2 = stockSt();
-      var рядT = { orderId: String(o.orderId), uid: su.id, no: noT, gid: su.gid, name: (gT && gT.name) || su.name || '',
+      var рядT = { orderId: String(o.orderId), uid: su.id, no: noT, gid: su.gid, name: su.name || (gT && gT.name) || '',
                    color: String(su.color || ''), colorHex: su.colorHex || '', size: String(su.size || ''), qty: nT };
       var bsT = D.buyNew(buysAll(), хтоT, [рядT]);
       bsT.stock = true; bsT.n = 0; bsT.sup = { id:'', name:'Склад' };
@@ -15094,7 +15113,7 @@
         var чер3 = dd.draft || {};
         return window.LQMock.openWork({
           gid: du.gid, size: du.size || 'M', sizeAssumed: !du.size, color: du.color || '',
-          name: [(U.catItem(du.gid) || {}).name || du.name, du.color, du.size]
+          name: [du.name || (U.catItem(du.gid) || {}).name, du.color, du.size]
                   .filter(Boolean).join(' · '),
           sides: сторони,
           /* Роботу вже здавали без мокапу (виробу не було) — беремо її
@@ -15172,7 +15191,7 @@
         return window.LQMock.openWork({
           placeOnly: true,
           gid: du.gid, size: du.size || 'M', sizeAssumed: !du.size, color: du.color || '',
-          name: [(U.catItem(du.gid) || {}).name || du.name, du.color, du.size]
+          name: [du.name || (U.catItem(du.gid) || {}).name, du.color, du.size]
                   .filter(Boolean).join(' · '),
           sides: pside, works: pworks, places: pplaces,
           onDone: async function(res){
@@ -15223,7 +15242,7 @@
         var g0 = U.catItem(du.gid);
         return window.LQMock.open({
           base: фото, art: чер.art.url, gid: du.gid, size: du.size || 'M',
-          name: [(g0 && g0.name) || du.name, du.color, du.size].filter(Boolean).join(' · '),
+          name: [du.name || (g0 && g0.name), du.color, du.size].filter(Boolean).join(' · '),
           box: (чер.mock && чер.mock.box) || null,
           onDone: async function(res){
             /* Мокап зібрався в браузері як data:URL. Класти його в картку
@@ -15304,7 +15323,7 @@
     return window.LQMock.openWork({
       placeOnly: true,
       gid: u.gid, size: u.size || 'M', sizeAssumed: !u.size, color: u.color || '',
-      name: (r.repeat ? (r.name || 'Повторний') : 'Готовий дизайн «' + (r.name || '') + '»') + ' · ' + [(U.catItem(u.gid) || {}).name || u.name, u.color, u.size].filter(Boolean).join(' · '),
+      name: (r.repeat ? (r.name || 'Повторний') : 'Готовий дизайн «' + (r.name || '') + '»') + ' · ' + [u.name || (U.catItem(u.gid) || {}).name, u.color, u.size].filter(Boolean).join(' · '),
       sides: сторони, works: принти.map(function(f, k){
         var hash = 'ready:' + (r.id || '') + (k ? ':' + k : '');
         /* Уже перефарбований раніше — відкриваємо в тому ж кольорі. */
@@ -15367,7 +15386,7 @@
       ? місця.map(function(sp){ return ['Вишивка', sideWord(sp)].filter(Boolean).join(' '); })
       : ['Вишивка'];
     return {
-      model: (g && g.name) || u.name || '',
+      model: u.name || (g && g.name) || '',
       sub: sub,
       row: [['Розмір', u.size || '—'], ['Кількість', (+u.qty || 0) > 0 ? Math.round(+u.qty) + ' шт' : '']]
              .filter(function(r){ return r[1]; }),

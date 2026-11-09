@@ -152,12 +152,14 @@ const налашт = await p.evaluate(() => {
   paintB2c();
   return { on: document.querySelectorAll('#b2c-prices [data-b2c-on]').length, rp: document.querySelectorAll('#b2c-prices [data-b2c-rprice]').length,
            rd: document.querySelectorAll('#rd-list .rd-c').length, add: !!document.getElementById('rd-add'),
+           /* 10.11: сховані оком — під «Показати сховані (N)», не в списку. */
+           сховані: ((document.querySelector('#rd-list [data-rd-offs]') || {}).textContent || '').trim(),
            опис: (document.querySelector('#rd-list .rd-c i') || {}).textContent || '',
            apronOff: !(document.querySelector('[data-b2c-on="cap"]') || {}).checked };
 });
 console.log('  ' + JSON.stringify(налашт));
-ok(налашт.on > 3 && налашт.rp === налашт.on && налашт.rd === 3 && налашт.add && налашт.apronOff,
-  'налаштування: біля кожного товару «у B2C» і ціна готового ескізу; бібліотека — 3 дизайни, кнопка «+ Готовий дизайн»', JSON.stringify(налашт));
+ok(налашт.on > 3 && налашт.rp === налашт.on && налашт.rd === 2 && /Показати сховані \(1\)/.test(налашт.сховані) && налашт.add && налашт.apronOff,
+  'налаштування: біля кожного товару «у B2C» і ціна готового ескізу; бібліотека — 2 видимі + «Показати сховані (1)», кнопка «+ Готовий дизайн»', JSON.stringify(налашт));
 const ред = await p.evaluate(async () => {
   document.querySelector('[data-rd-ed="rd1"]').click();
   await new Promise(r => setTimeout(r, 100));
