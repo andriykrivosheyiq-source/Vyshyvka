@@ -1117,6 +1117,7 @@
 .pm-footer-contacts{padding-top:20px;border-top:1px solid rgba(255,255,255,.08);}
 .pm-footer-contacts div{font-size:14px;color:rgba(255,255,255,.4);margin-bottom:4px;}
 .pm-footer-copy{font-size:12px;color:rgba(255,255,255,.2)!important;margin-top:12px;margin-bottom:0!important;}
+.pm-footer-fop{font-size:13px;color:rgba(255,255,255,.55)!important;}
 /* Sticky cart bar */
   .pm-sticky-cart{
     position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
