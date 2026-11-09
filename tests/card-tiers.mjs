@@ -152,6 +152,28 @@ ok(cart && Array.isArray(cart.tierRow) && cart.tierRow.length === 5 && cart.tier
   'у позиції кошика лежить tierRow: діапазони, ціна, відсоток, поточний «2-3 шт» (тираж 2)', JSON.stringify(cart && cart.tierRow));
 await K.close();
 
+console.log('═══ 5. ЗНІМОК РЯДУ ЗАСТАРІВ — ПЛИТКИ З ЦІН КП, НЕ СУПЕРЕЧАТЬ ЦІНІ (09.11, #1000356) ═══');
+/* Позицію змінили після «Додати в кошик»: над плитками «3 090 грн/шт», а знімок
+   ряду з конструктора казав «10–19 шт · 2 540». Такий знімок не беремо. */
+const стара = await p.evaluate(async ([OFFER, rowOld]) => {
+  const O = JSON.parse(JSON.stringify(OFFER));
+  O.variants[1] = Object.assign({}, O.variants[0], { name:'Флісова кофта чоловіча', unitPrice:3090, price:30900, tierRow: rowOld,
+    tiers:[{ qty:10, unit:3090, sum:30900, now:true }, { qty:20, unit:2812, sum:0 }, { qty:50, unit:2657, sum:0 }] });
+  O.variants[0] = Object.assign({}, O.variants[0], { name:'Флісова кофта жіноча' });
+  const words = [];
+  const orig = CanvasRenderingContext2D.prototype.fillText;
+  CanvasRenderingContext2D.prototype.fillText = function(s){ words.push(String(s)); return orig.apply(this, arguments); };
+  try{
+    const c = window.LQCards.build(O, {}).find(x => x.type === 'cmp');
+    await window.LQCards.draw(c, O, {});
+    return { cols: c.cols.map(x => ({ unit: x.unit, tiers: x.tiers.map(t => (t.label || t.qty) + ':' + t.unit) })), words };
+  } finally { CanvasRenderingContext2D.prototype.fillText = orig; }
+}, [OFFER, rowFor(2540)]);
+console.log('   ' + JSON.stringify(стара.cols));
+ok(стара.cols[1].unit === 3090 && !стара.cols[1].tiers.some(t => /:2540$/.test(t)) && стара.cols[1].tiers.some(t => /^20:2812$/.test(t)) &&
+   стара.cols[0].tiers.some(t => /^10–19 шт:2780$/.test(t)) && !стара.words.some(w => w.indexOf('2 540') >= 0),
+  'застарілий знімок (поточний 2 540 при ціні 3 090) не показується — плитки з цін КП; свіжий ряд сусіда — як був', JSON.stringify(стара.cols));
+
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close(); srv.close();
 if(bad){ console.log('\n✗ не пройшло: ' + bad); process.exit(1); }

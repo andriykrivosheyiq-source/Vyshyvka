@@ -1200,9 +1200,23 @@
   /* Пороги з документа КП: першою «1 шт» за роздрібною ціною (та сама
      `baseUnitPrice`, що й у перекресленої), далі лише вищі за тираж ціни,
      до TILES_MAX. Немає жодного вищого порогу — плиток немає зовсім. */
+  /* Ряд з конструктора — знімок у мить «Додати в кошик». Позицію потім
+     могли змінити (дублювали з іншої, змінили модель чи розмір вишивки, ціну
+     зафіксували раніше) — і тоді над плитками «3 090 грн/шт», а в плитці
+     поточного тиражу «2 540» (09.11, КП #1000356). Знімок беремо лише коли
+     його поточний діапазон коштує стільки ж, скільки позиція (±1 грн);
+     інакше — пороги з тих самих цін, що й сума КП (`tiers`). */
+  function rowFresh(row, it, cur){
+    var unit = Math.round(+it.unitPrice || 0);
+    if(!(unit > 0)) return true;
+    var now = row.filter(function(r){ return r.now; })[0] ||
+              row.filter(function(r){ var f = +r.from || 1, t = (r.to == null ? null : +r.to); return cur >= f && (t == null || cur <= t); })[0];
+    return !now || Math.abs(Math.round(+now.price) - unit) <= 1;
+  }
   function tiersOf(it){
     var cur = (it.parts && +it.parts.groupQty) || (+it.qty || 0);
     var row = Array.isArray(it.tierRow) ? it.tierRow.filter(function(r){ return r && +r.price > 0; }) : [];
+    if(row.length && !rowFresh(row, it, cur)) row = [];
     if(row.length){
       var hasNow = row.some(function(r){ return r.now; });
       return row.map(function(r){

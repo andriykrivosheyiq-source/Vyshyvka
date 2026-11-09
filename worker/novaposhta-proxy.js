@@ -363,7 +363,50 @@ async function createTtn(env, order) {
            cost: +d.CostOnSite || 0, est: String(d.EstimatedDeliveryDate || ''), other: був.other || [] };
 }
 
-export const _pure = { parcelOf, saveProps, senderCode, npPhone, nameParts, sameDocs };
+/* ══════════ ПОВЕРНЕННЯ ВІДМОВЛЕНОЇ ПОСИЛКИ (09.11) ══════════
+   Андрій: «ТТН, від яких відмова, — замовити назад, щоб нам їх повернули».
+   Спершу — чи немає вже замовлення повернення на цю накладну (повторний
+   натиск, друга вкладка, замовили в кабінеті): є — віддаємо його, другого
+   не створюємо. Далі CheckPossibilityCreateReturn (куди можна повернути:
+   адреси відправника), причина «відмова» з довідника НП, і save з
+   OrderType orderCargoReturn. Платить відправник: безготівкою, коли НП
+   пропонує її для цієї адреси, інакше готівкою при отриманні. */
+const RET_REASON = /відмов|refus|не забра|не отрим/i;
+async function returnFind(env, key, ttn) {
+  let l = [];
+  try { l = await np(env, 'AdditionalService', 'getReturnOrdersList', { Number: ttn, Page: '1', Limit: '50' }, key); }
+  catch (e) { return null; }
+  const x = (l || []).filter(o => String(o.DocumentNumber || '').replace(/\D/g, '') === ttn &&
+                                  !/скасов|cancel|видал|delet/i.test(String(o.OrderStatus || '')))[0];
+  return x ? { num: String(x.OrderNumber || ''), ref: String(x.OrderRef || ''), ttn: String(x.ExpressWaybillNumber || ''),
+               status: String(x.OrderStatus || ''), cost: +x.DeliveryCost || 0, again: true } : null;
+}
+async function returnOrder(env, key, ttn, opt) {
+  opt = opt || {};
+  const був = await returnFind(env, key, ttn);
+  if (був) return був;
+  const can = await np(env, 'AdditionalService', 'CheckPossibilityCreateReturn', { Number: ttn }, key);
+  if (!can.length) throw new Error('Нова пошта каже, що повернути цю накладну зараз не можна');
+  const addr = can.filter(a => opt.addressRef && a.Ref === opt.addressRef)[0] || can[0];
+  const reasons = await np(env, 'AdditionalService', 'getReturnReasons', {}, key);
+  const reason = reasons.filter(r => RET_REASON.test(String(r.Description || '')))[0] || reasons[0];
+  if (!reason) throw new Error('Нова пошта не дала причин повернення');
+  let sub = null;
+  try {
+    const subs = await np(env, 'AdditionalService', 'getReturnReasonsSubtypes', { ReasonRef: reason.Ref }, key);
+    sub = subs.filter(r => RET_REASON.test(String(r.Description || '')))[0] || subs[0] || null;
+  } catch (e) { sub = null; }
+  const props = { IntDocNumber: ttn, PaymentMethod: addr.NonCash ? 'NonCash' : 'Cash',
+                  Reason: reason.Ref, SubtypeReason: sub ? sub.Ref : '',
+                  Note: String(opt.note || 'Повернення: отримувач не забрав посилку').slice(0, 100),
+                  OrderType: 'orderCargoReturn', ReturnAddressRef: addr.Ref };
+  const d = (await np(env, 'AdditionalService', 'save', props, key))[0] || {};
+  return { num: String(d.Number || ''), ref: String(d.Ref || ''), ttn: '',
+           addr: [addr.City, addr.Address].filter(Boolean).join(', ').slice(0, 160),
+           pay: props.PaymentMethod, reason: String(reason.Description || '').slice(0, 80) };
+}
+
+export const _pure = { parcelOf, saveProps, senderCode, npPhone, nameParts, sameDocs, returnOrder, returnFind };
 
 export default {
   async fetch(request, env) {
@@ -455,6 +498,14 @@ export default {
         await np(env, 'InternetDocument', 'delete', { DocumentRefs: ref }, key);
         return json({ ok: true, ref }, 200, cors);
       }
+      /* Повернення відмовленої посилки (09.11): {ttn, sender, addressRef?}. */
+      if (op === 'returnOrder') {
+        await whoAsks(env, body.idToken || (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''));
+        const ttn = String(body.ttn || '').replace(/\D/g, '');
+        if (ttn.length < 10) return json({ ok: false, error: 'Немає номера накладної' }, 400, cors);
+        const r = await returnOrder(env, keyFor(env, body.sender || ''), ttn, { addressRef: String(body.addressRef || ''), note: body.note });
+        return json({ ok: true, ...r }, 200, cors);
+      }
       /* ── РЕЄСТРИ Й СТАТУСИ ПАЧКОЮ (07.10, дошка цеху) ── */
       /* Реєстр із ТТН одного відправника. Нова пошта приймає внутрішні Ref
          накладних; номери без Ref (вписані руками) шукаємо в його накладних
@@ -526,8 +577,13 @@ export default {
           .filter(t => t.DocumentNumber);
         if (!list.length) return json({ ok: true, list: [] }, 200, cors);
         const d = await np(env, 'TrackingDocument', 'getStatusDocuments', { Documents: list }, anyKey());
+        /* back — накладна, створена на основі цієї (09.11): повернення,
+           замовлене з адмінки чи в кабінеті НП, — щоб картка знала його номер. */
         return json({ ok: true, list: d.map(x => ({ ttn: String(x.Number || ''), code: String(x.StatusCode || ''),
-          status: String(x.Status || ''), at: String(x.RecipientDateTime || x.ActualDeliveryDate || x.DateCreated || '') })) }, 200, cors);
+          status: String(x.Status || ''), at: String(x.RecipientDateTime || x.ActualDeliveryDate || x.DateCreated || ''),
+          back: String(x.LastCreatedOnTheBasisNumber || '').replace(/\D/g, ''),
+          backType: String(x.LastCreatedOnTheBasisDocumentType || ''),
+          backAt: String(x.LastCreatedOnTheBasisDateTime || '') })) }, 200, cors);
       }
       if (op === 'track') {
         const ttn = String(body.ttn || '').replace(/\D/g, '');

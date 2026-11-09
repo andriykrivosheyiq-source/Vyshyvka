@@ -258,7 +258,11 @@
     { key:'arrived', label:'Прибуло',             color:'cyan',  hide:true },
     { key:'stuck',   label:'Понад 3 дні у відділенні', color:'amber', hide:true },
     { key:'done',    label:'Виконано',            color:'green', hide:true, done:true },
-    { key:'refused', label:'Відмова',             color:'rose',  hide:true }
+    /* «ВІДМОВА НП» (09.11, Андрій: «відмова і відмова НП повинна бути, щоб
+       зрозуміти, по яких ТТН відмова пішла, і замовити їх назад»). Сюди лише
+       посилки, від яких відмовився отримувач чи яким НП припинила зберігання
+       (npStage), — тож колонка на виду, не за «Доставка ▸». */
+    { key:'refused', label:'Відмова НП',          color:'rose' }
   ];
   var PROD_IDX = {};
   PROD.forEach(function(s, i){ PROD_IDX[s.key] = i; });
@@ -323,6 +327,38 @@
     var r = Math.min(NP_RANK[s1], NP_RANK[s2]);
     if(r === 2) return (s1 === 'stuck' || s2 === 'stuck') ? 'stuck' : 'arrived';
     return r === 1 ? 'way' : 'done';
+  }
+  /* ПОВЕРНЕННЯ ВІДМОВЛЕНОЇ ПОСИЛКИ (09.11, Андрій: «щоб ми могли ці ТТН,
+     які нам потрібні, замовити назад, щоб нам їх повернули»). Посилка —
+     картка (part 1) або її друга посилка (part 2); замовлення повернення
+     лежить у ній же: p.npRet {at, by, num, ref, ttn, addr, outside?,
+     st:{code,status,at}, got:{at,by}}. Пише його адмінка (воркер НП
+     AdditionalService → orderCargoReturn) лише через orderApply; номер
+     накладної повернення, замовленого в кабінеті НП, підхоплює опитування
+     статусів (LastCreatedOnTheBasisNumber). Гроші не рухаються. */
+  function npParcel(o, part){ return part === 2 ? (ship2Live(o) ? o.ship2 : null) : o; }
+  var NP_RET_ARR = [7, 8], NP_RET_GOT = [9, 10, 11, 106];
+  function npRetOf(o, part){
+    var p = npParcel(o, part);
+    if(!p || !String(p.ttn || '').trim() || shipAbroad(o)) return null;
+    var ns = npStageOf(p.npSt), r = p.npRet && typeof p.npRet === 'object' ? p.npRet : null;
+    var код = r && r.st ? +r.st.code : 0;
+    if(r && r.got) return { st:'got', r: r, txt:'✓ повернення отримали' + (r.got.at ? ' · ' + String(r.got.at).slice(8, 10) + '.' + String(r.got.at).slice(5, 7) : '') };
+    if(r && NP_RET_GOT.indexOf(код) >= 0) return { st:'back', r: r, txt:'↩ повернення доставлено' + (r.ttn ? ' · ТТН ' + r.ttn : '') + ' — позначте «Отримали назад»' };
+    if(r && NP_RET_ARR.indexOf(код) >= 0) return { st:'arr', r: r, txt:'↩ повернення прибуло — заберіть на пошті' + (r.ttn ? ' · ТТН ' + r.ttn : '') };
+    if(r) return { st:'way', r: r, txt:'↩ повернення замовлено' + (r.ttn ? ' · ТТН ' + r.ttn : r.num ? ' · №' + r.num : '') +
+                   (r.st && r.st.status ? ' · ' + String(r.st.status).slice(0, 60) : '') };
+    if(ns === 'refused' && p.npSt && +p.npSt.code === 102) return { st:'np', r: null, txt:'↩ повернення вже замовлено в Новій пошті' };
+    if(ns === 'refused') return { st:'need', r: null, can: true, txt:'↩ повернення не замовлено' };
+    if(ns === 'stuck') return { st:'stuck', r: null, can: true, txt:'' };
+    return null;
+  }
+  /* Рядок на плитку: по обох посилках, що мають що сказати. */
+  function npRetTxt(o){
+    var a = npRetOf(o, 1), b = ship2Ttn(o) ? npRetOf(o, 2) : null, out = [];
+    if(a && a.txt) out.push(a.txt);
+    if(b && b.txt) out.push(b.txt + ' (посилка 2)');
+    return out.join(' · ');
   }
   /* «ВИКОНАНО» І «ВРУЧНУ» ВІД ВЛАСНИКА — ОДНАКОВО В УСІХ (04.11, Андрій:
      «перетягнув від правила — щоб воно там і було… і в менеджерів, і в
@@ -518,7 +554,10 @@
        відмовами всіма»). Сюди — і поставлені руками, і посилки, яких не
        забрали з пошти. Перетягнути сюди чи звідси не можна: лише кнопкою
        «Відмова» в рядку етапів картки, з причиною. */
-    { key:'refused', label:'Відмова',                   color:'rose'   }
+    { key:'refused', label:'Відмова',                   color:'rose'   },
+    /* ВІДМОВА НП (09.11) — окремо від відмов, поставлених руками: посилку
+       не забрали, і її треба замовити назад («↩ Замовити повернення»). */
+    { key:'npref',   label:'Відмова НП',                color:'rose'   }
   ];
   /* ПРИЧИНИ ВІДМОВИ (22.10). Ключ — для аналітики; підпис — людині. */
   var REFUSE_REASONS = [
@@ -543,6 +582,12 @@
     }
     if(prodAt(job, o) === 'refused') return { auto: true, reason: 'post', label: refuseLabel('post'), stage: 'shipped', at: '', by: '' };
     return null;
+  }
+  /* Колонка дошки акаунта з урахуванням відмов (09.11): руками — «Відмова»,
+     посилку не забрали — «Відмова НП». */
+  function refuseCol(job, o){
+    var r = refusalOf(job, o);
+    return r ? (r.auto ? 'npref' : 'refused') : chainAt(job, o);
   }
   /* Яку причину підставити першою — за тим, де замовлення стоїть зараз. */
   function refuseGuess(job, o){
@@ -596,7 +641,7 @@
      картка стоїть там, куди він її поставив, з позначкою «вручну», доки
      шпильку не знімуть. Слід — у pinHist (історія картки) і в ds. */
   var PIN_OK = {};
-  CHAIN.forEach(function(x){ if(x.key !== 'refused') PIN_OK[x.key] = 1; });
+  CHAIN.forEach(function(x){ if(x.key !== 'refused' && x.key !== 'npref') PIN_OK[x.key] = 1; });
   function pinSet(job, to, by){
     if(!job || !PIN_OK[to]) return false;
     job.pin = { to: String(to), by: String(by || ''), at: nowIso() };
@@ -793,7 +838,7 @@
   var CHAIN_WHO = {
     queue:'акаунт-менеджер', new:'акаунт-менеджер', design:'графічний дизайнер', sketch:'акаунт-менеджер', client:'клієнт', sketchok:'акаунт-менеджер',
     fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
-    prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—', refused:'акаунт-менеджер'
+    prod:'виробництво', appr:'акаунт-менеджер', ready:'виробництво', shipped:'—', refused:'акаунт-менеджер', npref:'акаунт-менеджер'
   };
 
   /* ══════════ ДОРУЧЕННЯ ══════════
@@ -3182,11 +3227,11 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
-    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, ownerDoneOf: ownerDoneOf, prodPinOf: prodPinOf, PROD_PIN_NO: PROD_PIN_NO, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt, pinSet: pinSet, pinClear: pinClear, ownerDoneOf: ownerDoneOf, prodPinOf: prodPinOf, PROD_PIN_NO: PROD_PIN_NO, pinLabel: pinLabel, PIN_OK: PIN_OK, REFUSE_REASONS: REFUSE_REASONS, refuseLabel: refuseLabel, refusalOf: refusalOf, refuseCol: refuseCol, refuseGuess: refuseGuess, QUEUE_MAX: QUEUE_MAX, queueIn: queueIn, queueOut: queueOut, queueable: queueable, queueDays: queueDays, acctCanMove: acctCanMove, acctMove: acctMove, CHAIN_OF_PROD: CHAIN_OF_PROD,
     sketchOk: sketchOk, sketchOkMark: sketchOkMark,
     PROD: PROD, PROD_IDX: PROD_IDX, prodAt: prodAt, shipAbroad: shipAbroad, abroadManual: abroadManual, npWhyUa: npWhyUa, ttnDays: ttnDays, dniTxt: dniTxt, regFailOf: regFailOf, shipKnown: shipKnown, ship2Live: ship2Live, ship2Ttn: ship2Ttn, npStageOf: npStageOf, techOf: techOf, jobTech: jobTech, stitchRole: stitchRole, printDone: printDone, REDO_BLAME: REDO_BLAME, prodReady: prodReady, prodApprove: prodApprove, shipNeedsTtn: shipNeedsTtn,
     prodReprint: prodReprint, prodMove: prodMove, prodCanMove: prodCanMove, prodMoveWhy: prodMoveWhy, ttnBad: ttnBad, reprintOpen: reprintOpen,
-    npStage: npStage, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
+    npStage: npStage, npStageOf: npStageOf, npRetOf: npRetOf, npRetTxt: npRetTxt, lossAdd: lossAdd, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
     taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
     taskDone: taskDone, taskAccept: taskAccept, taskReturn: taskReturn,
@@ -3623,6 +3668,8 @@
             (c.two ? '<span class="dz-c-row"><em class="dz-c-stk dz-c-two" title="Замовлення їде двома посилками двом отримувачам — дві накладні, дві бирки">📦 2 посилки</em></span>' : '') +
             (c.ttnBad ? '<span class="dz-c-row"><em class="dz-c-stk late dz-c-ttnold dz-c-ttnbad" title="«Створити реєстр» цю посилку не візьме">' + esc(c.ttnBad) + '</em></span>' : '') +
             (c.regFail ? '<i class="dz-c-state dz-c-regfail">НП не взяла в реєстр: ' + esc(c.regFail) + '</i>' : '') +
+            /* Відмова НП (09.11): що з поверненням посилки — на плитці. */
+            (c.npRet ? '<i class="dz-c-state dz-c-npret' + (/не замовлено/.test(c.npRet) ? ' is-need' : /прибуло|доставлено/.test(c.npRet) ? ' is-arr' : '') + '">' + esc(c.npRet) + '</i>' : '') +
           '</span>' +
         '</span>' +
         рядок + готово +
@@ -8007,7 +8054,7 @@
     var всіЗ = buys();
     /* Чернетка нового замовлення (22.10) на дошці не стоїть — до «Створити». */
     return U.pairs().filter(function(p){ return !(p.o && p.o.draft); }).map(function(p){
-      var col = D.refusalOf(p.job, p.o) ? 'refused' : D.chainAt(p.job, p.o);
+      var col = D.refuseCol(p.job, p.o);
       var open = D.taskOpen(p.job).length;
       var mk = cardMarks(p.job, m);
       var сума = (U.netSum && U.netSum(p.o, p.job)) || jobSum(p.o), оплачено = U.paidOf ? U.paidOf(p.o) : 0;
@@ -8061,6 +8108,7 @@
         /* Чого бракує менеджеру (20.10): «чекаємо доплату / дані» і «ТТН не створена». */
         waitTxt: U.WAIT_TXT[U.waitOf(p.job, p.o)] || '',
         noTtn: U.noTtn(p.job, p.o),
+        npRet: col === 'npref' ? D.npRetTxt(p.o) : '',
         needWho: !!(D.stitchNeedWho && D.stitchNeedWho(p.job).length),
         foot: стан };
     });
@@ -8072,6 +8120,7 @@
     if(col === 'queue'){ var дн = D.queueDays(job); return 'у черзі ' + (дн ? дн + ' дн.' : 'з сьогодні') + доруч; }
     if(col === 'ready')   return (o && o.ttn ? 'ТТН ' + o.ttn + (D.ship2Live(o) ? (D.ship2Ttn(o) ? ' + ' + D.ship2Ttn(o) : ' · посилка 2 чекає ТТН') : '') : D.shipAbroad(o) ? 'за кордон' : 'чекає ТТН') + доруч;
     if(col === 'appr')    return 'фото з цеху — погодьте' + доруч;
+    if(col === 'npref')   return (D.npRetTxt(o) || 'посилку не забрали') + (o && o.ttn ? ' · ТТН ' + o.ttn : '') + доруч;
     if(col === 'prod' || col === 'shipped'){
       var pk = D.prodAt(job, o);
       var pl = (D.PROD.filter(function(x){ return x.key === pk; })[0] || {}).label || '';
@@ -8220,7 +8269,7 @@
     out.push(КРОК(після('stuck'), пк === 'way' || пк === 'arrived' || пк === 'stuck', 'В дорозі',
       пк === 'arrived' ? 'У відділенні' : пк === 'stuck' ? 'У відділенні понад 3 дні' : 'В дорозі'));
     stg(out[out.length - 1], 'prod:way');
-    if(пк === 'refused') out.push({ st:'bad', t:'Відмова · ' + D.refuseLabel('post'), title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
+    if(пк === 'refused') out.push({ st:'bad', t:'Відмова НП · ' + D.refuseLabel('post'), title: o && o.ttn ? 'ТТН ' + o.ttn : '' });
     else out.push(stg(пк === 'done' ? { st:'ok', t:'Доставлено', title: o && o.ttn ? 'ТТН ' + o.ttn : '' } : { st:'next', t:'Доставлено' }, 'prod:done'));
     if(пк === 'stuck') out[out.length - 2].st = 'bad';
     /* ВІДМОВА (22.10): сіра кнопка в кінці; поставлена — червона з
@@ -8235,7 +8284,7 @@
     return out;
   }
   /* Смужка етапів у менеджера: де замовлення з пʼяти кроків. */
-  var CHAIN_STEP = { queue:0, new:0, design:0, sketch:0, client:0, sketchok:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4 };
+  var CHAIN_STEP = { queue:0, new:0, design:0, sketch:0, client:0, sketchok:0, fixes:0, stitchq:1, stitch:1, prod:2, appr:2, ready:3, shipped:4, npref:4 };
   var CHAIN_STEP_L = ['Графіка', 'Вишивка', 'Цех', 'До відправки', 'Відправлено'];
   var CHAIN_STEP_L_DTF = ['Графіка', 'Файл DTF', 'Друк', 'До відправки', 'Відправлено'];
   function cmTxt(mm){
@@ -8636,12 +8685,13 @@
        Тепер підпис береться звідти ж, звідки колонка, і стоїть ПІД
        номером: це не мітка збоку, а відповідь на питання «де воно зараз»,
        і читається вона разом із номером, а не між ним і строком. */
-    var кол = D.refusalOf(job, o) ? 'refused' : D.chainAt(job, o);    // 22.10: у відмові — «Відмова»
+    var кол = D.refuseCol(job, o);    // 22.10: у відмові — «Відмова»; 09.11: посилку не забрали — «Відмова НП»
     var крок = (D.CHAIN || []).filter(function(x){ return x.key === кол; })[0] || {};
     /* У ЦЕХУ — СТАТУС ЦЕХУ. Андрій: клієнт питає «що з моїм замовленням» —
        менеджер відкриває картку й бачить «На станках», а не просто
        «Виробництво». До цеху поруч стоїть стан одягу. */
-    var уЦеху = !!PROD_AT[кол];
+    /* «Відмова НП» (09.11) — блок цеху з поверненням посилки теж тут. */
+    var уЦеху = !!PROD_AT[кол] || кол === 'npref';
     if(уЦеху && (кол === 'prod' || кол === 'shipped')){
       var пк = D.prodAt(job, o);
       var пс = (D.PROD || []).filter(function(x){ return x.key === пк; })[0];
@@ -9583,6 +9633,7 @@
           /* «Зебра» (27.10): маркування 100×100 цієї ТТН — і в картці цеху. */
           (o.ttn && ZEBRA_COLS.indexOf(at) >= 0 ? ' <button type="button" class="dz-b dz-zb" data-do="zebra" data-ttn="' + esc(o.ttn) + '" data-sender="' + esc(o.ttnSender || '') + '" title="Маркування 100×100 для термопринтера">▥ Зебра</button>' : '') +
           (np.status ? '<br><i>Нова пошта: ' + esc(np.status) + (np.at ? ' · ' + esc(dt(np.at)) : '') + '</i>' : '') + '</div>' +
+        ((at === 'refused' || at === 'stuck') ? npRetHtml(o, at) : '') +
         (at === 'reg' && D.regFailOf(o) ? '<div class="dz-miss dz-no-ttn dz-regfail">Нова пошта не взяла в реєстр: ' + esc(D.regFailOf(o)) + (as === 'acct' ? ' — перестворіть ТТН у блоці «Відправка»' : ' — менеджер перестворить ТТН') + '</div>' : '') +
         /* Погоджено без ТТН (26.10) — червоним, поки накладної немає. */
         (at === 'ship' && !D.shipAbroad(o) && D.shipNeedsTtn(o)
@@ -9620,6 +9671,33 @@
     }
     if(!body) return '';
     return U.zoneHtml('amber', at === 'redo' ? '🔁' : '⚙', head, '', body);
+  }
+  /* ВІДМОВА НП → ПОВЕРНЕННЯ (09.11). По кожній посилці з накладною: що з
+     поверненням, «↩ Замовити повернення» (відмова чи понад 3 дні у
+     відділенні, поки повернення немає), «✓ Отримали назад» (замовлене, ще
+     не позначене) і причина відмови НП червоним, доки не натиснуть знову.
+     Натискають цех, акаунт і власник. */
+  function npRetMay(){ return can('prod') || !!(host().refuseOk && host().refuseOk()); }
+  function npRetHtml(o, at){
+    var parts = [1].concat(D.ship2Ttn(o) ? [2] : []), рядки = [];
+    parts.forEach(function(part){
+      var r = D.npRetOf(o, part);
+      if(!r) return;
+      var p = part === 2 ? o.ship2 : o;
+      var кнопки = '';
+      if(npRetMay() && r.can && host().npReturn)
+        кнопки += '<button type="button" class="dz-b' + (r.st === 'need' ? ' pri' : '') + '" data-do="np-ret" data-part="' + part + '" title="Нова пошта поверне посилку на відділення відправника; доставку назад оплачує відправник">↩ Замовити повернення</button>';
+      if(npRetMay() && r.r && !r.r.got)
+        кнопки += '<button type="button" class="dz-b' + (r.st === 'arr' || r.st === 'back' ? ' pri' : '') + '" data-do="np-ret-got" data-part="' + part + '" title="Посилку забрали на пошті — повернення закрито">✓ Отримали назад</button>';
+      var fail = host().npRetFail ? host().npRetFail(o, part) : null;
+      if(!r.txt && !кнопки && !fail) return;
+      рядки.push('<div class="dz-npret-l">' +
+        '<span class="dz-npret-t' + (r.st === 'need' ? ' is-need' : (r.st === 'arr' || r.st === 'back' || r.st === 'got') ? ' is-arr' : '') + '">' +
+          esc(r.txt || 'Посилка понад 3 дні у відділенні — можна замовити повернення') +
+          (part === 2 ? ' · посилка 2' : '') + ' · ТТН ' + esc(String(p.ttn || '')) + '</span>' + кнопки + '</div>' +
+        (fail ? '<div class="dz-npret-fail" data-npret-fail>НЕ ЗАМОВЛЕНО · ' + esc(String(fail.at || '').slice(11, 16)) + ': ' + esc(fail.why) + '</div>' : ''));
+    });
+    return рядки.length ? '<div class="dz-npret" data-npret>' + рядки.join('') + '</div>' : '';
   }
   /* ── Вікно: «Готово» (фото + коментар) і «Передрук» ─────────────────── */
   /* Зміна картки, яка МАЄ лягти (26.10): робоче місце повторює запис на
@@ -10347,6 +10425,7 @@
         ttnOld: днівТ >= 3 ? днівТ : 0,
         ttnBad: крокП === 'reg' ? D.ttnBad(p.o) : '',
         regFail: крокП === 'reg' ? D.regFailOf(p.o) : '',
+        npRet: (крокП === 'refused' || крокП === 'stuck') ? D.npRetTxt(p.o) : '',
         pic: cardPic(p.job),
         chain: stageMarks(p.job, p.o, всі),
         what: whatOf(p.job, p.o, true),
@@ -14005,6 +14084,40 @@
       if(!леглоР) return say('Не записалось — перевірте інтернет і натисніть ще раз');
       render(root);
       return say('Записано · ' + U.jobNo(job) + ' → «Передано курʼєру»');
+    }
+    /* ── Відмова НП → повернення (09.11) ── */
+    if(what === 'np-ret' || what === 'np-ret-got'){
+      if(!npRetMay()) return say('Повернення замовляють цех, акаунт-менеджер або власник');
+      var чРп = +((data && data.part) || 1) === 2 ? 2 : 1;
+      var чРв = D.npRetOf(o, чРп);
+      var чРt = String(((чРп === 2 ? o.ship2 : o) || {}).ttn || '');
+      if(what === 'np-ret'){
+        if(!чРв || !чРв.can){ render(root); return say('Повернення вже замовлено або посилка не у відмові — показано свіжу'); }
+        if(!host().npReturn) return say('Замовити повернення можна лише з адмінки');
+        if(!window.confirm('Замовити повернення посилки ТТН ' + чРt + (чРп === 2 ? ' (посилка 2)' : '') + '?\n' +
+            'Нова пошта поверне її на відділення відправника. Доставку назад оплачує відправник.')) return;
+        var чРb = root && root.querySelector('[data-do="np-ret"][data-part="' + чРп + '"]');
+        if(чРb){ чРb.disabled = true; чРb.classList.add('is-busy'); чРb.textContent = 'Замовляю…'; }
+        var чРr = null;
+        try{ чРr = await host().npReturn(o, чРп); }catch(e){ чРr = { ok: false, why: String((e && e.message) || e) }; }
+        render(root);
+        if(чРr && чРr.ok) return say('Повернення замовлено' + (чРr.num ? ' · №' + чРr.num : '') + (чРr.ttn ? ' · ТТН повернення ' + чРr.ttn : '') + (чРr.again ? ' (воно вже було в Новій пошті)' : ''));
+        return say('Повернення НЕ замовлено: ' + ((чРr && чРr.why) || 'Нова пошта відмовила'), 12000);
+      }
+      if(!чРв || !чРв.r || чРв.r.got){ render(root); return say('Повернення вже закрито — показано свіжу'); }
+      if(!window.confirm('Посилку ТТН ' + чРt + ' забрали на пошті? Повернення буде закрито.')) return;
+      var чРш = new Date().toISOString();
+      var чРл = await orderApply(o, function(x){
+          var px = чРп === 2 ? x.ship2 : x;
+          if(!px || !px.npRet) return false;
+          if(px.npRet.got && px.npRet.got.at === чРш) return;
+          if(px.npRet.got) return false;
+          px.npRet = Object.assign({}, px.npRet, { got: { at: чРш, by: m } });
+        }, function(x){ var px = чРп === 2 ? (x && x.ship2) : x; return !!(px && px.npRet && px.npRet.got && px.npRet.got.at === чРш); });
+      if(чРл === 'stale'){ render(root); return say('Повернення вже закрили — показано свіжу'); }
+      if(!чРл) return say('Не записалось — перевірте інтернет і натисніть ще раз');
+      render(root);
+      return say('Повернення закрито · ТТН ' + чРt);
     }
     /* ── Відмова: компенсація чи повна відмова — у збитки (07.10) ── */
     if(what === 'loss-comp'){
