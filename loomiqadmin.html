@@ -5223,6 +5223,10 @@
   .dz-prod-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;}
   .dz-prod-h b{font-weight:800;}
   .dz-prod-h span{color:var(--ink-soft);}
+  /* Один ескіз на кілька товарів у цеху (09.11). */
+  .dz-prod-u.is-one{border-color:#C4B5FD;background:#FAF7FF;}
+  .dz-prod-one{font-weight:800;font-size:13.5px;color:#5B21B6;}
+  .dz-card .dz-c-onesk{background:#EDE9FE;color:#5B21B6;}
   .dz-cloth{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
     font-size:12px;font-weight:700;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;}
   .dz-cloth.is-sent{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;}
@@ -5893,6 +5897,9 @@
   .rd-t{flex:1;min-width:0;display:flex;flex-direction:column;}
   .rd-t i{font-style:normal;font-size:12px;color:var(--ink-soft);}
   .rd-on{font-size:12px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;}
+  .rd-eye{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .rd-eye.is-off{background:#F2F4F7;color:var(--ink-soft);}
+  .rd-offs{margin-top:6px;align-self:flex-start;}
   .rd-ed{margin-top:10px;padding:12px;border:1px solid var(--accent);border-radius:12px;display:flex;flex-direction:column;gap:10px;}
   #arch-pop{position:fixed;inset:0;z-index:275;background:rgba(15,32,52,.42);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;}
   .arch-w{background:var(--paper,#fff);border-radius:14px;max-width:640px;width:100%;padding:14px 16px;box-shadow:0 18px 50px rgba(15,32,52,.3);}
@@ -7256,6 +7263,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div id="rd-list" class="rd-list"></div>
         <div id="rd-edit"></div>
         <button type="button" class="pc-btn" id="rd-add" style="margin-top:8px;">+ Готовий дизайн</button>
+        <!-- ДОПЛАТА ЗА «ГОТОВИЙ З ПРАВКАМИ» (10.11, Андрій: «вписати суму — яка
+             ціна додатково до звичайного готового дизайну… тільки в нових»). -->
+        <label class="field" style="display:block;max-width:320px;margin-top:14px;">
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Доплата за «Готовий з правками», ₴ — раз на позицію, до ціни готового дизайну</span>
+          <input id="b2c-base-extra" type="number" min="0" step="10" style="width:100%;" placeholder="0 — без доплати">
+        </label>
+        <div class="sub" style="margin-top:4px;">Діє лише на нові позиції: сума фіксується в позиції, коли обирають «Готовий з правками»; старі замовлення не змінюються.</div>
 
         <div class="tl-divider" style="margin-top:22px;">Додаткові послуги</div>
         <div class="sub" style="margin-bottom:8px;">
@@ -8484,32 +8498,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4f7dd6e786"></script>
-<script src="loomiq-fingerprint.js?v=4f7dd6e786"></script>
-<script src="loomiq-pricing.js?v=4f7dd6e786"></script>
+<script src="loomiq-select.js?v=9c69a3bd7c"></script>
+<script src="loomiq-fingerprint.js?v=9c69a3bd7c"></script>
+<script src="loomiq-pricing.js?v=9c69a3bd7c"></script>
 <!-- Грошове ядро: єдине місце, де рахується «скільки сплачено», і Звірка.
      Правила стереже tests/money-core.mjs — без нього коміт не пройде. -->
-<script src="loomiq-money-core.js?v=4f7dd6e786"></script>
+<script src="loomiq-money-core.js?v=9c69a3bd7c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4f7dd6e786"></script>
-<script src="loomiq-mock.js?v=4f7dd6e786"></script>
+<script src="loomiq-design.js?v=9c69a3bd7c"></script>
+<script src="loomiq-mock.js?v=9c69a3bd7c"></script>
 <!-- Підбір ниток до зображення для графічних дизайнерів: зводить картинку до
      кольорів наших ниток і трасує в SVG з прибитою палітрою. Бібліотека
      трасування — перед ним. -->
-<script src="imagetracer.js?v=4f7dd6e786"></script>
+<script src="imagetracer.js?v=9c69a3bd7c"></script>
 <!-- Діалог: Telegram і Instagram/Sitniks, вікно переписки, розділи «Чати».
      Окремим файлом (19.10): переписка — найвразливіше місце адмінки, і
      зміни в картках чи грошах не мають її зачіпати. Стереже
      tests/chat-guard.mjs. Іде перед основним скриптом: той кличе його. -->
-<script src="loomiq-chat.js?v=4f7dd6e786"></script>
-<script src="loomiq-threads.js?v=4f7dd6e786"></script>
+<script src="loomiq-chat.js?v=9c69a3bd7c"></script>
+<script src="loomiq-threads.js?v=9c69a3bd7c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4f7dd6e786"></script>
+<script src="loomiq-cards.js?v=9c69a3bd7c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8554,8 +8568,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '4f7dd6e786';
-var LQ_VER_AT = '2026-11-09T14:16:56Z';
+var LQ_VER = '9c69a3bd7c';
+var LQ_VER_AT = '2026-11-09T20:02:12Z';
 /* ЗАСЛОНА «ВИЙШЛО ОНОВЛЕННЯ» (27.10, Андрій: «на весь екран усе
    заблюрюється і висить кнопка «Оновити», щоб ніхто не міг працювати в
    старій версії»). Стара вкладка, що живе днями, пише картки старим кодом і
@@ -15957,7 +15971,10 @@ function b2cCfg(){
               дефолт: показуємо новий. */
            cardTitle: (String(c.cardTitle || '').trim() === 'Макет на узгодження' ? '' : String(c.cardTitle || '').trim()) || B2C_CARD_TITLE,
            /* Палітра ниток: null — стандартна з модуля підбору. */
-           threads: (Array.isArray(c.threads) && c.threads.length) ? c.threads : null };
+           threads: (Array.isArray(c.threads) && c.threads.length) ? c.threads : null,
+           /* Доплата за «Готовий з правками» (10.11): до ціни готового дизайну,
+              раз на позицію; фіксується в позиції в мить вибору (`u.base.extra`). */
+           baseExtra: (+c.baseExtra > 0) ? Math.round(+c.baseExtra) : 0 };
 }
 /* ── Нитки для вишивки: редактор палітри ── */
 function threadsDefault(){
@@ -16077,17 +16094,28 @@ async function rdUpload(f){
   try{ return { name: f.name || 'файл', url: await uploadCloudinaryAuto(f) }; }
   catch(e){ console.error(e); toast('Файл не завантажився: ' + ((e && e.message) || e)); return null; }
 }
+/* ОКО (10.11, Андрій: «готові дизайни оком показувати або не показувати…
+   щоб у старих замовленнях лишились, а в нових — сховати, щоб не мішали»).
+   Закрите око = `off`: у вікні «Готовий дизайн» нових замовлень його немає
+   (host `readyDesigns` віддає лише відкриті), а позиція старого замовлення
+   тримає свою копію (`u.ready` — назва, картинка, файли) і нічого не губить.
+   Сховані в списку налаштувань — під «Показати сховані (N)», щоб не мішали. */
+let RD_SHOW_OFF = false;
 function paintReadyDesigns(){
   const box = document.getElementById('rd-list');
-  const l = readyDesigns();
-  if(box) box.innerHTML = l.length ? l.map(d => `<div class="rd-c${d.off ? ' is-off' : ''}">
+  const всі = readyDesigns();
+  const сховано = всі.filter(d => d.off).length;
+  const l = RD_SHOW_OFF ? всі : всі.filter(d => !d.off);
+  if(box) box.innerHTML = (l.length ? l.map(d => `<div class="rd-c${d.off ? ' is-off' : ''}">
       <span class="rd-th">${d.pic ? `<img src="${escapeHtml(d.pic)}" alt="">` : '—'}</span>
       <span class="rd-t"><b>${escapeHtml(d.name || 'Без назви')}</b>
         <i>${escapeHtml([d.tags, (d.files || []).length + ' вишив. файл(и)', rdArts(d).length ? 'принтів: ' + rdArts(d).length : 'принта немає',
           (d.extras || []).length ? 'додатково: ' + d.extras.length : ''].filter(Boolean).join(' · '))}</i></span>
       <button type="button" class="pc-btn" data-rd-ed="${escapeHtml(d.id)}">Змінити</button>
-      <label class="rd-on"><input type="checkbox" data-rd-on="${escapeHtml(d.id)}"${d.off ? '' : ' checked'}> показувати</label>
-    </div>`).join('') : '<div class="sub">Готових дизайнів ще немає.</div>';
+      <button type="button" class="rd-eye${d.off ? ' is-off' : ''}" data-rd-eye="${escapeHtml(d.id)}"
+        title="${d.off ? 'Сховано: у нових замовленнях його не додати, у старих лишається — натисніть, щоб показувати знову' : 'Показується в нових замовленнях — натисніть, щоб сховати (у старих лишиться)'}">${d.off ? '🙈 сховано' : '👁 показується'}</button>
+    </div>`).join('') : '<div class="sub">' + (всі.length ? 'Усі готові дизайни сховані.' : 'Готових дизайнів ще немає.') + '</div>') +
+    (сховано ? `<button type="button" class="pc-btn rd-offs" data-rd-offs>${RD_SHOW_OFF ? 'Сховати приховані' : 'Показати сховані (' + сховано + ')'}</button>` : '');
   /* Куди малюємо редагування: у Налаштуваннях — під списком; із картки —
      у вікні поверх неї. Одночасно — лише в одному місці (ті самі id полів). */
   const inSet = document.getElementById('rd-edit');
@@ -16185,11 +16213,14 @@ document.addEventListener('click', async e => {
     return rdSave(l, 'Готовий дизайн збережено');
   }
 });
-document.addEventListener('change', e => {
-  const c = e.target.closest && e.target.closest('[data-rd-on]');
+document.addEventListener('click', e => {
+  const s0 = e.target.closest && e.target.closest('[data-rd-offs]');
+  if(s0){ RD_SHOW_OFF = !RD_SHOW_OFF; paintReadyDesigns(); return; }
+  const c = e.target.closest && e.target.closest('[data-rd-eye]');
   if(!c) return;
-  const l = readyDesigns().map(x => x.id === c.dataset.rdOn ? Object.assign({}, x, { off: !c.checked }) : x);
-  rdSave(l, c.checked ? 'Показується' : 'Сховано');
+  let off = false;
+  const l = readyDesigns().map(x => { if(x.id !== c.dataset.rdEye) return x; off = !x.off; return Object.assign({}, x, { off }); });
+  rdSave(l, off ? 'Сховано: у нових замовленнях не додати, у старих лишається' : 'Показується в нових замовленнях');
 });
 function paintB2c(){
   const c = b2cCfg();
@@ -16200,6 +16231,8 @@ function paintB2c(){
   try{ paintThreads(); }catch(e){ console.warn('нитки', e); }
   const d = document.getElementById('b2c-days');
   if(d) d.value = (c.days === B2C_DAYS) ? '' : (c.days || '');
+  const be = document.getElementById('b2c-base-extra');
+  if(be) be.value = c.baseExtra ? c.baseExtra : '';
   paintB2cTerms();
   const n = document.getElementById('b2c-note');
   if(n) n.value = (c.note === B2C_NOTE) ? '' : c.note;
@@ -16372,7 +16405,8 @@ function retailCost(gid, kind){
                   terms: Object.keys(terms).length ? terms : null,
                   dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
                   dzHours: terms.dzNew || null,
-                  note: note || null, cardTitle: cardTitle || null };
+                  note: note || null, cardTitle: cardTitle || null,
+                  baseExtra: Math.max(0, Math.round(parseFloat((document.getElementById('b2c-base-extra') || {}).value) || 0)) || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
        б невідомо, яке справжнє. */
@@ -20492,22 +20526,18 @@ function logoPrevUrl(o){
 function itemGarmentId(it){
   return (it && it.config && it.config.garmentId) || (it && it.garmentId) || '';
 }
-/* Назва позиції — ЖИВА, а не та, що була в мить додавання.
-
-   Назву товару міняють у Конструкторі сайту, і доти зміна діяла лише на
-   каталог і на нові позиції: у вже зібраних замовленнях лишалось старе
-   слово. Виходило, що те саме худі в Канбані, у КП і на сайті звалось
-   по-різному — залежно від того, коли його поклали в замовлення. Клієнт
-   бачить обидві назви, бо КП відкриває поруч із сайтом.
-
-   Беремо перейменування за ідентифікатором виробу. Немає перейменування —
-   лишається те, що записано в позиції: рекомендовані з чужого прайсу й
-   разові роботи взагалі не мають ідентифікатора, і вигадувати їм назву
-   нема з чого. */
+/* Назва позиції — ТА, З ЯКОЮ ЇЇ ДОДАЛИ (10.11, Андрій: «перейменувати товар,
+   щоб у старих він називався так, як записаний, а в нових — по-новому»).
+   Нова позиція бере назву з конструктора, а він уже знає перейменування
+   (`LQ_name`), тож нові — з новою назвою; старі — зі своєю. Перейменування
+   за ідентифікатором — лише запасний шлях, коли назви в позиції немає.
+   (Доти, з 10.2026, назва була «живою»: перейменування переписувало й старі
+   замовлення та їхні КП.) */
 function itemName(it){
+  const own = String((it && it.name) || '').trim();
+  if(own) return own;
   const gid = itemGarmentId(it);
-  const over = gid && (contentData.names || {})[gid];
-  return over || (it && it.name) || '';
+  return (gid && (contentData.names || {})[gid]) || '';
 }
 /* Розмірна сітка в тому вигляді, у якому її читає клієнт.
    У базі сітка лежить рядками-обʼєктами: {size:'M', A:71, B:53}, а мірки
@@ -34122,6 +34152,8 @@ function designHostInit(){
        один — той, що в Налаштуваннях B2C. */
     /* Готові дизайни (налаштування B2C) — для вибору в картці. */
     readyDesigns: () => readyDesigns().filter(d => !d.off),
+    /* Доплата за «Готовий з правками» (10.11) — з Налаштувань B2C. */
+    baseExtra: () => b2cCfg().baseExtra,
     /* З позиції — у базові (22.10): лише власник. */
     readyFrom: (orderId, unitId) => rdFromOf(orderId, unitId),
     readyMake: pre => rdMakeFrom(pre),

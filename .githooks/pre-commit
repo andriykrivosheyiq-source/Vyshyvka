@@ -627,6 +627,26 @@ if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.
   echo "✓ одна накладна на одне замовлення"
 fi
 
+# ГОТОВІ ДИЗАЙНИ (10.11): око, назви в старих не міняються, доплата «Готовий з правками».
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/ready-extras\.mjs)'; then
+  node tests/ready-extras.mjs >/tmp/lq-ready-extras.log 2>&1 || {
+    echo "✗ Око готових дизайнів / назви старих позицій / доплата за правки зламались — коміт зупинено. Подробиці: /tmp/lq-ready-extras.log"
+    grep '✗' /tmp/lq-ready-extras.log
+    exit 1
+  }
+  echo "✓ готові дизайни: око, назви, доплата за правки"
+fi
+
+# ОДИН ЕСКІЗ НА КІЛЬКА ТОВАРІВ (09.11, #2000436): у цеху групою, на плитці, у виробничій карті.
+if git diff --cached --name-only | grep -qE '^(loomiq-design\.js|loomiqadmin\.html|tests/one-sketch\.mjs)'; then
+  node tests/one-sketch.mjs >/tmp/lq-one-sketch.log 2>&1 || {
+    echo "✗ Товари з одним ескізом у цеху знову окремо (порожній блок) — коміт зупинено. Подробиці: /tmp/lq-one-sketch.log"
+    grep '✗' /tmp/lq-one-sketch.log
+    exit 1
+  }
+  echo "✓ один ескіз на кілька товарів — зрозуміло цеху"
+fi
+
 # ВІДМОВА НП → ПОВЕРНЕННЯ (09.11): окрема колонка, «Замовити повернення» один раз, статус повернення.
 if git diff --cached --name-only | grep -qE '^(loomiqadmin\.html|loomiq-design\.js|worker/novaposhta-proxy\.js|tests/np-return\.mjs)'; then
   node tests/np-return.mjs >/tmp/lq-np-return.log 2>&1 || {
