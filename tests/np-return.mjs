@@ -291,6 +291,45 @@ const диз = await p.evaluate(async () => {
 });
 ok(диз.calls === 0 && !диз.npRet, 'дизайнер — ні виклику, ні запису', JSON.stringify(диз));
 
+console.log('— відмову не затирає опитування; затерту — повертаємо з версій (11.11) —');
+const затерте = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const днів = n => new Date(Date.now() - n * 864e5).toISOString();
+  const mk = (id, np) => {
+    const o = { id:'r' + id, orderId:id, type:'client', dir:'b2c', name:'Z' + id, phone:'+380670009' + id.slice(-3), status:'prorahunok', site:'main',
+      payments:[{ sum:300, at:днів(20), kind:'prepay' }], hist:[], createdAt:днів(20), crmChatId:'c' + id, items:[],
+      tracks:{ prod:'done', qc:'ok', ship:'ttn' }, ttn:'2045000000' + id.slice(-4), ttnAt:днів(8), prodQc:{ photos:['x'], at:днів(9) }, npSt: np };
+    orders.push(o);
+    const j = designJobMake(id); j.no = id; j.units = [Object.assign(U.unitNew(), { gid:'tee', name:'Футболка', color:'Чорний', size:'M', qty:1 })]; j.approvedVersion = 1;
+    designJobs[id] = j; return o;
+  };
+  const a = mk('2000906', { code:'103', status:'Відмова одержувача', at:днів(3) });
+  window.__NP.track = { '20450000000906': { ttn:'20450000000906', code:'104', status:'Змінено адресу' } };
+  await prodNpPoll(true); await new Promise(r => setTimeout(r, 200));
+  const out = { після: JSON.parse(JSON.stringify(a.npSt)) };
+  /* затерта: статус після 09.11 уже не відмова, у версіях — відмова */
+  const b = mk('2000907', { code:'104', status:'Змінено адресу', at:'2026-11-10T08:00:00.000Z' });
+  const realHist = window.histList;
+  window.histList = async (col, id) => id === 'r2000907'
+    ? [Object.assign(JSON.parse(JSON.stringify(b)), { npSt:{ code:'103', status:'Відмова одержувача', at:'2026-11-08T10:00:00.000Z' }, _v:{ at:'2026-11-09T16:00:00.000Z' } })]
+    : [];
+  try{
+    out.кандидати = window.__lqNpRef.candidates().map(c => c.o.orderId);
+    const f = await window.__lqNpRef.scan();
+    out.знайдено = f.map(c => c.o.orderId + ':' + c.was.code);
+    out.повернуто = await window.__lqNpRef.restore(f[0]);
+  } finally { window.histList = realHist; }
+  const b2 = orders.find(x => x.orderId === '2000907');
+  out.b = { code: b2.npSt.code, lost: (b2.npStLost || {}).code, col: D.refuseCol(designJobs['2000907'], b2) };
+  return out;
+});
+console.log('   ' + JSON.stringify(затерте));
+ok(затерте.після.code === '103', 'опитування не знімає статус відмови (НП тепер каже «Змінено адресу») — картка лишається у «Відмова НП»', JSON.stringify(затерте.після));
+ok(затерте.кандидати.includes('2000907') && !затерте.кандидати.includes('2000906') && затерте.знайдено.join() === '2000907:103',
+  'затерту відмову знайдено за версією картки', JSON.stringify(затерте));
+ok(затерте.повернуто && затерте.b.code === '103' && затерте.b.lost === '104' && затерте.b.col === 'npref',
+  '«Повернути» — статус відмови з версії, картка знову у «Відмова НП», затертий статус збережено поруч', JSON.stringify(затерте.b));
+
 console.log('— «Обсяг даних» у «Стан системи» (вимір для телефона) —');
 const обсяг = await p.evaluate(() => {
   const r = window.__lqDataSize();
